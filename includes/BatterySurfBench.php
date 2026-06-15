@@ -22,6 +22,13 @@ class BatterySurfBench {
 	public const PLUGIN_FILE = 'plugin.file';
 
 	/**
+	 * Absolute path to the main plugin file.
+	 *
+	 * @var string
+	 */
+	private string $plugin_file;
+
+	/**
 	 * The plugin's service and configuration container.
 	 *
 	 * @var Container
@@ -29,13 +36,21 @@ class BatterySurfBench {
 	private Container $container;
 
 	/**
-	 * Builds the bootstrap and seeds the container with the plugin file path.
+	 * Stores the plugin file path. No work is done here so the object can be
+	 * constructed without side effects.
 	 *
 	 * @param string $plugin_file Absolute path to the main plugin file.
 	 */
 	public function __construct( string $plugin_file ) {
+		$this->plugin_file = $plugin_file;
+	}
+
+	/**
+	 * Boots the plugin: builds the container and wires up its services.
+	 */
+	public function init(): void {
 		$this->container = new Container();
-		$this->container->set( self::PLUGIN_FILE, $plugin_file );
+		$this->container->set( self::PLUGIN_FILE, $this->plugin_file );
 	}
 
 	/**

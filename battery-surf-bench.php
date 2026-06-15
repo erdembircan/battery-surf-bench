@@ -11,4 +11,4 @@ defined( 'ABSPATH' ) || exit;
 
 require_once __DIR__ . '/vendor/autoload.php';
 
-new BatterySurfBench( __FILE__ );
+( new BatterySurfBench( __FILE__ ) )->init();
