@@ -1,0 +1,39 @@
+<?xml version="1.0"?>
+<ruleset name="Battery Surf Bench">
+	<description>WordPress coding standards for Battery Surf Bench.</description>
+
+	<file>.</file>
+
+	<exclude-pattern>/vendor/</exclude-pattern>
+	<exclude-pattern>/node_modules/</exclude-pattern>
+
+	<arg name="extensions" value="php"/>
+	<arg name="basepath" value="."/>
+	<arg name="parallel" value="8"/>
+	<arg name="colors"/>
+	<arg value="sp"/>
+
+	<rule ref="WordPress">
+		<!-- The project uses PSR-4 CamelCase file names, not class-*.php. -->
+		<exclude name="WordPress.Files.FileName"/>
+	</rule>
+
+	<config name="minimum_wp_version" value="6.0"/>
+
+	<rule ref="WordPress.WP.I18n">
+		<properties>
+			<property name="text_domain" type="array">
+				<element value="battery-surf-bench"/>
+			</property>
+		</properties>
+	</rule>
+
+	<rule ref="WordPress.NamingConventions.PrefixAllGlobals">
+		<properties>
+			<property name="prefixes" type="array">
+				<element value="battery_surf_bench"/>
+				<element value="ErdemBircan\BatterySurfBench"/>
+			</property>
+		</properties>
+	</rule>
+</ruleset>
