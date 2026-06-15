@@ -9,17 +9,25 @@
         }
     ],
     "require": {
-        "php": ">=8.1"
+        "php": ">=8.1",
+        "psr/container": "^2.0"
     },
     "require-dev": {
+        "brain/monkey": "^2.6",
         "dealerdirect/phpcodesniffer-composer-installer": "^1.0",
         "phpcompatibility/phpcompatibility-wp": "^2.1",
+        "phpunit/phpunit": "^10.5",
         "squizlabs/php_codesniffer": "^3.11",
         "wp-coding-standards/wpcs": "^3.1"
     },
     "autoload": {
         "psr-4": {
             "ErdemBircan\\BatterySurfBench\\": "includes/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "ErdemBircan\\BatterySurfBench\\Tests\\": "tests/"
         }
     },
     "config": {
@@ -30,6 +38,8 @@
     },
     "scripts": {
         "lint": "phpcs",
-        "lint:fix": "phpcbf"
+        "lint:fix": "phpcbf",
+        "test": "phpunit",
+        "test:coverage": "phpunit --coverage-html coverage"
     }
 }

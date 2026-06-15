@@ -54,6 +54,125 @@ PHPDoc:
 
 All source files (both JS/TS and PHP) must use **CamelCase** (e.g. `BatteryMonitor.php`, `BenchmarkRunner.ts`, `IRenderer.ts`, `SampleType.ts`). This applies to every file regardless of what it exports — classes, interfaces, types, constants, or utilities.
 
+## Testing Philosophy
+
+**Test behavior, not implementation.**
+
+Tests verify that code works correctly for its consumers. Focus on **what** the code does, not **how** it does it internally.
+
+### Core Rules
+
+1. **Test through the public interface.** Never assert on private methods, internal state, or implementation details.
+2. **Consumer-oriented.** When a component's consumer is another component, treat that consumer as the end user. Test what it sees and relies on.
+3. **Implementation-proof.** If an implementation changes but behavior stays the same, tests MUST still pass.
+4. **All code changes need tests.** New features, bug fixes, refactors.
+
+### What to Assert
+
+- Return values from public methods
+- Side effects visible to consumers (hooks registered, WP functions called with correct args)
+- Exception/error behavior on invalid input
+- Interface compliance (`assertInstanceOf`)
+- Singleton identity guarantee (consumers depend on getting the same instance)
+
+### What NOT to Assert
+
+- Private/protected property values
+- Internal data structures or storage format
+- Which private helper methods were called
+- How a value was computed (only that the result is correct)
+- Static property names or internal variable names
+
+### Examples
+
+#### Good: Test behavior through the public interface
+
+```php
+// Tests what consumers see: get/has return correct values
+public function test_get_returns_stored_value(): void {
+    $registry = new Registry(['name' => 'pitch-vault']);
+    $this->assertSame('pitch-vault', $registry->get('name'));
+}
+
+// Tests interface compliance (consumers depend on this contract)
+public function test_implements_container_interface(): void {
+    $registry = new Registry([]);
+    $this->assertInstanceOf(ContainerInterface::class, $registry);
+}
+
+// Tests error behavior consumers will encounter
+public function test_get_throws_not_found_exception_for_unknown_key(): void {
+    $registry = new Registry([]);
+    $this->expectException(NotFoundExceptionInterface::class);
+    $registry->get('nonexistent');
+}
+```
+
+#### Good: Test the guarantee, not the mechanism
+
+```php
+// Consumers depend on getting the same instance - test that
+public function test_initialize_returns_same_instance(): void {
+    $first  = PitchVault::initialize('/path/to/plugin.php');
+    $second = PitchVault::initialize('/path/to/plugin.php');
+    $this->assertSame($first, $second);
+}
+```
+
+#### Bad: Testing implementation details
+
+```php
+// BAD: Asserts on internal property name
+public function test_singleton_stores_in_static_property(): void {
+    PitchVault::initialize('/path');
+    $ref = new ReflectionClass(PitchVault::class);
+    $prop = $ref->getProperty('instance'); // couples to property name
+    $this->assertNotNull($prop->getValue());
+}
+
+// BAD: Tests internal array structure instead of public behavior
+public function test_registry_internal_items_array(): void {
+    $registry = new Registry(['key' => 'val']);
+    $ref = new ReflectionClass($registry);
+    $items = $ref->getProperty('items');
+    $this->assertArrayHasKey('key', $items->getValue($registry));
+}
+```
+
+#### Good: Test observable side effects
+
+```php
+// Tests that the WP hook was registered (consumer-visible behavior)
+public function test_init_hooks_register_on_init(): void {
+    $cpt = new TestablePostType('test_cpt', 'Test', 'prefix', 'manage_options');
+    $cpt->init();
+    $this->assertNotFalse(has_action('init', [$cpt, 'register']));
+}
+
+// Tests that WP receives the right arguments (the external contract)
+public function test_register_meta_prefixes_field_keys(): void {
+    Functions\expect('register_post_meta')
+        ->once()
+        ->with('test_cpt', 'prefix_field_a', \Mockery::type('array'));
+    $cpt = new TestablePostType('test_cpt', 'Test', 'prefix', 'manage_options');
+    $cpt->register_meta();
+}
+```
+
+### Checklist Before Writing a Test
+
+1. Am I testing a public method or observable side effect?
+2. Would this test break if I refactored internals without changing behavior?
+   - If yes, rewrite the test.
+3. Does this test use Reflection to access private members?
+   - Only acceptable in `tearDown()` for cleanup (e.g., resetting singletons). Never in assertions.
+4. Am I asserting the **result** or the **mechanism**?
+   - Assert the result.
+
+### Tooling
+
+Tests run on **PHPUnit** with **Brain Monkey** for WordPress function/hook mocking. The base `ErdemBircan\BatterySurfBench\Tests\TestCase` wires Brain Monkey's `setUp`/`tearDown` into the lifecycle — extend it for any test that touches WordPress. Run the suite with `composer test` (coverage via `composer test:coverage`).
+
 ## Commit Conventions — Conventional Commits
 
 ### Commit Message Format
