@@ -12,4 +12,7 @@ that affects architecture, module interactions, or data flow must update the rel
 in the same commit or PR — a chart that does not match the code is actively misleading. See
 `CLAUDE.md` for the full content rules.
 
-- [php-class-interactions.md](php-class-interactions.md) — class interactions across the plugin's PHP classes: the bootstrap, the PSR-11 container, and its not-found exception.
+Charts are authored as standalone Mermaid (`.mmd`) source files; each has a companion `.md`
+that carries the relationships table and notes.
+
+- [php-class-interactions.mmd](php-class-interactions.mmd) — class interactions across the plugin's PHP classes: the bootstrap, the PSR-11 container, and its not-found exception ([documentation](php-class-interactions.md)).

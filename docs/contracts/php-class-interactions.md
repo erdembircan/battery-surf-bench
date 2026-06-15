@@ -8,45 +8,10 @@ the chart wins until the code is reconciled.
 
 ## Class diagram
 
-```mermaid
-classDiagram
-    direction LR
-
-    class BatterySurfBench {
-        +const PLUGIN_FILE
-        +__construct(string plugin_file)
-        +init() void
-        +container() Container
-    }
-
-    class ContainerInterface {
-        <<interface>>
-        +get(string id) mixed
-        +has(string id) bool
-    }
-
-    class Container {
-        +set(string id, mixed value) void
-        +get(string id) mixed
-        +has(string id) bool
-    }
-
-    class NotFoundExceptionInterface {
-        <<interface>>
-    }
-
-    class InvalidArgumentException {
-        <<abstract>>
-    }
-
-    class NotFoundException
-
-    BatterySurfBench --> Container : creates & owns (composition)
-    Container ..|> ContainerInterface : implements
-    Container ..> NotFoundException : throws
-    NotFoundException --|> InvalidArgumentException : extends
-    NotFoundException ..|> NotFoundExceptionInterface : implements
-```
+The chart is maintained as a standalone Mermaid source file:
+**[`php-class-interactions.mmd`](php-class-interactions.mmd)**. Render it with the Mermaid
+CLI (`mmdc -i php-class-interactions.mmd -o php-class-interactions.svg`) or any Mermaid-aware
+viewer.
 
 ## Relationships
 
