@@ -1,0 +1,38 @@
+%% PHP class interactions — contract chart.
+classDiagram
+    direction LR
+
+    class BatterySurfBench {
+        +const PLUGIN_FILE
+        +__construct(string plugin_file)
+        +init() void
+        +container() Container
+    }
+
+    class ContainerInterface {
+        <<interface>>
+        +get(string id) mixed
+        +has(string id) bool
+    }
+
+    class Container {
+        +set(string id, mixed value) void
+        +get(string id) mixed
+        +has(string id) bool
+    }
+
+    class NotFoundExceptionInterface {
+        <<interface>>
+    }
+
+    class InvalidArgumentException {
+        <<abstract>>
+    }
+
+    class NotFoundException
+
+    BatterySurfBench --> Container : creates & owns (composition)
+    Container ..|> ContainerInterface : implements
+    Container ..> NotFoundException : throws
+    NotFoundException --|> InvalidArgumentException : extends
+    NotFoundException ..|> NotFoundExceptionInterface : implements
