@@ -10,6 +10,7 @@ declare( strict_types=1 );
 namespace ErdemBircan\BatterySurfBench\Tests;
 
 use Brain\Monkey;
+use Brain\Monkey\Functions;
 use PHPUnit\Framework\TestCase as PHPUnitTestCase;
 
 /**
@@ -19,11 +20,13 @@ use PHPUnit\Framework\TestCase as PHPUnitTestCase;
 abstract class TestCase extends PHPUnitTestCase {
 
 	/**
-	 * Sets up Brain Monkey before each test.
+	 * Sets up Brain Monkey and stubs common WordPress escaping helpers so
+	 * code under test can call them without a loaded WordPress.
 	 */
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		Functions\when( 'esc_html' )->returnArg();
 	}
 
 	/**

@@ -16,16 +16,6 @@
 	<rule ref="WordPress">
 		<!-- The project uses PSR-4 CamelCase file names, not class-*.php. -->
 		<exclude name="WordPress.Files.FileName"/>
-		<!--
-			The project's PHPDoc convention (see CLAUDE.md) is descriptions only:
-			types are declared in the signature, so @param/@return omit them.
-			These sniffs require redundant types and so conflict with it.
-		-->
-		<exclude name="Squiz.Commenting.FunctionComment.MissingParamType"/>
-		<exclude name="Squiz.Commenting.FunctionComment.MissingParamTag"/>
-		<exclude name="Squiz.Commenting.FunctionComment.MissingReturnType"/>
-		<!-- Typed properties declare their type in the signature; @var is redundant. -->
-		<exclude name="Squiz.Commenting.VariableComment.MissingVar"/>
 	</rule>
 
 	<!-- Check PHP cross-version compatibility down to the project's minimum. -->

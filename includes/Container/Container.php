@@ -27,8 +27,8 @@ class Container implements ContainerInterface {
 	/**
 	 * Registers an entry under the given identifier.
 	 *
-	 * @param $id    Identifier of the entry to register.
-	 * @param $value Value to store.
+	 * @param string $id    Identifier of the entry to register.
+	 * @param mixed  $value Value to store.
 	 */
 	public function set( string $id, mixed $value ): void {
 		$this->entries[ $id ] = $value;
@@ -37,14 +37,15 @@ class Container implements ContainerInterface {
 	/**
 	 * Returns the entry stored under the given identifier.
 	 *
-	 * @param $id Identifier of the entry to look for.
+	 * @param string $id Identifier of the entry to look for.
 	 * @throws NotFoundException When no entry is registered for the identifier.
-	 * @return The stored entry.
+	 * @return mixed The stored entry.
 	 */
 	public function get( string $id ): mixed {
 		if ( ! $this->has( $id ) ) {
-			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Framework-level exception message, not rendered as page output.
-			throw new NotFoundException( sprintf( 'No entry was found for identifier "%s".', $id ) );
+			throw new NotFoundException(
+				esc_html( sprintf( 'No entry was found for identifier "%s".', $id ) )
+			);
 		}
 
 		return $this->entries[ $id ];
@@ -53,8 +54,8 @@ class Container implements ContainerInterface {
 	/**
 	 * Tells whether an entry is registered under the given identifier.
 	 *
-	 * @param $id Identifier of the entry to look for.
-	 * @return Whether the entry exists.
+	 * @param string $id Identifier of the entry to look for.
+	 * @return bool Whether the entry exists.
 	 */
 	public function has( string $id ): bool {
 		return array_key_exists( $id, $this->entries );

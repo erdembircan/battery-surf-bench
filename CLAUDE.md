@@ -26,9 +26,9 @@ Before closing out any implementation task, verify whether the change warrants a
 
 ## JSDoc & PHPDoc
 
-Classes and functions must be documented — JSDoc for JS/TS code, PHPDoc for PHP code. Do **not** add doc comments to types or interfaces — the language makes them self-explanatory. Where the language already declares the type (TypeScript annotations, PHP type declarations), omit redundant `@param {type}` / `@param type` and `@returns` / `@return` type annotations. Descriptions only.
+Classes and functions must be documented — JSDoc for JS/TS code, PHPDoc for PHP code. Do **not** add doc comments to types or interfaces — the language makes them self-explanatory.
 
-JSDoc (TypeScript):
+**TypeScript (JSDoc):** the TypeScript annotation already declares the type, so omit redundant `@param {type}` / `@returns {type}` annotations — descriptions only.
 
 ```ts
 /**
@@ -39,14 +39,14 @@ JSDoc (TypeScript):
  */
 ```
 
-PHPDoc:
+**PHP (PHPDoc):** include full type annotations in `@param`, `@return`, and `@var` tags, as the WordPress Coding Standards require — even where the signature already declares the type.
 
 ```php
 /**
  * Records a single battery benchmark sample and persists it.
  *
- * @param $sample The captured benchmark sample.
- * @return The stored sample's identifier.
+ * @param Sample $sample The captured benchmark sample.
+ * @return int The stored sample's identifier.
  */
 ```
 
