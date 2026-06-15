@@ -18,6 +18,10 @@
 		<exclude name="WordPress.Files.FileName"/>
 	</rule>
 
+	<!-- Check PHP cross-version compatibility down to the project's minimum. -->
+	<rule ref="PHPCompatibilityWP"/>
+	<config name="testVersion" value="8.1-"/>
+
 	<config name="minimum_wp_version" value="6.0"/>
 
 	<rule ref="WordPress.WP.I18n">
