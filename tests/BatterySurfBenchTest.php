@@ -20,6 +20,8 @@ use Brain\Monkey\Functions;
 use ErdemBircan\BatterySurfBench\BatterySurfBench;
 use ErdemBircan\BatterySurfBench\Container\Container;
 
+use function has_action;
+
 /**
  * Behavioral tests for the bootstrap's public contract.
  */

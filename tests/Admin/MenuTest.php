@@ -7,7 +7,7 @@
  */
 
 /**
- * Tests for the admin menu component.
+ * Tests for the admin menu manager.
  *
  * @package ErdemBircan\BatterySurfBench
  */
@@ -18,24 +18,26 @@ namespace ErdemBircan\BatterySurfBench\Tests\Admin;
 
 use Brain\Monkey\Functions;
 use ErdemBircan\BatterySurfBench\Admin\Menu;
-use ErdemBircan\BatterySurfBench\Support\Component;
+use ErdemBircan\BatterySurfBench\Support\Manager;
 use ErdemBircan\BatterySurfBench\Tests\TestCase;
 use Mockery;
 
+use function has_action;
+
 /**
- * Behavioral tests for the admin menu component's public contract.
+ * Behavioral tests for the admin menu manager's public contract.
  */
 final class MenuTest extends TestCase {
 
 	/**
-	 * The bootstrap relies on every component honouring the contract.
+	 * The bootstrap relies on every manager honouring the contract.
 	 */
-	public function test_is_a_component(): void {
-		$this->assertInstanceOf( Component::class, new Menu( 'https://example.test/icon.png', '1.2.3' ) );
+	public function test_is_a_manager(): void {
+		$this->assertInstanceOf( Manager::class, new Menu( 'https://example.test/icon.png', '1.2.3' ) );
 	}
 
 	/**
-	 * Registering the component hooks its page onto the admin menu.
+	 * Registering the manager hooks its page onto the admin menu.
 	 */
 	public function test_register_hooks_page_onto_admin_menu(): void {
 		$menu = new Menu( 'https://example.test/icon.png', '1.2.3' );
@@ -71,7 +73,7 @@ final class MenuTest extends TestCase {
 	}
 
 	/**
-	 * Registering the component hooks its icon styling onto admin asset loading.
+	 * Registering the manager hooks its icon styling onto admin asset loading.
 	 */
 	public function test_register_hooks_icon_style_onto_admin_enqueue(): void {
 		$menu = new Menu( 'https://example.test/icon.png', '1.2.3' );

@@ -16,7 +16,9 @@ namespace ErdemBircan\BatterySurfBench;
 
 use ErdemBircan\BatterySurfBench\Admin\Menu;
 use ErdemBircan\BatterySurfBench\Container\Container;
-use ErdemBircan\BatterySurfBench\Support\Component;
+use ErdemBircan\BatterySurfBench\Support\Manager;
+
+use function plugins_url;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -60,24 +62,24 @@ class BatterySurfBench {
 	}
 
 	/**
-	 * Boots the plugin: builds the container and registers its components.
+	 * Boots the plugin: builds the container and registers its managers.
 	 */
 	public function init(): void {
 		$this->container = new Container();
 		$this->container->set( self::PLUGIN_FILE, $this->plugin_file );
 
-		foreach ( $this->components() as $component ) {
-			$component->register();
+		foreach ( $this->managers() as $manager ) {
+			$manager->register();
 		}
 	}
 
 	/**
-	 * Builds the components that make up the plugin. The bootstrap only
-	 * composes and registers them; each component owns its own behaviour.
+	 * Builds the managers that make up the plugin. The bootstrap only composes
+	 * and registers them; each manager owns its own behaviour.
 	 *
-	 * @return Component[] The plugin's components.
+	 * @return Manager[] The plugin's managers.
 	 */
-	private function components(): array {
+	private function managers(): array {
 		return array(
 			new Menu( $this->menu_icon_url(), self::VERSION ),
 		);

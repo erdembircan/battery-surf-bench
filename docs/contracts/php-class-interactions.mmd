@@ -32,7 +32,7 @@ classDiagram
 
     class NotFoundException
 
-    class Component {
+    class Manager {
         <<interface>>
         +register() void
     }
@@ -50,8 +50,8 @@ classDiagram
 
     BatterySurfBench --> Container : creates & owns (composition)
     BatterySurfBench --> Menu : creates & owns (composition)
-    BatterySurfBench ..> Component : registers
-    Menu ..|> Component : implements
+    BatterySurfBench ..> Manager : registers
+    Menu ..|> Manager : implements
     Container ..|> ContainerInterface : implements
     Container ..> NotFoundException : throws
     NotFoundException --|> InvalidArgumentException : extends

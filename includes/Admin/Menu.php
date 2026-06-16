@@ -7,21 +7,29 @@
  */
 
 /**
- * Admin menu component.
+ * Admin menu manager.
  *
  * @package ErdemBircan\BatterySurfBench
  */
 
 namespace ErdemBircan\BatterySurfBench\Admin;
 
-use ErdemBircan\BatterySurfBench\Support\Component;
+use ErdemBircan\BatterySurfBench\Support\Manager;
+
+use function __;
+use function add_action;
+use function add_menu_page;
+use function esc_html__;
+use function wp_add_inline_style;
+use function wp_enqueue_style;
+use function wp_register_style;
 
 defined( 'ABSPATH' ) || exit;
 
 /**
  * Registers the plugin's top-level admin menu and renders its landing page.
  */
-class Menu implements Component {
+class Menu implements Manager {
 
 	/**
 	 * Slug that identifies the menu and its page in the admin.
@@ -54,7 +62,7 @@ class Menu implements Component {
 
 	/**
 	 * Stores the menu icon URL and asset version. No work is done here so the
-	 * component can be constructed without side effects.
+	 * manager can be constructed without side effects.
 	 *
 	 * @param string $icon_url URL of the menu icon shown in the admin sidebar.
 	 * @param string $version  Version used to cache-bust the enqueued styling.
