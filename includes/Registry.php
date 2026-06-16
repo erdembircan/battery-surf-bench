@@ -25,19 +25,11 @@ defined( 'ABSPATH' ) || exit;
 class Registry implements ContainerInterface {
 
 	/**
-	 * The configuration entries, keyed by identifier.
-	 *
-	 * @var array<string, mixed>
-	 */
-	private array $entries;
-
-	/**
 	 * Stores the configuration entries. The registry is immutable from here on.
 	 *
 	 * @param array<string, mixed> $entries Associative array of configuration entries.
 	 */
-	public function __construct( array $entries ) {
-		$this->entries = $entries;
+	public function __construct( private array $entries ) {
 	}
 
 	/**

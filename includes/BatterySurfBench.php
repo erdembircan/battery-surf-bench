@@ -18,13 +18,6 @@ defined( 'ABSPATH' ) || exit;
 class BatterySurfBench {
 
 	/**
-	 * Absolute path to the main plugin file.
-	 *
-	 * @var string
-	 */
-	private string $plugin_file;
-
-	/**
 	 * The plugin's read-only configuration registry. Owned solely by the
 	 * bootstrap; components receive only the values they need, never the
 	 * registry itself.
@@ -53,8 +46,7 @@ class BatterySurfBench {
 	 *
 	 * @param string $plugin_file Absolute path to the main plugin file.
 	 */
-	public function __construct( string $plugin_file ) {
-		$this->plugin_file = $plugin_file;
+	public function __construct( private string $plugin_file ) {
 	}
 
 	/**

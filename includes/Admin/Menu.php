@@ -23,43 +23,6 @@ defined( 'ABSPATH' ) || exit;
 class Menu implements Manager {
 
 	/**
-	 * Slug that identifies the menu and its page in the admin.
-	 *
-	 * @var string
-	 */
-	private string $slug;
-
-	/**
-	 * Capability required to see the menu.
-	 *
-	 * @var string
-	 */
-	private string $capability;
-
-	/**
-	 * Icon shown in the admin sidebar. Any value WordPress accepts for a menu
-	 * icon: an image URL, a Dashicon class, a base64 SVG data URI, or `none`
-	 * to leave the icon empty for a stylesheet to paint.
-	 *
-	 * @var string
-	 */
-	private string $icon_url;
-
-	/**
-	 * Plugin-relative path to the stylesheet that paints the menu icon.
-	 *
-	 * @var string
-	 */
-	private string $style;
-
-	/**
-	 * Service used to enqueue the menu's stylesheet.
-	 *
-	 * @var Assets
-	 */
-	private Assets $assets;
-
-	/**
 	 * Stores the menu's configuration. No work is done here so the manager can
 	 * be constructed without side effects.
 	 *
@@ -70,12 +33,13 @@ class Menu implements Manager {
 	 * @param string $style      Plugin-relative path to the menu's stylesheet.
 	 * @param Assets $assets     Service used to enqueue the menu's stylesheet.
 	 */
-	public function __construct( string $slug, string $capability, string $icon_url, string $style, Assets $assets ) {
-		$this->slug       = $slug;
-		$this->capability = $capability;
-		$this->icon_url   = $icon_url;
-		$this->style      = $style;
-		$this->assets     = $assets;
+	public function __construct(
+		private string $slug,
+		private string $capability,
+		private string $icon_url,
+		private string $style,
+		private Assets $assets
+	) {
 	}
 
 	/**
