@@ -1,0 +1,47 @@
+name: Merge Checks
+
+on:
+  push:
+    branches: [master]
+
+jobs:
+  php-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup-php
+      - run: composer lint
+
+  php-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup-php
+      - run: composer test
+
+  js-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup-node
+      - run: pnpm lint:js
+
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup-node
+      - run: pnpm typecheck
+
+  e2e:
+    needs: [php-lint, php-test, js-lint, typecheck]
+    runs-on: ubuntu-latest
+    env:
+      CI: "true"
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup-node
+      - run: pnpm test:e2e:install
+      # `pretest:e2e` builds the plugin; the Playwright config starts the
+      # WordPress Playground server itself.
+      - run: pnpm test:e2e

@@ -24,7 +24,8 @@ mkdirSync( wpDir, { recursive: true } );
 // An empty directory means WordPress hasn't been downloaded yet, so we need
 // `download-and-install`. Once files exist we re-use them.
 const isEmpty = readdirSync( wpDir ).length === 0;
-const isExistingSite = ! isEmpty && existsSync( resolve( wpDir, 'wp-config.php' ) );
+const isExistingSite =
+	! isEmpty && existsSync( resolve( wpDir, 'wp-config.php' ) );
 
 /**
  * Start a persistent WordPress Playground instance.

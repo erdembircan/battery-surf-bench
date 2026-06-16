@@ -10,9 +10,7 @@ test.describe( 'Plugin activation', () => {
 	test( 'is active on the plugins screen', async ( { page } ) => {
 		await page.goto( '/wp-admin/plugins.php' );
 
-		const pluginRow = page.locator(
-			'tr[data-slug="battery-surf-bench"]'
-		);
+		const pluginRow = page.locator( 'tr[data-slug="battery-surf-bench"]' );
 		await expect( pluginRow ).toBeVisible();
 
 		// Active plugins carry an "active" class on their row.

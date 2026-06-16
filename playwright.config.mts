@@ -14,7 +14,7 @@ const readyPattern = new RegExp(
  * Playwright configuration for Battery Surf Bench e2e tests.
  *
  * Readiness is detected via a stdout marker rather than URL polling, because
- * @wp-playground/cli starts listening before the PHP worker is ready.
+ * `@wp-playground/cli` starts listening before the PHP worker is ready.
  */
 export default defineConfig( {
 	/* Fail the build on CI if test.only is left in source code. */
