@@ -83,7 +83,7 @@ class BatterySurfBench {
 			new Menu(
 				$this->registry->get( 'admin_menu.slug' ),
 				$this->registry->get( 'capability' ),
-				$this->paths->url( $this->registry->get( 'admin_menu.icon' ) ),
+				$this->registry->get( 'admin_menu.icon' ),
 				$this->registry->get( 'admin_menu.style' ),
 				$this->assets
 			),

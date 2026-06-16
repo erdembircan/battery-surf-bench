@@ -1,12 +1,27 @@
 /*
- * Scales the high-resolution menu icon down to the admin sidebar size. Letting
- * the browser scale a large source keeps the icon sharp on high-density
- * displays, rather than shipping a blurry, pre-downsampled bitmap.
+ * Paints the plugin's admin-menu icon.
  *
- * The selector is tied to the menu slug (`admin_menu.slug` in Config.php): WordPress
- * derives the `#toplevel_page_{slug}` id from it. Keep the two in sync.
+ * The menu is registered with the icon set to `none` (see `admin_menu.icon` in
+ * Config.php), so WordPress leaves `div.wp-menu-image` empty and lets the icon
+ * be supplied with CSS. We render the surfer-battery SVG here as a CSS mask
+ * tinted with `currentColor`.
+ *
+ * WordPress already sets the colour of `div.wp-menu-image:before` for every
+ * admin colour scheme and menu state (default, hover, current). By drawing the
+ * icon through that same pseudo-element and filling it with `currentColor`, the
+ * icon inherits those exact colours and behaves like a native Dashicon —
+ * matching the neighbouring menu icons instead of showing a fixed grey bitmap.
+ *
+ * The slug-derived id (`#toplevel_page_{slug}`, from `admin_menu.slug` in
+ * Config.php) must stay in sync with the menu slug.
  */
-#toplevel_page_battery-surf-bench .wp-menu-image img {
-	width: 20px;
-	height: auto;
+#toplevel_page_battery-surf-bench .wp-menu-image::before {
+	content: "";
+	display: block;
+	width: 36px;
+	height: 34px;
+	background-color: currentColor;
+	-webkit-mask: url("../images/menu-icon.svg") no-repeat center / 20px auto;
+	mask: url("../images/menu-icon.svg") no-repeat center / 20px auto;
+	transition: background-color .1s ease-in-out;
 }

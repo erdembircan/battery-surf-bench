@@ -37,14 +37,16 @@ class Menu implements Manager {
 	private string $capability;
 
 	/**
-	 * URL of the menu icon shown in the admin sidebar.
+	 * Icon shown in the admin sidebar. Any value WordPress accepts for a menu
+	 * icon: an image URL, a Dashicon class, a base64 SVG data URI, or `none`
+	 * to leave the icon empty for a stylesheet to paint.
 	 *
 	 * @var string
 	 */
 	private string $icon_url;
 
 	/**
-	 * Plugin-relative path to the stylesheet that sizes the menu icon.
+	 * Plugin-relative path to the stylesheet that paints the menu icon.
 	 *
 	 * @var string
 	 */
@@ -63,7 +65,8 @@ class Menu implements Manager {
 	 *
 	 * @param string $slug       Slug that identifies the menu and its page.
 	 * @param string $capability Capability required to see the menu.
-	 * @param string $icon_url   URL of the menu icon shown in the admin sidebar.
+	 * @param string $icon_url   Menu icon: an image URL, Dashicon class, SVG
+	 *                           data URI, or `none` to paint it via CSS.
 	 * @param string $style      Plugin-relative path to the menu's stylesheet.
 	 * @param Assets $assets     Service used to enqueue the menu's stylesheet.
 	 */
@@ -98,9 +101,9 @@ class Menu implements Manager {
 	}
 
 	/**
-	 * Enqueues the stylesheet that scales the high-resolution menu icon down to
-	 * the sidebar size. Shipping it as a real file lets the browser cache it and
-	 * lets the asset service version it by content hash.
+	 * Enqueues the stylesheet that paints the menu icon. Shipping it as a real
+	 * file lets the browser cache it and lets the asset service version it by
+	 * content hash.
 	 */
 	public function enqueue_icon_style(): void {
 		$this->assets->enqueue( $this->style );

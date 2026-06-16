@@ -11,6 +11,7 @@ namespace ErdemBircan\BatterySurfBench\Tests;
 
 use Brain\Monkey\Functions;
 use ErdemBircan\BatterySurfBench\BatterySurfBench;
+use Mockery;
 
 use function has_action;
 
@@ -24,8 +25,6 @@ final class BatterySurfBenchTest extends TestCase {
 	 * admin menu component hooking itself onto `admin_menu`.
 	 */
 	public function test_init_registers_components(): void {
-		Functions\when( 'plugins_url' )->justReturn( 'https://example.test/assets/images/menu-icon.png' );
-
 		$plugin = new BatterySurfBench( '/path/to/plugin.php' );
 		$plugin->init();
 
@@ -33,14 +32,15 @@ final class BatterySurfBenchTest extends TestCase {
 	}
 
 	/**
-	 * Booting resolves the menu icon URL against the plugin file, so WordPress
-	 * is pointed at the icon shipped with the plugin.
+	 * The menu icon is configured as the literal `none` so the stylesheet can
+	 * paint it. Booting must hand that value to the menu verbatim and never run
+	 * it through `plugins_url`, which would otherwise point WordPress at a
+	 * broken image URL ending in `/none`.
 	 */
-	public function test_init_resolves_icon_url_against_plugin_file(): void {
+	public function test_init_does_not_resolve_the_css_painted_icon_to_a_url(): void {
 		Functions\expect( 'plugins_url' )
-			->once()
-			->with( 'assets/images/menu-icon.png', '/path/to/plugin.php' )
-			->andReturn( 'https://example.test/assets/images/menu-icon.png' );
+			->with( 'none', Mockery::any() )
+			->never();
 
 		$plugin = new BatterySurfBench( '/path/to/plugin.php' );
 		$plugin->init();
