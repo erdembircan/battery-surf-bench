@@ -16,6 +16,8 @@ namespace ErdemBircan\BatterySurfBench\Container;
 
 use Psr\Container\ContainerInterface;
 
+use function esc_html;
+
 defined( 'ABSPATH' ) || exit;
 
 /**

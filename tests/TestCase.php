@@ -27,13 +27,15 @@ use PHPUnit\Framework\TestCase as PHPUnitTestCase;
 abstract class TestCase extends PHPUnitTestCase {
 
 	/**
-	 * Sets up Brain Monkey and stubs common WordPress escaping helpers so
-	 * code under test can call them without a loaded WordPress.
+	 * Sets up Brain Monkey and stubs common WordPress escaping and i18n
+	 * helpers so code under test can call them without a loaded WordPress.
 	 */
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
 		Functions\when( 'esc_html' )->returnArg();
+		Functions\when( 'esc_html__' )->returnArg();
+		Functions\when( '__' )->returnArg();
 	}
 
 	/**

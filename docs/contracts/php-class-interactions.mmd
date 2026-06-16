@@ -4,6 +4,7 @@ classDiagram
 
     class BatterySurfBench {
         +const PLUGIN_FILE
+        +const VERSION
         +__construct(string plugin_file)
         +init() void
         +container() Container
@@ -31,7 +32,26 @@ classDiagram
 
     class NotFoundException
 
+    class Manager {
+        <<interface>>
+        +register() void
+    }
+
+    class Menu {
+        +const SLUG
+        +const CAPABILITY
+        +const STYLE_HANDLE
+        +__construct(string icon_url)
+        +register() void
+        +add_page() void
+        +enqueue_icon_style() void
+        +render() void
+    }
+
     BatterySurfBench --> Container : creates & owns (composition)
+    BatterySurfBench --> Menu : creates & owns (composition)
+    BatterySurfBench ..> Manager : registers
+    Menu ..|> Manager : implements
     Container ..|> ContainerInterface : implements
     Container ..> NotFoundException : throws
     NotFoundException --|> InvalidArgumentException : extends
