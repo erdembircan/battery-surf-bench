@@ -46,7 +46,7 @@ classDiagram
     }
 
     class Menu {
-        +__construct(string slug, string capability, string icon_url, string style_handle)
+        +__construct(string slug, string capability, string icon_url, string style, Assets assets)
         +register() void
         +add_page() void
         +enqueue_icon_style() void
@@ -55,9 +55,11 @@ classDiagram
 
     BatterySurfBench --> Registry : creates & owns (composition)
     BatterySurfBench --> Paths : creates & owns (composition)
+    BatterySurfBench --> Assets : creates & owns (composition)
     BatterySurfBench --> Menu : creates & owns (composition)
     BatterySurfBench ..> Manager : registers
     Menu ..|> Manager : implements
+    Menu --> Assets : uses
     Registry ..|> ContainerInterface : implements
     Registry ..> NotFoundException : throws
     NotFoundException --|> InvalidArgumentException : extends

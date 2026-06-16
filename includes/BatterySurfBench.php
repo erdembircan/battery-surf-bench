@@ -48,6 +48,13 @@ class BatterySurfBench {
 	private Paths $paths;
 
 	/**
+	 * Enqueues the plugin's script and style files.
+	 *
+	 * @var Assets
+	 */
+	private Assets $assets;
+
+	/**
 	 * Stores the plugin file path. No work is done here so the object can be
 	 * constructed without side effects.
 	 *
@@ -58,12 +65,13 @@ class BatterySurfBench {
 	}
 
 	/**
-	 * Boots the plugin: builds the registry and path resolver, then registers
-	 * its managers.
+	 * Boots the plugin: builds the registry, path resolver and asset service,
+	 * then registers its managers.
 	 */
 	public function init(): void {
 		$this->registry = new Registry( require __DIR__ . '/Config.php' );
 		$this->paths    = new Paths( $this->plugin_file );
+		$this->assets   = new Assets( $this->registry->get( 'namespace' ), $this->paths );
 
 		foreach ( $this->managers() as $manager ) {
 			$manager->register();
@@ -83,7 +91,8 @@ class BatterySurfBench {
 				$this->registry->get( 'admin_menu.slug' ),
 				$this->registry->get( 'capability' ),
 				$this->paths->url( $this->registry->get( 'admin_menu.icon' ) ),
-				$this->registry->get( 'admin_menu.style_handle' )
+				$this->registry->get( 'admin_menu.style' ),
+				$this->assets
 			),
 		);
 	}

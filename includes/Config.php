@@ -22,10 +22,11 @@ namespace ErdemBircan\BatterySurfBench;
 defined( 'ABSPATH' ) || exit;
 
 return array(
+	'namespace'  => 'battery-surf-bench',
 	'capability' => 'manage_options',
 	'admin_menu' => array(
-		'slug'         => 'battery-surf-bench',
-		'icon'         => 'assets/images/menu-icon.png',
-		'style_handle' => 'battery-surf-bench-admin-menu',
+		'slug'  => 'battery-surf-bench',
+		'icon'  => 'assets/images/menu-icon.png',
+		'style' => 'assets/css/admin-menu.css',
 	),
 );

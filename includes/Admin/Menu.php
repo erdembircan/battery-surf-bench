@@ -14,15 +14,13 @@
 
 namespace ErdemBircan\BatterySurfBench\Admin;
 
+use ErdemBircan\BatterySurfBench\Assets;
 use ErdemBircan\BatterySurfBench\Support\Manager;
 
 use function __;
 use function add_action;
 use function add_menu_page;
 use function esc_html__;
-use function wp_add_inline_style;
-use function wp_enqueue_style;
-use function wp_register_style;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -53,26 +51,35 @@ class Menu implements Manager {
 	private string $icon_url;
 
 	/**
-	 * Handle under which the menu icon styling is enqueued.
+	 * Plugin-relative path to the stylesheet that sizes the menu icon.
 	 *
 	 * @var string
 	 */
-	private string $style_handle;
+	private string $style;
+
+	/**
+	 * Service used to enqueue the menu's stylesheet.
+	 *
+	 * @var Assets
+	 */
+	private Assets $assets;
 
 	/**
 	 * Stores the menu's configuration. No work is done here so the manager can
 	 * be constructed without side effects.
 	 *
-	 * @param string $slug         Slug that identifies the menu and its page.
-	 * @param string $capability   Capability required to see the menu.
-	 * @param string $icon_url     URL of the menu icon shown in the admin sidebar.
-	 * @param string $style_handle Handle under which the menu icon styling is enqueued.
+	 * @param string $slug       Slug that identifies the menu and its page.
+	 * @param string $capability Capability required to see the menu.
+	 * @param string $icon_url   URL of the menu icon shown in the admin sidebar.
+	 * @param string $style      Plugin-relative path to the menu's stylesheet.
+	 * @param Assets $assets     Service used to enqueue the menu's stylesheet.
 	 */
-	public function __construct( string $slug, string $capability, string $icon_url, string $style_handle ) {
-		$this->slug         = $slug;
-		$this->capability   = $capability;
-		$this->icon_url     = $icon_url;
-		$this->style_handle = $style_handle;
+	public function __construct( string $slug, string $capability, string $icon_url, string $style, Assets $assets ) {
+		$this->slug       = $slug;
+		$this->capability = $capability;
+		$this->icon_url   = $icon_url;
+		$this->style      = $style;
+		$this->assets     = $assets;
 	}
 
 	/**
@@ -98,29 +105,12 @@ class Menu implements Manager {
 	}
 
 	/**
-	 * Enqueues the CSS that scales the high-resolution menu icon down to the
-	 * sidebar size. Letting the browser scale a large source keeps the icon
-	 * sharp on high-density displays, rather than shipping a blurry,
-	 * pre-downsampled bitmap. The style is registered without a source, so the
-	 * inline rules below carry it and no file version applies.
+	 * Enqueues the stylesheet that scales the high-resolution menu icon down to
+	 * the sidebar size. Shipping it as a real file lets the browser cache it and
+	 * lets the asset service version it by content hash.
 	 */
 	public function enqueue_icon_style(): void {
-		// phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion -- Src-less handle that only carries inline CSS; a file version is meaningless here.
-		wp_register_style( $this->style_handle, false, array(), null );
-		wp_enqueue_style( $this->style_handle );
-		wp_add_inline_style( $this->style_handle, $this->icon_style() );
-	}
-
-	/**
-	 * Builds the CSS that constrains the menu icon to the sidebar dimensions.
-	 *
-	 * @return string The icon styling rules.
-	 */
-	private function icon_style(): string {
-		return sprintf(
-			'#toplevel_page_%s .wp-menu-image img{width:20px;height:auto;}',
-			$this->slug
-		);
+		$this->assets->enqueue( $this->style );
 	}
 
 	/**
