@@ -1,0 +1,32 @@
+---
+title: GitHub CI Workflows
+---
+sequenceDiagram
+    actor Dev as Developer
+    participant FB as Feature Branch
+    participant M as master
+
+    rect rgb(230, 240, 255)
+        Note over FB,M: PR → master (pr-checks.yml)
+        Dev->>FB: push changes
+        FB->>M: open PR
+        activate M
+        M->>M: composer lint (phpcs)
+        M->>M: composer test (phpunit)
+        M->>M: pnpm lint:js
+        M->>M: pnpm typecheck
+        deactivate M
+        M-->>FB: checks pass
+        Dev->>M: merge PR
+    end
+
+    rect rgb(224, 255, 230)
+        Note over M: Push → master, post-merge (merge-checks.yml)
+        activate M
+        M->>M: composer lint (phpcs)
+        M->>M: composer test (phpunit)
+        M->>M: pnpm lint:js
+        M->>M: pnpm typecheck
+        M->>M: pnpm test:e2e (Playwright + WP Playground)
+        deactivate M
+    end
