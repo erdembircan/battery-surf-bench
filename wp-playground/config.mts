@@ -33,7 +33,7 @@ export const LIVERELOAD_CLIENT_URL = `http://127.0.0.1:${ LIVERELOAD_PORT }/live
 /**
  * Marker written to stdout once the playground is fully initialised and can
  * handle HTTP requests. Playwright's `webServer.wait.stdout` matches this
- * string to avoid a race in @wp-playground/cli where the HTTP server starts
+ * string to avoid a race in `@wp-playground/cli` where the HTTP server starts
  * listening before the PHP worker has finished bootstrapping.
  */
 export const PLAYGROUND_READY_MARKER = '[playground] ready';

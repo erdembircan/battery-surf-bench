@@ -4,8 +4,8 @@ import { ADMIN_STORAGE_STATE } from '../../wp-playground/config.mts';
 /**
  * Authenticate once as the default Playground admin (admin/password) and
  * persist the session so the authenticated project can reuse it instead of
- * logging in per test. Replaces the login handling that
- * @wordpress/e2e-test-utils-playwright would otherwise provide.
+ * logging in per test. Replaces the login handling that the
+ * `@wordpress/e2e-test-utils-playwright` package would otherwise provide.
  */
 setup( 'authenticate as admin', async ( { page } ) => {
 	await page.goto( '/wp-login.php' );

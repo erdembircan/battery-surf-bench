@@ -10,7 +10,7 @@ interface ServerInfo {
 interface LineData {
 	label: string;
 	value: string;
-	valueStyle: Parameters<typeof styleText>[0];
+	valueStyle: Parameters< typeof styleText >[ 0 ];
 }
 
 /**
