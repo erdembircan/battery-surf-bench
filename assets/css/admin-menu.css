@@ -14,6 +14,11 @@
  *
  * The slug-derived id (`#toplevel_page_{slug}`, from `admin_menu.slug` in
  * Config.php) must stay in sync with the menu slug.
+ *
+ * The icon is drawn at 30px rather than the 20px of a stock Dashicon: the
+ * surfer-battery mark carries more detail than a single-glyph Dashicon, so it
+ * needs the extra size to stay legible in the sidebar. Its `viewBox` is
+ * cropped to the artwork's bounds so the figure fills that space.
  */
 #toplevel_page_battery-surf-bench .wp-menu-image::before {
 	content: "";
@@ -21,7 +26,7 @@
 	width: 36px;
 	height: 34px;
 	background-color: currentColor;
-	-webkit-mask: url("../images/menu-icon.svg") no-repeat center / 20px auto;
-	mask: url("../images/menu-icon.svg") no-repeat center / 20px auto;
+	-webkit-mask: url("../images/menu-icon.svg") no-repeat center / 30px auto;
+	mask: url("../images/menu-icon.svg") no-repeat center / 30px auto;
 	transition: background-color .1s ease-in-out;
 }
