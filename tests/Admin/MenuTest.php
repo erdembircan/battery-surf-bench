@@ -29,40 +29,53 @@ use function has_action;
  */
 final class MenuTest extends TestCase {
 
+	private const SLUG       = 'battery-surf-bench';
+	private const CAPABILITY = 'manage_options';
+	private const ICON_URL   = 'https://example.test/assets/images/menu-icon.png';
+	private const VERSION    = '1.2.3';
+
+	/**
+	 * Builds a menu manager with representative injected configuration.
+	 *
+	 * @return Menu The manager under test.
+	 */
+	private function menu(): Menu {
+		return new Menu( self::SLUG, self::CAPABILITY, self::ICON_URL, self::VERSION );
+	}
+
 	/**
 	 * The bootstrap relies on every manager honouring the contract.
 	 */
 	public function test_is_a_manager(): void {
-		$this->assertInstanceOf( Manager::class, new Menu( 'https://example.test/icon.png', '1.2.3' ) );
+		$this->assertInstanceOf( Manager::class, $this->menu() );
 	}
 
 	/**
 	 * Registering the manager hooks its page onto the admin menu.
 	 */
 	public function test_register_hooks_page_onto_admin_menu(): void {
-		$menu = new Menu( 'https://example.test/icon.png', '1.2.3' );
+		$menu = $this->menu();
 		$menu->register();
 
 		$this->assertNotFalse( has_action( 'admin_menu', array( $menu, 'add_page' ) ) );
 	}
 
 	/**
-	 * The page is added with the plugin's slug, capability and icon — the
+	 * The page is added with the injected slug, capability and icon — the
 	 * arguments WordPress uses to place and gate the menu.
 	 */
-	public function test_add_page_registers_top_level_menu_with_icon(): void {
-		$icon = 'https://example.test/assets/images/menu-icon.png';
-		$menu = new Menu( $icon, '1.2.3' );
+	public function test_add_page_registers_top_level_menu_with_injected_config(): void {
+		$menu = $this->menu();
 
 		Functions\expect( 'add_menu_page' )
 			->once()
 			->with(
 				Mockery::type( 'string' ),
 				Mockery::type( 'string' ),
-				Menu::CAPABILITY,
-				Menu::SLUG,
+				self::CAPABILITY,
+				self::SLUG,
 				array( $menu, 'render' ),
-				$icon
+				self::ICON_URL
 			);
 
 		$menu->add_page();
@@ -76,7 +89,7 @@ final class MenuTest extends TestCase {
 	 * Registering the manager hooks its icon styling onto admin asset loading.
 	 */
 	public function test_register_hooks_icon_style_onto_admin_enqueue(): void {
-		$menu = new Menu( 'https://example.test/icon.png', '1.2.3' );
+		$menu = $this->menu();
 		$menu->register();
 
 		$this->assertNotFalse( has_action( 'admin_enqueue_scripts', array( $menu, 'enqueue_icon_style' ) ) );
@@ -87,9 +100,9 @@ final class MenuTest extends TestCase {
 	 * is what keeps the high-resolution source sharp.
 	 */
 	public function test_enqueue_icon_style_scales_the_menu_icon(): void {
-		$menu = new Menu( 'https://example.test/icon.png', '1.2.3' );
+		$menu = $this->menu();
 
-		Functions\expect( 'wp_register_style' )->once()->with( Menu::STYLE_HANDLE, false, array(), '1.2.3' );
+		Functions\expect( 'wp_register_style' )->once()->with( Menu::STYLE_HANDLE, false, array(), self::VERSION );
 		Functions\expect( 'wp_enqueue_style' )->once()->with( Menu::STYLE_HANDLE );
 		Functions\expect( 'wp_add_inline_style' )
 			->once()
@@ -98,7 +111,7 @@ final class MenuTest extends TestCase {
 				Mockery::on(
 					static function ( $css ) {
 						return is_string( $css )
-							&& str_contains( $css, '#toplevel_page_' . Menu::SLUG )
+							&& str_contains( $css, '#toplevel_page_' . self::SLUG )
 							&& str_contains( $css, '.wp-menu-image img' );
 					}
 				)
@@ -115,7 +128,7 @@ final class MenuTest extends TestCase {
 	 * The page renders the plugin name — the only content for now.
 	 */
 	public function test_render_outputs_plugin_name(): void {
-		$menu = new Menu( 'https://example.test/icon.png', '1.2.3' );
+		$menu = $this->menu();
 
 		ob_start();
 		$menu->render();

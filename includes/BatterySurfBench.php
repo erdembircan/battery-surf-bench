@@ -15,7 +15,6 @@
 namespace ErdemBircan\BatterySurfBench;
 
 use ErdemBircan\BatterySurfBench\Admin\Menu;
-use ErdemBircan\BatterySurfBench\Container\Container;
 use ErdemBircan\BatterySurfBench\Support\Manager;
 
 use function plugins_url;
@@ -28,14 +27,9 @@ defined( 'ABSPATH' ) || exit;
 class BatterySurfBench {
 
 	/**
-	 * Container identifier for the main plugin file path.
+	 * Registry identifier for the main plugin file path.
 	 */
-	public const PLUGIN_FILE = 'plugin.file';
-
-	/**
-	 * Plugin version, used to cache-bust the assets components enqueue.
-	 */
-	public const VERSION = '0.1.0';
+	public const PLUGIN_FILE = 'plugin_file';
 
 	/**
 	 * Absolute path to the main plugin file.
@@ -45,11 +39,13 @@ class BatterySurfBench {
 	private string $plugin_file;
 
 	/**
-	 * The plugin's service and configuration container.
+	 * The plugin's read-only configuration registry. Owned solely by the
+	 * bootstrap; components receive only the values they need, never the
+	 * registry itself.
 	 *
-	 * @var Container
+	 * @var Registry
 	 */
-	private Container $container;
+	private Registry $registry;
 
 	/**
 	 * Stores the plugin file path. No work is done here so the object can be
@@ -62,11 +58,15 @@ class BatterySurfBench {
 	}
 
 	/**
-	 * Boots the plugin: builds the container and registers its managers.
+	 * Boots the plugin: builds the registry from configuration and registers
+	 * its managers.
 	 */
 	public function init(): void {
-		$this->container = new Container();
-		$this->container->set( self::PLUGIN_FILE, $this->plugin_file );
+		$config = require __DIR__ . '/Config.php';
+
+		$this->registry = new Registry(
+			array_merge( $config, array( self::PLUGIN_FILE => $this->plugin_file ) )
+		);
 
 		foreach ( $this->managers() as $manager ) {
 			$manager->register();
@@ -74,14 +74,20 @@ class BatterySurfBench {
 	}
 
 	/**
-	 * Builds the managers that make up the plugin. The bootstrap only composes
-	 * and registers them; each manager owns its own behaviour.
+	 * Builds the managers that make up the plugin. The bootstrap reads each
+	 * manager's dependencies from the registry and injects only those, so a
+	 * manager never reaches the registry itself.
 	 *
 	 * @return Manager[] The plugin's managers.
 	 */
 	private function managers(): array {
 		return array(
-			new Menu( $this->menu_icon_url(), self::VERSION ),
+			new Menu(
+				$this->registry->get( 'admin_menu.slug' ),
+				$this->registry->get( 'capability' ),
+				$this->menu_icon_url(),
+				$this->registry->get( 'version' )
+			),
 		);
 	}
 
@@ -91,15 +97,9 @@ class BatterySurfBench {
 	 * @return string The menu icon URL.
 	 */
 	private function menu_icon_url(): string {
-		return plugins_url( 'assets/images/menu-icon.png', $this->plugin_file );
-	}
-
-	/**
-	 * Returns the plugin's service and configuration container.
-	 *
-	 * @return Container The container instance.
-	 */
-	public function container(): Container {
-		return $this->container;
+		return plugins_url(
+			$this->registry->get( 'admin_menu.icon' ),
+			$this->registry->get( self::PLUGIN_FILE )
+		);
 	}
 }

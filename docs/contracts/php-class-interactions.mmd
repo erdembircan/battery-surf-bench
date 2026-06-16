@@ -4,10 +4,8 @@ classDiagram
 
     class BatterySurfBench {
         +const PLUGIN_FILE
-        +const VERSION
         +__construct(string plugin_file)
         +init() void
-        +container() Container
     }
 
     class ContainerInterface {
@@ -16,8 +14,8 @@ classDiagram
         +has(string id) bool
     }
 
-    class Container {
-        +set(string id, mixed value) void
+    class Registry {
+        +__construct(array entries)
         +get(string id) mixed
         +has(string id) bool
     }
@@ -38,21 +36,19 @@ classDiagram
     }
 
     class Menu {
-        +const SLUG
-        +const CAPABILITY
         +const STYLE_HANDLE
-        +__construct(string icon_url)
+        +__construct(string slug, string capability, string icon_url, string version)
         +register() void
         +add_page() void
         +enqueue_icon_style() void
         +render() void
     }
 
-    BatterySurfBench --> Container : creates & owns (composition)
+    BatterySurfBench --> Registry : creates & owns (composition)
     BatterySurfBench --> Menu : creates & owns (composition)
     BatterySurfBench ..> Manager : registers
     Menu ..|> Manager : implements
-    Container ..|> ContainerInterface : implements
-    Container ..> NotFoundException : throws
+    Registry ..|> ContainerInterface : implements
+    Registry ..> NotFoundException : throws
     NotFoundException --|> InvalidArgumentException : extends
     NotFoundException ..|> NotFoundExceptionInterface : implements

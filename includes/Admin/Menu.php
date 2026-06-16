@@ -32,19 +32,23 @@ defined( 'ABSPATH' ) || exit;
 class Menu implements Manager {
 
 	/**
-	 * Slug that identifies the menu and its page in the admin.
-	 */
-	public const SLUG = 'battery-surf-bench';
-
-	/**
-	 * Capability required to see the menu.
-	 */
-	public const CAPABILITY = 'manage_options';
-
-	/**
 	 * Handle under which the menu icon styling is enqueued.
 	 */
 	public const STYLE_HANDLE = 'battery-surf-bench-admin-menu';
+
+	/**
+	 * Slug that identifies the menu and its page in the admin.
+	 *
+	 * @var string
+	 */
+	private string $slug;
+
+	/**
+	 * Capability required to see the menu.
+	 *
+	 * @var string
+	 */
+	private string $capability;
 
 	/**
 	 * URL of the menu icon shown in the admin sidebar.
@@ -61,15 +65,19 @@ class Menu implements Manager {
 	private string $version;
 
 	/**
-	 * Stores the menu icon URL and asset version. No work is done here so the
-	 * manager can be constructed without side effects.
+	 * Stores the menu's configuration. No work is done here so the manager can
+	 * be constructed without side effects.
 	 *
-	 * @param string $icon_url URL of the menu icon shown in the admin sidebar.
-	 * @param string $version  Version used to cache-bust the enqueued styling.
+	 * @param string $slug       Slug that identifies the menu and its page.
+	 * @param string $capability Capability required to see the menu.
+	 * @param string $icon_url   URL of the menu icon shown in the admin sidebar.
+	 * @param string $version    Version used to cache-bust the enqueued styling.
 	 */
-	public function __construct( string $icon_url, string $version ) {
-		$this->icon_url = $icon_url;
-		$this->version  = $version;
+	public function __construct( string $slug, string $capability, string $icon_url, string $version ) {
+		$this->slug       = $slug;
+		$this->capability = $capability;
+		$this->icon_url   = $icon_url;
+		$this->version    = $version;
 	}
 
 	/**
@@ -87,8 +95,8 @@ class Menu implements Manager {
 		add_menu_page(
 			__( 'Battery Surf Bench', 'battery-surf-bench' ),
 			__( 'Battery Surf Bench', 'battery-surf-bench' ),
-			self::CAPABILITY,
-			self::SLUG,
+			$this->capability,
+			$this->slug,
 			array( $this, 'render' ),
 			$this->icon_url
 		);
@@ -114,7 +122,7 @@ class Menu implements Manager {
 	private function icon_style(): string {
 		return sprintf(
 			'#toplevel_page_%s .wp-menu-image img{width:20px;height:auto;}',
-			self::SLUG
+			$this->slug
 		);
 	}
 
