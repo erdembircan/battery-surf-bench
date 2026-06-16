@@ -3,6 +3,7 @@
   "version": "1.0.0-dev",
   "description": "WordPress plugin that benchmarks battery drain while simulating browsing.",
   "private": true,
+  "packageManager": "pnpm@11.7.0",
   "scripts": {
     "build": "wp-scripts build",
     "start": "wp-scripts start",
@@ -12,9 +13,9 @@
     "playground:fresh": "tsx wp-playground/start.mts --reset",
     "playground:test": "tsx wp-playground/start-test.mts",
     "dev:sync": "tsx wp-playground/live-reload.mts",
-    "dev": "concurrently --kill-others --names \"build,wp,sync\" -c \"blue,magenta,green\" \"npm:start\" \"npm:playground\" \"npm:dev:sync\"",
+    "dev": "concurrently --kill-others --names \"build,wp,sync\" -c \"blue,magenta,green\" \"pnpm:start\" \"pnpm:playground\" \"pnpm:dev:sync\"",
     "test:e2e": "playwright test --config playwright.config.mts",
-    "pretest:e2e": "npm run build",
+    "pretest:e2e": "pnpm run build",
     "test:e2e:install": "playwright install chromium"
   },
   "devDependencies": {

@@ -1,0 +1,21 @@
+# pnpm settings (pnpm 11 reads configuration from here, not the package.json
+# "pnpm" field or .npmrc).
+
+# Which dependencies are trusted to run install/build (postinstall) scripts.
+# Everything is blocked by default — pnpm's supply-chain hardening. Only the
+# packages with real native-binary install steps are allowed. core-js /
+# core-js-pure stay off: their postinstall only prints a funding notice.
+allowBuilds:
+  '@parcel/watcher': true # native file watcher for `start` / `dev` watch mode
+  core-js: false
+  core-js-pure: false
+  esbuild: true # platform binary for tsx and the build toolchain
+  fs-ext-extra-prebuilt: true # native fcntl file locks used by @wp-playground/cli
+  unrs-resolver: true # native resolver used by the ESLint import plugin
+
+# pnpm's symlinked node_modules no longer auto-hoists the eslint/prettier
+# toolchain since pnpm 10. @wordpress/scripts' bundled ESLint (wp-scripts
+# lint-js) resolves its plugins from the root, so hoist that toolchain back.
+publicHoistPattern:
+  - '*eslint*'
+  - '*prettier*'
