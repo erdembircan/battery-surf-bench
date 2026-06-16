@@ -4,3 +4,10 @@ vendor/
 .claude/
 .phpunit.cache/
 coverage/
+build/
+test-results/
+playwright-report/
+playwright/.cache/
+
+# wp-playground persistent WordPress installation
+wp-playground/wordpress/

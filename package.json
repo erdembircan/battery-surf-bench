@@ -4,10 +4,32 @@
   "description": "WordPress plugin that benchmarks battery drain while simulating browsing.",
   "private": true,
   "scripts": {
+    "build": "wp-scripts build",
+    "start": "wp-scripts start",
+    "typecheck": "tsc --noEmit",
+    "lint:js": "wp-scripts lint-js",
+    "playground": "tsx wp-playground/start.mts",
+    "playground:fresh": "tsx wp-playground/start.mts --reset",
+    "playground:test": "tsx wp-playground/start-test.mts",
+    "dev:sync": "tsx wp-playground/live-reload.mts",
+    "dev": "concurrently --kill-others --names \"build,wp,sync\" -c \"blue,magenta,green\" \"npm:start\" \"npm:playground\" \"npm:dev:sync\"",
+    "test:e2e": "playwright test --config playwright.config.mts",
+    "pretest:e2e": "npm run build",
+    "test:e2e:install": "playwright install chromium",
     "verify": "license-wizard --verify --strict"
   },
   "devDependencies": {
-    "license-wizard": "^1.0.1"
+    "@playwright/test": "^1.61.0",
+    "@types/livereload": "^0.9.5",
+    "@types/node": "^24.13.2",
+    "@wordpress/scripts": "^32.4.0",
+    "@wp-playground/blueprints": "^3.1.39",
+    "@wp-playground/cli": "^3.1.39",
+    "concurrently": "^10.0.3",
+    "license-wizard": "^1.0.1",
+    "livereload": "^0.10.3",
+    "tsx": "^4.22.4",
+    "typescript": "^6.0.3"
   },
   "license": "Apache-2.0"
 }
