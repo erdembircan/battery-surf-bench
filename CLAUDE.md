@@ -1,5 +1,11 @@
 # CLAUDE.md
 
+## Prototype Repo
+
+When the user refers to **"the prototype repo"** (or "the prototype"), they mean the GitHub repository [`erdembircan/battery-surf-bench_dep`](https://github.com/erdembircan/battery-surf-bench_dep) — a deprecated, archived vibe-coded prototype built to validate the idea before this repository existed. It is **not** maintained and should never be treated as the source of truth for the current architecture or contracts.
+
+Its value is historical: it contains integration details and key insights about model behavior that were learned while prototyping. Consult it as background reference when those details are relevant, but always defer to this repository for anything authoritative.
+
 ## Knowledge Base
 
 `docs/knowledge-base/` contains reference material used to inform the design and implementation of battery-surf-bench. Covers published battery-benchmark methodologies, real-user browsing behavior statistics, the battery drain-rate calculation and projection math, and the research-derived surfer behavior profile. This is background research — agents and contributors should consult it when making decisions about how the tool should behave.
