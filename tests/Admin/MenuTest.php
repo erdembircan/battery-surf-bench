@@ -31,14 +31,14 @@ final class MenuTest extends TestCase {
 	 * The bootstrap relies on every component honouring the contract.
 	 */
 	public function test_is_a_component(): void {
-		$this->assertInstanceOf( Component::class, new Menu( 'https://example.test/icon.png' ) );
+		$this->assertInstanceOf( Component::class, new Menu( 'https://example.test/icon.png', '1.2.3' ) );
 	}
 
 	/**
 	 * Registering the component hooks its page onto the admin menu.
 	 */
 	public function test_register_hooks_page_onto_admin_menu(): void {
-		$menu = new Menu( 'https://example.test/icon.png' );
+		$menu = new Menu( 'https://example.test/icon.png', '1.2.3' );
 		$menu->register();
 
 		$this->assertNotFalse( has_action( 'admin_menu', array( $menu, 'add_page' ) ) );
@@ -50,7 +50,7 @@ final class MenuTest extends TestCase {
 	 */
 	public function test_add_page_registers_top_level_menu_with_icon(): void {
 		$icon = 'https://example.test/assets/images/menu-icon.png';
-		$menu = new Menu( $icon );
+		$menu = new Menu( $icon, '1.2.3' );
 
 		Functions\expect( 'add_menu_page' )
 			->once()
@@ -71,10 +71,49 @@ final class MenuTest extends TestCase {
 	}
 
 	/**
+	 * Registering the component hooks its icon styling onto admin asset loading.
+	 */
+	public function test_register_hooks_icon_style_onto_admin_enqueue(): void {
+		$menu = new Menu( 'https://example.test/icon.png', '1.2.3' );
+		$menu->register();
+
+		$this->assertNotFalse( has_action( 'admin_enqueue_scripts', array( $menu, 'enqueue_icon_style' ) ) );
+	}
+
+	/**
+	 * The enqueued style scales the menu icon down to the sidebar size, which
+	 * is what keeps the high-resolution source sharp.
+	 */
+	public function test_enqueue_icon_style_scales_the_menu_icon(): void {
+		$menu = new Menu( 'https://example.test/icon.png', '1.2.3' );
+
+		Functions\expect( 'wp_register_style' )->once()->with( Menu::STYLE_HANDLE, false, array(), '1.2.3' );
+		Functions\expect( 'wp_enqueue_style' )->once()->with( Menu::STYLE_HANDLE );
+		Functions\expect( 'wp_add_inline_style' )
+			->once()
+			->with(
+				Menu::STYLE_HANDLE,
+				Mockery::on(
+					static function ( $css ) {
+						return is_string( $css )
+							&& str_contains( $css, '#toplevel_page_' . Menu::SLUG )
+							&& str_contains( $css, '.wp-menu-image img' );
+					}
+				)
+			);
+
+		$menu->enqueue_icon_style();
+
+		// The Mockery expectations above are the assertions; acknowledge them
+		// so PHPUnit does not flag the test as risky.
+		$this->addToAssertionCount( 1 );
+	}
+
+	/**
 	 * The page renders the plugin name — the only content for now.
 	 */
 	public function test_render_outputs_plugin_name(): void {
-		$menu = new Menu( 'https://example.test/icon.png' );
+		$menu = new Menu( 'https://example.test/icon.png', '1.2.3' );
 
 		ob_start();
 		$menu->render();

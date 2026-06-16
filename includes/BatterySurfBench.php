@@ -31,6 +31,11 @@ class BatterySurfBench {
 	public const PLUGIN_FILE = 'plugin.file';
 
 	/**
+	 * Plugin version, used to cache-bust the assets components enqueue.
+	 */
+	public const VERSION = '0.1.0';
+
+	/**
 	 * Absolute path to the main plugin file.
 	 *
 	 * @var string
@@ -74,7 +79,7 @@ class BatterySurfBench {
 	 */
 	private function components(): array {
 		return array(
-			new Menu( $this->menu_icon_url() ),
+			new Menu( $this->menu_icon_url(), self::VERSION ),
 		);
 	}
 
