@@ -40,10 +40,4 @@
 			</property>
 		</properties>
 	</rule>
-
-	<!-- Tests set up fixtures with plain PHP file operations; the runtime
-	     WP_Filesystem API does not apply to PHPUnit fixtures. -->
-	<rule ref="WordPress.WP.AlternativeFunctions">
-		<exclude-pattern>/tests/</exclude-pattern>
-	</rule>
 </ruleset>

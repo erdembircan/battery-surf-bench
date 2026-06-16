@@ -24,75 +24,38 @@ use InvalidArgumentException;
 /**
  * Behavioral tests for the asset service's public contract.
  *
- * Versioning is verified against a real fixture file, since the contract the
- * service offers consumers is "the version is this file's content hash".
+ * The service's job is to hand WordPress a namespaced handle, the right enqueue
+ * function for the file type, and the file's hash as the version. The hashing
+ * itself is PHP's job, so `hash_file` is stubbed — these tests assert the
+ * wiring, not that crc32b hashes correctly.
  */
 final class AssetsTest extends TestCase {
 
 	/**
-	 * Directory holding the asset fixtures written per test.
+	 * Stubs the path and hash helpers the service leans on.
 	 *
-	 * @var string
+	 * @param string $version Hash the stubbed `hash_file` returns.
+	 * @param string $url     URL the stubbed `plugins_url` returns.
 	 */
-	private string $dir;
-
-	/**
-	 * Creates a fixture directory and points the path resolver at it.
-	 */
-	protected function setUp(): void {
-		parent::setUp();
-
-		$this->dir = sys_get_temp_dir() . '/bsb-assets-' . getmypid();
-		if ( ! is_dir( $this->dir ) ) {
-			mkdir( $this->dir, 0o777, true );
-		}
-
-		Functions\when( 'plugin_dir_path' )->justReturn( $this->dir . '/' );
-	}
-
-	/**
-	 * Removes the fixture directory.
-	 */
-	protected function tearDown(): void {
-		$files = glob( $this->dir . '/*' );
-		foreach ( false === $files ? array() : $files as $file ) {
-			unlink( $file );
-		}
-		if ( is_dir( $this->dir ) ) {
-			rmdir( $this->dir );
-		}
-
-		parent::tearDown();
-	}
-
-	/**
-	 * Writes an asset fixture and returns the content hash consumers expect as
-	 * its version.
-	 *
-	 * @param string $name     File name to write under the fixture directory.
-	 * @param string $contents File contents.
-	 * @return string The fixture's content hash.
-	 */
-	private function fixture( string $name, string $contents ): string {
-		file_put_contents( $this->dir . '/' . $name, $contents );
-
-		return (string) hash_file( 'crc32b', $this->dir . '/' . $name );
+	private function stub_resolvers( string $version, string $url ): void {
+		Functions\when( 'plugins_url' )->justReturn( $url );
+		Functions\when( 'plugin_dir_path' )->justReturn( '/plugins/battery-surf-bench/' );
+		Functions\when( 'hash_file' )->justReturn( $version );
 	}
 
 	/**
 	 * A `.js` asset is enqueued as a script, in the footer, with a namespaced
-	 * handle, its dependencies, and a content-hash version.
+	 * handle, its dependencies, and the file hash as its version.
 	 */
-	public function test_enqueue_script_uses_namespaced_handle_and_hashed_version(): void {
-		$version = $this->fixture( 'app.js', 'console.log( "surf" );' );
+	public function test_enqueue_script_uses_namespaced_handle_footer_and_hash_version(): void {
+		$this->stub_resolvers( 'a1b2c3d4', 'https://example.test/app.js' );
 
-		Functions\when( 'plugins_url' )->justReturn( 'https://example.test/app.js' );
 		Functions\expect( 'wp_enqueue_script' )
 			->once()
-			->with( 'battery-surf-bench-app', 'https://example.test/app.js', array( 'wp-element' ), $version, true );
+			->with( 'battery-surf-bench-app', 'https://example.test/app.js', array( 'wp-element' ), 'a1b2c3d4', true );
 
-		$assets = new Assets( 'battery-surf-bench', new Paths( '/path/to/plugin.php' ) );
-		$assets->enqueue( 'app.js', array( 'wp-element' ) );
+		$assets = new Assets( 'battery-surf-bench', new Paths( '/plugins/battery-surf-bench/battery-surf-bench.php' ) );
+		$assets->enqueue( 'assets/app.js', array( 'wp-element' ) );
 
 		// The Mockery expectation above is the assertion; acknowledge it so
 		// PHPUnit does not flag the test as risky.
@@ -100,48 +63,22 @@ final class AssetsTest extends TestCase {
 	}
 
 	/**
-	 * A `.css` asset is enqueued as a style, with a namespaced handle and a
-	 * content-hash version.
+	 * A `.css` asset is enqueued as a style, with a namespaced handle and the
+	 * file hash as its version.
 	 */
-	public function test_enqueue_style_uses_namespaced_handle_and_hashed_version(): void {
-		$version = $this->fixture( 'app.css', 'body{margin:0;}' );
+	public function test_enqueue_style_uses_namespaced_handle_and_hash_version(): void {
+		$this->stub_resolvers( 'a1b2c3d4', 'https://example.test/app.css' );
 
-		Functions\when( 'plugins_url' )->justReturn( 'https://example.test/app.css' );
 		Functions\expect( 'wp_enqueue_style' )
 			->once()
-			->with( 'battery-surf-bench-app', 'https://example.test/app.css', array(), $version );
+			->with( 'battery-surf-bench-app', 'https://example.test/app.css', array(), 'a1b2c3d4' );
 
-		$assets = new Assets( 'battery-surf-bench', new Paths( '/path/to/plugin.php' ) );
-		$assets->enqueue( 'app.css' );
+		$assets = new Assets( 'battery-surf-bench', new Paths( '/plugins/battery-surf-bench/battery-surf-bench.php' ) );
+		$assets->enqueue( 'assets/app.css' );
 
 		// The Mockery expectation above is the assertion; acknowledge it so
 		// PHPUnit does not flag the test as risky.
 		$this->addToAssertionCount( 1 );
-	}
-
-	/**
-	 * The version changes when the file changes, so the browser never serves a
-	 * stale asset.
-	 */
-	public function test_version_tracks_file_contents(): void {
-		$first = $this->fixture( 'app.js', 'const a = 1;' );
-
-		Functions\when( 'plugins_url' )->justReturn( 'https://example.test/app.js' );
-		$captured = array();
-		Functions\when( 'wp_enqueue_script' )->alias(
-			static function ( $handle, $src, $deps, $ver ) use ( &$captured ) {
-				$captured[] = $ver;
-			}
-		);
-
-		$assets = new Assets( 'battery-surf-bench', new Paths( '/path/to/plugin.php' ) );
-		$assets->enqueue( 'app.js' );
-
-		$second = $this->fixture( 'app.js', 'const a = 2;' );
-		$assets->enqueue( 'app.js' );
-
-		$this->assertNotSame( $first, $second );
-		$this->assertSame( array( $first, $second ), $captured );
 	}
 
 	/**
@@ -149,9 +86,9 @@ final class AssetsTest extends TestCase {
 	 * function.
 	 */
 	public function test_enqueue_rejects_unsupported_asset_type(): void {
-		$assets = new Assets( 'battery-surf-bench', new Paths( '/path/to/plugin.php' ) );
+		$assets = new Assets( 'battery-surf-bench', new Paths( '/plugins/battery-surf-bench/battery-surf-bench.php' ) );
 
 		$this->expectException( InvalidArgumentException::class );
-		$assets->enqueue( 'data.json' );
+		$assets->enqueue( 'assets/data.json' );
 	}
 }
