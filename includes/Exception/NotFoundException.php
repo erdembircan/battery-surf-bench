@@ -7,12 +7,12 @@
  */
 
 /**
- * Container not-found exception.
+ * Registry not-found exception.
  *
  * @package ErdemBircan\BatterySurfBench
  */
 
-namespace ErdemBircan\BatterySurfBench\Container;
+namespace ErdemBircan\BatterySurfBench\Exception;
 
 use InvalidArgumentException;
 use Psr\Container\NotFoundExceptionInterface;
@@ -20,7 +20,7 @@ use Psr\Container\NotFoundExceptionInterface;
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Thrown when a requested container entry does not exist.
+ * Thrown when a requested registry entry does not exist.
  */
 class NotFoundException extends InvalidArgumentException implements NotFoundExceptionInterface {
 }

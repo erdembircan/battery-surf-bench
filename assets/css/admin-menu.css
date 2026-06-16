@@ -1,0 +1,12 @@
+/*
+ * Scales the high-resolution menu icon down to the admin sidebar size. Letting
+ * the browser scale a large source keeps the icon sharp on high-density
+ * displays, rather than shipping a blurry, pre-downsampled bitmap.
+ *
+ * The selector is tied to the menu slug (`admin_menu.slug` in Config.php): WordPress
+ * derives the `#toplevel_page_{slug}` id from it. Keep the two in sync.
+ */
+#toplevel_page_battery-surf-bench .wp-menu-image img {
+	width: 20px;
+	height: auto;
+}

@@ -18,7 +18,6 @@ namespace ErdemBircan\BatterySurfBench\Tests;
 
 use Brain\Monkey\Functions;
 use ErdemBircan\BatterySurfBench\BatterySurfBench;
-use ErdemBircan\BatterySurfBench\Container\Container;
 
 use function has_action;
 
@@ -41,15 +40,20 @@ final class BatterySurfBenchTest extends TestCase {
 	}
 
 	/**
-	 * Booting exposes the container so consumers can resolve shared services.
+	 * Booting resolves the menu icon URL against the plugin file, so WordPress
+	 * is pointed at the icon shipped with the plugin.
 	 */
-	public function test_init_exposes_container_with_plugin_file(): void {
-		Functions\when( 'plugins_url' )->justReturn( 'https://example.test/assets/images/menu-icon.png' );
+	public function test_init_resolves_icon_url_against_plugin_file(): void {
+		Functions\expect( 'plugins_url' )
+			->once()
+			->with( 'assets/images/menu-icon.png', '/path/to/plugin.php' )
+			->andReturn( 'https://example.test/assets/images/menu-icon.png' );
 
 		$plugin = new BatterySurfBench( '/path/to/plugin.php' );
 		$plugin->init();
 
-		$this->assertInstanceOf( Container::class, $plugin->container() );
-		$this->assertSame( '/path/to/plugin.php', $plugin->container()->get( BatterySurfBench::PLUGIN_FILE ) );
+		// The Mockery expectation above is the assertion; acknowledge it so
+		// PHPUnit does not flag the test as risky.
+		$this->addToAssertionCount( 1 );
 	}
 }
