@@ -28,28 +28,12 @@ defined( 'ABSPATH' ) || exit;
 class Assets {
 
 	/**
-	 * Namespace prefix applied to every enqueued asset's handle.
-	 *
-	 * @var string
-	 */
-	private string $prefix;
-
-	/**
-	 * Resolver for the asset's public URL and filesystem path.
-	 *
-	 * @var Paths
-	 */
-	private Paths $paths;
-
-	/**
 	 * Stores the handle namespace and the path resolver.
 	 *
 	 * @param string $prefix Namespace prefix applied to every enqueued asset's handle.
 	 * @param Paths  $paths  Resolver for asset URLs and filesystem paths.
 	 */
-	public function __construct( string $prefix, Paths $paths ) {
-		$this->prefix = $prefix;
-		$this->paths  = $paths;
+	public function __construct( private string $prefix, private Paths $paths ) {
 	}
 
 	/**

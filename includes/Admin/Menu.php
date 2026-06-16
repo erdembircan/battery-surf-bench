@@ -23,56 +23,23 @@ defined( 'ABSPATH' ) || exit;
 class Menu implements Manager {
 
 	/**
-	 * Slug that identifies the menu and its page in the admin.
-	 *
-	 * @var string
-	 */
-	private string $slug;
-
-	/**
-	 * Capability required to see the menu.
-	 *
-	 * @var string
-	 */
-	private string $capability;
-
-	/**
-	 * URL of the menu icon shown in the admin sidebar.
-	 *
-	 * @var string
-	 */
-	private string $icon_url;
-
-	/**
-	 * Plugin-relative path to the stylesheet that sizes the menu icon.
-	 *
-	 * @var string
-	 */
-	private string $style;
-
-	/**
-	 * Service used to enqueue the menu's stylesheet.
-	 *
-	 * @var Assets
-	 */
-	private Assets $assets;
-
-	/**
 	 * Stores the menu's configuration. No work is done here so the manager can
 	 * be constructed without side effects.
 	 *
 	 * @param string $slug       Slug that identifies the menu and its page.
 	 * @param string $capability Capability required to see the menu.
-	 * @param string $icon_url   URL of the menu icon shown in the admin sidebar.
+	 * @param string $icon_url   Menu icon: an image URL, Dashicon class, SVG
+	 *                           data URI, or `none` to paint it via CSS.
 	 * @param string $style      Plugin-relative path to the menu's stylesheet.
 	 * @param Assets $assets     Service used to enqueue the menu's stylesheet.
 	 */
-	public function __construct( string $slug, string $capability, string $icon_url, string $style, Assets $assets ) {
-		$this->slug       = $slug;
-		$this->capability = $capability;
-		$this->icon_url   = $icon_url;
-		$this->style      = $style;
-		$this->assets     = $assets;
+	public function __construct(
+		private string $slug,
+		private string $capability,
+		private string $icon_url,
+		private string $style,
+		private Assets $assets
+	) {
 	}
 
 	/**
@@ -98,9 +65,9 @@ class Menu implements Manager {
 	}
 
 	/**
-	 * Enqueues the stylesheet that scales the high-resolution menu icon down to
-	 * the sidebar size. Shipping it as a real file lets the browser cache it and
-	 * lets the asset service version it by content hash.
+	 * Enqueues the stylesheet that paints the menu icon. Shipping it as a real
+	 * file lets the browser cache it and lets the asset service version it by
+	 * content hash.
 	 */
 	public function enqueue_icon_style(): void {
 		$this->assets->enqueue( $this->style );

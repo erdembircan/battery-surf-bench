@@ -22,19 +22,11 @@ defined( 'ABSPATH' ) || exit;
 class Paths {
 
 	/**
-	 * Absolute path to the main plugin file.
-	 *
-	 * @var string
-	 */
-	private string $plugin_file;
-
-	/**
 	 * Stores the plugin file the paths and URLs are resolved against.
 	 *
 	 * @param string $plugin_file Absolute path to the main plugin file.
 	 */
-	public function __construct( string $plugin_file ) {
-		$this->plugin_file = $plugin_file;
+	public function __construct( private string $plugin_file ) {
 	}
 
 	/**

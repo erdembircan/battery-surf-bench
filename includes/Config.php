@@ -19,7 +19,11 @@ return array(
 	'capability' => 'manage_options',
 	'admin_menu' => array(
 		'slug'  => 'battery-surf-bench',
-		'icon'  => 'assets/images/menu-icon.png',
+		// `none` tells WordPress to leave the icon empty so the stylesheet can
+		// paint it: admin-menu.css renders the surfer-battery SVG as a
+		// `currentColor` mask, letting the icon inherit each colour scheme's
+		// menu-icon colours instead of showing a fixed-grey bitmap.
+		'icon'  => 'none',
 		'style' => 'assets/css/admin-menu.css',
 	),
 );

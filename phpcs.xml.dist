@@ -7,6 +7,8 @@
 	<exclude-pattern>/vendor/</exclude-pattern>
 	<exclude-pattern>/node_modules/</exclude-pattern>
 	<exclude-pattern>/build/</exclude-pattern>
+	<!-- WordPress core downloaded for the local Playground; not our source. -->
+	<exclude-pattern>/wp-playground/</exclude-pattern>
 
 	<arg name="extensions" value="php"/>
 	<arg name="basepath" value="."/>
