@@ -68,6 +68,11 @@ export async function startTestServer( {
 	const server = await runCLI( {
 		command: 'server',
 		port,
+		// Pin the PHP worker pool to 6. @wp-playground/cli's file-locking
+		// architecture can deadlock with fewer than 6 workers, and its default
+		// resolves to `min(6, cpus - 1)` -- which drops to 1 on a 2-CPU CI
+		// runner and hangs boot. An explicit count bypasses that CPU cap.
+		workers: 6,
 		blueprint,
 		mount: [ { hostPath: pluginDir, vfsPath: PLUGIN_VFS_PATH } ],
 	} );
