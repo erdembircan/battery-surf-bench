@@ -1,9 +1,3 @@
-/*
- * SPDX-License-Identifier: Apache-2.0
- * SPDX-FileCopyrightText: 2026 Erdem Bircan
- * license-wizard managed-header v1 Apache-2.0 short 74d1a0534fa2
- */
-
 import { e2eBlueprint } from './blueprint.mts';
 import { PLAYGROUND_TEST_PORT, PLAYGROUND_TEST_URL } from './config.mts';
 import { startTestServer } from './start-test-server.mts';

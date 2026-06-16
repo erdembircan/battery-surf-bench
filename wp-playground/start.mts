@@ -1,9 +1,3 @@
-/*
- * SPDX-License-Identifier: Apache-2.0
- * SPDX-FileCopyrightText: 2026 Erdem Bircan
- * license-wizard managed-header v1 Apache-2.0 short 74d1a0534fa2
- */
-
 import { runCLI } from '@wp-playground/cli';
 import { existsSync, mkdirSync, readdirSync, rmSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';

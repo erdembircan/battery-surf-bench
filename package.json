@@ -15,8 +15,7 @@
     "dev": "concurrently --kill-others --names \"build,wp,sync\" -c \"blue,magenta,green\" \"npm:start\" \"npm:playground\" \"npm:dev:sync\"",
     "test:e2e": "playwright test --config playwright.config.mts",
     "pretest:e2e": "npm run build",
-    "test:e2e:install": "playwright install chromium",
-    "verify": "license-wizard --verify --strict"
+    "test:e2e:install": "playwright install chromium"
   },
   "devDependencies": {
     "@playwright/test": "^1.61.0",
@@ -26,7 +25,6 @@
     "@wp-playground/blueprints": "^3.1.39",
     "@wp-playground/cli": "^3.1.39",
     "concurrently": "^10.0.3",
-    "license-wizard": "^1.0.1",
     "livereload": "^0.10.3",
     "tsx": "^4.22.4",
     "typescript": "^6.0.3"
