@@ -43,6 +43,14 @@ jobs:
       - uses: ./.github/actions/setup-node
       # `--with-deps` pulls the system libraries Chromium needs on CI runners.
       - run: pnpm exec playwright install --with-deps chromium
+      # TEMPORARY diagnostic: boot the Playground standalone (outside Playwright,
+      # which swallows the server's stderr) to capture why it crashes on the
+      # 2-CPU runner. Non-blocking; remove once the root cause is known.
+      - name: Diagnose Playground boot
+        run: |
+          pnpm run build
+          CI=true timeout 150 pnpm run playground:test 2>&1 | tee playground-boot.log || true
+          echo "=== playground:test exit code: ${PIPESTATUS[0]} ==="
       # `pretest:e2e` builds the plugin; the Playwright config starts the
       # WordPress Playground server itself.
       - run: pnpm test:e2e
