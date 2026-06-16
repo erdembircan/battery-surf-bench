@@ -31,7 +31,24 @@ classDiagram
 
     class NotFoundException
 
+    class Component {
+        <<interface>>
+        +register() void
+    }
+
+    class Menu {
+        +const SLUG
+        +const CAPABILITY
+        +__construct(string icon_url)
+        +register() void
+        +add_page() void
+        +render() void
+    }
+
     BatterySurfBench --> Container : creates & owns (composition)
+    BatterySurfBench --> Menu : creates & owns (composition)
+    BatterySurfBench ..> Component : registers
+    Menu ..|> Component : implements
     Container ..|> ContainerInterface : implements
     Container ..> NotFoundException : throws
     NotFoundException --|> InvalidArgumentException : extends

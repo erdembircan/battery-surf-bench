@@ -14,7 +14,9 @@
 
 namespace ErdemBircan\BatterySurfBench;
 
+use ErdemBircan\BatterySurfBench\Admin\Menu;
 use ErdemBircan\BatterySurfBench\Container\Container;
+use ErdemBircan\BatterySurfBench\Support\Component;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -53,11 +55,36 @@ class BatterySurfBench {
 	}
 
 	/**
-	 * Boots the plugin: builds the container and wires up its services.
+	 * Boots the plugin: builds the container and registers its components.
 	 */
 	public function init(): void {
 		$this->container = new Container();
 		$this->container->set( self::PLUGIN_FILE, $this->plugin_file );
+
+		foreach ( $this->components() as $component ) {
+			$component->register();
+		}
+	}
+
+	/**
+	 * Builds the components that make up the plugin. The bootstrap only
+	 * composes and registers them; each component owns its own behaviour.
+	 *
+	 * @return Component[] The plugin's components.
+	 */
+	private function components(): array {
+		return array(
+			new Menu( $this->menu_icon_url() ),
+		);
+	}
+
+	/**
+	 * Resolves the public URL of the admin menu icon shipped with the plugin.
+	 *
+	 * @return string The menu icon URL.
+	 */
+	private function menu_icon_url(): string {
+		return plugins_url( 'assets/images/menu-icon.png', $this->plugin_file );
 	}
 
 	/**
