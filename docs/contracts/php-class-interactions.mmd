@@ -3,7 +3,6 @@ classDiagram
     direction LR
 
     class BatterySurfBench {
-        +const PLUGIN_FILE
         +__construct(string plugin_file)
         +init() void
     }
@@ -30,14 +29,24 @@ classDiagram
 
     class NotFoundException
 
+    class Paths {
+        +__construct(string plugin_file)
+        +url(string relative) string
+        +path(string relative) string
+    }
+
+    class Assets {
+        +__construct(string namespace, Paths paths)
+        +enqueue(string relative, array deps) void
+    }
+
     class Manager {
         <<interface>>
         +register() void
     }
 
     class Menu {
-        +const STYLE_HANDLE
-        +__construct(string slug, string capability, string icon_url, string version)
+        +__construct(string slug, string capability, string icon_url, string style_handle)
         +register() void
         +add_page() void
         +enqueue_icon_style() void
@@ -45,6 +54,7 @@ classDiagram
     }
 
     BatterySurfBench --> Registry : creates & owns (composition)
+    BatterySurfBench --> Paths : creates & owns (composition)
     BatterySurfBench --> Menu : creates & owns (composition)
     BatterySurfBench ..> Manager : registers
     Menu ..|> Manager : implements
@@ -52,3 +62,5 @@ classDiagram
     Registry ..> NotFoundException : throws
     NotFoundException --|> InvalidArgumentException : extends
     NotFoundException ..|> NotFoundExceptionInterface : implements
+    Assets --> Paths : uses
+    Assets ..> InvalidArgumentException : throws

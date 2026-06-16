@@ -32,11 +32,6 @@ defined( 'ABSPATH' ) || exit;
 class Menu implements Manager {
 
 	/**
-	 * Handle under which the menu icon styling is enqueued.
-	 */
-	public const STYLE_HANDLE = 'battery-surf-bench-admin-menu';
-
-	/**
 	 * Slug that identifies the menu and its page in the admin.
 	 *
 	 * @var string
@@ -58,26 +53,26 @@ class Menu implements Manager {
 	private string $icon_url;
 
 	/**
-	 * Version used to cache-bust the enqueued icon styling.
+	 * Handle under which the menu icon styling is enqueued.
 	 *
 	 * @var string
 	 */
-	private string $version;
+	private string $style_handle;
 
 	/**
 	 * Stores the menu's configuration. No work is done here so the manager can
 	 * be constructed without side effects.
 	 *
-	 * @param string $slug       Slug that identifies the menu and its page.
-	 * @param string $capability Capability required to see the menu.
-	 * @param string $icon_url   URL of the menu icon shown in the admin sidebar.
-	 * @param string $version    Version used to cache-bust the enqueued styling.
+	 * @param string $slug         Slug that identifies the menu and its page.
+	 * @param string $capability   Capability required to see the menu.
+	 * @param string $icon_url     URL of the menu icon shown in the admin sidebar.
+	 * @param string $style_handle Handle under which the menu icon styling is enqueued.
 	 */
-	public function __construct( string $slug, string $capability, string $icon_url, string $version ) {
-		$this->slug       = $slug;
-		$this->capability = $capability;
-		$this->icon_url   = $icon_url;
-		$this->version    = $version;
+	public function __construct( string $slug, string $capability, string $icon_url, string $style_handle ) {
+		$this->slug         = $slug;
+		$this->capability   = $capability;
+		$this->icon_url     = $icon_url;
+		$this->style_handle = $style_handle;
 	}
 
 	/**
@@ -106,12 +101,14 @@ class Menu implements Manager {
 	 * Enqueues the CSS that scales the high-resolution menu icon down to the
 	 * sidebar size. Letting the browser scale a large source keeps the icon
 	 * sharp on high-density displays, rather than shipping a blurry,
-	 * pre-downsampled bitmap.
+	 * pre-downsampled bitmap. The style is registered without a source, so the
+	 * inline rules below carry it and no file version applies.
 	 */
 	public function enqueue_icon_style(): void {
-		wp_register_style( self::STYLE_HANDLE, false, array(), $this->version );
-		wp_enqueue_style( self::STYLE_HANDLE );
-		wp_add_inline_style( self::STYLE_HANDLE, $this->icon_style() );
+		// phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion -- Src-less handle that only carries inline CSS; a file version is meaningless here.
+		wp_register_style( $this->style_handle, false, array(), null );
+		wp_enqueue_style( $this->style_handle );
+		wp_add_inline_style( $this->style_handle, $this->icon_style() );
 	}
 
 	/**

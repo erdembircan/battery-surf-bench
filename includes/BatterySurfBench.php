@@ -17,19 +17,12 @@ namespace ErdemBircan\BatterySurfBench;
 use ErdemBircan\BatterySurfBench\Admin\Menu;
 use ErdemBircan\BatterySurfBench\Support\Manager;
 
-use function plugins_url;
-
 defined( 'ABSPATH' ) || exit;
 
 /**
  * Bootstraps the Battery Surf Bench plugin.
  */
 class BatterySurfBench {
-
-	/**
-	 * Registry identifier for the main plugin file path.
-	 */
-	public const PLUGIN_FILE = 'plugin_file';
 
 	/**
 	 * Absolute path to the main plugin file.
@@ -48,6 +41,13 @@ class BatterySurfBench {
 	private Registry $registry;
 
 	/**
+	 * Resolves filesystem paths and URLs for the assets shipped with the plugin.
+	 *
+	 * @var Paths
+	 */
+	private Paths $paths;
+
+	/**
 	 * Stores the plugin file path. No work is done here so the object can be
 	 * constructed without side effects.
 	 *
@@ -58,15 +58,12 @@ class BatterySurfBench {
 	}
 
 	/**
-	 * Boots the plugin: builds the registry from configuration and registers
+	 * Boots the plugin: builds the registry and path resolver, then registers
 	 * its managers.
 	 */
 	public function init(): void {
-		$config = require __DIR__ . '/Config.php';
-
-		$this->registry = new Registry(
-			array_merge( $config, array( self::PLUGIN_FILE => $this->plugin_file ) )
-		);
+		$this->registry = new Registry( require __DIR__ . '/Config.php' );
+		$this->paths    = new Paths( $this->plugin_file );
 
 		foreach ( $this->managers() as $manager ) {
 			$manager->register();
@@ -85,21 +82,9 @@ class BatterySurfBench {
 			new Menu(
 				$this->registry->get( 'admin_menu.slug' ),
 				$this->registry->get( 'capability' ),
-				$this->menu_icon_url(),
-				$this->registry->get( 'version' )
+				$this->paths->url( $this->registry->get( 'admin_menu.icon' ) ),
+				$this->registry->get( 'admin_menu.style_handle' )
 			),
-		);
-	}
-
-	/**
-	 * Resolves the public URL of the admin menu icon shipped with the plugin.
-	 *
-	 * @return string The menu icon URL.
-	 */
-	private function menu_icon_url(): string {
-		return plugins_url(
-			$this->registry->get( 'admin_menu.icon' ),
-			$this->registry->get( self::PLUGIN_FILE )
 		);
 	}
 }

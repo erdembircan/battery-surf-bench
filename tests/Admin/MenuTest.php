@@ -29,10 +29,10 @@ use function has_action;
  */
 final class MenuTest extends TestCase {
 
-	private const SLUG       = 'battery-surf-bench';
-	private const CAPABILITY = 'manage_options';
-	private const ICON_URL   = 'https://example.test/assets/images/menu-icon.png';
-	private const VERSION    = '1.2.3';
+	private const SLUG         = 'battery-surf-bench';
+	private const CAPABILITY   = 'manage_options';
+	private const ICON_URL     = 'https://example.test/assets/images/menu-icon.png';
+	private const STYLE_HANDLE = 'battery-surf-bench-admin-menu';
 
 	/**
 	 * Builds a menu manager with representative injected configuration.
@@ -40,7 +40,7 @@ final class MenuTest extends TestCase {
 	 * @return Menu The manager under test.
 	 */
 	private function menu(): Menu {
-		return new Menu( self::SLUG, self::CAPABILITY, self::ICON_URL, self::VERSION );
+		return new Menu( self::SLUG, self::CAPABILITY, self::ICON_URL, self::STYLE_HANDLE );
 	}
 
 	/**
@@ -97,17 +97,18 @@ final class MenuTest extends TestCase {
 
 	/**
 	 * The enqueued style scales the menu icon down to the sidebar size, which
-	 * is what keeps the high-resolution source sharp.
+	 * is what keeps the high-resolution source sharp. The style carries no
+	 * source, so it is registered without a file version.
 	 */
 	public function test_enqueue_icon_style_scales_the_menu_icon(): void {
 		$menu = $this->menu();
 
-		Functions\expect( 'wp_register_style' )->once()->with( Menu::STYLE_HANDLE, false, array(), self::VERSION );
-		Functions\expect( 'wp_enqueue_style' )->once()->with( Menu::STYLE_HANDLE );
+		Functions\expect( 'wp_register_style' )->once()->with( self::STYLE_HANDLE, false, array(), null );
+		Functions\expect( 'wp_enqueue_style' )->once()->with( self::STYLE_HANDLE );
 		Functions\expect( 'wp_add_inline_style' )
 			->once()
 			->with(
-				Menu::STYLE_HANDLE,
+				self::STYLE_HANDLE,
 				Mockery::on(
 					static function ( $css ) {
 						return is_string( $css )
