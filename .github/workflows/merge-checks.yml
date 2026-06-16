@@ -41,7 +41,8 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: ./.github/actions/setup-node
-      - run: pnpm test:e2e:install
+      # `--with-deps` pulls the system libraries Chromium needs on CI runners.
+      - run: pnpm exec playwright install --with-deps chromium
       # `pretest:e2e` builds the plugin; the Playwright config starts the
       # WordPress Playground server itself.
       - run: pnpm test:e2e
