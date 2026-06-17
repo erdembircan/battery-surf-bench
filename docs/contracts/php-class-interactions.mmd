@@ -73,37 +73,36 @@ classDiagram
     }
 
     class SessionsScreen {
-        +__construct(string parent_slug, string page_slug, string capability, string bundle, string style, SessionSchema schema, Assets assets)
+        +__construct(string parent_slug, string page_slug, string capability, string bundle, string style, SessionSchema schema, Assets assets, string cockpit_param, string cockpit_value)
         +register() void
         +add_page() void
         +enqueue(string hook_suffix) void
         +render() void
     }
 
-    class PageSeeder {
-        +__construct(string marker_meta, string hash_meta)
-        +ensure(string marker, string title, string content, string template) int
-        +url(string marker) string
-    }
-
     class CoursePage {
-        +__construct(string slug, string title, string content, string template)
+        +__construct(string slug, string title, string content)
         +slug() string
         +title() string
         +content() string
-        +template() string
     }
 
     class CourseCatalog {
-        +__construct(string content_dir, string template)
+        +__construct(string content_dir)
         +pages() array
+        +find(string slug) CoursePage
     }
 
     class CourseLibrary {
-        +__construct(CourseCatalog catalog, PageSeeder seeder)
-        +register() void
-        +seed() void
+        +__construct(CourseCatalog catalog, string param)
         +links() array
+    }
+
+    class CourseRouter {
+        +__construct(CourseCatalog catalog, string param)
+        +register() void
+        +add_query_var(array vars) array
+        +maybe_render(array posts, WP_Query query) array
     }
 
     class CoursePagesSource {
@@ -114,11 +113,17 @@ classDiagram
     }
 
     class Cockpit {
-        +__construct(string block_dir, string block_name, string source_name, string page_title, PageSeeder seeder)
+        +__construct(string block_dir, string block_name, string source_name, string param, string value, string capability, CockpitDashboard dashboard)
         +register() void
         +register_block() void
-        +seed_page() void
+        +add_query_var(array vars) array
         +allow_pages_binding(array attributes) array
+        +maybe_render() void
+        +dequeue_all_assets() void
+    }
+
+    class CockpitDashboard {
+        +render(string body) void
     }
 
     BatterySurfBench --> Registry : creates & owns (composition)
@@ -128,11 +133,12 @@ classDiagram
     BatterySurfBench --> SessionSchema : creates & owns (composition)
     BatterySurfBench --> SessionType : creates & owns (composition)
     BatterySurfBench --> SessionsScreen : creates & owns (composition)
-    BatterySurfBench --> PageSeeder : creates & owns (composition)
     BatterySurfBench --> CourseCatalog : creates & owns (composition)
     BatterySurfBench --> CourseLibrary : creates & owns (composition)
+    BatterySurfBench --> CourseRouter : creates & owns (composition)
     BatterySurfBench --> CoursePagesSource : creates & owns (composition)
     BatterySurfBench --> Cockpit : creates & owns (composition)
+    BatterySurfBench --> CockpitDashboard : creates & owns (composition)
     BatterySurfBench ..> Manager : registers
     Menu ..|> Manager : implements
     Menu --> Assets : uses
@@ -141,14 +147,14 @@ classDiagram
     SessionsScreen ..|> Manager : implements
     SessionsScreen --> SessionSchema : uses
     SessionsScreen --> Assets : uses
-    CourseLibrary ..|> Manager : implements
     CourseLibrary --> CourseCatalog : uses
-    CourseLibrary --> PageSeeder : uses
+    CourseRouter ..|> Manager : implements
+    CourseRouter --> CourseCatalog : uses
     CourseCatalog ..> CoursePage : produces
     CoursePagesSource ..|> Manager : implements
     CoursePagesSource --> CourseLibrary : uses
     Cockpit ..|> Manager : implements
-    Cockpit --> PageSeeder : uses
+    Cockpit --> CockpitDashboard : uses
     Registry ..|> ContainerInterface : implements
     Registry ..> NotFoundException : throws
     NotFoundException --|> InvalidArgumentException : extends

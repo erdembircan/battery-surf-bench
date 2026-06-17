@@ -18,41 +18,59 @@ if ( ! defined( 'ABSPATH' ) ) {
 	define( 'ABSPATH', sys_get_temp_dir() . '/wordpress/' );
 }
 
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedClassFound -- Shimming WordPress core classes for the test process.
+// phpcs:disable Generic.Files.OneObjectStructurePerFile.MultipleFound -- Both WP core stubs belong with the test bootstrap.
 if ( ! class_exists( 'WP_Query' ) ) {
-	// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedClassFound -- Shimming a WordPress core class for the test process.
 	/**
 	 * Minimal WP_Query stub for the test process.
 	 *
-	 * Brain Monkey mocks functions, not classes, so code that instantiates
-	 * WP_Query (e.g. the page seeder) needs a stand-in. It resolves to whatever
-	 * post IDs a test stages in the static `$staged_posts`, defaulting to none,
-	 * so a test can simulate a found or a missing page. The constructor ignores
-	 * the query arguments the caller passes (PHP discards the extra arguments).
+	 * Brain Monkey mocks functions, not classes, so code that type-hints or
+	 * mutates WP_Query (e.g. the course router) needs a stand-in. `is_main_query`
+	 * is controllable via `$is_main`, and dynamic properties are allowed so the
+	 * router can set the query flags it would on a real query.
 	 */
+	#[\AllowDynamicProperties]
 	class WP_Query {
 
 		/**
-		 * Post IDs the next query should resolve to.
+		 * Whether this stands in for the main query.
 		 *
-		 * @var array<int, int>
+		 * @var bool
 		 */
-		public static array $staged_posts = array();
+		public bool $is_main = true;
 
 		/**
-		 * Posts matched by the query.
+		 * Reports whether this is the main query.
 		 *
-		 * @var array<int, int>
+		 * @return bool The staged main-query flag.
 		 */
-		public array $posts;
-
-		/**
-		 * Resolves the query to the staged posts.
-		 */
-		public function __construct() {
-			$this->posts = self::$staged_posts;
+		public function is_main_query(): bool {
+			return $this->is_main;
 		}
 	}
-	// phpcs:enable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedClassFound
 }
+
+if ( ! class_exists( 'WP_Post' ) ) {
+	/**
+	 * Minimal WP_Post stub: copies the given data object's fields onto itself,
+	 * matching how WordPress builds a post from a raw row.
+	 */
+	#[\AllowDynamicProperties]
+	class WP_Post {
+
+		/**
+		 * Copies each field of the data object onto the post.
+		 *
+		 * @param object $post Raw post data.
+		 */
+		public function __construct( object $post ) {
+			foreach ( get_object_vars( $post ) as $key => $value ) {
+				$this->$key = $value;
+			}
+		}
+	}
+}
+// phpcs:enable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedClassFound
+// phpcs:enable Generic.Files.OneObjectStructurePerFile.MultipleFound
 
 require_once dirname( __DIR__ ) . '/vendor/autoload.php';

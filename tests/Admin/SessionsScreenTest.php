@@ -46,7 +46,9 @@ final class SessionsScreenTest extends TestCase {
 			self::BUNDLE,
 			self::STYLE,
 			new SessionSchema( 'bsb_session', 'bsb_' ),
-			$assets ?? Mockery::mock( Assets::class )
+			$assets ?? Mockery::mock( Assets::class ),
+			'bsbSession',
+			'cockpit'
 		);
 	}
 
@@ -139,14 +141,23 @@ final class SessionsScreenTest extends TestCase {
 	}
 
 	/**
-	 * The screen renders a heading and the container the bundle mounts into.
+	 * The screen renders a heading, a cockpit link, and the container the bundle
+	 * mounts into.
 	 */
-	public function test_render_outputs_heading_and_mount_point(): void {
+	public function test_render_outputs_heading_cockpit_link_and_mount_point(): void {
+		Functions\when( 'home_url' )->justReturn( 'https://example.test/' );
+		Functions\when( 'add_query_arg' )->alias(
+			static fn ( string $key, string $value, string $url ): string => $url . '?' . $key . '=' . $value
+		);
+		Functions\when( 'esc_url' )->returnArg();
+
 		ob_start();
 		$this->screen()->render();
 		$output = (string) ob_get_clean();
 
 		$this->assertStringContainsString( 'Benchmark Sessions', $output );
 		$this->assertStringContainsString( 'id="bsb-sessions-app"', $output );
+		$this->assertStringContainsString( 'https://example.test/?bsbSession=cockpit', $output );
+		$this->assertStringContainsString( 'Open Cockpit', $output );
 	}
 }

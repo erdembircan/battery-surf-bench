@@ -14,7 +14,6 @@ use ErdemBircan\BatterySurfBench\Cockpit\CoursePagesSource;
 use ErdemBircan\BatterySurfBench\Course\CourseCatalog;
 use ErdemBircan\BatterySurfBench\Course\CourseLibrary;
 use ErdemBircan\BatterySurfBench\Support\Manager;
-use ErdemBircan\BatterySurfBench\Support\PageSeeder;
 use ErdemBircan\BatterySurfBench\Tests\TestCase;
 use Mockery;
 
@@ -50,7 +49,7 @@ final class CoursePagesSourceTest extends TestCase {
 	 * @return CoursePagesSource The source under test.
 	 */
 	private function source(): CoursePagesSource {
-		$library = new class( new CourseCatalog( sys_get_temp_dir(), '' ), new PageSeeder( '_m' ) ) extends CourseLibrary {
+		$library = new class( new CourseCatalog( sys_get_temp_dir() ), 'bsbSessionPage' ) extends CourseLibrary {
 
 			/**
 			 * Reports a fixed page list in place of seeded pages.

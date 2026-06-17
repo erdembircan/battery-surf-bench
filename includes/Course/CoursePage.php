@@ -10,27 +10,25 @@ namespace ErdemBircan\BatterySurfBench\Course;
 defined( 'ABSPATH' ) || exit;
 
 /**
- * One synthetic course page the benchmark surfs: an immutable definition of its
- * stable slug, its title, the block markup it renders as, and the page template
- * it should be shown with. It is a value object only — it knows nothing about
- * WordPress or how it is stored, so the {@see CourseCatalog} can describe the
- * course independently of the {@see CourseLibrary} that seeds it.
+ * One synthetic course page the benchmark surfs: an immutable pairing of a
+ * stable slug, a title, and the block markup the page renders as. It is a value
+ * object only — it knows nothing about WordPress, the request, or how it is
+ * served, so the {@see CourseCatalog} can describe the course independently of
+ * the router that renders it.
  */
 class CoursePage {
 
 	/**
 	 * Stores the page's definition.
 	 *
-	 * @param string $slug     Stable identifier for the page within the course.
-	 * @param string $title    Human-readable title; becomes the WordPress page title.
-	 * @param string $content  Serialized block markup for the page body.
-	 * @param string $template Page template slug to request ('' for the theme default).
+	 * @param string $slug    Stable identifier for the page within the course.
+	 * @param string $title   Human-readable title.
+	 * @param string $content Serialized block markup for the page body.
 	 */
 	public function __construct(
 		private string $slug,
 		private string $title,
-		private string $content,
-		private string $template
+		private string $content
 	) {
 	}
 
@@ -59,14 +57,5 @@ class CoursePage {
 	 */
 	public function content(): string {
 		return $this->content;
-	}
-
-	/**
-	 * The page template the page requests.
-	 *
-	 * @return string The template slug, or '' for the theme's default.
-	 */
-	public function template(): string {
-		return $this->template;
 	}
 }

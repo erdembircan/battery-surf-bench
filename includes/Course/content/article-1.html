@@ -1,6 +1,25 @@
+<!-- wp:html -->
+<header class="bsb-masthead" role="banner">
+	<a class="bsb-masthead__title" href="?bsbSessionPage=article-1">The Synthetic Times</a>
+	<span class="bsb-masthead__tagline">Technology &amp; Engineering</span>
+	<nav aria-label="Course sections">
+		<ul class="bsb-masthead__nav">
+			<li><a href="?bsbSessionPage=article-1" data-bsb-link>Features</a></li>
+			<li><a href="?bsbSessionPage=gallery" data-bsb-link>Gallery</a></li>
+			<li><a href="?bsbSessionPage=article-2" data-bsb-link>Analysis</a></li>
+			<li><a href="?bsbSessionPage=links" data-bsb-link>News Hub</a></li>
+		</ul>
+	</nav>
+</header>
+<!-- /wp:html -->
+
 <!-- wp:paragraph {"className":"bsb-article__kicker"} -->
 <p class="bsb-article__kicker">Feature &bull; Energy &amp; Computing</p>
 <!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":1,"className":"bsb-article__headline"} -->
+<h1 class="bsb-article__headline">The Hidden Cost of a Browser Tab</h1>
+<!-- /wp:heading -->
 
 <!-- wp:paragraph {"className":"bsb-article__deck"} -->
 <p class="bsb-article__deck">Every pixel rendered, every script executed, every network packet fetched — your browser is quietly draining your battery one open tab at a time. We spent three months profiling real-world web pages to find out just how expensive modern browsing has become.</p>
@@ -116,9 +135,14 @@
 <p>Each of those timer callbacks wakes the main thread, preventing the browser process from entering a lower-power idle state. Chrome's energy metrics confirm this: pages with heavy third-party analytics show 30–45% higher CPU energy use during ostensibly "idle" reading time compared to pages with no third-party scripts. The user is doing nothing but reading; the browser is sprinting.</p>
 <!-- /wp:paragraph -->
 
-<!-- wp:pullquote -->
-<figure class="wp-block-pullquote"><blockquote><p>"The user is doing nothing but reading; the browser is sprinting."</p><cite>— Mara Lindqvist, The Synthetic Times</cite></blockquote></figure>
-<!-- /wp:pullquote -->
+<!-- wp:html -->
+<div class="bsb-pullquote">
+	<blockquote>
+		"The user is doing nothing but reading; the browser is sprinting."
+	</blockquote>
+	<cite>— Mara Lindqvist, The Synthetic Times</cite>
+</div>
+<!-- /wp:html -->
 
 <!-- wp:heading -->
 <h2>Rendering Pipelines and the GPU</h2>
@@ -281,5 +305,29 @@
 <!-- /wp:html -->
 
 <!-- wp:paragraph -->
-<p><em>Continue reading: <a href="#" data-bsb-link>What Drains a Laptop Battery, Ranked</a> &bull; <a href="#" data-bsb-link>Latest in Energy &amp; Computing</a></em></p>
+<p><em>Continue reading: <a href="?bsbSessionPage=article-2" data-bsb-link>What Drains a Laptop Battery, Ranked</a> &bull; <a href="?bsbSessionPage=links" data-bsb-link>Latest in Energy &amp; Computing</a></em></p>
 <!-- /wp:paragraph -->
+
+<!-- wp:html -->
+<a
+	class="bsb-next-card"
+	href="?bsbSessionPage=gallery"
+	data-bsb-next
+	rel="next"
+>
+	<div>
+		<div class="bsb-next-card__label">Next: Photo Essay</div>
+		<div class="bsb-next-card__title">Inside the Machine — A Visual Tour of Computing Landscapes</div>
+	</div>
+	<div class="bsb-next-card__arrow" aria-hidden="true">&rarr;</div>
+</a>
+<!-- /wp:html -->
+
+<!-- wp:html -->
+<footer class="bsb-footer" role="contentinfo">
+	<div class="bsb-footer__inner">
+		<span>&copy; 2025 The Synthetic Times</span>
+		<span class="bsb-footer__badge">Battery Surf Bench course page &mdash; synthetic content</span>
+	</div>
+</footer>
+<!-- /wp:html -->

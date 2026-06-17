@@ -1,76 +1,46 @@
 <?php
 /**
- * Course library manager.
+ * Course library.
  *
  * @package ErdemBircan\BatterySurfBench
  */
 
 namespace ErdemBircan\BatterySurfBench\Course;
 
-use ErdemBircan\BatterySurfBench\Support\Manager;
-use ErdemBircan\BatterySurfBench\Support\PageSeeder;
-
-use function add_action;
+use function add_query_arg;
+use function home_url;
 
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Turns the {@see CourseCatalog}'s definitions into real, theme-rendered
- * WordPress pages and is the course domain's public face to the rest of the
- * plugin. It seeds each catalog page on boot (idempotently, through the
- * {@see PageSeeder}) and answers {@see CourseLibrary::links()} with the live
- * slug/title/URL of every page — the list the cockpit's Block Bindings source
- * hands to the cockpit block.
+ * Lists the course's pages with the front-end URLs that serve them, in course
+ * order. Each URL is the home URL with the course query parameter set to the
+ * page's slug (e.g. `?bsbSessionPage=article-1`); hitting it makes the
+ * {@see CourseRouter} render that page. This is the list the cockpit surfs —
+ * the {@see \ErdemBircan\BatterySurfBench\Cockpit\CoursePagesSource} hands it to
+ * the cockpit block through the Block Bindings API.
  *
- * It owns the seam between "what the course is" (the catalog) and "where it
- * lives" (the seeded pages), so consumers ask the library for URLs and never
- * reach into the catalog or the database themselves.
+ * The library owns the seam between the storage-agnostic {@see CourseCatalog}
+ * and the request URLs the catalog's slugs resolve to, so consumers ask it for
+ * surfable links and never build those URLs themselves.
  */
-class CourseLibrary implements Manager {
+class CourseLibrary {
 
 	/**
-	 * Stores the catalog that defines the course and the seeder that persists it.
+	 * Stores the catalog and the query parameter that selects a course page.
 	 *
 	 * @param CourseCatalog $catalog Source of the course's page definitions.
-	 * @param PageSeeder    $seeder  Creates and maintains the pages the course renders on.
+	 * @param string        $param   Query parameter the router reads the page slug from.
 	 */
 	public function __construct(
 		private CourseCatalog $catalog,
-		private PageSeeder $seeder
+		private string $param
 	) {
 	}
 
 	/**
-	 * Hooks page seeding onto `init`, where the pages' post type ('page') and
-	 * the rest of WordPress are available.
-	 *
-	 * @return void
-	 */
-	public function register(): void {
-		add_action( 'init', array( $this, 'seed' ) );
-	}
-
-	/**
-	 * Ensures every page the catalog defines exists as a published page with
-	 * its current content and requested template.
-	 *
-	 * @return void
-	 */
-	public function seed(): void {
-		foreach ( $this->catalog->pages() as $page ) {
-			$this->seeder->ensure(
-				$this->marker( $page->slug() ),
-				$page->title(),
-				$page->content(),
-				$page->template()
-			);
-		}
-	}
-
-	/**
-	 * Lists the course's pages with their live public URLs, in course order.
-	 * This is the data the cockpit surfs: each entry is the page's slug, title
-	 * and the permalink of the page the catalog page was seeded onto.
+	 * Lists the course's pages with the URL that renders each one, in course
+	 * order: each entry is the page's slug, title and surf URL.
 	 *
 	 * @return array<int, array{slug: string, title: string, url: string}> The course pages.
 	 */
@@ -78,30 +48,13 @@ class CourseLibrary implements Manager {
 		$links = array();
 
 		foreach ( $this->catalog->pages() as $page ) {
-			$url = $this->seeder->url( $this->marker( $page->slug() ) );
-
-			if ( null === $url ) {
-				continue;
-			}
-
 			$links[] = array(
 				'slug'  => $page->slug(),
 				'title' => $page->title(),
-				'url'   => $url,
+				'url'   => add_query_arg( $this->param, $page->slug(), home_url( '/' ) ),
 			);
 		}
 
 		return $links;
-	}
-
-	/**
-	 * Builds the seed marker a course page is stored under, namespacing the
-	 * page slug so course pages never collide with other seeded pages.
-	 *
-	 * @param string $slug The course page's slug.
-	 * @return string The page's seed marker.
-	 */
-	private function marker( string $slug ): string {
-		return 'course/' . $slug;
 	}
 }

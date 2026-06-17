@@ -19,10 +19,11 @@ defined( 'ABSPATH' ) || exit;
  * markup each one ships, loaded from the plugin's bundled content files.
  *
  * The catalog is deliberately storage-agnostic: it produces {@see CoursePage}
- * value objects and never touches the database. The {@see CourseLibrary} turns
- * those definitions into real WordPress pages; keeping the two apart means the
- * course can be described, listed and tested without WordPress in the loop. For
- * now the course is a single article page; further pages are added here.
+ * value objects and never touches the database or the request. The course is
+ * never seeded as real pages — the {@see CourseRouter} injects a page's markup
+ * at request time — so the catalog can be described, listed and tested without
+ * WordPress in the loop. For now the course is a single article; further pages
+ * are added here.
  */
 class CourseCatalog {
 
@@ -37,15 +38,11 @@ class CourseCatalog {
 	);
 
 	/**
-	 * Stores where the page content files live and which template the pages use.
+	 * Stores where the page content files live.
 	 *
 	 * @param string $content_dir Absolute path to the directory holding the `<slug>.html` markup files.
-	 * @param string $template    Page template slug every course page requests ('' for the theme default).
 	 */
-	public function __construct(
-		private string $content_dir,
-		private string $template
-	) {
+	public function __construct( private string $content_dir ) {
 	}
 
 	/**
@@ -58,10 +55,24 @@ class CourseCatalog {
 		$pages = array();
 
 		foreach ( self::PAGES as $slug => $title ) {
-			$pages[] = new CoursePage( $slug, $title, $this->load( $slug ), $this->template );
+			$pages[] = new CoursePage( $slug, $title, $this->load( $slug ) );
 		}
 
 		return $pages;
+	}
+
+	/**
+	 * Finds a single course page by slug.
+	 *
+	 * @param string $slug Slug of the page to find.
+	 * @return CoursePage|null The matching page, or null when the slug is not in the course.
+	 */
+	public function find( string $slug ): ?CoursePage {
+		if ( ! isset( self::PAGES[ $slug ] ) ) {
+			return null;
+		}
+
+		return new CoursePage( $slug, self::PAGES[ $slug ], $this->load( $slug ) );
 	}
 
 	/**

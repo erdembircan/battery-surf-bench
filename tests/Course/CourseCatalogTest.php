@@ -30,17 +30,34 @@ final class CourseCatalogTest extends TestCase {
 
 	/**
 	 * The catalog yields the course's page with its title and the block markup
-	 * loaded from the bundled file, tagged with the configured template.
+	 * loaded from the bundled file.
 	 */
 	public function test_pages_load_their_bundled_markup(): void {
-		$pages = ( new CourseCatalog( $this->content_dir(), 'blank' ) )->pages();
+		$pages = ( new CourseCatalog( $this->content_dir() ) )->pages();
 
 		$this->assertCount( 1, $pages );
 		$this->assertSame( 'article-1', $pages[0]->slug() );
 		$this->assertSame( 'The Hidden Cost of a Browser Tab', $pages[0]->title() );
-		$this->assertSame( 'blank', $pages[0]->template() );
-		// The bundled markup is real serialized blocks, not an empty string.
 		$this->assertStringContainsString( '<!-- wp:', $pages[0]->content() );
+	}
+
+	/**
+	 * A known slug resolves to its page, markup loaded.
+	 */
+	public function test_find_returns_a_known_page(): void {
+		$page = ( new CourseCatalog( $this->content_dir() ) )->find( 'article-1' );
+
+		$this->assertNotNull( $page );
+		$this->assertSame( 'article-1', $page->slug() );
+		$this->assertStringContainsString( '<!-- wp:', $page->content() );
+	}
+
+	/**
+	 * A slug outside the course resolves to null, so the router leaves the
+	 * request alone instead of serving a blank page.
+	 */
+	public function test_find_returns_null_for_an_unknown_slug(): void {
+		$this->assertNull( ( new CourseCatalog( $this->content_dir() ) )->find( 'not-a-page' ) );
 	}
 
 	/**
@@ -48,7 +65,7 @@ final class CourseCatalogTest extends TestCase {
 	 * error, so a packaging slip degrades to a blank page instead of a crash.
 	 */
 	public function test_missing_content_file_yields_empty_content(): void {
-		$pages = ( new CourseCatalog( '/no/such/dir', '' ) )->pages();
+		$pages = ( new CourseCatalog( '/no/such/dir' ) )->pages();
 
 		$this->assertSame( '', $pages[0]->content() );
 	}
