@@ -217,7 +217,7 @@ class SessionSchema {
 				'key'            => 'status',
 				'rest_type'      => 'string',
 				'label'          => 'Status',
-				'format'         => 'text',
+				'format'         => 'status',
 				'default'        => self::NO_DEFAULT,
 				'sanitize'       => 'sanitize_key',
 				'elements'       => array(

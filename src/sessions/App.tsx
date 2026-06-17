@@ -42,7 +42,7 @@ function initialView( config: SessionsConfig ): View {
 		titleField: 'title',
 		sort: { field: 'meta.bsb_started_at', direction: 'desc' },
 		fields: config.defaultColumns.map( ( key ) => `meta.${ key }` ),
-		layout: {},
+		layout: { density: 'compact' },
 	};
 }
 

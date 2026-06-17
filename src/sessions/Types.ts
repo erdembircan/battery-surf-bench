@@ -8,6 +8,7 @@
  */
 export type SessionFieldFormat =
 	| 'text'
+	| 'status'
 	| 'datetime'
 	| 'percent'
 	| 'rate'

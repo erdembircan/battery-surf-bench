@@ -1,10 +1,87 @@
 /**
  * Screen-level styling for the benchmark sessions listing.
  *
- * The DataViews grid brings its own styles; this only gives the mount point a
- * little breathing room within the wrapped admin page.
+ * The DataViews grid brings its own styles; this layers on the richer cells
+ * (status badges, battery-level bars) the listing renders. Every colour is a CSS
+ * custom property with a sensible default, so once a shared front-end dashboard
+ * design system exists it can restyle this listing by overriding these tokens —
+ * no changes to the components or this file needed.
  */
 
 #bsb-sessions-app {
 	margin-top: 1rem;
+
+	/* Status badge. */
+	.bsb-badge {
+		display: inline-flex;
+		align-items: center;
+		padding: 2px 10px;
+		border-radius: 9999px;
+		font-size: 11px;
+		font-weight: 600;
+		line-height: 1.7;
+		background: var( --bsb-badge-bg, #e0e0e0 );
+		color: var( --bsb-badge-fg, #1e1e1e );
+	}
+
+	.bsb-badge--finished {
+		--bsb-badge-bg: #d3f0db;
+		--bsb-badge-fg: #0a6b2e;
+	}
+
+	.bsb-badge--running {
+		--bsb-badge-bg: #d8e7fb;
+		--bsb-badge-fg: #0b4ea2;
+	}
+
+	.bsb-badge--stopped {
+		--bsb-badge-bg: #fbe7c6;
+		--bsb-badge-fg: #8a5a00;
+	}
+
+	.bsb-badge--aborted {
+		--bsb-badge-bg: #fbdcdc;
+		--bsb-badge-fg: #a3160b;
+	}
+
+	/* Battery level: mini bar + percentage. */
+	.bsb-level {
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
+		min-width: 96px;
+	}
+
+	.bsb-level__track {
+		position: relative;
+		flex: 1;
+		height: 6px;
+		border-radius: 9999px;
+		background: var( --bsb-level-track, #e6e6e6 );
+		overflow: hidden;
+	}
+
+	.bsb-level__fill {
+		display: block;
+		height: 100%;
+		border-radius: inherit;
+	}
+
+	.bsb-level__fill--high {
+		background: var( --bsb-level-high, #2fa84f );
+	}
+
+	.bsb-level__fill--mid {
+		background: var( --bsb-level-mid, #e0a526 );
+	}
+
+	.bsb-level__fill--low {
+		background: var( --bsb-level-low, #d63638 );
+	}
+
+	.bsb-level__pct {
+		min-width: 34px;
+		font-variant-numeric: tabular-nums;
+		text-align: right;
+	}
 }
