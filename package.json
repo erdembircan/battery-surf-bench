@@ -9,6 +9,8 @@
     "start": "wp-scripts start",
     "typecheck": "tsc --noEmit",
     "lint:js": "wp-scripts lint-js",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "playground": "tsx wp-playground/start.mts",
     "playground:fresh": "tsx wp-playground/start.mts --reset",
     "playground:test": "tsx wp-playground/start-test.mts",
@@ -20,10 +22,15 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.61.0",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@types/livereload": "^0.9.5",
     "@types/node": "^24.13.2",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^4.7.0",
     "@wordpress/components": "^35.0.0",
     "@wordpress/core-data": "^7.48.0",
     "@wordpress/data": "^10.48.0",
@@ -33,9 +40,11 @@
     "@wp-playground/blueprints": "^3.1.39",
     "@wp-playground/cli": "^3.1.39",
     "concurrently": "^10.0.3",
+    "jsdom": "^25.0.1",
     "livereload": "^0.10.3",
     "tsx": "^4.22.4",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "vitest": "^3.2.6"
   },
   "license": "Apache-2.0",
   "dependencies": {

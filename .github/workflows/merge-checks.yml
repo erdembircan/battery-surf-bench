@@ -26,6 +26,13 @@ jobs:
       - uses: ./.github/actions/setup-node
       - run: pnpm lint:js
 
+  js-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup-node
+      - run: pnpm test
+
   typecheck:
     runs-on: ubuntu-latest
     steps:
@@ -34,7 +41,7 @@ jobs:
       - run: pnpm typecheck
 
   e2e:
-    needs: [php-lint, php-test, js-lint, typecheck]
+    needs: [php-lint, php-test, js-lint, js-test, typecheck]
     runs-on: ubuntu-latest
     env:
       CI: "true"

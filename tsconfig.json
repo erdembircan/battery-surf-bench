@@ -18,6 +18,8 @@
 		"src/**/*.tsx",
 		"wp-playground/**/*.mts",
 		"playwright.config.mts",
-		"tests/e2e/**/*.mts"
+		"tests/e2e/**/*.mts",
+		"vitest.config.mts",
+		"vitest.setup.ts"
 	]
 }
