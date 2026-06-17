@@ -91,4 +91,17 @@
 	.dataviews-view-table tbody tr:nth-child( even ):not( .is-selected ) td {
 		background-color: var( --bsb-row-stripe, #f6f7f7 );
 	}
+
+	/* Top toolbar (search, filters, view options). By default it has no
+	 * background and sits flat on the gray admin page; give it the same surface
+	 * and a separating border as the footer so the toolbar, table and footer
+	 * read as one card. Themeable via the same token mechanism. */
+	.dataviews__view-actions,
+	.dataviews-filters__container {
+		background-color: var( --bsb-toolbar-bg, #fff );
+	}
+
+	.dataviews__view-actions {
+		border-bottom: 1px solid var( --bsb-toolbar-border, #f0f0f0 );
+	}
 }
