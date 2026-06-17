@@ -3,8 +3,13 @@ import { existsSync, mkdirSync, readdirSync, rmSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { devBlueprint, devResumeBlueprint } from './blueprint.mts';
-import { PLAYGROUND_DEV_PORT, PLUGIN_VFS_PATH } from './config.mts';
+import {
+	PLAYGROUND_DEV_PORT,
+	PLAYGROUND_HOST,
+	PLUGIN_VFS_PATH,
+} from './config.mts';
 import { logServerReady } from './log-server.mts';
+import { resolveOpenPort } from './ResolveOpenPort.mts';
 
 const __dirname = dirname( fileURLToPath( import.meta.url ) );
 const pluginDir = resolve( __dirname, '..' );
@@ -39,9 +44,22 @@ const isExistingSite =
  *
  * Pass --reset to wipe the existing site and start fresh.
  */
+
+// Resolve a free port, incrementing from the preferred one if it is taken
+// (e.g. a playground from a previous run is still up). Throws after ten
+// increments so a wedged machine fails loudly instead of hanging on a port
+// that is already in use.
+const port = await resolveOpenPort( PLAYGROUND_DEV_PORT, PLAYGROUND_HOST );
+
+if ( port !== PLAYGROUND_DEV_PORT ) {
+	process.stdout.write(
+		`[playground] port ${ PLAYGROUND_DEV_PORT } in use, using ${ port } instead\n`
+	);
+}
+
 const server = await runCLI( {
 	command: 'server',
-	port: PLAYGROUND_DEV_PORT,
+	port,
 	phpmyadmin: '/phpmyadmin',
 	blueprint: isExistingSite ? devResumeBlueprint : devBlueprint,
 	'mount-before-install': [
