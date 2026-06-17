@@ -84,6 +84,48 @@ final class SessionTypeTest extends TestCase {
 	}
 
 	/**
+	 * Access is gated entirely behind the plugin capability with meta-cap
+	 * mapping off, so even capability checks that carry no specific post (such
+	 * as the REST controller deciding whether the collection allows DELETE)
+	 * resolve to a plain primitive instead of warning that a post is required.
+	 */
+	public function test_post_type_gates_every_capability_behind_the_plugin_capability(): void {
+		Functions\expect( 'register_post_type' )
+			->once()
+			->with(
+				self::POST_TYPE,
+				Mockery::on(
+					static function ( $args ) {
+						if ( false !== $args['map_meta_cap'] ) {
+							return false;
+						}
+
+						$gated = array(
+							'edit_post',
+							'read_post',
+							'delete_post',
+							'edit_posts',
+							'create_posts',
+							'delete_posts',
+						);
+
+						foreach ( $gated as $cap ) {
+							if ( self::CAPABILITY !== ( $args['capabilities'][ $cap ] ?? null ) ) {
+								return false;
+							}
+						}
+
+						return true;
+					}
+				)
+			);
+
+		$this->type()->register_post_type();
+
+		$this->addToAssertionCount( 1 );
+	}
+
+	/**
 	 * Every session datum is registered as post meta under the schema's
 	 * prefixed key, each guarded by an auth callback — the manager's access
 	 * policy — so writes are gated even over REST.

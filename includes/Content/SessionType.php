@@ -111,7 +111,13 @@ class SessionType implements Manager {
 			'publicly_queryable'  => false,
 			'hierarchical'        => false,
 			'supports'            => array( 'title', 'custom-fields' ),
-			'map_meta_cap'        => true,
+			// Map every capability — meta caps included — directly onto the
+			// plugin capability, with meta-cap mapping OFF. The meta caps then
+			// resolve to `manage_options` as plain primitives, so checks that
+			// have no specific post (e.g. the REST controller deciding whether
+			// DELETE is allowed on the collection for the `Allow` header) never
+			// route through `map_meta_cap`, which would demand a post and warn.
+			'map_meta_cap'        => false,
 			'capability_type'     => 'post',
 			'capabilities'        => $this->capabilities(),
 		);
@@ -119,28 +125,34 @@ class SessionType implements Manager {
 
 	/**
 	 * Maps every post capability the type uses onto the plugin's single
-	 * capability, so only its holders can create, read or delete sessions.
+	 * capability, so only its holders can create, read, edit or delete
+	 * sessions. With meta-cap mapping disabled these values are checked as-is,
+	 * so the meta caps (`edit_post`, `read_post`, `delete_post`) are mapped too.
 	 *
 	 * @return array<string, string> Capability map for `register_post_type`.
 	 */
 	private function capabilities(): array {
 		$capabilities = array();
 
-		$primitives = array(
+		$caps = array(
 			'edit_post',
 			'read_post',
 			'delete_post',
 			'edit_posts',
 			'edit_others_posts',
-			'delete_posts',
-			'delete_others_posts',
+			'edit_published_posts',
+			'edit_private_posts',
 			'publish_posts',
 			'read_private_posts',
 			'create_posts',
+			'delete_posts',
+			'delete_others_posts',
+			'delete_published_posts',
+			'delete_private_posts',
 		);
 
-		foreach ( $primitives as $primitive ) {
-			$capabilities[ $primitive ] = $this->capability;
+		foreach ( $caps as $cap ) {
+			$capabilities[ $cap ] = $this->capability;
 		}
 
 		return $capabilities;
