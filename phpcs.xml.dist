@@ -9,6 +9,8 @@
 	<exclude-pattern>/build/</exclude-pattern>
 	<!-- WordPress core downloaded for the local Playground; not our source. -->
 	<exclude-pattern>/wp-playground/</exclude-pattern>
+	<!-- Agent worktrees, each a full copy of the project; not our source. -->
+	<exclude-pattern>/.claude/</exclude-pattern>
 
 	<arg name="extensions" value="php"/>
 	<arg name="basepath" value="."/>
