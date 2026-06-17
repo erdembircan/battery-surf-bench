@@ -39,6 +39,8 @@ classDiagram
         +__construct(string namespace, Paths paths)
         +enqueue(string relative, array deps) void
         +register_bundle(string relative) string
+        +localize(string handle, string object_name, array data) void
+        +enqueue_script(string handle) void
     }
 
     class Manager {
@@ -71,7 +73,7 @@ classDiagram
     }
 
     class SessionsScreen {
-        +__construct(string parent_slug, string page_slug, string capability, SessionSchema schema, Assets assets)
+        +__construct(string parent_slug, string page_slug, string capability, string bundle, string style, SessionSchema schema, Assets assets)
         +register() void
         +add_page() void
         +enqueue(string hook_suffix) void

@@ -15,10 +15,6 @@ use function __;
 use function add_action;
 use function add_submenu_page;
 use function esc_html__;
-use function wp_add_inline_script;
-use function wp_enqueue_script;
-use function wp_enqueue_style;
-use function wp_json_encode;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -31,26 +27,13 @@ defined( 'ABSPATH' ) || exit;
  * hands the grid the session schema — localized as field descriptors — so the
  * listing's columns are driven by the same definition that registers the meta.
  *
- * The grid's script dependencies come from the build manifest, so it binds to
- * the editor packages WordPress already provides. Its styles are the bundled
- * DataViews stylesheet (WordPress exposes no enqueueable handle for it) layered
- * on the `wp-components` base styles.
+ * All asset wiring goes through the {@see Assets} service; the screen never
+ * touches WordPress' enqueue functions itself. The grid's script dependencies
+ * come from the build manifest, so it binds to the editor packages WordPress
+ * already provides; its bundled stylesheet declares `wp-components` as a
+ * dependency, so the base styles load with it.
  */
 class SessionsScreen implements Manager {
-
-	/**
-	 * The built listing bundle, relative to the plugin root.
-	 *
-	 * @var string
-	 */
-	private const BUNDLE = 'build/sessions.js';
-
-	/**
-	 * The bundle's extracted stylesheet, relative to the plugin root.
-	 *
-	 * @var string
-	 */
-	private const STYLE = 'build/style-sessions.css';
 
 	/**
 	 * The admin page hook the screen renders on, captured at registration so
@@ -61,18 +44,23 @@ class SessionsScreen implements Manager {
 	private string $hook_suffix = '';
 
 	/**
-	 * Stores the screen's placement, capability, data source and asset service.
+	 * Stores the screen's placement, capability, data source, built assets and
+	 * asset service.
 	 *
 	 * @param string        $parent_slug Slug of the menu the screen lives under.
 	 * @param string        $page_slug   Slug that identifies the screen's page.
 	 * @param string        $capability  Capability required to view the screen.
+	 * @param string        $bundle      Built listing script, relative to the plugin root.
+	 * @param string        $style       Bundle's stylesheet, relative to the plugin root.
 	 * @param SessionSchema $schema      Source of the post type and field descriptors.
-	 * @param Assets        $assets      Service used to register and enqueue the bundle.
+	 * @param Assets        $assets      Service used to register, localize and enqueue the bundle.
 	 */
 	public function __construct(
 		private string $parent_slug,
 		private string $page_slug,
 		private string $capability,
+		private string $bundle,
+		private string $style,
 		private SessionSchema $schema,
 		private Assets $assets
 	) {
@@ -109,8 +97,10 @@ class SessionsScreen implements Manager {
 
 	/**
 	 * Loads the listing bundle, its data and its styles, but only on this
-	 * screen. The session schema is localized ahead of the bundle so the grid
-	 * builds its columns from the same definition that backs the meta.
+	 * screen. The bundle is registered, has the session schema localized onto it
+	 * — so the grid builds its columns from the same definition that backs the
+	 * meta — then enqueued; the stylesheet pulls in `wp-components` through its
+	 * declared dependency. Every step is delegated to the asset service.
 	 *
 	 * @param string $hook_suffix The current admin page's hook.
 	 * @return void
@@ -120,18 +110,10 @@ class SessionsScreen implements Manager {
 			return;
 		}
 
-		$handle = $this->assets->register_bundle( self::BUNDLE );
-
-		wp_add_inline_script(
-			$handle,
-			'window.bsbSessions = ' . wp_json_encode( $this->screen_config() ) . ';',
-			'before'
-		);
-
-		wp_enqueue_script( $handle );
-
-		wp_enqueue_style( 'wp-components' );
-		$this->assets->enqueue( self::STYLE, array( 'wp-components' ) );
+		$handle = $this->assets->register_bundle( $this->bundle );
+		$this->assets->localize( $handle, 'bsbSessions', $this->screen_config() );
+		$this->assets->enqueue_script( $handle );
+		$this->assets->enqueue( $this->style, array( 'wp-components' ) );
 	}
 
 	/**

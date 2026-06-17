@@ -95,6 +95,8 @@ class BatterySurfBench {
 				$this->registry->get( 'admin_menu.slug' ),
 				$this->registry->get( 'session.screen_slug' ),
 				$this->registry->get( 'capability' ),
+				$this->registry->get( 'session.bundle' ),
+				$this->registry->get( 'session.style' ),
 				$schema,
 				$this->assets
 			),

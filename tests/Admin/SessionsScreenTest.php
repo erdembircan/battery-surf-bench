@@ -28,6 +28,8 @@ final class SessionsScreenTest extends TestCase {
 	private const PARENT     = 'battery-surf-bench';
 	private const PAGE_SLUG  = 'bsb-sessions';
 	private const CAPABILITY = 'manage_options';
+	private const BUNDLE     = 'build/sessions.js';
+	private const STYLE      = 'build/style-sessions.css';
 	private const HOOK       = 'battery-surf-bench_page_bsb-sessions';
 
 	/**
@@ -41,6 +43,8 @@ final class SessionsScreenTest extends TestCase {
 			self::PARENT,
 			self::PAGE_SLUG,
 			self::CAPABILITY,
+			self::BUNDLE,
+			self::STYLE,
 			new SessionSchema( 'bsb_session', 'bsb_' ),
 			$assets ?? Mockery::mock( Assets::class )
 		);
@@ -104,28 +108,28 @@ final class SessionsScreenTest extends TestCase {
 	}
 
 	/**
-	 * On its own screen the listing registers its bundle, localizes the schema
-	 * ahead of it, and brings in the `wp-components` base styles plus its own
-	 * bundled stylesheet (which carries the DataViews styles).
+	 * On its own screen the listing drives the asset service end to end —
+	 * registering the bundle, localizing the schema onto it, enqueuing it, and
+	 * enqueuing its stylesheet (which declares `wp-components` as a dependency).
+	 * The screen itself never calls WordPress' enqueue functions.
 	 */
 	public function test_enqueue_loads_the_listing_on_its_own_screen(): void {
 		$assets = Mockery::mock( Assets::class );
 		$assets->shouldReceive( 'register_bundle' )
 			->once()
-			->with( 'build/sessions.js' )
+			->with( self::BUNDLE )
 			->andReturn( 'bsb-sessions' );
+		$assets->shouldReceive( 'localize' )
+			->once()
+			->with( 'bsb-sessions', 'bsbSessions', Mockery::type( 'array' ) );
+		$assets->shouldReceive( 'enqueue_script' )
+			->once()
+			->with( 'bsb-sessions' );
 		$assets->shouldReceive( 'enqueue' )
 			->once()
-			->with( 'build/style-sessions.css', array( 'wp-components' ) );
+			->with( self::STYLE, array( 'wp-components' ) );
 
 		Functions\when( 'add_submenu_page' )->justReturn( self::HOOK );
-		Functions\when( 'wp_json_encode' )->alias( 'json_encode' );
-
-		Functions\expect( 'wp_add_inline_script' )
-			->once()
-			->with( 'bsb-sessions', Mockery::type( 'string' ), 'before' );
-		Functions\expect( 'wp_enqueue_script' )->once()->with( 'bsb-sessions' );
-		Functions\expect( 'wp_enqueue_style' )->once()->with( 'wp-components' );
 
 		$screen = $this->screen( $assets );
 		$screen->add_page();

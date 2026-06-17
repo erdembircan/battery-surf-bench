@@ -35,5 +35,8 @@ return array(
 		'meta_prefix' => 'bsb_',
 		// Slug of the DataViews listing screen placed under the plugin menu.
 		'screen_slug' => 'bsb-sessions',
+		// Built assets the listing screen enqueues, relative to the plugin root.
+		'bundle'      => 'build/sessions.js',
+		'style'       => 'build/style-sessions.css',
 	),
 );
