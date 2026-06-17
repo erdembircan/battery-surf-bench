@@ -84,4 +84,11 @@
 		font-variant-numeric: tabular-nums;
 		text-align: right;
 	}
+
+	/* Zebra striping for the table layout. Applied to the cells of even data
+	 * rows so the row's own hover/selected background still layers on top, and
+	 * themeable via the same token mechanism as the badges and bars. */
+	.dataviews-view-table tbody tr:nth-child( even ):not( .is-selected ) td {
+		background-color: var( --bsb-row-stripe, #f6f7f7 );
+	}
 }
