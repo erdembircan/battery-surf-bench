@@ -11,6 +11,7 @@ use ErdemBircan\BatterySurfBench\Support\Manager;
 use WP_Post;
 use WP_Query;
 
+use function __return_empty_string;
 use function add_action;
 use function add_filter;
 use function get_query_var;
@@ -145,6 +146,11 @@ class CourseRouter implements Manager {
 		$query->is_front_page     = false;
 		$query->is_archive        = false;
 		$query->is_404            = false;
+
+		// The article's headline lives in the content (the editorial `<h1>`), so
+		// suppress the theme's own post-title block to avoid a duplicate title.
+		// The post title is left intact for the document `<title>` element.
+		add_filter( 'render_block_core/post-title', '__return_empty_string' );
 
 		return array( $virtual );
 	}

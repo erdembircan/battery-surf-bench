@@ -30,12 +30,12 @@ test.describe( 'Course page route', () => {
 		// Rendered through the theme: the block-theme document wrapper is present.
 		await expect( page.locator( '.wp-site-blocks' ) ).toBeAttached();
 
-		// The full article is reproduced, including the parts beyond the body.
+		// The article content is reproduced (the masthead nav is intentionally
+		// not part of the content).
 		await expect( page.locator( 'h1.bsb-article__headline' ) ).toHaveText(
 			'The Hidden Cost of a Browser Tab'
 		);
-		await expect( page.locator( '.bsb-masthead' ) ).toBeAttached();
-		await expect( page.locator( '.bsb-footer' ) ).toBeAttached();
+		await expect( page.locator( '.bsb-pullquote' ) ).toBeAttached();
 
 		await expectNoPhpNotices( page );
 	} );
