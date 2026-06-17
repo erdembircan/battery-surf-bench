@@ -105,8 +105,8 @@ final class SessionsScreenTest extends TestCase {
 
 	/**
 	 * On its own screen the listing registers its bundle, localizes the schema
-	 * ahead of it, and brings in the DataViews and components styles — the
-	 * editor packages WordPress provides.
+	 * ahead of it, and brings in the `wp-components` base styles plus its own
+	 * bundled stylesheet (which carries the DataViews styles).
 	 */
 	public function test_enqueue_loads_the_listing_on_its_own_screen(): void {
 		$assets = Mockery::mock( Assets::class );
@@ -126,7 +126,6 @@ final class SessionsScreenTest extends TestCase {
 			->with( 'bsb-sessions', Mockery::type( 'string' ), 'before' );
 		Functions\expect( 'wp_enqueue_script' )->once()->with( 'bsb-sessions' );
 		Functions\expect( 'wp_enqueue_style' )->once()->with( 'wp-components' );
-		Functions\expect( 'wp_enqueue_style' )->once()->with( 'wp-dataviews' );
 
 		$screen = $this->screen( $assets );
 		$screen->add_page();

@@ -2,13 +2,16 @@
  * Entry point for the benchmark sessions admin screen.
  *
  * Mounts the DataViews listing into the container the PHP screen renders, using
- * the configuration it localized onto the page. The DataViews and components
- * stylesheets are WordPress-registered handles the PHP screen enqueues; only
- * this screen's own layout styles are bundled here.
+ * the configuration it localized onto the page. The DataViews stylesheet is
+ * bundled here (WordPress exposes no enqueueable handle for it); it is imported
+ * through a webpack alias so the dependency-extraction plugin does not mistake
+ * it for a WordPress script. The components base styles come from the
+ * `wp-components` handle the PHP screen enqueues.
  */
 
 import { createRoot } from '@wordpress/element';
 import { SessionsApp } from './App';
+import 'dataviews-style.css';
 import './style.scss';
 
 const container = document.getElementById( 'bsb-sessions-app' );

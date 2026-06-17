@@ -31,10 +31,10 @@ defined( 'ABSPATH' ) || exit;
  * hands the grid the session schema — localized as field descriptors — so the
  * listing's columns are driven by the same definition that registers the meta.
  *
- * The grid leans on WordPress's bundled `wp-components` and `wp-dataviews`
- * styles rather than shipping its own copy, and its script's dependencies come
- * from the build manifest, so it binds to the editor packages WordPress already
- * provides.
+ * The grid's script dependencies come from the build manifest, so it binds to
+ * the editor packages WordPress already provides. Its styles are the bundled
+ * DataViews stylesheet (WordPress exposes no enqueueable handle for it) layered
+ * on the `wp-components` base styles.
  */
 class SessionsScreen implements Manager {
 
@@ -131,7 +131,6 @@ class SessionsScreen implements Manager {
 		wp_enqueue_script( $handle );
 
 		wp_enqueue_style( 'wp-components' );
-		wp_enqueue_style( 'wp-dataviews' );
 		$this->assets->enqueue( self::STYLE, array( 'wp-components' ) );
 	}
 
