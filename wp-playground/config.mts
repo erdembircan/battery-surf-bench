@@ -6,6 +6,9 @@
  * same values instead of hardcoding them independently.
  */
 
+/** Host/interface the playground servers bind to and are reached on. */
+export const PLAYGROUND_HOST = '127.0.0.1';
+
 /** Plugin slug; also the directory name it is mounted under in the VFS. */
 export const PLUGIN_SLUG = 'battery-surf-bench';
 
@@ -22,10 +25,10 @@ export const PLAYGROUND_TEST_PORT = 9401;
 export const LIVERELOAD_PORT = 35729;
 
 /** Base URL for the persistent (development) playground. */
-export const PLAYGROUND_DEV_URL = `http://127.0.0.1:${ PLAYGROUND_DEV_PORT }`;
+export const PLAYGROUND_DEV_URL = `http://${ PLAYGROUND_HOST }:${ PLAYGROUND_DEV_PORT }`;
 
 /** Base URL for the non-persistent (test) playground. */
-export const PLAYGROUND_TEST_URL = `http://127.0.0.1:${ PLAYGROUND_TEST_PORT }`;
+export const PLAYGROUND_TEST_URL = `http://${ PLAYGROUND_HOST }:${ PLAYGROUND_TEST_PORT }`;
 
 /** URL of the LiveReload client script the dev mu-plugin enqueues. */
 export const LIVERELOAD_CLIENT_URL = `http://127.0.0.1:${ LIVERELOAD_PORT }/livereload.js`;
