@@ -87,6 +87,35 @@ final class SessionSchemaTest extends TestCase {
 	}
 
 	/**
+	 * WordPress validates a registered default against the meta's schema, so an
+	 * enumerated meta must never register a default outside its allowed values —
+	 * doing so emits a notice at registration time. Such fields are always set
+	 * when a session is created, so they register no default at all.
+	 */
+	public function test_enumerated_meta_never_defaults_outside_its_values(): void {
+		$enumerated = 0;
+
+		foreach ( $this->schema()->metas() as $args ) {
+			if ( ! is_array( $args['show_in_rest'] ) ) {
+				continue;
+			}
+
+			$enum = $args['show_in_rest']['schema']['enum'] ?? null;
+			if ( null === $enum ) {
+				continue;
+			}
+
+			++$enumerated;
+
+			if ( array_key_exists( 'default', $args ) ) {
+				$this->assertContains( $args['default'], $enum );
+			}
+		}
+
+		$this->assertGreaterThan( 0, $enumerated );
+	}
+
+	/**
 	 * Field descriptors name the prefixed meta key the REST record exposes, so
 	 * the listing reads each value straight from `meta` by that key.
 	 */

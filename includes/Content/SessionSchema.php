@@ -30,6 +30,16 @@ defined( 'ABSPATH' ) || exit;
 class SessionSchema {
 
 	/**
+	 * Marks a field that registers no default value. WordPress validates a
+	 * registered default against the meta's schema, so an enumerated field with
+	 * no valid neutral value (it is always set when a session is created) opts
+	 * out rather than registering an out-of-range default.
+	 *
+	 * @var string
+	 */
+	private const NO_DEFAULT = "\0no-default";
+
+	/**
 	 * Stores the post type and the prefix every meta key is namespaced with.
 	 *
 	 * @param string $post_type   Post type the sessions are stored as.
@@ -57,7 +67,9 @@ class SessionSchema {
 	 * type's own REST endpoint surfaces it under `meta` with no bespoke
 	 * controller — the listing screen reads it straight from there. Each entry
 	 * still needs an `auth_callback`; that is policy the {@see SessionType}
-	 * manager owns, so it is intentionally absent here.
+	 * manager owns, so it is intentionally absent here. A default is registered
+	 * only when the field declares one — WordPress rejects a default that does
+	 * not satisfy the meta's schema.
 	 *
 	 * @return array<string, array<string, mixed>> Meta key mapped to its registration args.
 	 */
@@ -65,13 +77,18 @@ class SessionSchema {
 		$metas = array();
 
 		foreach ( $this->definitions() as $field ) {
-			$metas[ $this->key( $field['key'] ) ] = array(
+			$args = array(
 				'type'              => $field['rest_type'],
 				'single'            => true,
-				'default'           => $field['default'],
 				'sanitize_callback' => $field['sanitize'],
 				'show_in_rest'      => $this->rest_schema( $field ),
 			);
+
+			if ( self::NO_DEFAULT !== $field['default'] ) {
+				$args['default'] = $field['default'];
+			}
+
+			$metas[ $this->key( $field['key'] ) ] = $args;
 		}
 
 		return $metas;
@@ -201,7 +218,7 @@ class SessionSchema {
 				'rest_type'      => 'string',
 				'label'          => 'Status',
 				'format'         => 'text',
-				'default'        => 'running',
+				'default'        => self::NO_DEFAULT,
 				'sanitize'       => 'sanitize_key',
 				'elements'       => array(
 					'running'  => 'Running',
@@ -216,7 +233,7 @@ class SessionSchema {
 				'rest_type'      => 'string',
 				'label'          => 'Mode',
 				'format'         => 'text',
-				'default'        => '',
+				'default'        => self::NO_DEFAULT,
 				'sanitize'       => 'sanitize_key',
 				'elements'       => array(
 					'duration' => 'Duration',
