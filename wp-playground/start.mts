@@ -3,11 +3,7 @@ import { existsSync, mkdirSync, readdirSync, rmSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { devBlueprint, devResumeBlueprint } from './blueprint.mts';
-import {
-	PLAYGROUND_DEV_PORT,
-	PLAYGROUND_HOST,
-	PLUGIN_VFS_PATH,
-} from './config.mts';
+import { PLAYGROUND_DEV_PORT, PLUGIN_VFS_PATH } from './config.mts';
 import { logServerReady } from './log-server.mts';
 import { resolveOpenPort } from './ResolveOpenPort.mts';
 
@@ -49,7 +45,7 @@ const isExistingSite =
 // (e.g. a playground from a previous run is still up). Throws after ten
 // increments so a wedged machine fails loudly instead of hanging on a port
 // that is already in use.
-const port = await resolveOpenPort( PLAYGROUND_DEV_PORT, PLAYGROUND_HOST );
+const port = await resolveOpenPort( PLAYGROUND_DEV_PORT );
 
 if ( port !== PLAYGROUND_DEV_PORT ) {
 	process.stdout.write(
