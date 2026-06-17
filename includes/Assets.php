@@ -12,18 +12,22 @@ use InvalidArgumentException;
 use function esc_html;
 use function wp_enqueue_script;
 use function wp_enqueue_style;
+use function wp_localize_script;
+use function wp_register_script;
 
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Enqueues the plugin's script and style files.
+ * The plugin's gateway for everything WordPress asset-related: enqueuing script
+ * and style files, registering built bundles, attaching localized data to a
+ * script, and enqueuing a registered handle.
  *
- * Components hand it a plugin-relative asset path; it derives a namespaced
- * handle, picks the right WordPress enqueue function from the file extension,
- * and versions the asset by hashing its contents. Content hashing means the
- * version changes exactly when the file does, so the browser never serves a
- * stale asset and never re-downloads an unchanged one — no manual version
- * bumps, and no cache headaches during development.
+ * Keeping all of it behind this one service means no other component reaches for
+ * the `wp_enqueue_*` / `wp_localize_script` functions directly — asset wiring is
+ * this class's domain. For plugin-owned files it derives a namespaced handle and
+ * versions the asset by hashing its contents, so the version changes exactly
+ * when the file does: the browser never serves a stale asset and never
+ * re-downloads an unchanged one, with no manual version bumps.
  */
 class Assets {
 
@@ -62,6 +66,80 @@ class Assets {
 					esc_html( sprintf( 'Cannot enqueue "%s": unsupported asset type "%s".', $relative, $extension ) )
 				);
 		}
+	}
+
+	/**
+	 * Registers a script bundle built by `@wordpress/scripts`, wiring in the
+	 * dependencies and version from the sibling `*.asset.php` the build emits.
+	 *
+	 * Registering rather than enqueuing returns the handle so the caller can
+	 * attach localized data ({@see Assets::localize()}) before enqueuing it
+	 * ({@see Assets::enqueue_script()}). Leaning on the generated manifest means
+	 * the bundle always asks WordPress for the exact `wp-*` scripts it
+	 * externalized — `wp-element`, `wp-data`, `wp-core-data`, … — instead of a
+	 * hand-maintained dependency list.
+	 *
+	 * @param string $relative Path to the built script relative to the plugin root.
+	 * @return string The registered script's handle.
+	 */
+	public function register_bundle( string $relative ): string {
+		$handle   = $this->handle( $relative );
+		$manifest = $this->manifest( $relative );
+
+		wp_register_script(
+			$handle,
+			$this->paths->url( $relative ),
+			$manifest['dependencies'],
+			$manifest['version'],
+			true
+		);
+
+		return $handle;
+	}
+
+	/**
+	 * Attaches a data object to a registered script as a JavaScript global, the
+	 * canonical way to hand server-side data to a front-end bundle. Passing data
+	 * to scripts is part of asset wiring, so it lives here rather than callers
+	 * reaching for `wp_localize_script` themselves.
+	 *
+	 * @param string              $handle      Handle of a registered script.
+	 * @param string              $object_name Name of the JavaScript global the data is exposed as.
+	 * @param array<string,mixed> $data        Data to expose to the script.
+	 * @return void
+	 */
+	public function localize( string $handle, string $object_name, array $data ): void {
+		wp_localize_script( $handle, $object_name, $data );
+	}
+
+	/**
+	 * Enqueues an already-registered script by its handle, so the registration,
+	 * localization and enqueue steps of a bundle all pass through this service.
+	 *
+	 * @param string $handle Handle of a registered script.
+	 * @return void
+	 */
+	public function enqueue_script( string $handle ): void {
+		wp_enqueue_script( $handle );
+	}
+
+	/**
+	 * Reads the dependency manifest `@wordpress/scripts` writes beside a built
+	 * script, falling back to no dependencies and a content-hash version when it
+	 * is missing.
+	 *
+	 * @param string $relative Path to the built script relative to the plugin root.
+	 * @return array{dependencies: array<int, string>, version: string|false} The bundle's dependencies and version.
+	 */
+	private function manifest( string $relative ): array {
+		$asset_path = preg_replace( '/\.js$/', '.asset.php', $this->paths->path( $relative ) );
+
+		$manifest = is_string( $asset_path ) && is_readable( $asset_path ) ? require $asset_path : array();
+
+		return array(
+			'dependencies' => is_array( $manifest['dependencies'] ?? null ) ? $manifest['dependencies'] : array(),
+			'version'      => is_string( $manifest['version'] ?? null ) ? $manifest['version'] : $this->version( $relative ),
+		);
 	}
 
 	/**

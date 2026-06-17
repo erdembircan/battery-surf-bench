@@ -8,11 +8,14 @@
 		"esModuleInterop": true,
 		"skipLibCheck": true,
 		"noEmit": true,
+		"jsx": "react-jsx",
+		"jsxImportSource": "react",
 		"types": [ "node" ],
 		"allowImportingTsExtensions": true
 	},
 	"include": [
 		"src/**/*.ts",
+		"src/**/*.tsx",
 		"wp-playground/**/*.mts",
 		"playwright.config.mts",
 		"tests/e2e/**/*.mts"

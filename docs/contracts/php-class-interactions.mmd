@@ -38,6 +38,9 @@ classDiagram
     class Assets {
         +__construct(string namespace, Paths paths)
         +enqueue(string relative, array deps) void
+        +register_bundle(string relative) string
+        +localize(string handle, string object_name, array data) void
+        +enqueue_script(string handle) void
     }
 
     class Manager {
@@ -53,13 +56,45 @@ classDiagram
         +render() void
     }
 
+    class SessionSchema {
+        +__construct(string post_type, string meta_prefix)
+        +post_type() string
+        +metas() array
+        +fields() array
+        +default_columns() array
+    }
+
+    class SessionType {
+        +__construct(SessionSchema schema, string capability)
+        +register() void
+        +register_post_type() void
+        +register_meta() void
+        +can_edit() bool
+    }
+
+    class SessionsScreen {
+        +__construct(string parent_slug, string page_slug, string capability, string bundle, string style, SessionSchema schema, Assets assets)
+        +register() void
+        +add_page() void
+        +enqueue(string hook_suffix) void
+        +render() void
+    }
+
     BatterySurfBench --> Registry : creates & owns (composition)
     BatterySurfBench --> Paths : creates & owns (composition)
     BatterySurfBench --> Assets : creates & owns (composition)
     BatterySurfBench --> Menu : creates & owns (composition)
+    BatterySurfBench --> SessionSchema : creates & owns (composition)
+    BatterySurfBench --> SessionType : creates & owns (composition)
+    BatterySurfBench --> SessionsScreen : creates & owns (composition)
     BatterySurfBench ..> Manager : registers
     Menu ..|> Manager : implements
     Menu --> Assets : uses
+    SessionType ..|> Manager : implements
+    SessionType --> SessionSchema : uses
+    SessionsScreen ..|> Manager : implements
+    SessionsScreen --> SessionSchema : uses
+    SessionsScreen --> Assets : uses
     Registry ..|> ContainerInterface : implements
     Registry ..> NotFoundException : throws
     NotFoundException --|> InvalidArgumentException : extends

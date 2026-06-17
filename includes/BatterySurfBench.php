@@ -8,6 +8,9 @@
 namespace ErdemBircan\BatterySurfBench;
 
 use ErdemBircan\BatterySurfBench\Admin\Menu;
+use ErdemBircan\BatterySurfBench\Admin\SessionsScreen;
+use ErdemBircan\BatterySurfBench\Content\SessionSchema;
+use ErdemBircan\BatterySurfBench\Content\SessionType;
 use ErdemBircan\BatterySurfBench\Support\Manager;
 
 defined( 'ABSPATH' ) || exit;
@@ -71,12 +74,30 @@ class BatterySurfBench {
 	 * @return Manager[] The plugin's managers.
 	 */
 	private function managers(): array {
+		$schema = new SessionSchema(
+			$this->registry->get( 'session.post_type' ),
+			$this->registry->get( 'session.meta_prefix' )
+		);
+
 		return array(
 			new Menu(
 				$this->registry->get( 'admin_menu.slug' ),
 				$this->registry->get( 'capability' ),
 				$this->registry->get( 'admin_menu.icon' ),
 				$this->registry->get( 'admin_menu.style' ),
+				$this->assets
+			),
+			new SessionType(
+				$schema,
+				$this->registry->get( 'capability' )
+			),
+			new SessionsScreen(
+				$this->registry->get( 'admin_menu.slug' ),
+				$this->registry->get( 'session.screen_slug' ),
+				$this->registry->get( 'capability' ),
+				$this->registry->get( 'session.bundle' ),
+				$this->registry->get( 'session.style' ),
+				$schema,
 				$this->assets
 			),
 		);

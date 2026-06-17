@@ -11,6 +11,13 @@
  * `typescript-eslint` as a direct dependency), reuse the exact block the
  * default config already builds and extend its file globs to cover the
  * additional module extensions.
+ *
+ * The default config ignores `node_modules`, `build` and `vendor` but not two
+ * trees that would otherwise be linted, turning a sub-second run into a
+ * minute-long one: the Playground WordPress install that `npm run playground`
+ * downloads into `wp-playground/wordpress/` (hundreds of core JS files), and
+ * `.claude/` — where the agent worktrees live, each a full copy of the project.
+ * Ignore both.
  */
 
 const wpScriptsConfig = require( '@wordpress/scripts/config/eslint.config.cjs' );
@@ -23,6 +30,7 @@ const tsBlock = wpScriptsConfig.find(
 );
 
 module.exports = [
+	{ ignores: [ '.claude/**', 'wp-playground/wordpress/**' ] },
 	...wpScriptsConfig,
 	...( tsBlock ? [ { ...tsBlock, files: [ '**/*.mts', '**/*.cts' ] } ] : [] ),
 ];

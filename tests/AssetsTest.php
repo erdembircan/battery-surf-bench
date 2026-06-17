@@ -75,6 +75,45 @@ final class AssetsTest extends TestCase {
 	}
 
 	/**
+	 * Localizing hands the data to WordPress under the requested global name for
+	 * the given handle, so callers pass script data through the asset service.
+	 */
+	public function test_localize_attaches_data_to_the_handle(): void {
+		$data = array(
+			'postType' => 'bsb_session',
+			'fields'   => array( 'a', 'b' ),
+		);
+
+		Functions\expect( 'wp_localize_script' )
+			->once()
+			->with( 'battery-surf-bench-app', 'bsbSessions', $data );
+
+		$assets = new Assets( 'battery-surf-bench', new Paths( '/plugins/battery-surf-bench/battery-surf-bench.php' ) );
+		$assets->localize( 'battery-surf-bench-app', 'bsbSessions', $data );
+
+		// The Mockery expectation above is the assertion; acknowledge it so
+		// PHPUnit does not flag the test as risky.
+		$this->addToAssertionCount( 1 );
+	}
+
+	/**
+	 * Enqueuing by handle defers to WordPress for an already-registered script,
+	 * so the register/localize/enqueue steps all pass through this service.
+	 */
+	public function test_enqueue_script_enqueues_a_registered_handle(): void {
+		Functions\expect( 'wp_enqueue_script' )
+			->once()
+			->with( 'battery-surf-bench-sessions' );
+
+		$assets = new Assets( 'battery-surf-bench', new Paths( '/plugins/battery-surf-bench/battery-surf-bench.php' ) );
+		$assets->enqueue_script( 'battery-surf-bench-sessions' );
+
+		// The Mockery expectation above is the assertion; acknowledge it so
+		// PHPUnit does not flag the test as risky.
+		$this->addToAssertionCount( 1 );
+	}
+
+	/**
 	 * An unsupported extension is rejected rather than enqueued with the wrong
 	 * function.
 	 */
