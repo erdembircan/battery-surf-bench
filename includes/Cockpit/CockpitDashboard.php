@@ -40,6 +40,10 @@ class CockpitDashboard {
 	<meta name="viewport" content="width=device-width, initial-scale=1" />
 	<meta name="robots" content="noindex" />
 	<title><?php esc_html_e( 'Battery Surf Bench — Cockpit', 'battery-surf-bench' ); ?></title>
+	<style>
+		html, body { margin: 0; height: 100%; }
+		.bsb-cockpit__viewport { display: block; width: 100%; height: 100vh; border: 0; }
+	</style>
 		<?php wp_head(); ?>
 </head>
 <body>

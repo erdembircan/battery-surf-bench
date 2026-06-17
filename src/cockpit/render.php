@@ -15,6 +15,8 @@
  * @package ErdemBircan\BatterySurfBench
  */
 
+namespace ErdemBircan\BatterySurfBench;
+
 use function esc_attr__;
 use function get_block_wrapper_attributes;
 use function wp_interactivity_data_wp_context;
