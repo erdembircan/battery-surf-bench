@@ -9,9 +9,14 @@ namespace ErdemBircan\BatterySurfBench;
 
 use ErdemBircan\BatterySurfBench\Admin\Menu;
 use ErdemBircan\BatterySurfBench\Admin\SessionsScreen;
+use ErdemBircan\BatterySurfBench\Cockpit\Cockpit;
+use ErdemBircan\BatterySurfBench\Cockpit\CoursePagesSource;
 use ErdemBircan\BatterySurfBench\Content\SessionSchema;
 use ErdemBircan\BatterySurfBench\Content\SessionType;
+use ErdemBircan\BatterySurfBench\Course\CourseCatalog;
+use ErdemBircan\BatterySurfBench\Course\CourseLibrary;
 use ErdemBircan\BatterySurfBench\Support\Manager;
+use ErdemBircan\BatterySurfBench\Support\PageSeeder;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -79,6 +84,18 @@ class BatterySurfBench {
 			$this->registry->get( 'session.meta_prefix' )
 		);
 
+		// Course domain: the catalog describes the surf course, the seeder
+		// persists pages, and the library is its public face — seeding the
+		// pages and listing them for the cockpit to surf.
+		$seeder  = new PageSeeder( $this->registry->get( 'page_marker' ) );
+		$library = new CourseLibrary(
+			new CourseCatalog(
+				$this->paths->path( 'includes/Course/content' ),
+				$this->registry->get( 'course.template' )
+			),
+			$seeder
+		);
+
 		return array(
 			new Menu(
 				$this->registry->get( 'admin_menu.slug' ),
@@ -99,6 +116,18 @@ class BatterySurfBench {
 				$this->registry->get( 'session.style' ),
 				$schema,
 				$this->assets
+			),
+			$library,
+			new CoursePagesSource(
+				$this->registry->get( 'course.binding_source' ),
+				$library
+			),
+			new Cockpit(
+				$this->paths->path( $this->registry->get( 'cockpit.block_dir' ) ),
+				$this->registry->get( 'cockpit.block_name' ),
+				$this->registry->get( 'course.binding_source' ),
+				$this->registry->get( 'cockpit.page_title' ),
+				$seeder
 			),
 		);
 	}

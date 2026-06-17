@@ -80,6 +80,47 @@ classDiagram
         +render() void
     }
 
+    class PageSeeder {
+        +__construct(string marker_meta, string hash_meta)
+        +ensure(string marker, string title, string content, string template) int
+        +url(string marker) string
+    }
+
+    class CoursePage {
+        +__construct(string slug, string title, string content, string template)
+        +slug() string
+        +title() string
+        +content() string
+        +template() string
+    }
+
+    class CourseCatalog {
+        +__construct(string content_dir, string template)
+        +pages() array
+    }
+
+    class CourseLibrary {
+        +__construct(CourseCatalog catalog, PageSeeder seeder)
+        +register() void
+        +seed() void
+        +links() array
+    }
+
+    class CoursePagesSource {
+        +__construct(string source_name, CourseLibrary library)
+        +register() void
+        +register_source() void
+        +value(array source_args, mixed block_instance, string attribute_name) array
+    }
+
+    class Cockpit {
+        +__construct(string block_dir, string block_name, string source_name, string page_title, PageSeeder seeder)
+        +register() void
+        +register_block() void
+        +seed_page() void
+        +allow_pages_binding(array attributes) array
+    }
+
     BatterySurfBench --> Registry : creates & owns (composition)
     BatterySurfBench --> Paths : creates & owns (composition)
     BatterySurfBench --> Assets : creates & owns (composition)
@@ -87,6 +128,11 @@ classDiagram
     BatterySurfBench --> SessionSchema : creates & owns (composition)
     BatterySurfBench --> SessionType : creates & owns (composition)
     BatterySurfBench --> SessionsScreen : creates & owns (composition)
+    BatterySurfBench --> PageSeeder : creates & owns (composition)
+    BatterySurfBench --> CourseCatalog : creates & owns (composition)
+    BatterySurfBench --> CourseLibrary : creates & owns (composition)
+    BatterySurfBench --> CoursePagesSource : creates & owns (composition)
+    BatterySurfBench --> Cockpit : creates & owns (composition)
     BatterySurfBench ..> Manager : registers
     Menu ..|> Manager : implements
     Menu --> Assets : uses
@@ -95,6 +141,14 @@ classDiagram
     SessionsScreen ..|> Manager : implements
     SessionsScreen --> SessionSchema : uses
     SessionsScreen --> Assets : uses
+    CourseLibrary ..|> Manager : implements
+    CourseLibrary --> CourseCatalog : uses
+    CourseLibrary --> PageSeeder : uses
+    CourseCatalog ..> CoursePage : produces
+    CoursePagesSource ..|> Manager : implements
+    CoursePagesSource --> CourseLibrary : uses
+    Cockpit ..|> Manager : implements
+    Cockpit --> PageSeeder : uses
     Registry ..|> ContainerInterface : implements
     Registry ..> NotFoundException : throws
     NotFoundException --|> InvalidArgumentException : extends

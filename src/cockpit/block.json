@@ -1,0 +1,23 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "bsb/cockpit",
+	"version": "1.0.0",
+	"title": "Battery Surf Bench Cockpit",
+	"category": "widgets",
+	"icon": "dashboard",
+	"description": "Drives the benchmark: embeds the surf course pages in a viewport.",
+	"textdomain": "battery-surf-bench",
+	"attributes": {
+		"pages": {
+			"type": "array",
+			"default": []
+		}
+	},
+	"supports": {
+		"html": false,
+		"interactivity": true
+	},
+	"render": "file:./render.php",
+	"viewScriptModule": "file:./view.js"
+}

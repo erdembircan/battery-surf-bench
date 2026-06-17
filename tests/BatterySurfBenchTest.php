@@ -21,6 +21,16 @@ use function has_action;
 final class BatterySurfBenchTest extends TestCase {
 
 	/**
+	 * Stubs the path resolver's WordPress dependency. Booting composes the
+	 * course and cockpit components, which resolve plugin-relative directories
+	 * up front, so `plugin_dir_path` is exercised during `init()`.
+	 */
+	protected function setUp(): void {
+		parent::setUp();
+		Functions\when( 'plugin_dir_path' )->justReturn( '/path/to/' );
+	}
+
+	/**
 	 * Booting registers the plugin's components — observable here as the
 	 * admin menu component hooking itself onto `admin_menu`.
 	 */

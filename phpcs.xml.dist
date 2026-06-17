@@ -44,5 +44,10 @@
 				<element value="ErdemBircan\BatterySurfBench"/>
 			</property>
 		</properties>
+		<!-- Block render templates execute inside WP_Block::render(), so their
+		     template variables are function-scoped, not the plugin globals this
+		     sniff guards against — even though a static analyzer reads them as
+		     global because they sit at a file's top level. -->
+		<exclude-pattern>*/render.php</exclude-pattern>
 	</rule>
 </ruleset>
