@@ -21,6 +21,15 @@ export const PLAYGROUND_TEST_PORT = 9401;
 /** Port the LiveReload server listens on during development. */
 export const LIVERELOAD_PORT = 35729;
 
+/**
+ * Host the LiveReload server binds to and the dev mu-plugin enqueues the client
+ * from. Pinned to the IPv4 loopback because `livereload` defaults its bind host
+ * to `localhost`, which resolves to `::1` (IPv6) on macOS — leaving the IPv4
+ * `127.0.0.1` the browser requests refused. Both ends derive from this constant
+ * so the bind address and the client URL can never drift apart again.
+ */
+export const LIVERELOAD_HOST = '127.0.0.1';
+
 /** Base URL for the persistent (development) playground. */
 export const PLAYGROUND_DEV_URL = `http://127.0.0.1:${ PLAYGROUND_DEV_PORT }`;
 
@@ -28,7 +37,7 @@ export const PLAYGROUND_DEV_URL = `http://127.0.0.1:${ PLAYGROUND_DEV_PORT }`;
 export const PLAYGROUND_TEST_URL = `http://127.0.0.1:${ PLAYGROUND_TEST_PORT }`;
 
 /** URL of the LiveReload client script the dev mu-plugin enqueues. */
-export const LIVERELOAD_CLIENT_URL = `http://127.0.0.1:${ LIVERELOAD_PORT }/livereload.js`;
+export const LIVERELOAD_CLIENT_URL = `http://${ LIVERELOAD_HOST }:${ LIVERELOAD_PORT }/livereload.js`;
 
 /**
  * Marker written to stdout once the playground is fully initialised and can
