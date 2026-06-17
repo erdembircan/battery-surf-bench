@@ -26,4 +26,14 @@ return array(
 		'icon'  => 'none',
 		'style' => 'assets/css/admin-menu.css',
 	),
+	'session'    => array(
+		// Post type benchmark sessions are stored as, and the prefix every one
+		// of their meta keys is namespaced with. The prefix is bare (no leading
+		// underscore) on purpose: protected, underscore-prefixed meta is hidden
+		// from REST, and the listing reads the session data over REST.
+		'post_type'   => 'bsb_session',
+		'meta_prefix' => 'bsb_',
+		// Slug of the DataViews listing screen placed under the plugin menu.
+		'screen_slug' => 'bsb-sessions',
+	),
 );

@@ -12,6 +12,7 @@ use InvalidArgumentException;
 use function esc_html;
 use function wp_enqueue_script;
 use function wp_enqueue_style;
+use function wp_register_script;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -62,6 +63,53 @@ class Assets {
 					esc_html( sprintf( 'Cannot enqueue "%s": unsupported asset type "%s".', $relative, $extension ) )
 				);
 		}
+	}
+
+	/**
+	 * Registers a script bundle built by `@wordpress/scripts`, wiring in the
+	 * dependencies and version from the sibling `*.asset.php` the build emits.
+	 *
+	 * Registering rather than enqueuing returns the handle so the caller can
+	 * attach localized data before the bundle runs; the caller enqueues it once
+	 * that data is in place. Leaning on the generated manifest means the bundle
+	 * always asks WordPress for the exact `wp-*` scripts it externalized — most
+	 * importantly `wp-dataviews` — instead of a hand-maintained dependency list.
+	 *
+	 * @param string $relative Path to the built script relative to the plugin root.
+	 * @return string The registered script's handle.
+	 */
+	public function register_bundle( string $relative ): string {
+		$handle   = $this->handle( $relative );
+		$manifest = $this->manifest( $relative );
+
+		wp_register_script(
+			$handle,
+			$this->paths->url( $relative ),
+			$manifest['dependencies'],
+			$manifest['version'],
+			true
+		);
+
+		return $handle;
+	}
+
+	/**
+	 * Reads the dependency manifest `@wordpress/scripts` writes beside a built
+	 * script, falling back to no dependencies and a content-hash version when it
+	 * is missing.
+	 *
+	 * @param string $relative Path to the built script relative to the plugin root.
+	 * @return array{dependencies: array<int, string>, version: string|false} The bundle's dependencies and version.
+	 */
+	private function manifest( string $relative ): array {
+		$asset_path = preg_replace( '/\.js$/', '.asset.php', $this->paths->path( $relative ) );
+
+		$manifest = is_string( $asset_path ) && is_readable( $asset_path ) ? require $asset_path : array();
+
+		return array(
+			'dependencies' => is_array( $manifest['dependencies'] ?? null ) ? $manifest['dependencies'] : array(),
+			'version'      => is_string( $manifest['version'] ?? null ) ? $manifest['version'] : $this->version( $relative ),
+		);
 	}
 
 	/**

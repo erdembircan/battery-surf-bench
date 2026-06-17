@@ -1,0 +1,10 @@
+/**
+ * Screen-level styling for the benchmark sessions listing.
+ *
+ * The DataViews grid brings its own styles; this only gives the mount point a
+ * little breathing room within the wrapped admin page.
+ */
+
+#bsb-sessions-app {
+	margin-top: 1rem;
+}
