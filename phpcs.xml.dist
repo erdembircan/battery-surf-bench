@@ -52,20 +52,14 @@
 	</rule>
 
 	<!--
-	  Scoped exceptions for cases with no in-code fix. Each is narrowed to the
-	  exact rule and path so the sniff still guards the rest of the codebase.
-	  These are deliberate and maintainer-approved, not blanket silencing.
+	  Scoped exceptions for test-infrastructure findings with no in-code fix.
+	  Each is narrowed to the exact rule and path so the sniff still guards the
+	  rest of the codebase. These are deliberate and maintainer-approved, not
+	  blanket silencing. (The two production EscapeOutput sites that output
+	  trusted prepared HTML — */render.php and Cockpit.php — are handled with a
+	  line-scoped inline ignore instead, so a future stray echo there is still
+	  caught.)
 	-->
-
-	<!-- These sites output trusted, fully-prepared HTML: the cockpit block's
-	     markup (escaped attributes + static structure) and the standalone
-	     dashboard document (do_blocks() output plus wp_head()/wp_footer()). No
-	     WordPress escaping function fits — wp_kses() would strip the iframe,
-	     Interactivity script modules and data-wp-* attributes the markup needs. -->
-	<rule ref="WordPress.Security.EscapeOutput.OutputNotEscaped">
-		<exclude-pattern>*/render.php</exclude-pattern>
-		<exclude-pattern>*/includes/Cockpit/Cockpit.php</exclude-pattern>
-	</rule>
 
 	<!-- Tests inject mocks by setting the WordPress globals the code under test
 	     reads ($wp_filesystem, $wp_styles, $wp_scripts). This is test

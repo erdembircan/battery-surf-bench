@@ -154,6 +154,10 @@ class Cockpit implements Manager {
 
 		$this->strip_front_end_assets();
 		$this->send_headers();
+		// The dashboard view returns a complete, trusted HTML document — escaped
+		// attributes, do_blocks() output and wp_head()/wp_footer() — that no
+		// WordPress escaping function can be applied to without breaking it.
+		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- trusted pre-rendered document; see comment above.
 		echo $this->dashboard->render( array( 'body' => do_blocks( $this->host_markup() ) ) );
 
 		exit;

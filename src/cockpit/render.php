@@ -54,4 +54,7 @@ $bsb_markup = ( new CockpitView() )->render(
 	)
 );
 
+// The view interpolates only the already-escaped values prepared above into its
+// trusted markup, so the assembled HTML cannot be run through an escaper here.
+// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- trusted pre-escaped block markup; see comment above.
 echo $bsb_markup;
