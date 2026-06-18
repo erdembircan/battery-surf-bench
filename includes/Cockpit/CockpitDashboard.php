@@ -42,7 +42,11 @@ class CockpitDashboard {
 	<title><?php esc_html_e( 'Battery Surf Bench — Cockpit', 'battery-surf-bench' ); ?></title>
 	<style>
 		html, body { margin: 0; height: 100%; }
-		.bsb-cockpit__viewport { display: block; width: 100%; height: 100vh; border: 0; }
+		.wp-block-bsb-cockpit { display: flex; flex-direction: column; height: 100vh; }
+		.bsb-cockpit__controls { flex: 0 0 auto; display: flex; gap: 0.75rem; align-items: center; padding: 0.6rem 0.9rem; border-bottom: 1px solid #e8e4dc; font: 14px/1.4 -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; }
+		.bsb-cockpit__cycle { cursor: pointer; padding: 0.4rem 0.9rem; border: 1px solid #1a1a18; border-radius: 4px; background: #1a1a18; color: #fff; font: inherit; }
+		.bsb-cockpit__label { color: #6b6760; }
+		.bsb-cockpit__viewport { flex: 1 1 auto; display: block; width: 100%; border: 0; }
 	</style>
 		<?php wp_head(); ?>
 </head>

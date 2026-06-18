@@ -49,19 +49,26 @@ final class CourseLibraryTest extends TestCase {
 	/**
 	 * Each link carries the page's slug, title, and the home URL with the course
 	 * parameter set to the slug — the URL that makes the router render the page.
+	 * The course opens with article-1.
 	 */
 	public function test_links_report_slug_title_and_surf_url(): void {
 		$links = $this->library()->links();
 
 		$this->assertSame(
 			array(
-				array(
-					'slug'  => 'article-1',
-					'title' => 'The Hidden Cost of a Browser Tab',
-					'url'   => 'https://example.test/?bsbSessionPage=article-1',
-				),
+				'slug'  => 'article-1',
+				'title' => 'The Hidden Cost of a Browser Tab',
+				'url'   => 'https://example.test/?bsbSessionPage=article-1',
 			),
-			$links
+			$links[0]
 		);
+
+		foreach ( $links as $link ) {
+			$this->assertSame(
+				'https://example.test/?bsbSessionPage=' . $link['slug'],
+				$link['url']
+			);
+			$this->assertNotSame( '', $link['title'] );
+		}
 	}
 }

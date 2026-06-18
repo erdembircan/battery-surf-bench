@@ -7,6 +7,7 @@
 
 namespace ErdemBircan\BatterySurfBench\Course;
 
+use ErdemBircan\BatterySurfBench\Assets;
 use ErdemBircan\BatterySurfBench\Support\Manager;
 use WP_Post;
 use WP_Query;
@@ -39,12 +40,16 @@ class CourseRouter implements Manager {
 	 * Stores the catalog the pages come from and the query parameter that
 	 * selects one.
 	 *
-	 * @param CourseCatalog $catalog Source of the course pages and their markup.
-	 * @param string        $param   Query parameter the page slug is read from.
+	 * @param CourseCatalog $catalog    Source of the course pages and their markup.
+	 * @param string        $param      Query parameter the page slug is read from.
+	 * @param Assets        $assets     Service used to enqueue the course stylesheet.
+	 * @param string        $stylesheet Course stylesheet, relative to the plugin root.
 	 */
 	public function __construct(
 		private CourseCatalog $catalog,
-		private string $param
+		private string $param,
+		private Assets $assets,
+		private string $stylesheet
 	) {
 	}
 
@@ -152,6 +157,19 @@ class CourseRouter implements Manager {
 		// The post title is left intact for the document `<title>` element.
 		add_filter( 'render_block_core/post-title', '__return_empty_string' );
 
+		// Load the course stylesheet, which styles the `.bsb-course-content`
+		// the page is wrapped in (and reaches nothing else on the page).
+		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_style' ) );
+
 		return array( $virtual );
+	}
+
+	/**
+	 * Enqueues the course stylesheet.
+	 *
+	 * @return void
+	 */
+	public function enqueue_style(): void {
+		$this->assets->enqueue( $this->stylesheet );
 	}
 }

@@ -1,0 +1,929 @@
+<!-- wp:html -->
+<div class="bsb-course-content">
+<div class="bsb-gallery">
+			<div class="bsb-gallery__header">
+				<h1>Inside the Machine</h1>
+				<p>
+					A visual essay exploring the abstract landscapes of modern computing — from
+					silicon wafer geometries to data-centre heat gradients. Twenty minimalist
+					compositions rendered entirely in SVG.
+				</p>
+			</div>
+
+			<div class="bsb-gallery__grid" role="list">
+
+				<!-- 1: Silicon wafer rings -->
+				<figure role="listitem">
+					<svg viewBox="0 0 260 220" xmlns="http://www.w3.org/2000/svg" aria-label="Abstract silicon wafer rings">
+						<defs>
+							<radialGradient id="g-wafer" cx="50%" cy="50%" r="50%">
+								<stop offset="0%"   stop-color="#e8d5c4"/>
+								<stop offset="100%" stop-color="#2c2040"/>
+							</radialGradient>
+						</defs>
+						<rect width="260" height="220" fill="url(#g-wafer)"/>
+						<circle cx="130" cy="110" r="95" fill="none" stroke="#c0392b" stroke-width="0.8" opacity="0.6"/>
+						<circle cx="130" cy="110" r="75" fill="none" stroke="#c0392b" stroke-width="0.8" opacity="0.5"/>
+						<circle cx="130" cy="110" r="55" fill="none" stroke="#e8c4a0" stroke-width="0.8" opacity="0.7"/>
+						<circle cx="130" cy="110" r="35" fill="none" stroke="#e8c4a0" stroke-width="1.2" opacity="0.9"/>
+						<circle cx="130" cy="110" r="15" fill="#c0392b" opacity="0.4"/>
+						<circle cx="130" cy="110" r="5"  fill="#fff" opacity="0.8"/>
+						<line x1="35"  y1="110" x2="225" y2="110" stroke="#e8c4a0" stroke-width="0.5" opacity="0.3"/>
+						<line x1="130" y1="15"  x2="130" y2="205" stroke="#e8c4a0" stroke-width="0.5" opacity="0.3"/>
+					</svg>
+					<figcaption>I — Silicon Wafer Study #1</figcaption>
+				</figure>
+
+				<!-- 2: Heat gradient horizon -->
+				<figure role="listitem">
+					<svg viewBox="0 0 260 220" xmlns="http://www.w3.org/2000/svg" aria-label="Heat gradient horizon">
+						<defs>
+							<linearGradient id="g-heat" x1="0" y1="0" x2="0" y2="1">
+								<stop offset="0%"   stop-color="#0b0e14"/>
+								<stop offset="40%"  stop-color="#7f1d1d"/>
+								<stop offset="70%"  stop-color="#f59e0b"/>
+								<stop offset="100%" stop-color="#fef3c7"/>
+							</linearGradient>
+						</defs>
+						<rect width="260" height="220" fill="url(#g-heat)"/>
+						<rect x="0" y="148" width="260" height="2" fill="#f59e0b" opacity="0.7"/>
+						<rect x="0" y="155" width="260" height="1" fill="#fbbf24" opacity="0.4"/>
+						<rect x="0" y="162" width="260" height="1" fill="#fde68a" opacity="0.3"/>
+						<!-- horizon city silhouette -->
+						<rect x="10"  y="130" width="12" height="18" fill="#0b0e14" opacity="0.8"/>
+						<rect x="28"  y="118" width="8"  height="30" fill="#0b0e14" opacity="0.8"/>
+						<rect x="42"  y="124" width="16" height="24" fill="#0b0e14" opacity="0.8"/>
+						<rect x="64"  y="110" width="10" height="38" fill="#0b0e14" opacity="0.8"/>
+						<rect x="80"  y="120" width="18" height="28" fill="#0b0e14" opacity="0.8"/>
+						<rect x="104" y="126" width="8"  height="22" fill="#0b0e14" opacity="0.8"/>
+						<rect x="118" y="112" width="14" height="36" fill="#0b0e14" opacity="0.8"/>
+						<rect x="138" y="122" width="10" height="26" fill="#0b0e14" opacity="0.8"/>
+						<rect x="154" y="108" width="12" height="40" fill="#0b0e14" opacity="0.8"/>
+						<rect x="172" y="118" width="20" height="30" fill="#0b0e14" opacity="0.8"/>
+						<rect x="198" y="125" width="8"  height="23" fill="#0b0e14" opacity="0.8"/>
+						<rect x="212" y="115" width="14" height="33" fill="#0b0e14" opacity="0.8"/>
+						<rect x="232" y="128" width="10" height="20" fill="#0b0e14" opacity="0.8"/>
+					</svg>
+					<figcaption>II — Data-Centre Heat Horizon</figcaption>
+				</figure>
+
+				<!-- 3: Grid circuit -->
+				<figure role="listitem">
+					<svg viewBox="0 0 260 220" xmlns="http://www.w3.org/2000/svg" aria-label="Circuit grid pattern">
+						<rect width="260" height="220" fill="#0f172a"/>
+						<!-- Grid -->
+						<g stroke="#1e3a5f" stroke-width="0.7" opacity="0.8">
+							<line x1="0"   y1="40"  x2="260" y2="40"/>
+							<line x1="0"   y1="80"  x2="260" y2="80"/>
+							<line x1="0"   y1="120" x2="260" y2="120"/>
+							<line x1="0"   y1="160" x2="260" y2="160"/>
+							<line x1="0"   y1="200" x2="260" y2="200"/>
+							<line x1="40"  y1="0"   x2="40"  y2="220"/>
+							<line x1="80"  y1="0"   x2="80"  y2="220"/>
+							<line x1="120" y1="0"   x2="120" y2="220"/>
+							<line x1="160" y1="0"   x2="160" y2="220"/>
+							<line x1="200" y1="0"   x2="200" y2="220"/>
+							<line x1="240" y1="0"   x2="240" y2="220"/>
+						</g>
+						<!-- Highlighted traces -->
+						<polyline points="40,40 80,40 80,80 160,80 160,120 200,120 200,160" fill="none" stroke="#34d399" stroke-width="1.5" opacity="0.9"/>
+						<polyline points="120,0 120,40 160,40 160,80 200,80 200,40 240,40" fill="none" stroke="#60a5fa" stroke-width="1.5" opacity="0.9"/>
+						<!-- Nodes -->
+						<circle cx="80"  cy="40"  r="3" fill="#34d399"/>
+						<circle cx="80"  cy="80"  r="3" fill="#34d399"/>
+						<circle cx="160" cy="80"  r="3" fill="#34d399"/>
+						<circle cx="160" cy="120" r="3" fill="#34d399"/>
+						<circle cx="200" cy="120" r="3" fill="#34d399"/>
+						<circle cx="120" cy="40"  r="3" fill="#60a5fa"/>
+						<circle cx="160" cy="40"  r="3" fill="#60a5fa"/>
+						<circle cx="200" cy="40"  r="3" fill="#60a5fa"/>
+					</svg>
+					<figcaption>III — PCB Trace Abstraction</figcaption>
+				</figure>
+
+				<!-- 4: Duotone mountain (data landscape) -->
+				<figure role="listitem">
+					<svg viewBox="0 0 260 220" xmlns="http://www.w3.org/2000/svg" aria-label="Abstract data landscape mountain">
+						<defs>
+							<linearGradient id="g-mtn-sky" x1="0" y1="0" x2="0" y2="1">
+								<stop offset="0%"  stop-color="#c7d2fe"/>
+								<stop offset="100%" stop-color="#818cf8"/>
+							</linearGradient>
+						</defs>
+						<rect width="260" height="220" fill="url(#g-mtn-sky)"/>
+						<!-- Mountains -->
+						<polygon points="0,220 60,90 120,150 180,60 260,220" fill="#312e81" opacity="0.85"/>
+						<polygon points="0,220 80,110 140,170 200,80 260,220" fill="#1e1b4b" opacity="0.7"/>
+						<polygon points="0,220 100,140 155,180 220,100 260,220" fill="#0f0a2e" opacity="0.6"/>
+						<!-- Moon -->
+						<circle cx="210" cy="50" r="22" fill="#e0e7ff" opacity="0.85"/>
+						<circle cx="222" cy="44" r="18" fill="url(#g-mtn-sky)" opacity="0.9"/>
+					</svg>
+					<figcaption>IV — Data Topography at Dusk</figcaption>
+				</figure>
+
+				<!-- 5: Gradient rings (frequency spectrum) -->
+				<figure role="listitem">
+					<svg viewBox="0 0 260 220" xmlns="http://www.w3.org/2000/svg" aria-label="Frequency spectrum rings">
+						<defs>
+							<radialGradient id="g-spec" cx="50%" cy="50%" r="50%">
+								<stop offset="0%"   stop-color="#fef9c3"/>
+								<stop offset="35%"  stop-color="#f59e0b"/>
+								<stop offset="70%"  stop-color="#dc2626"/>
+								<stop offset="100%" stop-color="#1e1b4b"/>
+							</radialGradient>
+						</defs>
+						<rect width="260" height="220" fill="#1e1b4b"/>
+						<ellipse cx="130" cy="110" rx="110" ry="95" fill="none" stroke="#f59e0b" stroke-width="0.7" opacity="0.3"/>
+						<ellipse cx="130" cy="110" rx="88"  ry="76" fill="none" stroke="#fbbf24" stroke-width="0.7" opacity="0.4"/>
+						<ellipse cx="130" cy="110" rx="66"  ry="57" fill="none" stroke="#fcd34d" stroke-width="0.9" opacity="0.5"/>
+						<ellipse cx="130" cy="110" rx="44"  ry="38" fill="none" stroke="#fde68a" stroke-width="1"   opacity="0.7"/>
+						<ellipse cx="130" cy="110" rx="22"  ry="19" fill="none" stroke="#fef3c7" stroke-width="1.5" opacity="0.9"/>
+						<circle  cx="130" cy="110" r="8"   fill="url(#g-spec)"/>
+					</svg>
+					<figcaption>V — Radio Frequency Spectrum</figcaption>
+				</figure>
+
+				<!-- 6: Binary rain column -->
+				<figure role="listitem">
+					<svg viewBox="0 0 260 220" xmlns="http://www.w3.org/2000/svg" aria-label="Binary rain abstraction">
+						<rect width="260" height="220" fill="#0a0f0a"/>
+						<g font-family="monospace" font-size="10" fill="#34d399">
+							<!-- column 1 -->
+							<text x="12"  y="18"  opacity="0.9">1</text><text x="12"  y="32"  opacity="0.7">0</text>
+							<text x="12"  y="46"  opacity="0.5">1</text><text x="12"  y="60"  opacity="0.9">1</text>
+							<text x="12"  y="74"  opacity="0.4">0</text><text x="12"  y="88"  opacity="0.8">1</text>
+							<text x="12"  y="102" opacity="0.6">0</text><text x="12"  y="116" opacity="0.3">0</text>
+							<text x="12"  y="130" opacity="0.9">1</text><text x="12"  y="144" opacity="0.5">1</text>
+							<text x="12"  y="158" opacity="0.7">0</text>
+							<!-- column 2 -->
+							<text x="36"  y="26"  opacity="0.4">0</text><text x="36"  y="40"  opacity="0.9">1</text>
+							<text x="36"  y="54"  opacity="0.7">0</text><text x="36"  y="68"  opacity="0.5">1</text>
+							<text x="36"  y="82"  opacity="0.9">1</text><text x="36"  y="96"  opacity="0.3">0</text>
+							<text x="36"  y="110" opacity="0.8">1</text><text x="36"  y="124" opacity="0.6">0</text>
+							<text x="36"  y="138" opacity="0.4">1</text><text x="36"  y="152" opacity="0.9">0</text>
+							<text x="36"  y="166" opacity="0.7">1</text>
+							<!-- column 3 -->
+							<text x="60"  y="18"  opacity="0.8">1</text><text x="60"  y="32"  opacity="0.5">1</text>
+							<text x="60"  y="46"  opacity="0.9">0</text><text x="60"  y="60"  opacity="0.3">1</text>
+							<text x="60"  y="74"  opacity="0.7">0</text><text x="60"  y="88"  opacity="0.9">0</text>
+							<text x="60"  y="102" opacity="0.5">1</text><text x="60"  y="116" opacity="0.8">1</text>
+							<text x="60"  y="130" opacity="0.4">0</text><text x="60"  y="144" opacity="0.6">1</text>
+							<text x="60"  y="158" opacity="0.9">0</text>
+							<!-- column 4 -->
+							<text x="84"  y="30"  opacity="0.5">0</text><text x="84"  y="44"  opacity="0.9">1</text>
+							<text x="84"  y="58"  opacity="0.4">1</text><text x="84"  y="72"  opacity="0.7">0</text>
+							<text x="84"  y="86"  opacity="0.9">0</text><text x="84"  y="100" opacity="0.6">1</text>
+							<text x="84"  y="114" opacity="0.3">1</text><text x="84"  y="128" opacity="0.8">0</text>
+							<text x="84"  y="142" opacity="0.5">1</text><text x="84"  y="156" opacity="0.7">0</text>
+							<!-- column 5 — brighter, highlight -->
+							<text x="108" y="20"  fill="#a7f3d0" opacity="1">1</text>
+							<text x="108" y="34"  fill="#a7f3d0" opacity="1">0</text>
+							<text x="108" y="48"  fill="#a7f3d0" opacity="1">1</text>
+							<text x="108" y="62"  fill="#a7f3d0" opacity="1">1</text>
+							<text x="108" y="76"  fill="#a7f3d0" opacity="1">0</text>
+							<text x="108" y="90"  fill="#a7f3d0" opacity="1">0</text>
+							<text x="108" y="104" fill="#a7f3d0" opacity="1">1</text>
+							<text x="108" y="118" fill="#a7f3d0" opacity="1">0</text>
+							<text x="108" y="132" fill="#a7f3d0" opacity="1">1</text>
+							<text x="108" y="146" fill="#a7f3d0" opacity="1">1</text>
+							<text x="108" y="160" fill="#a7f3d0" opacity="1">0</text>
+							<!-- columns 6–15 abbreviated -->
+							<text x="132" y="22"  opacity="0.6">0</text><text x="132" y="50"  opacity="0.4">1</text>
+							<text x="132" y="78"  opacity="0.8">0</text><text x="132" y="106" opacity="0.5">1</text>
+							<text x="132" y="134" opacity="0.7">0</text><text x="132" y="162" opacity="0.3">1</text>
+							<text x="156" y="28"  opacity="0.9">1</text><text x="156" y="56"  opacity="0.5">0</text>
+							<text x="156" y="84"  opacity="0.7">1</text><text x="156" y="112" opacity="0.4">1</text>
+							<text x="156" y="140" opacity="0.8">0</text>
+							<text x="180" y="18"  opacity="0.5">0</text><text x="180" y="46"  opacity="0.9">1</text>
+							<text x="180" y="74"  opacity="0.3">0</text><text x="180" y="102" opacity="0.7">1</text>
+							<text x="180" y="130" opacity="0.5">0</text><text x="180" y="158" opacity="0.9">1</text>
+							<text x="204" y="24"  opacity="0.7">1</text><text x="204" y="52"  opacity="0.4">0</text>
+							<text x="204" y="80"  opacity="0.9">1</text><text x="204" y="108" opacity="0.6">0</text>
+							<text x="204" y="136" opacity="0.3">1</text>
+							<text x="228" y="18"  opacity="0.8">0</text><text x="228" y="46"  opacity="0.5">1</text>
+							<text x="228" y="74"  opacity="0.9">0</text><text x="228" y="102" opacity="0.4">1</text>
+							<text x="228" y="130" opacity="0.7">0</text><text x="228" y="158" opacity="0.3">1</text>
+							<text x="248" y="30"  opacity="0.6">1</text><text x="248" y="58"  opacity="0.8">0</text>
+							<text x="248" y="86"  opacity="0.4">1</text><text x="248" y="114" opacity="0.9">0</text>
+							<text x="248" y="142" opacity="0.5">1</text>
+						</g>
+						<!-- Gradient fade at bottom -->
+						<defs>
+							<linearGradient id="g-bin-fade" x1="0" y1="0" x2="0" y2="1">
+								<stop offset="60%" stop-color="#0a0f0a" stop-opacity="0"/>
+								<stop offset="100%" stop-color="#0a0f0a" stop-opacity="1"/>
+							</linearGradient>
+						</defs>
+						<rect width="260" height="220" fill="url(#g-bin-fade)"/>
+					</svg>
+					<figcaption>VI — Binary Rain</figcaption>
+				</figure>
+
+				<!-- 7: Duotone stripes — bandwidth waves -->
+				<figure role="listitem">
+					<svg viewBox="0 0 260 220" xmlns="http://www.w3.org/2000/svg" aria-label="Bandwidth wave stripes">
+						<rect width="260" height="220" fill="#f8fafc"/>
+						<g opacity="0.85">
+							<path d="M0,30 Q65,10 130,30 Q195,50 260,30 L260,50 Q195,70 130,50 Q65,30 0,50 Z"  fill="#bfdbfe"/>
+							<path d="M0,55 Q65,35 130,55 Q195,75 260,55 L260,75 Q195,95 130,75 Q65,55 0,75 Z"  fill="#93c5fd"/>
+							<path d="M0,80 Q65,60 130,80 Q195,100 260,80 L260,100 Q195,120 130,100 Q65,80 0,100 Z" fill="#60a5fa"/>
+							<path d="M0,105 Q65,85 130,105 Q195,125 260,105 L260,125 Q195,145 130,125 Q65,105 0,125 Z" fill="#3b82f6"/>
+							<path d="M0,130 Q65,110 130,130 Q195,150 260,130 L260,150 Q195,170 130,150 Q65,130 0,150 Z" fill="#2563eb"/>
+							<path d="M0,155 Q65,135 130,155 Q195,175 260,155 L260,175 Q195,195 130,175 Q65,155 0,175 Z" fill="#1d4ed8"/>
+							<path d="M0,180 Q65,160 130,180 Q195,200 260,180 L260,200 Q195,220 130,200 Q65,180 0,200 Z" fill="#1e40af"/>
+						</g>
+					</svg>
+					<figcaption>VII — Bandwidth Waves</figcaption>
+				</figure>
+
+				<!-- 8: Pixel mosaic -->
+				<figure role="listitem">
+					<svg viewBox="0 0 260 220" xmlns="http://www.w3.org/2000/svg" aria-label="Pixel mosaic abstraction">
+						<rect width="260" height="220" fill="#0f172a"/>
+						<!-- 13×11 pixel grid mosaic, warm palette -->
+											<rect x="0" y="0" width="20" height="20" fill="#7f1d1d" opacity="0.3"/>
+					<rect x="20" y="0" width="20" height="20" fill="#991b1b" opacity="0.4"/>
+					<rect x="40" y="0" width="20" height="20" fill="#b91c1c" opacity="0.5"/>
+					<rect x="60" y="0" width="20" height="20" fill="#dc2626" opacity="0.6"/>
+					<rect x="80" y="0" width="20" height="20" fill="#ef4444" opacity="0.7"/>
+					<rect x="100" y="0" width="20" height="20" fill="#f87171" opacity="0.8"/>
+					<rect x="120" y="0" width="20" height="20" fill="#fca5a5" opacity="0.9"/>
+					<rect x="140" y="0" width="20" height="20" fill="#fecaca" opacity="0.3"/>
+					<rect x="160" y="0" width="20" height="20" fill="#fee2e2" opacity="0.4"/>
+					<rect x="180" y="0" width="20" height="20" fill="#fff7ed" opacity="0.5"/>
+					<rect x="200" y="0" width="20" height="20" fill="#fef3c7" opacity="0.6"/>
+					<rect x="220" y="0" width="20" height="20" fill="#fde68a" opacity="0.7"/>
+					<rect x="240" y="0" width="20" height="20" fill="#fbbf24" opacity="0.8"/>
+					<rect x="0" y="20" width="20" height="20" fill="#92400e" opacity="0.4"/>
+					<rect x="20" y="20" width="20" height="20" fill="#78350f" opacity="0.5"/>
+					<rect x="40" y="20" width="20" height="20" fill="#451a03" opacity="0.6"/>
+					<rect x="60" y="20" width="20" height="20" fill="#1c1917" opacity="0.7"/>
+					<rect x="80" y="20" width="20" height="20" fill="#0f0a00" opacity="0.8"/>
+					<rect x="100" y="20" width="20" height="20" fill="#7f1d1d" opacity="0.9"/>
+					<rect x="120" y="20" width="20" height="20" fill="#991b1b" opacity="0.3"/>
+					<rect x="140" y="20" width="20" height="20" fill="#b91c1c" opacity="0.4"/>
+					<rect x="160" y="20" width="20" height="20" fill="#dc2626" opacity="0.5"/>
+					<rect x="180" y="20" width="20" height="20" fill="#ef4444" opacity="0.6"/>
+					<rect x="200" y="20" width="20" height="20" fill="#f87171" opacity="0.7"/>
+					<rect x="220" y="20" width="20" height="20" fill="#fca5a5" opacity="0.8"/>
+					<rect x="240" y="20" width="20" height="20" fill="#fecaca" opacity="0.9"/>
+					<rect x="0" y="40" width="20" height="20" fill="#fde68a" opacity="0.5"/>
+					<rect x="20" y="40" width="20" height="20" fill="#fbbf24" opacity="0.6"/>
+					<rect x="40" y="40" width="20" height="20" fill="#f59e0b" opacity="0.7"/>
+					<rect x="60" y="40" width="20" height="20" fill="#d97706" opacity="0.8"/>
+					<rect x="80" y="40" width="20" height="20" fill="#b45309" opacity="0.9"/>
+					<rect x="100" y="40" width="20" height="20" fill="#92400e" opacity="0.3"/>
+					<rect x="120" y="40" width="20" height="20" fill="#78350f" opacity="0.4"/>
+					<rect x="140" y="40" width="20" height="20" fill="#451a03" opacity="0.5"/>
+					<rect x="160" y="40" width="20" height="20" fill="#1c1917" opacity="0.6"/>
+					<rect x="180" y="40" width="20" height="20" fill="#0f0a00" opacity="0.7"/>
+					<rect x="200" y="40" width="20" height="20" fill="#7f1d1d" opacity="0.8"/>
+					<rect x="220" y="40" width="20" height="20" fill="#991b1b" opacity="0.9"/>
+					<rect x="240" y="40" width="20" height="20" fill="#b91c1c" opacity="0.3"/>
+					<rect x="0" y="60" width="20" height="20" fill="#fca5a5" opacity="0.6"/>
+					<rect x="20" y="60" width="20" height="20" fill="#fecaca" opacity="0.7"/>
+					<rect x="40" y="60" width="20" height="20" fill="#fee2e2" opacity="0.8"/>
+					<rect x="60" y="60" width="20" height="20" fill="#fff7ed" opacity="0.9"/>
+					<rect x="80" y="60" width="20" height="20" fill="#fef3c7" opacity="0.3"/>
+					<rect x="100" y="60" width="20" height="20" fill="#fde68a" opacity="0.4"/>
+					<rect x="120" y="60" width="20" height="20" fill="#fbbf24" opacity="0.5"/>
+					<rect x="140" y="60" width="20" height="20" fill="#f59e0b" opacity="0.6"/>
+					<rect x="160" y="60" width="20" height="20" fill="#d97706" opacity="0.7"/>
+					<rect x="180" y="60" width="20" height="20" fill="#b45309" opacity="0.8"/>
+					<rect x="200" y="60" width="20" height="20" fill="#92400e" opacity="0.9"/>
+					<rect x="220" y="60" width="20" height="20" fill="#78350f" opacity="0.3"/>
+					<rect x="240" y="60" width="20" height="20" fill="#451a03" opacity="0.4"/>
+					<rect x="0" y="80" width="20" height="20" fill="#991b1b" opacity="0.7"/>
+					<rect x="20" y="80" width="20" height="20" fill="#b91c1c" opacity="0.8"/>
+					<rect x="40" y="80" width="20" height="20" fill="#dc2626" opacity="0.9"/>
+					<rect x="60" y="80" width="20" height="20" fill="#ef4444" opacity="0.3"/>
+					<rect x="80" y="80" width="20" height="20" fill="#f87171" opacity="0.4"/>
+					<rect x="100" y="80" width="20" height="20" fill="#fca5a5" opacity="0.5"/>
+					<rect x="120" y="80" width="20" height="20" fill="#fecaca" opacity="0.6"/>
+					<rect x="140" y="80" width="20" height="20" fill="#fee2e2" opacity="0.7"/>
+					<rect x="160" y="80" width="20" height="20" fill="#fff7ed" opacity="0.8"/>
+					<rect x="180" y="80" width="20" height="20" fill="#fef3c7" opacity="0.9"/>
+					<rect x="200" y="80" width="20" height="20" fill="#fde68a" opacity="0.3"/>
+					<rect x="220" y="80" width="20" height="20" fill="#fbbf24" opacity="0.4"/>
+					<rect x="240" y="80" width="20" height="20" fill="#f59e0b" opacity="0.5"/>
+					<rect x="0" y="100" width="20" height="20" fill="#78350f" opacity="0.8"/>
+					<rect x="20" y="100" width="20" height="20" fill="#451a03" opacity="0.9"/>
+					<rect x="40" y="100" width="20" height="20" fill="#1c1917" opacity="0.3"/>
+					<rect x="60" y="100" width="20" height="20" fill="#0f0a00" opacity="0.4"/>
+					<rect x="80" y="100" width="20" height="20" fill="#7f1d1d" opacity="0.5"/>
+					<rect x="100" y="100" width="20" height="20" fill="#991b1b" opacity="0.6"/>
+					<rect x="120" y="100" width="20" height="20" fill="#b91c1c" opacity="0.7"/>
+					<rect x="140" y="100" width="20" height="20" fill="#dc2626" opacity="0.8"/>
+					<rect x="160" y="100" width="20" height="20" fill="#ef4444" opacity="0.9"/>
+					<rect x="180" y="100" width="20" height="20" fill="#f87171" opacity="0.3"/>
+					<rect x="200" y="100" width="20" height="20" fill="#fca5a5" opacity="0.4"/>
+					<rect x="220" y="100" width="20" height="20" fill="#fecaca" opacity="0.5"/>
+					<rect x="240" y="100" width="20" height="20" fill="#fee2e2" opacity="0.6"/>
+					<rect x="0" y="120" width="20" height="20" fill="#fbbf24" opacity="0.9"/>
+					<rect x="20" y="120" width="20" height="20" fill="#f59e0b" opacity="0.3"/>
+					<rect x="40" y="120" width="20" height="20" fill="#d97706" opacity="0.4"/>
+					<rect x="60" y="120" width="20" height="20" fill="#b45309" opacity="0.5"/>
+					<rect x="80" y="120" width="20" height="20" fill="#92400e" opacity="0.6"/>
+					<rect x="100" y="120" width="20" height="20" fill="#78350f" opacity="0.7"/>
+					<rect x="120" y="120" width="20" height="20" fill="#451a03" opacity="0.8"/>
+					<rect x="140" y="120" width="20" height="20" fill="#1c1917" opacity="0.9"/>
+					<rect x="160" y="120" width="20" height="20" fill="#0f0a00" opacity="0.3"/>
+					<rect x="180" y="120" width="20" height="20" fill="#7f1d1d" opacity="0.4"/>
+					<rect x="200" y="120" width="20" height="20" fill="#991b1b" opacity="0.5"/>
+					<rect x="220" y="120" width="20" height="20" fill="#b91c1c" opacity="0.6"/>
+					<rect x="240" y="120" width="20" height="20" fill="#dc2626" opacity="0.7"/>
+					<rect x="0" y="140" width="20" height="20" fill="#fecaca" opacity="0.3"/>
+					<rect x="20" y="140" width="20" height="20" fill="#fee2e2" opacity="0.4"/>
+					<rect x="40" y="140" width="20" height="20" fill="#fff7ed" opacity="0.5"/>
+					<rect x="60" y="140" width="20" height="20" fill="#fef3c7" opacity="0.6"/>
+					<rect x="80" y="140" width="20" height="20" fill="#fde68a" opacity="0.7"/>
+					<rect x="100" y="140" width="20" height="20" fill="#fbbf24" opacity="0.8"/>
+					<rect x="120" y="140" width="20" height="20" fill="#f59e0b" opacity="0.9"/>
+					<rect x="140" y="140" width="20" height="20" fill="#d97706" opacity="0.3"/>
+					<rect x="160" y="140" width="20" height="20" fill="#b45309" opacity="0.4"/>
+					<rect x="180" y="140" width="20" height="20" fill="#92400e" opacity="0.5"/>
+					<rect x="200" y="140" width="20" height="20" fill="#78350f" opacity="0.6"/>
+					<rect x="220" y="140" width="20" height="20" fill="#451a03" opacity="0.7"/>
+					<rect x="240" y="140" width="20" height="20" fill="#1c1917" opacity="0.8"/>
+					<rect x="0" y="160" width="20" height="20" fill="#b91c1c" opacity="0.4"/>
+					<rect x="20" y="160" width="20" height="20" fill="#dc2626" opacity="0.5"/>
+					<rect x="40" y="160" width="20" height="20" fill="#ef4444" opacity="0.6"/>
+					<rect x="60" y="160" width="20" height="20" fill="#f87171" opacity="0.7"/>
+					<rect x="80" y="160" width="20" height="20" fill="#fca5a5" opacity="0.8"/>
+					<rect x="100" y="160" width="20" height="20" fill="#fecaca" opacity="0.9"/>
+					<rect x="120" y="160" width="20" height="20" fill="#fee2e2" opacity="0.3"/>
+					<rect x="140" y="160" width="20" height="20" fill="#fff7ed" opacity="0.4"/>
+					<rect x="160" y="160" width="20" height="20" fill="#fef3c7" opacity="0.5"/>
+					<rect x="180" y="160" width="20" height="20" fill="#fde68a" opacity="0.6"/>
+					<rect x="200" y="160" width="20" height="20" fill="#fbbf24" opacity="0.7"/>
+					<rect x="220" y="160" width="20" height="20" fill="#f59e0b" opacity="0.8"/>
+					<rect x="240" y="160" width="20" height="20" fill="#d97706" opacity="0.9"/>
+					<rect x="0" y="180" width="20" height="20" fill="#451a03" opacity="0.5"/>
+					<rect x="20" y="180" width="20" height="20" fill="#1c1917" opacity="0.6"/>
+					<rect x="40" y="180" width="20" height="20" fill="#0f0a00" opacity="0.7"/>
+					<rect x="60" y="180" width="20" height="20" fill="#7f1d1d" opacity="0.8"/>
+					<rect x="80" y="180" width="20" height="20" fill="#991b1b" opacity="0.9"/>
+					<rect x="100" y="180" width="20" height="20" fill="#b91c1c" opacity="0.3"/>
+					<rect x="120" y="180" width="20" height="20" fill="#dc2626" opacity="0.4"/>
+					<rect x="140" y="180" width="20" height="20" fill="#ef4444" opacity="0.5"/>
+					<rect x="160" y="180" width="20" height="20" fill="#f87171" opacity="0.6"/>
+					<rect x="180" y="180" width="20" height="20" fill="#fca5a5" opacity="0.7"/>
+					<rect x="200" y="180" width="20" height="20" fill="#fecaca" opacity="0.8"/>
+					<rect x="220" y="180" width="20" height="20" fill="#fee2e2" opacity="0.9"/>
+					<rect x="240" y="180" width="20" height="20" fill="#fff7ed" opacity="0.3"/>
+					<rect x="0" y="200" width="20" height="20" fill="#f59e0b" opacity="0.6"/>
+					<rect x="20" y="200" width="20" height="20" fill="#d97706" opacity="0.7"/>
+					<rect x="40" y="200" width="20" height="20" fill="#b45309" opacity="0.8"/>
+					<rect x="60" y="200" width="20" height="20" fill="#92400e" opacity="0.9"/>
+					<rect x="80" y="200" width="20" height="20" fill="#78350f" opacity="0.3"/>
+					<rect x="100" y="200" width="20" height="20" fill="#451a03" opacity="0.4"/>
+					<rect x="120" y="200" width="20" height="20" fill="#1c1917" opacity="0.5"/>
+					<rect x="140" y="200" width="20" height="20" fill="#0f0a00" opacity="0.6"/>
+					<rect x="160" y="200" width="20" height="20" fill="#7f1d1d" opacity="0.7"/>
+					<rect x="180" y="200" width="20" height="20" fill="#991b1b" opacity="0.8"/>
+					<rect x="200" y="200" width="20" height="20" fill="#b91c1c" opacity="0.9"/>
+					<rect x="220" y="200" width="20" height="20" fill="#dc2626" opacity="0.3"/>
+					<rect x="240" y="200" width="20" height="20" fill="#ef4444" opacity="0.4"/>
+					</svg>
+					<figcaption>VIII — Heat Map Mosaic</figcaption>
+				</figure>
+
+				<!-- 9: Signal noise -->
+				<figure role="listitem">
+					<svg viewBox="0 0 260 220" xmlns="http://www.w3.org/2000/svg" aria-label="Signal noise waveform">
+						<rect width="260" height="220" fill="#1a1a2e"/>
+						<polyline
+							points="0,110 8,95 16,118 24,88 32,105 40,130 48,92 56,115 64,82 72,107 80,128 88,98 96,112 104,78 112,108 120,135 128,94 136,110 144,86 152,118 160,95 168,125 176,100 184,115 192,84 200,110 208,130 216,95 224,112 232,88 240,118 248,100 256,110 260,108"
+							fill="none" stroke="#818cf8" stroke-width="1.5" opacity="0.8"/>
+						<polyline
+							points="0,110 8,112 16,108 24,115 32,106 40,113 48,107 56,114 64,109 72,111 80,107 88,113 96,110 104,112 112,108 120,111 128,109 136,112 144,108 152,113 160,110 168,109 176,112 184,110 192,111 200,109 208,112 216,108 224,110 232,112 240,109 248,113 256,110 260,110"
+							fill="none" stroke="#c7d2fe" stroke-width="2" opacity="0.6"/>
+						<line x1="0" y1="110" x2="260" y2="110" stroke="#4338ca" stroke-width="0.5" stroke-dasharray="4,4" opacity="0.5"/>
+					</svg>
+					<figcaption>IX — Signal vs Noise</figcaption>
+				</figure>
+
+				<!-- 10: Isometric cube grid -->
+				<figure role="listitem">
+					<svg viewBox="0 0 260 220" xmlns="http://www.w3.org/2000/svg" aria-label="Isometric server cube grid">
+						<rect width="260" height="220" fill="#f0f4f8"/>
+						<!-- Simple iso cubes, 4×3 grid -->
+											<polygon points="47,60 66,71 47,82 28,71" fill="#60a5fa"/>
+					<polygon points="28,71 47,82 47,104 28,93" fill="#1d4ed8"/>
+					<polygon points="47,82 66,71 66,93 47,104" fill="#93c5fd"/>
+					<polygon points="91,54 110,65 91,76 72,65" fill="#3b82f6"/>
+					<polygon points="72,65 91,76 91,98 72,87" fill="#1e40af"/>
+					<polygon points="91,76 110,65 110,87 91,98" fill="#bfdbfe"/>
+					<polygon points="135,48 154,59 135,70 116,59" fill="#93c5fd"/>
+					<polygon points="116,59 135,70 135,92 116,81" fill="#2563eb"/>
+					<polygon points="135,70 154,59 154,81 135,92" fill="#60a5fa"/>
+					<polygon points="179,42 198,53 179,64 160,53" fill="#bfdbfe"/>
+					<polygon points="160,53 179,64 179,86 160,75" fill="#1e3a8a"/>
+					<polygon points="179,64 198,53 198,75 179,86" fill="#dbeafe"/>
+					<polygon points="69,88 88,99 69,110 50,99" fill="#2563eb"/>
+					<polygon points="50,99 69,110 69,132 50,121" fill="#3b82f6"/>
+					<polygon points="69,110 88,99 88,121 69,132" fill="#93c5fd"/>
+					<polygon points="113,82 132,93 113,104 94,93" fill="#1d4ed8"/>
+					<polygon points="94,93 113,104 113,126 94,115" fill="#60a5fa"/>
+					<polygon points="113,104 132,93 132,115 113,126" fill="#bfdbfe"/>
+					<polygon points="157,76 176,87 157,98 138,87" fill="#60a5fa"/>
+					<polygon points="138,87 157,98 157,120 138,109" fill="#1d4ed8"/>
+					<polygon points="157,98 176,87 176,109 157,120" fill="#93c5fd"/>
+					<polygon points="201,70 220,81 201,92 182,81" fill="#3b82f6"/>
+					<polygon points="182,81 201,92 201,114 182,103" fill="#1e40af"/>
+					<polygon points="201,92 220,81 220,103 201,114" fill="#bfdbfe"/>
+					<polygon points="91,116 110,127 91,138 72,127" fill="#93c5fd"/>
+					<polygon points="72,127 91,138 91,160 72,149" fill="#2563eb"/>
+					<polygon points="91,138 110,127 110,149 91,160" fill="#60a5fa"/>
+					<polygon points="135,110 154,121 135,132 116,121" fill="#bfdbfe"/>
+					<polygon points="116,121 135,132 135,154 116,143" fill="#1e3a8a"/>
+					<polygon points="135,132 154,121 154,143 135,154" fill="#dbeafe"/>
+					<polygon points="179,104 198,115 179,126 160,115" fill="#2563eb"/>
+					<polygon points="160,115 179,126 179,148 160,137" fill="#3b82f6"/>
+					<polygon points="179,126 198,115 198,137 179,148" fill="#93c5fd"/>
+					<polygon points="223,98 242,109 223,120 204,109" fill="#1d4ed8"/>
+					<polygon points="204,109 223,120 223,142 204,131" fill="#60a5fa"/>
+					<polygon points="223,120 242,109 242,131 223,142" fill="#bfdbfe"/>
+					</svg>
+					<figcaption>X — Server Stack Isometric</figcaption>
+				</figure>
+
+				<!-- 11: Minimal abstract — duotone stripes diagonal -->
+				<figure role="listitem">
+					<svg viewBox="0 0 260 220" xmlns="http://www.w3.org/2000/svg" aria-label="Diagonal duotone stripes">
+						<rect width="260" height="220" fill="#fdf4ff"/>
+											<line x1="-100" y1="0" x2="60" y2="220" stroke="#e879f9" stroke-width="10" opacity="0.15"/>
+					<line x1="-78" y1="0" x2="82" y2="220" stroke="#d946ef" stroke-width="10" opacity="0.15"/>
+					<line x1="-56" y1="0" x2="104" y2="220" stroke="#c026d3" stroke-width="10" opacity="0.15"/>
+					<line x1="-34" y1="0" x2="126" y2="220" stroke="#a21caf" stroke-width="10" opacity="0.15"/>
+					<line x1="-12" y1="0" x2="148" y2="220" stroke="#86198f" stroke-width="10" opacity="0.15"/>
+					<line x1="10" y1="0" x2="170" y2="220" stroke="#701a75" stroke-width="10" opacity="0.15"/>
+					<line x1="32" y1="0" x2="192" y2="220" stroke="#e879f9" stroke-width="10" opacity="0.15"/>
+					<line x1="54" y1="0" x2="214" y2="220" stroke="#d946ef" stroke-width="10" opacity="0.15"/>
+					<line x1="76" y1="0" x2="236" y2="220" stroke="#c026d3" stroke-width="10" opacity="0.15"/>
+					<line x1="98" y1="0" x2="258" y2="220" stroke="#a21caf" stroke-width="10" opacity="0.15"/>
+					<line x1="120" y1="0" x2="280" y2="220" stroke="#86198f" stroke-width="10" opacity="0.15"/>
+					<line x1="142" y1="0" x2="302" y2="220" stroke="#701a75" stroke-width="10" opacity="0.15"/>
+					<line x1="164" y1="0" x2="324" y2="220" stroke="#e879f9" stroke-width="10" opacity="0.15"/>
+					<line x1="186" y1="0" x2="346" y2="220" stroke="#d946ef" stroke-width="10" opacity="0.15"/>
+					<line x1="208" y1="0" x2="368" y2="220" stroke="#c026d3" stroke-width="10" opacity="0.15"/>
+					<line x1="230" y1="0" x2="390" y2="220" stroke="#a21caf" stroke-width="10" opacity="0.15"/>
+					<line x1="252" y1="0" x2="412" y2="220" stroke="#86198f" stroke-width="10" opacity="0.15"/>
+					<line x1="274" y1="0" x2="434" y2="220" stroke="#701a75" stroke-width="10" opacity="0.15"/>
+					<line x1="296" y1="0" x2="456" y2="220" stroke="#e879f9" stroke-width="10" opacity="0.15"/>
+					<line x1="318" y1="0" x2="478" y2="220" stroke="#d946ef" stroke-width="10" opacity="0.15"/>
+					<line x1="340" y1="0" x2="500" y2="220" stroke="#c026d3" stroke-width="10" opacity="0.15"/>
+					<line x1="362" y1="0" x2="522" y2="220" stroke="#a21caf" stroke-width="10" opacity="0.15"/>
+					<line x1="384" y1="0" x2="544" y2="220" stroke="#86198f" stroke-width="10" opacity="0.15"/>
+					<line x1="406" y1="0" x2="566" y2="220" stroke="#701a75" stroke-width="10" opacity="0.15"/>
+						<rect width="260" height="220" fill="none" stroke="#c026d3" stroke-width="2" opacity="0.12"/>
+					</svg>
+					<figcaption>XI — Diagonal Interference</figcaption>
+				</figure>
+
+				<!-- 12: Abstract — concentric squares -->
+				<figure role="listitem">
+					<svg viewBox="0 0 260 220" xmlns="http://www.w3.org/2000/svg" aria-label="Concentric squares abstraction">
+						<rect width="260" height="220" fill="#f8fafc"/>
+											<rect x="0" y="0.0" width="260" height="220.0" fill="none" stroke="#0f172a" stroke-width="2"/>
+					<rect x="12" y="10.2" width="236" height="199.7" fill="none" stroke="#1e3a5f" stroke-width="2"/>
+					<rect x="24" y="20.3" width="212" height="179.4" fill="none" stroke="#1e40af" stroke-width="2"/>
+					<rect x="36" y="30.5" width="188" height="159.1" fill="none" stroke="#2563eb" stroke-width="2"/>
+					<rect x="48" y="40.6" width="164" height="138.8" fill="none" stroke="#3b82f6" stroke-width="2"/>
+					<rect x="60" y="50.8" width="140" height="118.5" fill="none" stroke="#60a5fa" stroke-width="2"/>
+					<rect x="72" y="60.9" width="116" height="98.2" fill="none" stroke="#93c5fd" stroke-width="2"/>
+					<rect x="84" y="71.1" width="92" height="77.8" fill="none" stroke="#bfdbfe" stroke-width="2"/>
+					<rect x="96" y="81.2" width="68" height="57.5" fill="none" stroke="#dbeafe" stroke-width="2"/>
+					</svg>
+					<figcaption>XII — Recursive Frames</figcaption>
+				</figure>
+
+				<!-- 13: Spectrum bar chart (EQ style) -->
+				<figure role="listitem">
+					<svg viewBox="0 0 260 220" xmlns="http://www.w3.org/2000/svg" aria-label="EQ spectrum bars">
+						<rect width="260" height="220" fill="#0f172a"/>
+											<rect x="6" y="150" width="10" height="60" fill="#34d399" rx="2" opacity="0.9"/>
+					<rect x="6" y="146" width="10" height="3" fill="#34d399" rx="1"/>
+					<rect x="19" y="115" width="10" height="95" fill="#10b981" rx="2" opacity="0.9"/>
+					<rect x="19" y="111" width="10" height="3" fill="#10b981" rx="1"/>
+					<rect x="32" y="80" width="10" height="130" fill="#059669" rx="2" opacity="0.9"/>
+					<rect x="32" y="76" width="10" height="3" fill="#059669" rx="1"/>
+					<rect x="45" y="50" width="10" height="160" fill="#047857" rx="2" opacity="0.9"/>
+					<rect x="45" y="46" width="10" height="3" fill="#047857" rx="1"/>
+					<rect x="58" y="70" width="10" height="140" fill="#065f46" rx="2" opacity="0.9"/>
+					<rect x="58" y="66" width="10" height="3" fill="#065f46" rx="1"/>
+					<rect x="71" y="90" width="10" height="120" fill="#047857" rx="2" opacity="0.9"/>
+					<rect x="71" y="86" width="10" height="3" fill="#047857" rx="1"/>
+					<rect x="84" y="60" width="10" height="150" fill="#059669" rx="2" opacity="0.9"/>
+					<rect x="84" y="56" width="10" height="3" fill="#059669" rx="1"/>
+					<rect x="97" y="35" width="10" height="175" fill="#10b981" rx="2" opacity="0.9"/>
+					<rect x="97" y="31" width="10" height="3" fill="#10b981" rx="1"/>
+					<rect x="110" y="55" width="10" height="155" fill="#34d399" rx="2" opacity="0.9"/>
+					<rect x="110" y="51" width="10" height="3" fill="#34d399" rx="1"/>
+					<rect x="123" y="80" width="10" height="130" fill="#6ee7b7" rx="2" opacity="0.9"/>
+					<rect x="123" y="76" width="10" height="3" fill="#6ee7b7" rx="1"/>
+					<rect x="136" y="110" width="10" height="100" fill="#a7f3d0" rx="2" opacity="0.9"/>
+					<rect x="136" y="106" width="10" height="3" fill="#a7f3d0" rx="1"/>
+					<rect x="149" y="130" width="10" height="80" fill="#d1fae5" rx="2" opacity="0.9"/>
+					<rect x="149" y="126" width="10" height="3" fill="#d1fae5" rx="1"/>
+					<rect x="162" y="155" width="10" height="55" fill="#a7f3d0" rx="2" opacity="0.9"/>
+					<rect x="162" y="151" width="10" height="3" fill="#a7f3d0" rx="1"/>
+					<rect x="175" y="170" width="10" height="40" fill="#6ee7b7" rx="2" opacity="0.9"/>
+					<rect x="175" y="166" width="10" height="3" fill="#6ee7b7" rx="1"/>
+					<rect x="188" y="145" width="10" height="65" fill="#34d399" rx="2" opacity="0.9"/>
+					<rect x="188" y="141" width="10" height="3" fill="#34d399" rx="1"/>
+					<rect x="201" y="120" width="10" height="90" fill="#10b981" rx="2" opacity="0.9"/>
+					<rect x="201" y="116" width="10" height="3" fill="#10b981" rx="1"/>
+					<rect x="214" y="95" width="10" height="115" fill="#059669" rx="2" opacity="0.9"/>
+					<rect x="214" y="91" width="10" height="3" fill="#059669" rx="1"/>
+					<rect x="227" y="70" width="10" height="140" fill="#047857" rx="2" opacity="0.9"/>
+					<rect x="227" y="66" width="10" height="3" fill="#047857" rx="1"/>
+					<rect x="240" y="85" width="10" height="125" fill="#065f46" rx="2" opacity="0.9"/>
+					<rect x="240" y="81" width="10" height="3" fill="#065f46" rx="1"/>
+					<rect x="253" y="105" width="10" height="105" fill="#034d37" rx="2" opacity="0.9"/>
+					<rect x="253" y="101" width="10" height="3" fill="#034d37" rx="1"/>
+					</svg>
+					<figcaption>XIII — Energy Spectrum Analyser</figcaption>
+				</figure>
+
+				<!-- 14: Topology map contours -->
+				<figure role="listitem">
+					<svg viewBox="0 0 260 220" xmlns="http://www.w3.org/2000/svg" aria-label="Topology map contours">
+						<defs>
+							<linearGradient id="g-topo" x1="0" y1="0" x2="0" y2="1">
+								<stop offset="0%"  stop-color="#f0fdf4"/>
+								<stop offset="100%" stop-color="#dcfce7"/>
+							</linearGradient>
+						</defs>
+						<rect width="260" height="220" fill="url(#g-topo)"/>
+						<ellipse cx="130" cy="110" rx="90"  ry="70"  fill="none" stroke="#16a34a" stroke-width="0.8" opacity="0.5"/>
+						<ellipse cx="130" cy="110" rx="70"  ry="54"  fill="none" stroke="#16a34a" stroke-width="0.8" opacity="0.6"/>
+						<ellipse cx="130" cy="110" rx="50"  ry="38"  fill="none" stroke="#15803d" stroke-width="1"   opacity="0.7"/>
+						<ellipse cx="130" cy="110" rx="32"  ry="24"  fill="none" stroke="#166534" stroke-width="1.2" opacity="0.8"/>
+						<ellipse cx="130" cy="110" rx="15"  ry="11"  fill="#166534" opacity="0.25"/>
+						<!-- secondary peak -->
+						<ellipse cx="190" cy="70"  rx="40"  ry="30"  fill="none" stroke="#16a34a" stroke-width="0.8" opacity="0.4"/>
+						<ellipse cx="190" cy="70"  rx="25"  ry="18"  fill="none" stroke="#15803d" stroke-width="0.8" opacity="0.5"/>
+						<ellipse cx="190" cy="70"  rx="12"  ry="8"   fill="#15803d" opacity="0.2"/>
+						<!-- labels -->
+						<text x="130" y="110" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif" font-size="8" fill="#14532d" opacity="0.7">3200m</text>
+						<text x="190" y="70"  text-anchor="middle" dominant-baseline="middle" font-family="sans-serif" font-size="7" fill="#14532d" opacity="0.7">1800m</text>
+					</svg>
+					<figcaption>XIV — Memory Topology Map</figcaption>
+				</figure>
+
+				<!-- 15: Halftone dots -->
+				<figure role="listitem">
+					<svg viewBox="0 0 260 220" xmlns="http://www.w3.org/2000/svg" aria-label="Halftone dot grid">
+						<rect width="260" height="220" fill="#fff7ed"/>
+											<circle cx="10" cy="10" r="1.0" fill="#c2410c" opacity="-0.14"/>
+					<circle cx="30" cy="10" r="1.0" fill="#c2410c" opacity="-0.06"/>
+					<circle cx="50" cy="10" r="1.0" fill="#c2410c" opacity="0.01"/>
+					<circle cx="70" cy="10" r="1.0" fill="#c2410c" opacity="0.07"/>
+					<circle cx="90" cy="10" r="1.0" fill="#c2410c" opacity="0.11"/>
+					<circle cx="110" cy="10" r="1.0" fill="#c2410c" opacity="0.14"/>
+					<circle cx="130" cy="10" r="1.0" fill="#c2410c" opacity="0.15"/>
+					<circle cx="150" cy="10" r="1.0" fill="#c2410c" opacity="0.14"/>
+					<circle cx="170" cy="10" r="1.0" fill="#c2410c" opacity="0.11"/>
+					<circle cx="190" cy="10" r="1.0" fill="#c2410c" opacity="0.07"/>
+					<circle cx="210" cy="10" r="1.0" fill="#c2410c" opacity="0.01"/>
+					<circle cx="230" cy="10" r="1.0" fill="#c2410c" opacity="-0.06"/>
+					<circle cx="250" cy="10" r="1.0" fill="#c2410c" opacity="-0.14"/>
+					<circle cx="10" cy="30" r="1.0" fill="#c2410c" opacity="-0.05"/>
+					<circle cx="30" cy="30" r="1.0" fill="#c2410c" opacity="0.04"/>
+					<circle cx="50" cy="30" r="1.0" fill="#c2410c" opacity="0.12"/>
+					<circle cx="70" cy="30" r="1.0" fill="#c2410c" opacity="0.19"/>
+					<circle cx="90" cy="30" r="1.1" fill="#c2410c" opacity="0.24"/>
+					<circle cx="110" cy="30" r="1.6" fill="#c2410c" opacity="0.28"/>
+					<circle cx="130" cy="30" r="1.7" fill="#c2410c" opacity="0.29"/>
+					<circle cx="150" cy="30" r="1.6" fill="#c2410c" opacity="0.28"/>
+					<circle cx="170" cy="30" r="1.1" fill="#c2410c" opacity="0.24"/>
+					<circle cx="190" cy="30" r="1.0" fill="#c2410c" opacity="0.19"/>
+					<circle cx="210" cy="30" r="1.0" fill="#c2410c" opacity="0.12"/>
+					<circle cx="230" cy="30" r="1.0" fill="#c2410c" opacity="0.04"/>
+					<circle cx="250" cy="30" r="1.0" fill="#c2410c" opacity="-0.05"/>
+					<circle cx="10" cy="50" r="1.0" fill="#c2410c" opacity="0.03"/>
+					<circle cx="30" cy="50" r="1.0" fill="#c2410c" opacity="0.13"/>
+					<circle cx="50" cy="50" r="1.0" fill="#c2410c" opacity="0.22"/>
+					<circle cx="70" cy="50" r="1.9" fill="#c2410c" opacity="0.30"/>
+					<circle cx="90" cy="50" r="2.7" fill="#c2410c" opacity="0.37"/>
+					<circle cx="110" cy="50" r="3.2" fill="#c2410c" opacity="0.41"/>
+					<circle cx="130" cy="50" r="3.4" fill="#c2410c" opacity="0.43"/>
+					<circle cx="150" cy="50" r="3.2" fill="#c2410c" opacity="0.41"/>
+					<circle cx="170" cy="50" r="2.7" fill="#c2410c" opacity="0.37"/>
+					<circle cx="190" cy="50" r="1.9" fill="#c2410c" opacity="0.30"/>
+					<circle cx="210" cy="50" r="1.0" fill="#c2410c" opacity="0.22"/>
+					<circle cx="230" cy="50" r="1.0" fill="#c2410c" opacity="0.13"/>
+					<circle cx="250" cy="50" r="1.0" fill="#c2410c" opacity="0.03"/>
+					<circle cx="10" cy="70" r="1.0" fill="#c2410c" opacity="0.10"/>
+					<circle cx="30" cy="70" r="1.0" fill="#c2410c" opacity="0.20"/>
+					<circle cx="50" cy="70" r="1.9" fill="#c2410c" opacity="0.31"/>
+					<circle cx="70" cy="70" r="3.1" fill="#c2410c" opacity="0.40"/>
+					<circle cx="90" cy="70" r="4.1" fill="#c2410c" opacity="0.49"/>
+					<circle cx="110" cy="70" r="4.8" fill="#c2410c" opacity="0.55"/>
+					<circle cx="130" cy="70" r="5.1" fill="#c2410c" opacity="0.57"/>
+					<circle cx="150" cy="70" r="4.8" fill="#c2410c" opacity="0.55"/>
+					<circle cx="170" cy="70" r="4.1" fill="#c2410c" opacity="0.49"/>
+					<circle cx="190" cy="70" r="3.1" fill="#c2410c" opacity="0.40"/>
+					<circle cx="210" cy="70" r="1.9" fill="#c2410c" opacity="0.31"/>
+					<circle cx="230" cy="70" r="1.0" fill="#c2410c" opacity="0.20"/>
+					<circle cx="250" cy="70" r="1.0" fill="#c2410c" opacity="0.10"/>
+					<circle cx="10" cy="90" r="1.0" fill="#c2410c" opacity="0.14"/>
+					<circle cx="30" cy="90" r="1.2" fill="#c2410c" opacity="0.25"/>
+					<circle cx="50" cy="90" r="2.6" fill="#c2410c" opacity="0.36"/>
+					<circle cx="70" cy="90" r="3.9" fill="#c2410c" opacity="0.47"/>
+					<circle cx="90" cy="90" r="5.2" fill="#c2410c" opacity="0.58"/>
+					<circle cx="110" cy="90" r="6.3" fill="#c2410c" opacity="0.67"/>
+					<circle cx="130" cy="90" r="6.8" fill="#c2410c" opacity="0.71"/>
+					<circle cx="150" cy="90" r="6.3" fill="#c2410c" opacity="0.67"/>
+					<circle cx="170" cy="90" r="5.2" fill="#c2410c" opacity="0.58"/>
+					<circle cx="190" cy="90" r="3.9" fill="#c2410c" opacity="0.47"/>
+					<circle cx="210" cy="90" r="2.6" fill="#c2410c" opacity="0.36"/>
+					<circle cx="230" cy="90" r="1.2" fill="#c2410c" opacity="0.25"/>
+					<circle cx="250" cy="90" r="1.0" fill="#c2410c" opacity="0.14"/>
+					<circle cx="10" cy="110" r="1.0" fill="#c2410c" opacity="0.15"/>
+					<circle cx="30" cy="110" r="1.4" fill="#c2410c" opacity="0.27"/>
+					<circle cx="50" cy="110" r="2.8" fill="#c2410c" opacity="0.38"/>
+					<circle cx="70" cy="110" r="4.3" fill="#c2410c" opacity="0.50"/>
+					<circle cx="90" cy="110" r="5.7" fill="#c2410c" opacity="0.62"/>
+					<circle cx="110" cy="110" r="7.1" fill="#c2410c" opacity="0.73"/>
+					<circle cx="130" cy="110" r="8.5" fill="#c2410c" opacity="0.85"/>
+					<circle cx="150" cy="110" r="7.1" fill="#c2410c" opacity="0.73"/>
+					<circle cx="170" cy="110" r="5.7" fill="#c2410c" opacity="0.62"/>
+					<circle cx="190" cy="110" r="4.3" fill="#c2410c" opacity="0.50"/>
+					<circle cx="210" cy="110" r="2.8" fill="#c2410c" opacity="0.38"/>
+					<circle cx="230" cy="110" r="1.4" fill="#c2410c" opacity="0.27"/>
+					<circle cx="250" cy="110" r="1.0" fill="#c2410c" opacity="0.15"/>
+					<circle cx="10" cy="130" r="1.0" fill="#c2410c" opacity="0.14"/>
+					<circle cx="30" cy="130" r="1.2" fill="#c2410c" opacity="0.25"/>
+					<circle cx="50" cy="130" r="2.6" fill="#c2410c" opacity="0.36"/>
+					<circle cx="70" cy="130" r="3.9" fill="#c2410c" opacity="0.47"/>
+					<circle cx="90" cy="130" r="5.2" fill="#c2410c" opacity="0.58"/>
+					<circle cx="110" cy="130" r="6.3" fill="#c2410c" opacity="0.67"/>
+					<circle cx="130" cy="130" r="6.8" fill="#c2410c" opacity="0.71"/>
+					<circle cx="150" cy="130" r="6.3" fill="#c2410c" opacity="0.67"/>
+					<circle cx="170" cy="130" r="5.2" fill="#c2410c" opacity="0.58"/>
+					<circle cx="190" cy="130" r="3.9" fill="#c2410c" opacity="0.47"/>
+					<circle cx="210" cy="130" r="2.6" fill="#c2410c" opacity="0.36"/>
+					<circle cx="230" cy="130" r="1.2" fill="#c2410c" opacity="0.25"/>
+					<circle cx="250" cy="130" r="1.0" fill="#c2410c" opacity="0.14"/>
+					<circle cx="10" cy="150" r="1.0" fill="#c2410c" opacity="0.10"/>
+					<circle cx="30" cy="150" r="1.0" fill="#c2410c" opacity="0.20"/>
+					<circle cx="50" cy="150" r="1.9" fill="#c2410c" opacity="0.31"/>
+					<circle cx="70" cy="150" r="3.1" fill="#c2410c" opacity="0.40"/>
+					<circle cx="90" cy="150" r="4.1" fill="#c2410c" opacity="0.49"/>
+					<circle cx="110" cy="150" r="4.8" fill="#c2410c" opacity="0.55"/>
+					<circle cx="130" cy="150" r="5.1" fill="#c2410c" opacity="0.57"/>
+					<circle cx="150" cy="150" r="4.8" fill="#c2410c" opacity="0.55"/>
+					<circle cx="170" cy="150" r="4.1" fill="#c2410c" opacity="0.49"/>
+					<circle cx="190" cy="150" r="3.1" fill="#c2410c" opacity="0.40"/>
+					<circle cx="210" cy="150" r="1.9" fill="#c2410c" opacity="0.31"/>
+					<circle cx="230" cy="150" r="1.0" fill="#c2410c" opacity="0.20"/>
+					<circle cx="250" cy="150" r="1.0" fill="#c2410c" opacity="0.10"/>
+					<circle cx="10" cy="170" r="1.0" fill="#c2410c" opacity="0.03"/>
+					<circle cx="30" cy="170" r="1.0" fill="#c2410c" opacity="0.13"/>
+					<circle cx="50" cy="170" r="1.0" fill="#c2410c" opacity="0.22"/>
+					<circle cx="70" cy="170" r="1.9" fill="#c2410c" opacity="0.30"/>
+					<circle cx="90" cy="170" r="2.7" fill="#c2410c" opacity="0.37"/>
+					<circle cx="110" cy="170" r="3.2" fill="#c2410c" opacity="0.41"/>
+					<circle cx="130" cy="170" r="3.4" fill="#c2410c" opacity="0.43"/>
+					<circle cx="150" cy="170" r="3.2" fill="#c2410c" opacity="0.41"/>
+					<circle cx="170" cy="170" r="2.7" fill="#c2410c" opacity="0.37"/>
+					<circle cx="190" cy="170" r="1.9" fill="#c2410c" opacity="0.30"/>
+					<circle cx="210" cy="170" r="1.0" fill="#c2410c" opacity="0.22"/>
+					<circle cx="230" cy="170" r="1.0" fill="#c2410c" opacity="0.13"/>
+					<circle cx="250" cy="170" r="1.0" fill="#c2410c" opacity="0.03"/>
+					<circle cx="10" cy="190" r="1.0" fill="#c2410c" opacity="-0.05"/>
+					<circle cx="30" cy="190" r="1.0" fill="#c2410c" opacity="0.04"/>
+					<circle cx="50" cy="190" r="1.0" fill="#c2410c" opacity="0.12"/>
+					<circle cx="70" cy="190" r="1.0" fill="#c2410c" opacity="0.19"/>
+					<circle cx="90" cy="190" r="1.1" fill="#c2410c" opacity="0.24"/>
+					<circle cx="110" cy="190" r="1.6" fill="#c2410c" opacity="0.28"/>
+					<circle cx="130" cy="190" r="1.7" fill="#c2410c" opacity="0.29"/>
+					<circle cx="150" cy="190" r="1.6" fill="#c2410c" opacity="0.28"/>
+					<circle cx="170" cy="190" r="1.1" fill="#c2410c" opacity="0.24"/>
+					<circle cx="190" cy="190" r="1.0" fill="#c2410c" opacity="0.19"/>
+					<circle cx="210" cy="190" r="1.0" fill="#c2410c" opacity="0.12"/>
+					<circle cx="230" cy="190" r="1.0" fill="#c2410c" opacity="0.04"/>
+					<circle cx="250" cy="190" r="1.0" fill="#c2410c" opacity="-0.05"/>
+					<circle cx="10" cy="210" r="1.0" fill="#c2410c" opacity="-0.14"/>
+					<circle cx="30" cy="210" r="1.0" fill="#c2410c" opacity="-0.06"/>
+					<circle cx="50" cy="210" r="1.0" fill="#c2410c" opacity="0.01"/>
+					<circle cx="70" cy="210" r="1.0" fill="#c2410c" opacity="0.07"/>
+					<circle cx="90" cy="210" r="1.0" fill="#c2410c" opacity="0.11"/>
+					<circle cx="110" cy="210" r="1.0" fill="#c2410c" opacity="0.14"/>
+					<circle cx="130" cy="210" r="1.0" fill="#c2410c" opacity="0.15"/>
+					<circle cx="150" cy="210" r="1.0" fill="#c2410c" opacity="0.14"/>
+					<circle cx="170" cy="210" r="1.0" fill="#c2410c" opacity="0.11"/>
+					<circle cx="190" cy="210" r="1.0" fill="#c2410c" opacity="0.07"/>
+					<circle cx="210" cy="210" r="1.0" fill="#c2410c" opacity="0.01"/>
+					<circle cx="230" cy="210" r="1.0" fill="#c2410c" opacity="-0.06"/>
+					<circle cx="250" cy="210" r="1.0" fill="#c2410c" opacity="-0.14"/>
+					</svg>
+					<figcaption>XV — Halftone CPU Die</figcaption>
+				</figure>
+
+				<!-- 16: Optical interference fringes -->
+				<figure role="listitem">
+					<svg viewBox="0 0 260 220" xmlns="http://www.w3.org/2000/svg" aria-label="Optical interference fringes">
+						<rect width="260" height="220" fill="#030712"/>
+											<circle cx="80" cy="110" r="10" fill="none" stroke="#6366f1" stroke-width="0.8" opacity="0.70"/>
+					<circle cx="180" cy="110" r="10" fill="none" stroke="#8b5cf6" stroke-width="0.8" opacity="0.50"/>
+					<circle cx="80" cy="110" r="23" fill="none" stroke="#6366f1" stroke-width="0.8" opacity="0.67"/>
+					<circle cx="180" cy="110" r="23" fill="none" stroke="#8b5cf6" stroke-width="0.8" opacity="0.48"/>
+					<circle cx="80" cy="110" r="36" fill="none" stroke="#6366f1" stroke-width="0.8" opacity="0.64"/>
+					<circle cx="180" cy="110" r="36" fill="none" stroke="#8b5cf6" stroke-width="0.8" opacity="0.46"/>
+					<circle cx="80" cy="110" r="49" fill="none" stroke="#6366f1" stroke-width="0.8" opacity="0.61"/>
+					<circle cx="180" cy="110" r="49" fill="none" stroke="#8b5cf6" stroke-width="0.8" opacity="0.43"/>
+					<circle cx="80" cy="110" r="62" fill="none" stroke="#6366f1" stroke-width="0.8" opacity="0.58"/>
+					<circle cx="180" cy="110" r="62" fill="none" stroke="#8b5cf6" stroke-width="0.8" opacity="0.41"/>
+					<circle cx="80" cy="110" r="75" fill="none" stroke="#6366f1" stroke-width="0.8" opacity="0.55"/>
+					<circle cx="180" cy="110" r="75" fill="none" stroke="#8b5cf6" stroke-width="0.8" opacity="0.39"/>
+					<circle cx="80" cy="110" r="88" fill="none" stroke="#6366f1" stroke-width="0.8" opacity="0.52"/>
+					<circle cx="180" cy="110" r="88" fill="none" stroke="#8b5cf6" stroke-width="0.8" opacity="0.37"/>
+					<circle cx="80" cy="110" r="101" fill="none" stroke="#6366f1" stroke-width="0.8" opacity="0.49"/>
+					<circle cx="180" cy="110" r="101" fill="none" stroke="#8b5cf6" stroke-width="0.8" opacity="0.34"/>
+					<circle cx="80" cy="110" r="114" fill="none" stroke="#6366f1" stroke-width="0.8" opacity="0.46"/>
+					<circle cx="180" cy="110" r="114" fill="none" stroke="#8b5cf6" stroke-width="0.8" opacity="0.32"/>
+					<circle cx="80" cy="110" r="127" fill="none" stroke="#6366f1" stroke-width="0.8" opacity="0.43"/>
+					<circle cx="180" cy="110" r="127" fill="none" stroke="#8b5cf6" stroke-width="0.8" opacity="0.30"/>
+					<circle cx="80" cy="110" r="140" fill="none" stroke="#6366f1" stroke-width="0.8" opacity="0.39"/>
+					<circle cx="180" cy="110" r="140" fill="none" stroke="#8b5cf6" stroke-width="0.8" opacity="0.28"/>
+					<circle cx="80" cy="110" r="153" fill="none" stroke="#6366f1" stroke-width="0.8" opacity="0.36"/>
+					<circle cx="180" cy="110" r="153" fill="none" stroke="#8b5cf6" stroke-width="0.8" opacity="0.26"/>
+					<circle cx="80" cy="110" r="166" fill="none" stroke="#6366f1" stroke-width="0.8" opacity="0.33"/>
+					<circle cx="180" cy="110" r="166" fill="none" stroke="#8b5cf6" stroke-width="0.8" opacity="0.23"/>
+					<circle cx="80" cy="110" r="179" fill="none" stroke="#6366f1" stroke-width="0.8" opacity="0.30"/>
+					<circle cx="180" cy="110" r="179" fill="none" stroke="#8b5cf6" stroke-width="0.8" opacity="0.21"/>
+					<circle cx="80" cy="110" r="192" fill="none" stroke="#6366f1" stroke-width="0.8" opacity="0.27"/>
+					<circle cx="180" cy="110" r="192" fill="none" stroke="#8b5cf6" stroke-width="0.8" opacity="0.19"/>
+					<circle cx="80" cy="110" r="205" fill="none" stroke="#6366f1" stroke-width="0.8" opacity="0.24"/>
+					<circle cx="180" cy="110" r="205" fill="none" stroke="#8b5cf6" stroke-width="0.8" opacity="0.17"/>
+					<circle cx="80" cy="110" r="218" fill="none" stroke="#6366f1" stroke-width="0.8" opacity="0.21"/>
+					<circle cx="180" cy="110" r="218" fill="none" stroke="#8b5cf6" stroke-width="0.8" opacity="0.14"/>
+					<circle cx="80" cy="110" r="231" fill="none" stroke="#6366f1" stroke-width="0.8" opacity="0.18"/>
+					<circle cx="180" cy="110" r="231" fill="none" stroke="#8b5cf6" stroke-width="0.8" opacity="0.12"/>
+					</svg>
+					<figcaption>XVI — Optical Interference</figcaption>
+				</figure>
+
+				<!-- 17: Gradient sweep — aurora borealis -->
+				<figure role="listitem">
+					<svg viewBox="0 0 260 220" xmlns="http://www.w3.org/2000/svg" aria-label="Aurora borealis abstraction">
+						<defs>
+							<linearGradient id="g-aurora-bg" x1="0" y1="0" x2="0" y2="1">
+								<stop offset="0%"  stop-color="#020617"/>
+								<stop offset="100%" stop-color="#0c1a0f"/>
+							</linearGradient>
+							<linearGradient id="g-aurora-1" x1="0" y1="0" x2="1" y2="0">
+								<stop offset="0%"  stop-color="#10b981" stop-opacity="0"/>
+								<stop offset="30%" stop-color="#34d399" stop-opacity="0.7"/>
+								<stop offset="60%" stop-color="#6ee7b7" stop-opacity="0.5"/>
+								<stop offset="100%" stop-color="#10b981" stop-opacity="0"/>
+							</linearGradient>
+							<linearGradient id="g-aurora-2" x1="0" y1="0" x2="1" y2="0">
+								<stop offset="0%"  stop-color="#818cf8" stop-opacity="0"/>
+								<stop offset="40%" stop-color="#a78bfa" stop-opacity="0.5"/>
+								<stop offset="70%" stop-color="#c4b5fd" stop-opacity="0.35"/>
+								<stop offset="100%" stop-color="#818cf8" stop-opacity="0"/>
+							</linearGradient>
+						</defs>
+						<rect width="260" height="220" fill="url(#g-aurora-bg)"/>
+						<!-- Stars -->
+											<circle cx="20" cy="15" r="1" fill="#fff" opacity="0.8"/>
+					<circle cx="45" cy="8" r="1" fill="#fff" opacity="0.4"/>
+					<circle cx="70" cy="22" r="1" fill="#fff" opacity="0.6"/>
+					<circle cx="95" cy="5" r="1" fill="#fff" opacity="0.8"/>
+					<circle cx="115" cy="18" r="1" fill="#fff" opacity="0.6"/>
+					<circle cx="140" cy="12" r="1" fill="#fff" opacity="0.8"/>
+					<circle cx="165" cy="25" r="1" fill="#fff" opacity="0.4"/>
+					<circle cx="185" cy="8" r="1" fill="#fff" opacity="0.8"/>
+					<circle cx="210" cy="20" r="1" fill="#fff" opacity="0.4"/>
+					<circle cx="230" cy="6" r="1" fill="#fff" opacity="0.8"/>
+					<circle cx="250" cy="15" r="1" fill="#fff" opacity="0.6"/>
+					<circle cx="32" cy="35" r="1" fill="#fff" opacity="0.8"/>
+					<circle cx="58" cy="42" r="1" fill="#fff" opacity="0.6"/>
+					<circle cx="90" cy="30" r="1" fill="#fff" opacity="0.4"/>
+					<circle cx="120" cy="38" r="1" fill="#fff" opacity="0.4"/>
+					<circle cx="155" cy="32" r="1" fill="#fff" opacity="0.8"/>
+					<circle cx="200" cy="40" r="1" fill="#fff" opacity="0.8"/>
+					<circle cx="240" cy="28" r="1" fill="#fff" opacity="0.4"/>
+						<!-- Aurora curtains -->
+						<rect x="0" y="55" width="260" height="80" fill="url(#g-aurora-1)" transform="rotate(-4,130,95)"/>
+						<rect x="0" y="80" width="260" height="60" fill="url(#g-aurora-2)" transform="rotate(3,130,110)"/>
+						<rect x="0" y="70" width="260" height="50" fill="url(#g-aurora-1)" opacity="0.4" transform="rotate(6,130,95)"/>
+						<!-- Horizon -->
+						<rect x="0" y="165" width="260" height="55" fill="#020617" opacity="0.9"/>
+						<line x1="0" y1="165" x2="260" y2="165" stroke="#1a3a2a" stroke-width="1"/>
+					</svg>
+					<figcaption>XVII — Aurora Data Stream</figcaption>
+				</figure>
+
+				<!-- 18: Waveform oscilloscope -->
+				<figure role="listitem">
+					<svg viewBox="0 0 260 220" xmlns="http://www.w3.org/2000/svg" aria-label="Oscilloscope waveform display">
+						<rect width="260" height="220" fill="#0a1628" rx="6"/>
+						<!-- Screen bezel -->
+						<rect x="10" y="10" width="240" height="200" fill="#0d1f38" rx="4" stroke="#1e3a5f" stroke-width="1"/>
+						<!-- Scan grid -->
+						<g stroke="#1e3a5f" stroke-width="0.5" opacity="0.6">
+							<line x1="10"  y1="60"  x2="250" y2="60"/>
+							<line x1="10"  y1="110" x2="250" y2="110"/>
+							<line x1="10"  y1="160" x2="250" y2="160"/>
+							<line x1="70"  y1="10"  x2="70"  y2="210"/>
+							<line x1="130" y1="10"  x2="130" y2="210"/>
+							<line x1="190" y1="10"  x2="190" y2="210"/>
+						</g>
+						<!-- Channel 1: sine wave green -->
+						<path
+							d="M10,110 C25,110 25,60 40,60 C55,60 55,160 70,160 C85,160 85,60 100,60 C115,60 115,160 130,160 C145,160 145,60 160,60 C175,60 175,160 190,160 C205,160 205,60 220,60 C235,60 235,110 250,110"
+							fill="none" stroke="#34d399" stroke-width="1.8" opacity="0.9"/>
+						<!-- Channel 2: ramp wave blue -->
+						<polyline
+							points="10,160 50,60 50,160 90,60 90,160 130,60 130,160 170,60 170,160 210,60 210,160 250,60"
+							fill="none" stroke="#60a5fa" stroke-width="1.2" opacity="0.7"/>
+						<!-- Labels -->
+						<text x="18" y="28" font-family="monospace" font-size="9" fill="#34d399" opacity="0.8">CH1</text>
+						<text x="46" y="28" font-family="monospace" font-size="9" fill="#60a5fa" opacity="0.8">CH2</text>
+						<text x="200" y="28" font-family="monospace" font-size="8" fill="#6b7280" opacity="0.7">10ms/div</text>
+					</svg>
+					<figcaption>XVIII — Oscilloscope Display</figcaption>
+				</figure>
+
+				<!-- 19: Abstract — radial spoke wheel -->
+				<figure role="listitem">
+					<svg viewBox="0 0 260 220" xmlns="http://www.w3.org/2000/svg" aria-label="Radial spoke CPU wheel">
+						<rect width="260" height="220" fill="#fafaf8"/>
+											<line x1="130" y1="110" x2="220.0" y2="110.0" stroke="#c0392b" stroke-width="1.2" opacity="0.2"/>
+					<line x1="130" y1="110" x2="216.9" y2="130.2" stroke="#2c5f8a" stroke-width="1.2" opacity="0.4"/>
+					<line x1="130" y1="110" x2="207.9" y2="149.0" stroke="#b45309" stroke-width="1.2" opacity="0.6"/>
+					<line x1="130" y1="110" x2="193.6" y2="165.2" stroke="#166534" stroke-width="1.2" opacity="0.2"/>
+					<line x1="130" y1="110" x2="175.0" y2="177.5" stroke="#c0392b" stroke-width="1.2" opacity="0.4"/>
+					<line x1="130" y1="110" x2="153.3" y2="185.3" stroke="#2c5f8a" stroke-width="1.2" opacity="0.6"/>
+					<line x1="130" y1="110" x2="130.0" y2="188.0" stroke="#b45309" stroke-width="1.2" opacity="0.2"/>
+					<line x1="130" y1="110" x2="106.7" y2="185.3" stroke="#166534" stroke-width="1.2" opacity="0.4"/>
+					<line x1="130" y1="110" x2="85.0" y2="177.5" stroke="#c0392b" stroke-width="1.2" opacity="0.6"/>
+					<line x1="130" y1="110" x2="66.4" y2="165.2" stroke="#2c5f8a" stroke-width="1.2" opacity="0.2"/>
+					<line x1="130" y1="110" x2="52.1" y2="149.0" stroke="#b45309" stroke-width="1.2" opacity="0.4"/>
+					<line x1="130" y1="110" x2="43.1" y2="130.2" stroke="#166534" stroke-width="1.2" opacity="0.6"/>
+					<line x1="130" y1="110" x2="40.0" y2="110.0" stroke="#c0392b" stroke-width="1.2" opacity="0.2"/>
+					<line x1="130" y1="110" x2="43.1" y2="89.8" stroke="#2c5f8a" stroke-width="1.2" opacity="0.4"/>
+					<line x1="130" y1="110" x2="52.1" y2="71.0" stroke="#b45309" stroke-width="1.2" opacity="0.6"/>
+					<line x1="130" y1="110" x2="66.4" y2="54.8" stroke="#166534" stroke-width="1.2" opacity="0.2"/>
+					<line x1="130" y1="110" x2="85.0" y2="42.5" stroke="#c0392b" stroke-width="1.2" opacity="0.4"/>
+					<line x1="130" y1="110" x2="106.7" y2="34.7" stroke="#2c5f8a" stroke-width="1.2" opacity="0.6"/>
+					<line x1="130" y1="110" x2="130.0" y2="32.0" stroke="#b45309" stroke-width="1.2" opacity="0.2"/>
+					<line x1="130" y1="110" x2="153.3" y2="34.7" stroke="#166534" stroke-width="1.2" opacity="0.4"/>
+					<line x1="130" y1="110" x2="175.0" y2="42.5" stroke="#c0392b" stroke-width="1.2" opacity="0.6"/>
+					<line x1="130" y1="110" x2="193.6" y2="54.8" stroke="#2c5f8a" stroke-width="1.2" opacity="0.2"/>
+					<line x1="130" y1="110" x2="207.9" y2="71.0" stroke="#b45309" stroke-width="1.2" opacity="0.4"/>
+					<line x1="130" y1="110" x2="216.9" y2="89.8" stroke="#166534" stroke-width="1.2" opacity="0.6"/>
+						<circle cx="130" cy="110" r="92" fill="none" stroke="#e8e4dc" stroke-width="1"/>
+						<circle cx="130" cy="110" r="60" fill="none" stroke="#e8e4dc" stroke-width="0.8"/>
+						<circle cx="130" cy="110" r="30" fill="none" stroke="#e8e4dc" stroke-width="0.8"/>
+						<circle cx="130" cy="110" r="12" fill="#1a1a18" opacity="0.9"/>
+						<circle cx="130" cy="110" r="5"  fill="#c0392b"/>
+					</svg>
+					<figcaption>XIX — CPU Core Spider</figcaption>
+				</figure>
+
+				<!-- 20: Minimal — block colour (Mondrian inspired) -->
+				<figure role="listitem">
+					<svg viewBox="0 0 260 220" xmlns="http://www.w3.org/2000/svg" aria-label="Mondrian-inspired block composition">
+						<rect width="260" height="220" fill="#f5f5f0"/>
+						<!-- Grid lines -->
+						<line x1="80"  y1="0"   x2="80"  y2="220" stroke="#1a1a18" stroke-width="3"/>
+						<line x1="160" y1="0"   x2="160" y2="220" stroke="#1a1a18" stroke-width="3"/>
+						<line x1="0"   y1="90"  x2="260" y2="90"  stroke="#1a1a18" stroke-width="3"/>
+						<line x1="0"   y1="155" x2="260" y2="155" stroke="#1a1a18" stroke-width="3"/>
+						<!-- Coloured cells -->
+						<rect x="0"   y="0"   width="79"  height="89"  fill="#c0392b"/><!-- top-left: red -->
+						<rect x="162" y="92"  width="98"  height="62"  fill="#2c5f8a"/><!-- mid-right: blue -->
+						<rect x="82"  y="157" width="77"  height="63"  fill="#f59e0b"/><!-- bottom-mid: yellow -->
+						<rect x="0"   y="157" width="79"  height="63"  fill="#1a1a18"/><!-- bottom-left: black -->
+					</svg>
+					<figcaption>XX — Mondrian Cache Grid</figcaption>
+				</figure>
+
+			</div><!-- /.bsb-gallery__grid -->
+
+			<!-- Next-hop card -->
+			<div class="bsb-gallery-next">
+				<a
+					class="bsb-next-card"
+					href="?bsbSessionPage=article-2"
+					data-bsb-next
+					rel="next"
+				>
+					<div>
+						<div class="bsb-next-card__label">Next: Analysis</div>
+						<div class="bsb-next-card__title">What Drains a Laptop Battery, Ranked</div>
+					</div>
+					<div class="bsb-next-card__arrow" aria-hidden="true">&rarr;</div>
+				</a>
+			</div>
+
+		</div><!-- /.bsb-gallery -->
+</div>
+<!-- /wp:html -->

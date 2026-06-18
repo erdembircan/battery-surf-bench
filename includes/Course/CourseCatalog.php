@@ -35,6 +35,11 @@ class CourseCatalog {
 	 */
 	private const PAGES = array(
 		'article-1' => 'The Hidden Cost of a Browser Tab',
+		'gallery'   => 'Inside the Machine',
+		'article-2' => 'What Drains a Laptop Battery, Ranked',
+		'video'     => "Watch: Inside a Modern Laptop's Power Path",
+		'links'     => 'News Hub: Energy & Computing',
+		'blank'     => 'Baseline Calibration',
 	);
 
 	/**

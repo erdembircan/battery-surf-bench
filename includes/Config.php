@@ -46,6 +46,9 @@ return array(
 		'param'          => 'bsbSessionPage',
 		// Block Bindings source the cockpit's `pages` attribute binds to.
 		'binding_source' => 'bsb/course-pages',
+		// Stylesheet that styles the course content, scoped to its
+		// `.bsb-course-content` wrapper, enqueued only on course pages.
+		'style'          => 'assets/css/course.css',
 	),
 	'cockpit'    => array(
 		// Query parameter + value that serve the cockpit dashboard:

@@ -18,6 +18,7 @@
 namespace ErdemBircan\BatterySurfBench;
 
 use function esc_attr__;
+use function esc_html__;
 use function get_block_wrapper_attributes;
 use function wp_interactivity_data_wp_context;
 
@@ -45,6 +46,12 @@ $bsb_context = array(
 	data-wp-interactive="bsb/cockpit"
 	<?php echo wp_interactivity_data_wp_context( $bsb_context ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- core helper returns an escaped data-wp-context attribute. ?>
 >
+	<div class="bsb-cockpit__controls">
+		<button type="button" class="bsb-cockpit__cycle" data-wp-on--click="actions.next">
+			<?php echo esc_html__( 'Next page', 'battery-surf-bench' ); ?>
+		</button>
+		<span class="bsb-cockpit__label" data-wp-text="state.currentLabel"></span>
+	</div>
 	<iframe
 		class="bsb-cockpit__viewport"
 		title="<?php echo esc_attr__( 'Surf viewport', 'battery-surf-bench' ); ?>"

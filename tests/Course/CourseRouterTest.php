@@ -10,10 +10,12 @@ declare( strict_types=1 );
 namespace ErdemBircan\BatterySurfBench\Tests\Course;
 
 use Brain\Monkey\Functions;
+use ErdemBircan\BatterySurfBench\Assets;
 use ErdemBircan\BatterySurfBench\Course\CourseCatalog;
 use ErdemBircan\BatterySurfBench\Course\CourseRouter;
 use ErdemBircan\BatterySurfBench\Support\Manager;
 use ErdemBircan\BatterySurfBench\Tests\TestCase;
+use Mockery;
 use WP_Post;
 use WP_Query;
 
@@ -38,7 +40,7 @@ final class CourseRouterTest extends TestCase {
 	private function router(): CourseRouter {
 		$catalog = new CourseCatalog( dirname( __DIR__, 2 ) . '/includes/Course/content' );
 
-		return new CourseRouter( $catalog, self::PARAM );
+		return new CourseRouter( $catalog, self::PARAM, Mockery::mock( Assets::class ), 'assets/css/course.css' );
 	}
 
 	/**

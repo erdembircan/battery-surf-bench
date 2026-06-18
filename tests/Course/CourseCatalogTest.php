@@ -29,16 +29,20 @@ final class CourseCatalogTest extends TestCase {
 	}
 
 	/**
-	 * The catalog yields the course's page with its title and the block markup
-	 * loaded from the bundled file.
+	 * The catalog yields the course's pages, each with its title and the block
+	 * markup loaded from its bundled file. The course opens with article-1.
 	 */
 	public function test_pages_load_their_bundled_markup(): void {
 		$pages = ( new CourseCatalog( $this->content_dir() ) )->pages();
 
-		$this->assertCount( 1, $pages );
 		$this->assertSame( 'article-1', $pages[0]->slug() );
 		$this->assertSame( 'The Hidden Cost of a Browser Tab', $pages[0]->title() );
-		$this->assertStringContainsString( '<!-- wp:', $pages[0]->content() );
+
+		foreach ( $pages as $page ) {
+			$this->assertNotSame( '', $page->slug() );
+			$this->assertNotSame( '', $page->title() );
+			$this->assertStringContainsString( '<!-- wp:', $page->content(), $page->slug() );
+		}
 	}
 
 	/**
