@@ -7,7 +7,9 @@
 
 namespace ErdemBircan\BatterySurfBench\Course;
 
+use function function_exists;
 use function is_readable;
+use function request_filesystem_credentials;
 use function trailingslashit;
 use function WP_Filesystem;
 
@@ -107,11 +109,13 @@ class CourseCatalog {
 
 	/**
 	 * Resolves the initialized WordPress filesystem, bootstrapping it on first
-	 * use. Returns null when the filesystem cannot be initialized (e.g. a host
-	 * that demands FTP credentials), so a read degrades to empty content rather
-	 * than a fatal error.
+	 * use. Credentials for the content directory are requested first — on the
+	 * usual `direct` method none are needed, but a host that requires FTP/SSH
+	 * credentials returns false (we cannot prompt for them mid-request), in which
+	 * case this returns null so a read degrades to empty content rather than a
+	 * fatal error.
 	 *
-	 * @return \WP_Filesystem_Base|null The filesystem, or null when unavailable.
+	 * @return \WP_Filesystem_Base|null The filesystem, or null when it cannot be initialized.
 	 */
 	private function filesystem(): ?\WP_Filesystem_Base {
 		global $wp_filesystem;
@@ -120,8 +124,20 @@ class CourseCatalog {
 			return $wp_filesystem;
 		}
 
-		require_once ABSPATH . 'wp-admin/includes/file.php';
+		if ( ! function_exists( 'WP_Filesystem' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/file.php';
+		}
 
-		return WP_Filesystem() ? $wp_filesystem : null;
+		$credentials = request_filesystem_credentials( '', '', false, $this->content_dir, null, true );
+
+		if ( false === $credentials ) {
+			return null;
+		}
+
+		if ( ! WP_Filesystem( $credentials ) ) {
+			return null;
+		}
+
+		return $wp_filesystem;
 	}
 }

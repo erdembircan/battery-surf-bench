@@ -9,6 +9,7 @@ declare( strict_types=1 );
 
 namespace ErdemBircan\BatterySurfBench\Tests\Course;
 
+use Brain\Monkey\Functions;
 use ErdemBircan\BatterySurfBench\Course\CourseCatalog;
 use ErdemBircan\BatterySurfBench\Tests\TestCase;
 
@@ -18,6 +19,16 @@ use ErdemBircan\BatterySurfBench\Tests\TestCase;
  * real bundled content directory, the same files it loads in production.
  */
 final class CourseCatalogTest extends TestCase {
+
+	/**
+	 * Restores a clean direct-reading filesystem global after each test, so a
+	 * test that clears or replaces it does not leak into the next.
+	 */
+	protected function tearDown(): void {
+		// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- restoring the test process's direct-reading filesystem shim.
+		$GLOBALS['wp_filesystem'] = new \WP_Filesystem_Base();
+		parent::tearDown();
+	}
 
 	/**
 	 * Absolute path to the plugin's bundled course content directory.
@@ -72,5 +83,22 @@ final class CourseCatalogTest extends TestCase {
 		$pages = ( new CourseCatalog( '/no/such/dir' ) )->pages();
 
 		$this->assertSame( '', $pages[0]->content() );
+	}
+
+	/**
+	 * When the host cannot grant filesystem credentials for the content
+	 * directory, the catalog degrades to empty content instead of reading the
+	 * file or fataling — the page renders blank rather than crashing the request.
+	 */
+	public function test_denied_filesystem_credentials_yield_empty_content(): void {
+		// Force the bootstrap path: no ready filesystem, and credentials denied.
+		unset( $GLOBALS['wp_filesystem'] );
+		Functions\when( 'WP_Filesystem' )->justReturn( false );
+		Functions\expect( 'request_filesystem_credentials' )->once()->andReturn( false );
+
+		$page = ( new CourseCatalog( $this->content_dir() ) )->find( 'article-1' );
+
+		$this->assertNotNull( $page );
+		$this->assertSame( '', $page->content() );
 	}
 }
