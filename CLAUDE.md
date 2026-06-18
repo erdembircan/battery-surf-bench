@@ -194,10 +194,13 @@ Tests run on **PHPUnit** with **Brain Monkey** for WordPress function/hook mocki
 
 ## Linting & PHPCS
 
-**Never silence a PHPCS finding with an inline suppression.** Do not add `// phpcs:ignore`, `// phpcs:disable`, or `// phpcs:enable` to make an error or warning go away. A suppression hides a problem instead of fixing it.
+**Never silence a PHPCS finding on your own judgement.** Do not reach for `// phpcs:ignore`/`// phpcs:disable` or a `phpcs.xml.dist` exclusion just to make an error or warning go away. A self-applied suppression hides a problem instead of fixing it.
 
 - **Fix the cause.** Almost every finding has a real fix: read the request through `get_query_var()` instead of `$_GET`, read files through `WP_Filesystem` instead of `file_get_contents`, define test constants in `phpunit.xml` instead of in PHP, restructure output so it is escaped, and so on.
-- **If you genuinely cannot get around a finding, stop and ask.** Do not suppress it on your own judgement. Surface the exact rule and code, explain why no code fix works, and let the maintainer decide how to handle it (including whether a narrowly-scoped, documented exclusion in `phpcs.xml.dist` is warranted). Suppression is the maintainer's call, never the agent's.
+- **If you genuinely cannot get around a finding, stop and ask.** Surface the exact rule and code, explain why no code fix works, and let the maintainer decide. **Suppression is the maintainer's call, never the agent's.** The maintainer also chooses the form, and both are legitimate once approved:
+  - a **line-scoped inline `// phpcs:ignore <rule> -- <reason>`** for a precise, genuinely-unavoidable single line (e.g. echoing a trusted pre-rendered document), which keeps the sniff guarding every other line in the file;
+  - a **documented, narrowly-scoped exclusion in `phpcs.xml.dist`** for a whole category (e.g. test-infrastructure rules in `tests/`).
+  Every approved suppression names the rule and carries a justification.
 
 ## File Reads & Writes
 
