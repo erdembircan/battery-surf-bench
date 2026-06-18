@@ -54,5 +54,4 @@ $bsb_markup = ( new CockpitView() )->render(
 	)
 );
 
-// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- the view interpolates only pre-escaped values prepared above.
 echo $bsb_markup;

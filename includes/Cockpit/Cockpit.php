@@ -32,7 +32,6 @@ use function wp_die;
 use function wp_kses_post;
 use function wp_login_url;
 use function wp_script_modules;
-use function wp_unslash;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -155,27 +154,21 @@ class Cockpit implements Manager {
 
 		$this->strip_front_end_assets();
 		$this->send_headers();
-
-		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- the view returns a complete document of pre-escaped block HTML from do_blocks().
 		echo $this->dashboard->render( array( 'body' => do_blocks( $this->host_markup() ) ) );
 
 		exit;
 	}
 
 	/**
-	 * Resolves the cockpit parameter's value from the request.
+	 * Resolves the cockpit parameter's value from the registered query parameter.
+	 * The parameter is a public query var ({@see Cockpit::add_query_var()}), so
+	 * WordPress parses it off the URL and exposes it through `get_query_var()` —
+	 * no need to read the superglobal.
 	 *
 	 * @return string The sanitized value, or '' when the parameter is absent.
 	 */
 	private function requested_value(): string {
-		$raw = get_query_var( $this->param );
-
-		if ( '' === $raw || null === $raw ) {
-			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only routing flag, no state change.
-			$raw = isset( $_GET[ $this->param ] ) ? sanitize_key( wp_unslash( $_GET[ $this->param ] ) ) : '';
-		}
-
-		return sanitize_key( (string) $raw );
+		return sanitize_key( (string) get_query_var( $this->param ) );
 	}
 
 	/**

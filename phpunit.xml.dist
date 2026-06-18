@@ -7,6 +7,12 @@
 		 failOnWarning="true"
 		 failOnRisky="true"
 		 beStrictAboutOutputDuringTests="true">
+	<php>
+		<!-- Plugin source files bail with `defined( 'ABSPATH' ) || exit;`.
+		     Defining it here keeps the constant out of the PHP bootstrap, where
+		     it would be a non-prefixed `define()`. -->
+		<const name="ABSPATH" value="/tmp/battery-surf-bench-tests/"/>
+	</php>
 	<testsuites>
 		<testsuite name="unit">
 			<directory>tests</directory>

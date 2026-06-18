@@ -137,9 +137,7 @@ final class CockpitTest extends TestCase {
 		$wp_styles        = new WP_Styles();
 		$wp_styles->queue = array( 'theme-style', self::STYLE_HANDLE, 'another-plugin' );
 
-		// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- staging the style registry the strip iterates over.
-		$GLOBALS['wp_styles'] = $wp_styles;
-		// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- the strip also reads the script registry; nothing enqueued.
+		$GLOBALS['wp_styles']  = $wp_styles;
 		$GLOBALS['wp_scripts'] = null;
 
 		Functions\expect( 'wp_dequeue_style' )->once()->with( 'theme-style' );

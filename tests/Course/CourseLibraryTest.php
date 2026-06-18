@@ -41,7 +41,7 @@ final class CourseLibraryTest extends TestCase {
 	 * @return CourseLibrary The library under test.
 	 */
 	private function library(): CourseLibrary {
-		$catalog = new CourseCatalog( dirname( __DIR__, 2 ) . '/includes/Course/content' );
+		$catalog = new CourseCatalog( '/plugin/includes/Course/content' );
 
 		return new CourseLibrary( $catalog, self::PARAM );
 	}

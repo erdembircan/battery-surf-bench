@@ -2,24 +2,18 @@
 /**
  * PHPUnit bootstrap.
  *
- * Defines the minimal WordPress constants the plugin guards against before
- * Brain Monkey takes over WordPress function mocking, then loads Composer's
- * autoloader.
+ * Defines the minimal WordPress class stubs the plugin type-hints against or
+ * instantiates, installs an in-memory filesystem double, then loads Composer's
+ * autoloader. `ABSPATH` — which the plugin's `defined( 'ABSPATH' ) || exit`
+ * guards check — is defined in `phpunit.xml.dist` (`<php><const>`), so it is in
+ * place before any plugin class autoloads, without a non-prefixed `define()`
+ * here.
  *
  * @package ErdemBircan\BatterySurfBench
  */
 
 declare( strict_types=1 );
 
-// Plugin source files bail with `defined( 'ABSPATH' ) || exit;`. Define it so
-// classes can be autoloaded inside the test process without exiting.
-if ( ! defined( 'ABSPATH' ) ) {
-	// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- Shimming a WordPress core constant for the test process.
-	define( 'ABSPATH', sys_get_temp_dir() . '/wordpress/' );
-}
-
-// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedClassFound -- Shimming WordPress core classes for the test process.
-// phpcs:disable Generic.Files.OneObjectStructurePerFile.MultipleFound -- Both WP core stubs belong with the test bootstrap.
 if ( ! class_exists( 'WP_Query' ) ) {
 	/**
 	 * Minimal WP_Query stub for the test process.
@@ -73,23 +67,33 @@ if ( ! class_exists( 'WP_Post' ) ) {
 
 if ( ! class_exists( 'WP_Filesystem_Base' ) ) {
 	/**
-	 * Minimal WP_Filesystem_Base stub standing in for WordPress's "direct"
-	 * filesystem method: reads a real file off disk, exactly as the bundled
-	 * content the catalog loads in production. Code resolves the filesystem via
-	 * the `$wp_filesystem` global and type-checks it against this class, so the
-	 * stub must carry the real class name.
+	 * In-memory stand-in for WordPress's filesystem abstraction. It touches no
+	 * disk: every path reports as present and reads back fixed block markup, so
+	 * code that loads bundled files through `$wp_filesystem` can be exercised
+	 * without real files. Tests needing other behaviour install a subclass.
+	 * Code resolves the filesystem via the `$wp_filesystem` global and
+	 * type-checks it against this class, so the stub carries the real class name.
 	 */
 	class WP_Filesystem_Base {
 
 		/**
-		 * Reads a file's contents from disk.
+		 * Reports whether a path exists. The in-memory double has every file.
 		 *
-		 * @param string $file Absolute path to the file.
-		 * @return string|false The file's contents, or false on failure.
+		 * @param string $path Path to test.
+		 * @return bool Always true.
 		 */
-		public function get_contents( string $file ) {
-			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- test stub mimicking WP_Filesystem_Direct against a real fixture.
-			return file_get_contents( $file );
+		public function exists( $path ): bool {
+			return true;
+		}
+
+		/**
+		 * Reads a file's contents — fixed block markup, never the disk.
+		 *
+		 * @param string $file Path to read.
+		 * @return string The stand-in block markup.
+		 */
+		public function get_contents( $file ) {
+			return '<!-- wp:paragraph --><p>Bundled course markup.</p><!-- /wp:paragraph -->';
 		}
 	}
 }
@@ -128,13 +132,8 @@ if ( ! class_exists( 'WP_Scripts' ) ) {
 	}
 }
 
-// Stand in for the initialized `$wp_filesystem` global so code that reads
-// bundled files through the WordPress filesystem abstraction (the course
-// catalog) gets the real files in the test process, without bootstrapping
-// WordPress.
-// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- test process shim for the WordPress filesystem global.
+// Install the in-memory filesystem double as the WordPress filesystem global so
+// code reading bundled files through the abstraction never reaches the disk.
 $GLOBALS['wp_filesystem'] = new WP_Filesystem_Base();
-// phpcs:enable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedClassFound
-// phpcs:enable Generic.Files.OneObjectStructurePerFile.MultipleFound
 
 require_once dirname( __DIR__ ) . '/vendor/autoload.php';

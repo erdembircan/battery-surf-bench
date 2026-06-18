@@ -62,12 +62,12 @@ final class CockpitDashboardTest extends TestCase {
 	public function test_render_includes_wordpress_head_and_footer_output(): void {
 		Functions\when( 'wp_head' )->alias(
 			static function (): void {
-				echo '<!-- HEAD -->'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- test stub echoing a literal.
+				echo '<!-- HEAD -->';
 			}
 		);
 		Functions\when( 'wp_footer' )->alias(
 			static function (): void {
-				echo '<!-- FOOTER -->'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- test stub echoing a literal.
+				echo '<!-- FOOTER -->';
 			}
 		);
 

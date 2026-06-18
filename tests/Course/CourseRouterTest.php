@@ -38,7 +38,7 @@ final class CourseRouterTest extends TestCase {
 	 * @return CourseRouter The router under test.
 	 */
 	private function router(): CourseRouter {
-		$catalog = new CourseCatalog( dirname( __DIR__, 2 ) . '/includes/Course/content' );
+		$catalog = new CourseCatalog( '/plugin/includes/Course/content' );
 
 		return new CourseRouter( $catalog, self::PARAM, Mockery::mock( Assets::class ), 'build/style-course.css' );
 	}

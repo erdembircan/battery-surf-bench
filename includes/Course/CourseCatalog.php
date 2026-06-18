@@ -8,7 +8,6 @@
 namespace ErdemBircan\BatterySurfBench\Course;
 
 use function function_exists;
-use function is_readable;
 use function request_filesystem_credentials;
 use function trailingslashit;
 use function WP_Filesystem;
@@ -90,15 +89,10 @@ class CourseCatalog {
 	 * @return string The page's block markup, or '' when its content file is missing or unreadable.
 	 */
 	private function load( string $slug ): string {
-		$file = trailingslashit( $this->content_dir ) . $slug . '.html';
-
-		if ( ! is_readable( $file ) ) {
-			return '';
-		}
-
+		$file       = trailingslashit( $this->content_dir ) . $slug . '.html';
 		$filesystem = $this->filesystem();
 
-		if ( null === $filesystem ) {
+		if ( null === $filesystem || ! $filesystem->exists( $file ) ) {
 			return '';
 		}
 

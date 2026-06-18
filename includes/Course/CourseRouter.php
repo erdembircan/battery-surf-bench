@@ -17,7 +17,6 @@ use function add_action;
 use function add_filter;
 use function get_query_var;
 use function sanitize_key;
-use function wp_unslash;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -99,19 +98,15 @@ class CourseRouter implements Manager {
 	}
 
 	/**
-	 * Resolves the requested course slug from the query parameter.
+	 * Resolves the requested course slug from the registered query parameter.
+	 * The parameter is a public query var ({@see CourseRouter::add_query_var()}),
+	 * so WordPress parses it off the URL and exposes it through `get_query_var()`
+	 * — no need to read the superglobal.
 	 *
 	 * @return string The sanitized slug, or '' when the parameter is absent.
 	 */
 	private function requested_slug(): string {
-		$raw = get_query_var( $this->param );
-
-		if ( '' === $raw || null === $raw ) {
-			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only routing flag, no state change.
-			$raw = isset( $_GET[ $this->param ] ) ? sanitize_key( wp_unslash( $_GET[ $this->param ] ) ) : '';
-		}
-
-		return sanitize_key( (string) $raw );
+		return sanitize_key( (string) get_query_var( $this->param ) );
 	}
 
 	/**
