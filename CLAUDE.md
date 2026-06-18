@@ -1,5 +1,18 @@
 # CLAUDE.md
 
+## WordPress APIs Move Fast — Verify Against Current Docs
+
+This plugin leans on fast-moving, recently-changed WordPress APIs (Script Modules, the Interactivity API, Block Bindings, performant translations, the i18n stack). Your training data about WordPress is very likely **stale** — and so are many tutorials and even some official handbook pages (parts of which predate the current behavior).
+
+Before implementing or advising on any WordPress-specific topic — especially i18n, script/asset registration, block registration, the Interactivity API, or anything tied to a `@since` version — **verify the current behavior against authoritative, up-to-date sources instead of relying on memory**:
+
+- the official developer resources (developer.wordpress.org handbooks and reference), reading the `@since`/changelog notes;
+- the README/repo of the relevant `@wordpress/*` JS package;
+- the **actual installed source** — WordPress core under `wp-playground/wordpress/` and packages under `node_modules` — which is the ground truth for the versions this project runs on;
+- recent make.wordpress.org/core posts for what changed between releases.
+
+When a doc disagrees with the installed version, the installed version wins. Re-check periodically; what was true a year ago often is not.
+
 ## Prototype Repo
 
 When the user refers to **"the prototype repo"** (or "the prototype"), they mean the GitHub repository [`erdembircan/battery-surf-bench_dep`](https://github.com/erdembircan/battery-surf-bench_dep) — a deprecated, archived vibe-coded prototype built to validate the idea before this repository existed. It is **not** maintained and should never be treated as the source of truth for the current architecture or contracts.
@@ -201,6 +214,14 @@ Tests run on **PHPUnit** with **Brain Monkey** for WordPress function/hook mocki
   - a **line-scoped inline `// phpcs:ignore <rule> -- <reason>`** for a precise, genuinely-unavoidable single line (e.g. echoing a trusted pre-rendered document), which keeps the sniff guarding every other line in the file;
   - a **documented, narrowly-scoped exclusion in `phpcs.xml.dist`** for a whole category (e.g. test-infrastructure rules in `tests/`).
   Every approved suppression names the rule and carries a justification.
+
+## Running Lints & Tests
+
+**Never pipe a lint or test command through `tail` (or `head`).** This applies to `composer lint` (PHPCS), `composer test` (PHPUnit), `pnpm lint:js`, `pnpm test`, `pnpm typecheck`, and the like.
+
+- **Findings print above the footer.** PHPCS and PHPUnit print their error reports *before* the trailing `Time: … Memory: …` line. `tail -6` shows only that footer, so an entire report of failures is invisible and the run looks clean.
+- **A pipe masks the exit code.** In `cmd | tail`, the shell reports `tail`'s status (always `0`), hiding a real non-zero failure.
+- **Instead:** run the command with full output and confirm the genuine exit code, e.g. `composer lint; echo "EXIT=$?"`. Read the whole report, or `grep` for the error summary. Reserve `| tail` for genuinely verbose commands that clearly succeed at the end (installs, builds), and even then append `${PIPESTATUS[0]}` to see the real status.
 
 ## File Reads & Writes
 
