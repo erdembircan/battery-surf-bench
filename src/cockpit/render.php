@@ -45,7 +45,7 @@ $bsb_context = array(
 // `src` is rendered — the Interactivity runtime processes the binding during
 // server render too, and would strip a literal value since the derived getter
 // is defined client-side.
-echo ( new CockpitView() )->render( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- the view interpolates only pre-escaped values prepared here.
+$bsb_markup = ( new CockpitView() )->render(
 	array(
 		'wrapper'        => get_block_wrapper_attributes(),
 		'context'        => wp_interactivity_data_wp_context( $bsb_context ),
@@ -53,3 +53,6 @@ echo ( new CockpitView() )->render( // phpcs:ignore WordPress.Security.EscapeOut
 		'viewport_title' => esc_attr__( 'Surf viewport', 'battery-surf-bench' ),
 	)
 );
+
+// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- the view interpolates only pre-escaped values prepared above.
+echo $bsb_markup;

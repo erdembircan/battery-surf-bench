@@ -98,6 +98,7 @@ if ( ! class_exists( 'WP_Filesystem_Base' ) ) {
 // bundled files through the WordPress filesystem abstraction (the course
 // catalog) gets the real files in the test process, without bootstrapping
 // WordPress.
+// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- test process shim for the WordPress filesystem global.
 $GLOBALS['wp_filesystem'] = new WP_Filesystem_Base();
 // phpcs:enable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedClassFound
 // phpcs:enable Generic.Files.OneObjectStructurePerFile.MultipleFound

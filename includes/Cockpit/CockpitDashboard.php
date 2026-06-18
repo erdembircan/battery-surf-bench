@@ -78,7 +78,7 @@ HTML;
 	 * @return string The `<style>` block.
 	 */
 	private function styles(): string {
-		return <<<HTML
+		return <<<'HTML'
 <style>
 		html, body { margin: 0; height: 100%; }
 		.wp-block-bsb-cockpit { display: flex; flex-direction: column; height: 100vh; }
