@@ -8,6 +8,9 @@
  * in the list — and the Interactivity API keeps the iframe pointed at it, so
  * the choice can move client-side as configuration controls are added.
  *
+ * This template only prepares the dynamic, already-escaped values; the markup
+ * itself lives in {@see CockpitView}, so no HTML is written inline here.
+ *
  * @var array    $attributes Block attributes; `pages` holds the bound course list.
  * @var string   $content    Inner block markup (unused; the cockpit has none yet).
  * @var WP_Block $block      The block instance.
@@ -16,6 +19,8 @@
  */
 
 namespace ErdemBircan\BatterySurfBench;
+
+use ErdemBircan\BatterySurfBench\Cockpit\CockpitView;
 
 use function esc_attr__;
 use function esc_html__;
@@ -40,21 +45,11 @@ $bsb_context = array(
 // `src` is rendered — the Interactivity runtime processes the binding during
 // server render too, and would strip a literal value since the derived getter
 // is defined client-side.
-?>
-<div
-	<?php echo get_block_wrapper_attributes(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- core helper returns escaped attributes. ?>
-	data-wp-interactive="bsb/cockpit"
-	<?php echo wp_interactivity_data_wp_context( $bsb_context ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- core helper returns an escaped data-wp-context attribute. ?>
->
-	<div class="bsb-cockpit__controls">
-		<button type="button" class="bsb-cockpit__cycle" data-wp-on--click="actions.next">
-			<?php echo esc_html__( 'Next page', 'battery-surf-bench' ); ?>
-		</button>
-		<span class="bsb-cockpit__label" data-wp-text="state.currentLabel"></span>
-	</div>
-	<iframe
-		class="bsb-cockpit__viewport"
-		title="<?php echo esc_attr__( 'Surf viewport', 'battery-surf-bench' ); ?>"
-		data-wp-bind--src="state.currentSrc"
-	></iframe>
-</div>
+echo ( new CockpitView() )->render( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- the view interpolates only pre-escaped values prepared here.
+	array(
+		'wrapper'        => get_block_wrapper_attributes(),
+		'context'        => wp_interactivity_data_wp_context( $bsb_context ),
+		'next_label'     => esc_html__( 'Next page', 'battery-surf-bench' ),
+		'viewport_title' => esc_attr__( 'Surf viewport', 'battery-surf-bench' ),
+	)
+);

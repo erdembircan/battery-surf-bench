@@ -70,6 +70,35 @@ if ( ! class_exists( 'WP_Post' ) ) {
 		}
 	}
 }
+
+if ( ! class_exists( 'WP_Filesystem_Base' ) ) {
+	/**
+	 * Minimal WP_Filesystem_Base stub standing in for WordPress's "direct"
+	 * filesystem method: reads a real file off disk, exactly as the bundled
+	 * content the catalog loads in production. Code resolves the filesystem via
+	 * the `$wp_filesystem` global and type-checks it against this class, so the
+	 * stub must carry the real class name.
+	 */
+	class WP_Filesystem_Base {
+
+		/**
+		 * Reads a file's contents from disk.
+		 *
+		 * @param string $file Absolute path to the file.
+		 * @return string|false The file's contents, or false on failure.
+		 */
+		public function get_contents( string $file ) {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- test stub mimicking WP_Filesystem_Direct against a real fixture.
+			return file_get_contents( $file );
+		}
+	}
+}
+
+// Stand in for the initialized `$wp_filesystem` global so code that reads
+// bundled files through the WordPress filesystem abstraction (the course
+// catalog) gets the real files in the test process, without bootstrapping
+// WordPress.
+$GLOBALS['wp_filesystem'] = new WP_Filesystem_Base();
 // phpcs:enable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedClassFound
 // phpcs:enable Generic.Files.OneObjectStructurePerFile.MultipleFound
 

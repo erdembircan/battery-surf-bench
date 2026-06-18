@@ -141,7 +141,9 @@ class Cockpit implements Manager {
 
 		$this->strip_front_end_assets();
 		$this->send_headers();
-		$this->dashboard->render( do_blocks( $this->host_markup() ) );
+
+		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- the view returns a complete document of pre-escaped block HTML from do_blocks().
+		echo $this->dashboard->render( array( 'body' => do_blocks( $this->host_markup() ) ) );
 
 		exit;
 	}

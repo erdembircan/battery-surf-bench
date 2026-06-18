@@ -16,6 +16,7 @@
 	},
 	"supports": {
 		"html": false,
+		"inserter": false,
 		"interactivity": true
 	},
 	"render": "file:./render.php",

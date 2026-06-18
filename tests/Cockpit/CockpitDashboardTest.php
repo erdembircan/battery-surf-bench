@@ -15,9 +15,9 @@ use ErdemBircan\BatterySurfBench\Tests\TestCase;
 
 /**
  * The dashboard view renders the standalone document the cockpit is served in.
- * Its contract: emit a complete HTML document, place the given body inside it,
- * and let WordPress print the head and footer (where the Interactivity script
- * modules go).
+ * Its contract: return a complete HTML document, place the given body inside it,
+ * and capture WordPress's head and footer output into it (where the
+ * Interactivity script modules go).
  */
 final class CockpitDashboardTest extends TestCase {
 
@@ -26,17 +26,13 @@ final class CockpitDashboardTest extends TestCase {
 	 */
 	protected function setUp(): void {
 		parent::setUp();
-		Functions\when( 'language_attributes' )->justReturn( null );
-		Functions\when( 'bloginfo' )->justReturn( null );
-		Functions\when( 'esc_html_e' )->alias(
-			static function ( string $text ): void {
-				echo $text; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- test stub echoing a literal.
-			}
-		);
+		Functions\when( 'get_language_attributes' )->justReturn( 'lang="en-US"' );
+		Functions\when( 'get_bloginfo' )->justReturn( 'UTF-8' );
+		Functions\when( 'esc_attr' )->returnArg();
 	}
 
 	/**
-	 * Renders the document and captures its output.
+	 * Renders the document.
 	 *
 	 * @param string $body Body markup to place in the document.
 	 * @return string The rendered document.
@@ -45,10 +41,7 @@ final class CockpitDashboardTest extends TestCase {
 		Functions\when( 'wp_head' )->justReturn( null );
 		Functions\when( 'wp_footer' )->justReturn( null );
 
-		ob_start();
-		( new CockpitDashboard() )->render( $body );
-
-		return (string) ob_get_clean();
+		return ( new CockpitDashboard() )->render( array( 'body' => $body ) );
 	}
 
 	/**
@@ -63,19 +56,37 @@ final class CockpitDashboardTest extends TestCase {
 	}
 
 	/**
-	 * The view defers head and footer output to WordPress, so the Interactivity
-	 * script modules and document head are printed by core.
+	 * The view captures `wp_head()`/`wp_footer()` into the document, so the
+	 * Interactivity script modules and document head core prints land inside it.
 	 */
-	public function test_render_lets_wordpress_print_head_and_footer(): void {
-		Functions\expect( 'wp_head' )->once();
-		Functions\expect( 'wp_footer' )->once();
+	public function test_render_includes_wordpress_head_and_footer_output(): void {
+		Functions\when( 'wp_head' )->alias(
+			static function (): void {
+				echo '<!-- HEAD -->'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- test stub echoing a literal.
+			}
+		);
+		Functions\when( 'wp_footer' )->alias(
+			static function (): void {
+				echo '<!-- FOOTER -->'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- test stub echoing a literal.
+			}
+		);
 
-		ob_start();
-		( new CockpitDashboard() )->render( '<div></div>' );
-		ob_get_clean();
+		$output = ( new CockpitDashboard() )->render( array( 'body' => '<div></div>' ) );
 
-		// The Mockery expectations above are the assertions; acknowledge them so
-		// PHPUnit does not flag the test as risky.
-		$this->addToAssertionCount( 2 );
+		$this->assertStringContainsString( '<!-- HEAD -->', $output );
+		$this->assertStringContainsString( '<!-- FOOTER -->', $output );
+	}
+
+	/**
+	 * With no body supplied the view still emits a valid document rather than
+	 * tripping on the missing value.
+	 */
+	public function test_render_tolerates_a_missing_body(): void {
+		Functions\when( 'wp_head' )->justReturn( null );
+		Functions\when( 'wp_footer' )->justReturn( null );
+
+		$output = ( new CockpitDashboard() )->render();
+
+		$this->assertStringContainsString( '<!DOCTYPE html>', $output );
 	}
 }

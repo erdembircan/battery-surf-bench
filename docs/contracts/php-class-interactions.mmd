@@ -48,6 +48,11 @@ classDiagram
         +register() void
     }
 
+    class View {
+        <<interface>>
+        +render(array data) string
+    }
+
     class Menu {
         +__construct(string slug, string capability, string icon_url, string style, Assets assets)
         +register() void
@@ -124,7 +129,11 @@ classDiagram
     }
 
     class CockpitDashboard {
-        +render(string body) void
+        +render(array data) string
+    }
+
+    class CockpitView {
+        +render(array data) string
     }
 
     BatterySurfBench --> Registry : creates & owns (composition)
@@ -157,6 +166,9 @@ classDiagram
     CoursePagesSource --> CourseLibrary : uses
     Cockpit ..|> Manager : implements
     Cockpit --> CockpitDashboard : uses
+    Cockpit ..> CockpitView : renders via (block template)
+    CockpitDashboard ..|> View : implements
+    CockpitView ..|> View : implements
     Registry ..|> ContainerInterface : implements
     Registry ..> NotFoundException : throws
     NotFoundException --|> InvalidArgumentException : extends

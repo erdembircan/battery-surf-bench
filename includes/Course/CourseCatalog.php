@@ -7,9 +7,9 @@
 
 namespace ErdemBircan\BatterySurfBench\Course;
 
-use function file_get_contents;
 use function is_readable;
 use function trailingslashit;
+use function WP_Filesystem;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -21,9 +21,9 @@ defined( 'ABSPATH' ) || exit;
  * The catalog is deliberately storage-agnostic: it produces {@see CoursePage}
  * value objects and never touches the database or the request. The course is
  * never seeded as real pages — the {@see CourseRouter} injects a page's markup
- * at request time — so the catalog can be described, listed and tested without
- * WordPress in the loop. For now the course is a single article; further pages
- * are added here.
+ * at request time. Markup is read from the bundled content files through the
+ * WordPress filesystem abstraction. For now the course is a single article;
+ * further pages are added here.
  */
 class CourseCatalog {
 
@@ -81,10 +81,11 @@ class CourseCatalog {
 	}
 
 	/**
-	 * Reads the block markup bundled for a page.
+	 * Reads the block markup bundled for a page through the WordPress filesystem
+	 * abstraction.
 	 *
 	 * @param string $slug Slug of the page whose markup to load.
-	 * @return string The page's block markup, or '' when its content file is missing.
+	 * @return string The page's block markup, or '' when its content file is missing or unreadable.
 	 */
 	private function load( string $slug ): string {
 		$file = trailingslashit( $this->content_dir ) . $slug . '.html';
@@ -93,9 +94,34 @@ class CourseCatalog {
 			return '';
 		}
 
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- reading a bundled local content file, not a remote URL.
-		$markup = file_get_contents( $file );
+		$filesystem = $this->filesystem();
 
-		return false === $markup ? '' : $markup;
+		if ( null === $filesystem ) {
+			return '';
+		}
+
+		$markup = $filesystem->get_contents( $file );
+
+		return false === $markup ? '' : (string) $markup;
+	}
+
+	/**
+	 * Resolves the initialized WordPress filesystem, bootstrapping it on first
+	 * use. Returns null when the filesystem cannot be initialized (e.g. a host
+	 * that demands FTP credentials), so a read degrades to empty content rather
+	 * than a fatal error.
+	 *
+	 * @return \WP_Filesystem_Base|null The filesystem, or null when unavailable.
+	 */
+	private function filesystem(): ?\WP_Filesystem_Base {
+		global $wp_filesystem;
+
+		if ( $wp_filesystem instanceof \WP_Filesystem_Base ) {
+			return $wp_filesystem;
+		}
+
+		require_once ABSPATH . 'wp-admin/includes/file.php';
+
+		return WP_Filesystem() ? $wp_filesystem : null;
 	}
 }
