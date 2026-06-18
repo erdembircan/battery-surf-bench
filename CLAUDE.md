@@ -60,6 +60,18 @@ Classes and functions must be documented — JSDoc for JS/TS code, PHPDoc for PH
 
 All source files (both JS/TS and PHP) must use **CamelCase** (e.g. `BatteryMonitor.php`, `BenchmarkRunner.ts`, `IRenderer.ts`, `SampleType.ts`). This applies to every file regardless of what it exports — classes, interfaces, types, constants, or utilities.
 
+## Markup & Views
+
+**Never write HTML or inline styles inside PHP.** No literal markup in `?> … <?php` template islands, no HTML strings assembled inline in a method, and no `style="…"` attributes or `<style>` blocks emitted from PHP.
+
+- All markup lives in a **view**: a class implementing the `View` interface (`ErdemBircan\BatterySurfBench\Support\View`) that owns its HTML inside a heredoc and returns it from `render()`. Concrete views live in a `Views/` subfolder of their domain (e.g. `includes/Cockpit/Views/`).
+- PHP that needs markup — a manager, a block `render.php` — prepares the dynamic, already-escaped values and hands them to a view; it never builds HTML itself.
+- Styling belongs in a stylesheet (see **Styles**), never in inline `style` attributes or `<style>` tags printed from PHP.
+
+## Styles
+
+**Author all styles as SCSS — never hand-write `.css` files.** A `.css` file in the source tree is a regression; every stylesheet has a `.scss` source under `src/` compiled to `build/` by `@wordpress/scripts` (mirroring `src/sessions/style.scss` → `build/style-sessions.css`). Enqueue the built `build/style-*.css`, never an `assets/css/*.css` hand-edited by hand.
+
 ## Testing Philosophy
 
 **Test behavior, not implementation.**
