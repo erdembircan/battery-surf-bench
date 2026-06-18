@@ -10,10 +10,13 @@ declare( strict_types=1 );
 namespace ErdemBircan\BatterySurfBench\Tests\Cockpit;
 
 use Brain\Monkey\Functions;
+use ErdemBircan\BatterySurfBench\Assets;
 use ErdemBircan\BatterySurfBench\Cockpit\Cockpit;
 use ErdemBircan\BatterySurfBench\Cockpit\CockpitDashboard;
 use ErdemBircan\BatterySurfBench\Support\Manager;
 use ErdemBircan\BatterySurfBench\Tests\TestCase;
+use Mockery;
+use WP_Styles;
 
 use function has_action;
 use function has_filter;
@@ -27,19 +30,22 @@ use function has_filter;
  */
 final class CockpitTest extends TestCase {
 
-	private const BLOCK_DIR  = '/plugin/build/cockpit';
-	private const BLOCK_NAME = 'bsb/cockpit';
-	private const SOURCE     = 'bsb/course-pages';
-	private const PARAM      = 'bsbSession';
-	private const VALUE      = 'cockpit';
-	private const CAPABILITY = 'manage_options';
+	private const BLOCK_DIR    = '/plugin/build/cockpit';
+	private const BLOCK_NAME   = 'bsb/cockpit';
+	private const SOURCE       = 'bsb/course-pages';
+	private const PARAM        = 'bsbSession';
+	private const VALUE        = 'cockpit';
+	private const CAPABILITY   = 'manage_options';
+	private const STYLE        = 'assets/css/cockpit.css';
+	private const STYLE_HANDLE = 'bsb-cockpit';
 
 	/**
 	 * Builds the cockpit manager under test.
 	 *
+	 * @param Assets|null $assets Asset service to inject; a dummy mock by default.
 	 * @return Cockpit The manager.
 	 */
-	private function cockpit(): Cockpit {
+	private function cockpit( ?Assets $assets = null ): Cockpit {
 		return new Cockpit(
 			self::BLOCK_DIR,
 			self::BLOCK_NAME,
@@ -47,7 +53,9 @@ final class CockpitTest extends TestCase {
 			self::PARAM,
 			self::VALUE,
 			self::CAPABILITY,
-			new CockpitDashboard()
+			new CockpitDashboard(),
+			$assets ?? Mockery::mock( Assets::class ),
+			self::STYLE
 		);
 	}
 
@@ -101,5 +109,51 @@ final class CockpitTest extends TestCase {
 		// The Mockery expectation above is the assertion; acknowledge it so
 		// PHPUnit does not flag the test as risky.
 		$this->addToAssertionCount( 1 );
+	}
+
+	/**
+	 * The dashboard enqueues its own stylesheet through the asset service, so the
+	 * stripped document still has the one style it is meant to keep.
+	 */
+	public function test_enqueue_style_enqueues_the_dashboard_stylesheet(): void {
+		$assets = Mockery::mock( Assets::class );
+		$assets->expects( 'enqueue' )->once()->with( self::STYLE )->andReturn( self::STYLE_HANDLE );
+
+		$this->cockpit( $assets )->enqueue_style();
+
+		// The Mockery expectation above is the assertion; acknowledge it so
+		// PHPUnit does not flag the test as risky.
+		$this->addToAssertionCount( 1 );
+	}
+
+	/**
+	 * The asset strip clears every other enqueued style but spares the cockpit's
+	 * own stylesheet, so the theme's CSS is gone while the dashboard keeps its.
+	 */
+	public function test_dequeue_all_assets_spares_the_dashboard_stylesheet(): void {
+		$assets = Mockery::mock( Assets::class );
+		$assets->expects( 'enqueue' )->andReturn( self::STYLE_HANDLE );
+
+		$wp_styles        = new WP_Styles();
+		$wp_styles->queue = array( 'theme-style', self::STYLE_HANDLE, 'another-plugin' );
+
+		// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- staging the style registry the strip iterates over.
+		$GLOBALS['wp_styles'] = $wp_styles;
+		// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- the strip also reads the script registry; nothing enqueued.
+		$GLOBALS['wp_scripts'] = null;
+
+		Functions\expect( 'wp_dequeue_style' )->once()->with( 'theme-style' );
+		Functions\expect( 'wp_dequeue_style' )->once()->with( 'another-plugin' );
+		Functions\expect( 'wp_dequeue_style' )->never()->with( self::STYLE_HANDLE );
+
+		$cockpit = $this->cockpit( $assets );
+		$cockpit->enqueue_style();
+		$cockpit->dequeue_all_assets();
+
+		unset( $GLOBALS['wp_styles'], $GLOBALS['wp_scripts'] );
+
+		// The Mockery expectations above are the assertions; acknowledge them so
+		// PHPUnit does not flag the test as risky.
+		$this->addToAssertionCount( 3 );
 	}
 }

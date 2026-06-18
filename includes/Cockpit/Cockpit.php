@@ -7,6 +7,7 @@
 
 namespace ErdemBircan\BatterySurfBench\Cockpit;
 
+use ErdemBircan\BatterySurfBench\Assets;
 use ErdemBircan\BatterySurfBench\Support\Manager;
 
 use function __;
@@ -39,9 +40,9 @@ defined( 'ABSPATH' ) || exit;
  * parameter (`?bsbSession=cockpit`) — never a seeded page. When that parameter
  * is hit by an administrator, the cockpit is rendered as a standalone document:
  * the classic style and script queues are emptied so no theme or other-plugin
- * CSS/JS gets in the dashboard's way, while the block's Interactivity API view
- * (a script module, a separate registry) is left to load and hydrate the
- * viewport iframe.
+ * CSS/JS gets in the dashboard's way — bar the cockpit's own stylesheet, which
+ * is enqueued and spared — while the block's Interactivity API view (a script
+ * module, a separate registry) is left to load and hydrate the viewport iframe.
  *
  * The block's `pages` attribute is fed the surfable course list through the
  * Block Bindings API. Custom block attributes are not bindable by default, so
@@ -60,6 +61,8 @@ class Cockpit implements Manager {
 	 * @param string           $value       Value of the parameter that serves the cockpit.
 	 * @param string           $capability  Capability required to open the cockpit.
 	 * @param CockpitDashboard $dashboard  View that renders the standalone dashboard document.
+	 * @param Assets           $assets      Service used to enqueue the dashboard stylesheet.
+	 * @param string           $style       Dashboard stylesheet, relative to the plugin root.
 	 */
 	public function __construct(
 		private string $block_dir,
@@ -68,9 +71,19 @@ class Cockpit implements Manager {
 		private string $param,
 		private string $value,
 		private string $capability,
-		private CockpitDashboard $dashboard
+		private CockpitDashboard $dashboard,
+		private Assets $assets,
+		private string $style
 	) {
 	}
+
+	/**
+	 * Handle the dashboard stylesheet was enqueued under, kept so the asset
+	 * strip can spare it. Null until the stylesheet is enqueued.
+	 *
+	 * @var string|null
+	 */
+	private ?string $style_handle = null;
 
 	/**
 	 * Opts the `pages` attribute into Block Bindings, declares the dashboard
@@ -177,6 +190,7 @@ class Cockpit implements Manager {
 	 */
 	private function strip_front_end_assets(): void {
 		add_filter( 'show_admin_bar', '__return_false' );
+		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_style' ) );
 		add_action( 'wp_enqueue_scripts', array( $this, 'dequeue_all_assets' ), PHP_INT_MAX );
 
 		remove_all_actions( 'wp_head' );
@@ -193,9 +207,21 @@ class Cockpit implements Manager {
 	}
 
 	/**
+	 * Enqueues the dashboard stylesheet and records its handle so the asset
+	 * strip can spare it. Hooked ahead of {@see Cockpit::dequeue_all_assets()},
+	 * which would otherwise dequeue it along with everything else.
+	 *
+	 * @return void
+	 */
+	public function enqueue_style(): void {
+		$this->style_handle = $this->assets->enqueue( $this->style );
+	}
+
+	/**
 	 * Dequeues every classic style and script after the theme has enqueued, so
-	 * none print on the dashboard. Script modules are a separate registry and
-	 * are left untouched.
+	 * none print on the dashboard — except the cockpit's own stylesheet, the one
+	 * style the dashboard is meant to keep. Script modules are a separate
+	 * registry and are left untouched.
 	 *
 	 * @return void
 	 */
@@ -204,6 +230,10 @@ class Cockpit implements Manager {
 
 		if ( $wp_styles instanceof \WP_Styles ) {
 			foreach ( (array) $wp_styles->queue as $handle ) {
+				if ( $handle === $this->style_handle ) {
+					continue;
+				}
+
 				wp_dequeue_style( $handle );
 			}
 		}

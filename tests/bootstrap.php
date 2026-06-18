@@ -94,6 +94,40 @@ if ( ! class_exists( 'WP_Filesystem_Base' ) ) {
 	}
 }
 
+if ( ! class_exists( 'WP_Styles' ) ) {
+	/**
+	 * Minimal WP_Styles stub exposing the `$queue` the cockpit's asset strip
+	 * iterates over to dequeue registered styles.
+	 */
+	#[\AllowDynamicProperties]
+	class WP_Styles {
+
+		/**
+		 * Handles currently enqueued.
+		 *
+		 * @var array<int, string>
+		 */
+		public array $queue = array();
+	}
+}
+
+if ( ! class_exists( 'WP_Scripts' ) ) {
+	/**
+	 * Minimal WP_Scripts stub exposing the `$queue` the cockpit's asset strip
+	 * iterates over to dequeue registered scripts.
+	 */
+	#[\AllowDynamicProperties]
+	class WP_Scripts {
+
+		/**
+		 * Handles currently enqueued.
+		 *
+		 * @var array<int, string>
+		 */
+		public array $queue = array();
+	}
+}
+
 // Stand in for the initialized `$wp_filesystem` global so code that reads
 // bundled files through the WordPress filesystem abstraction (the course
 // catalog) gets the real files in the test process, without bootstrapping

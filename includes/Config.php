@@ -59,5 +59,9 @@ return array(
 		'block_dir'  => 'build/cockpit',
 		// The cockpit block's registered name.
 		'block_name' => 'bsb/cockpit',
+		// Stylesheet for the stripped dashboard, enqueued on the cockpit route
+		// and exempted from the dashboard's asset strip so it is the one style
+		// that survives.
+		'style'      => 'assets/css/cockpit.css',
 	),
 );

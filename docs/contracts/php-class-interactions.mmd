@@ -37,7 +37,7 @@ classDiagram
 
     class Assets {
         +__construct(string namespace, Paths paths)
-        +enqueue(string relative, array deps) void
+        +enqueue(string relative, array deps) string
         +register_bundle(string relative) string
         +localize(string handle, string object_name, array data) void
         +enqueue_script(string handle) void
@@ -119,12 +119,13 @@ classDiagram
     }
 
     class Cockpit {
-        +__construct(string block_dir, string block_name, string source_name, string param, string value, string capability, CockpitDashboard dashboard)
+        +__construct(string block_dir, string block_name, string source_name, string param, string value, string capability, CockpitDashboard dashboard, Assets assets, string style)
         +register() void
         +register_block() void
         +add_query_var(array vars) array
         +allow_pages_binding(array attributes) array
         +maybe_render() void
+        +enqueue_style() void
         +dequeue_all_assets() void
     }
 
@@ -166,6 +167,7 @@ classDiagram
     CoursePagesSource --> CourseLibrary : uses
     Cockpit ..|> Manager : implements
     Cockpit --> CockpitDashboard : uses
+    Cockpit --> Assets : uses
     Cockpit ..> CockpitView : renders via (block template)
     CockpitDashboard ..|> View : implements
     CockpitView ..|> View : implements

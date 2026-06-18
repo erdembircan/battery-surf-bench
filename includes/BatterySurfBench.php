@@ -132,7 +132,9 @@ class BatterySurfBench {
 				$this->registry->get( 'cockpit.param' ),
 				$this->registry->get( 'cockpit.value' ),
 				$this->registry->get( 'capability' ),
-				new CockpitDashboard()
+				new CockpitDashboard(),
+				$this->assets,
+				$this->registry->get( 'cockpit.style' )
 			),
 		);
 	}
