@@ -47,9 +47,9 @@ class Assets {
 	 * @param string        $relative Path to the asset relative to the plugin root.
 	 * @param array<string> $deps     Handles the asset depends on.
 	 * @throws InvalidArgumentException When the file extension is not a supported asset type.
-	 * @return void
+	 * @return string The namespaced handle the asset was enqueued under.
 	 */
-	public function enqueue( string $relative, array $deps = array() ): void {
+	public function enqueue( string $relative, array $deps = array() ): string {
 		$handle    = $this->handle( $relative );
 		$extension = strtolower( pathinfo( $relative, PATHINFO_EXTENSION ) );
 
@@ -66,6 +66,8 @@ class Assets {
 					esc_html( sprintf( 'Cannot enqueue "%s": unsupported asset type "%s".', $relative, $extension ) )
 				);
 		}
+
+		return $handle;
 	}
 
 	/**

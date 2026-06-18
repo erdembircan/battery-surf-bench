@@ -37,7 +37,7 @@ classDiagram
 
     class Assets {
         +__construct(string namespace, Paths paths)
-        +enqueue(string relative, array deps) void
+        +enqueue(string relative, array deps) string
         +register_bundle(string relative) string
         +localize(string handle, string object_name, array data) void
         +enqueue_script(string handle) void
@@ -46,6 +46,11 @@ classDiagram
     class Manager {
         <<interface>>
         +register() void
+    }
+
+    class View {
+        <<interface>>
+        +render(array data) string
     }
 
     class Menu {
@@ -73,11 +78,63 @@ classDiagram
     }
 
     class SessionsScreen {
-        +__construct(string parent_slug, string page_slug, string capability, string bundle, string style, SessionSchema schema, Assets assets)
+        +__construct(string parent_slug, string page_slug, string capability, string bundle, string style, SessionSchema schema, Assets assets, string cockpit_param, string cockpit_value)
         +register() void
         +add_page() void
         +enqueue(string hook_suffix) void
         +render() void
+    }
+
+    class CoursePage {
+        +__construct(string slug, string title, string content)
+        +slug() string
+        +title() string
+        +content() string
+    }
+
+    class CourseCatalog {
+        +__construct(string content_dir)
+        +pages() array
+        +find(string slug) CoursePage
+    }
+
+    class CourseLibrary {
+        +__construct(CourseCatalog catalog, string param)
+        +links() array
+    }
+
+    class CourseRouter {
+        +__construct(CourseCatalog catalog, string param, Assets assets, string stylesheet)
+        +register() void
+        +add_query_var(array vars) array
+        +maybe_render(array posts, WP_Query query) array
+        +enqueue_style() void
+    }
+
+    class CoursePagesSource {
+        +__construct(string source_name, CourseLibrary library)
+        +register() void
+        +register_source() void
+        +value(array source_args, mixed block_instance, string attribute_name) array
+    }
+
+    class Cockpit {
+        +__construct(string block_dir, string block_name, string source_name, string param, string value, string capability, CockpitDashboard dashboard, Assets assets, string style)
+        +register() void
+        +register_block() void
+        +add_query_var(array vars) array
+        +allow_pages_binding(array attributes) array
+        +maybe_render() void
+        +enqueue_style() void
+        +dequeue_all_assets() void
+    }
+
+    class CockpitDashboard {
+        +render(array data) string
+    }
+
+    class CockpitView {
+        +render(array data) string
     }
 
     BatterySurfBench --> Registry : creates & owns (composition)
@@ -87,6 +144,12 @@ classDiagram
     BatterySurfBench --> SessionSchema : creates & owns (composition)
     BatterySurfBench --> SessionType : creates & owns (composition)
     BatterySurfBench --> SessionsScreen : creates & owns (composition)
+    BatterySurfBench --> CourseCatalog : creates & owns (composition)
+    BatterySurfBench --> CourseLibrary : creates & owns (composition)
+    BatterySurfBench --> CourseRouter : creates & owns (composition)
+    BatterySurfBench --> CoursePagesSource : creates & owns (composition)
+    BatterySurfBench --> Cockpit : creates & owns (composition)
+    BatterySurfBench --> CockpitDashboard : creates & owns (composition)
     BatterySurfBench ..> Manager : registers
     Menu ..|> Manager : implements
     Menu --> Assets : uses
@@ -95,6 +158,19 @@ classDiagram
     SessionsScreen ..|> Manager : implements
     SessionsScreen --> SessionSchema : uses
     SessionsScreen --> Assets : uses
+    CourseLibrary --> CourseCatalog : uses
+    CourseRouter ..|> Manager : implements
+    CourseRouter --> CourseCatalog : uses
+    CourseRouter --> Assets : uses
+    CourseCatalog ..> CoursePage : produces
+    CoursePagesSource ..|> Manager : implements
+    CoursePagesSource --> CourseLibrary : uses
+    Cockpit ..|> Manager : implements
+    Cockpit --> CockpitDashboard : uses
+    Cockpit --> Assets : uses
+    Cockpit ..> CockpitView : renders via (block template)
+    CockpitDashboard ..|> View : implements
+    CockpitView ..|> View : implements
     Registry ..|> ContainerInterface : implements
     Registry ..> NotFoundException : throws
     NotFoundException --|> InvalidArgumentException : extends

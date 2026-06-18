@@ -9,8 +9,14 @@ namespace ErdemBircan\BatterySurfBench;
 
 use ErdemBircan\BatterySurfBench\Admin\Menu;
 use ErdemBircan\BatterySurfBench\Admin\SessionsScreen;
+use ErdemBircan\BatterySurfBench\Cockpit\Cockpit;
+use ErdemBircan\BatterySurfBench\Cockpit\Views\CockpitDashboard;
+use ErdemBircan\BatterySurfBench\Cockpit\CoursePagesSource;
 use ErdemBircan\BatterySurfBench\Content\SessionSchema;
 use ErdemBircan\BatterySurfBench\Content\SessionType;
+use ErdemBircan\BatterySurfBench\Course\CourseCatalog;
+use ErdemBircan\BatterySurfBench\Course\CourseLibrary;
+use ErdemBircan\BatterySurfBench\Course\CourseRouter;
 use ErdemBircan\BatterySurfBench\Support\Manager;
 
 defined( 'ABSPATH' ) || exit;
@@ -79,6 +85,13 @@ class BatterySurfBench {
 			$this->registry->get( 'session.meta_prefix' )
 		);
 
+		// Course domain: the catalog describes the surf course and loads each
+		// page's block markup; the router serves a page off the course query
+		// parameter (rendered through the theme), and the library lists the
+		// pages' surf URLs for the cockpit.
+		$catalog = new CourseCatalog( $this->paths->path( 'includes/Course/content' ) );
+		$library = new CourseLibrary( $catalog, $this->registry->get( 'course.param' ) );
+
 		return array(
 			new Menu(
 				$this->registry->get( 'admin_menu.slug' ),
@@ -98,7 +111,30 @@ class BatterySurfBench {
 				$this->registry->get( 'session.bundle' ),
 				$this->registry->get( 'session.style' ),
 				$schema,
-				$this->assets
+				$this->assets,
+				$this->registry->get( 'cockpit.param' ),
+				$this->registry->get( 'cockpit.value' )
+			),
+			new CourseRouter(
+				$catalog,
+				$this->registry->get( 'course.param' ),
+				$this->assets,
+				$this->registry->get( 'course.style' )
+			),
+			new CoursePagesSource(
+				$this->registry->get( 'course.binding_source' ),
+				$library
+			),
+			new Cockpit(
+				$this->paths->path( $this->registry->get( 'cockpit.block_dir' ) ),
+				$this->registry->get( 'cockpit.block_name' ),
+				$this->registry->get( 'course.binding_source' ),
+				$this->registry->get( 'cockpit.param' ),
+				$this->registry->get( 'cockpit.value' ),
+				$this->registry->get( 'capability' ),
+				new CockpitDashboard(),
+				$this->assets,
+				$this->registry->get( 'cockpit.style' )
 			),
 		);
 	}

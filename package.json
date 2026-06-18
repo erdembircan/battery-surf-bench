@@ -5,8 +5,8 @@
   "private": true,
   "packageManager": "pnpm@11.7.0",
   "scripts": {
-    "build": "wp-scripts build",
-    "start": "wp-scripts start",
+    "build": "WP_EXPERIMENTAL_MODULES=true wp-scripts build",
+    "start": "WP_EXPERIMENTAL_MODULES=true wp-scripts start",
     "typecheck": "tsc --noEmit",
     "lint:js": "wp-scripts lint-js",
     "test": "vitest run",
@@ -36,6 +36,7 @@
     "@wordpress/data": "^10.48.0",
     "@wordpress/element": "^8.0.0",
     "@wordpress/i18n": "^6.21.0",
+    "@wordpress/interactivity": "^6.48.1",
     "@wordpress/scripts": "^32.4.0",
     "@wp-playground/blueprints": "^3.1.39",
     "@wp-playground/cli": "^3.1.39",

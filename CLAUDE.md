@@ -60,6 +60,18 @@ Classes and functions must be documented — JSDoc for JS/TS code, PHPDoc for PH
 
 All source files (both JS/TS and PHP) must use **CamelCase** (e.g. `BatteryMonitor.php`, `BenchmarkRunner.ts`, `IRenderer.ts`, `SampleType.ts`). This applies to every file regardless of what it exports — classes, interfaces, types, constants, or utilities.
 
+## Markup & Views
+
+**Never write HTML or inline styles inside PHP.** No literal markup in `?> … <?php` template islands, no HTML strings assembled inline in a method, and no `style="…"` attributes or `<style>` blocks emitted from PHP.
+
+- All markup lives in a **view**: a class implementing the `View` interface (`ErdemBircan\BatterySurfBench\Support\View`) that owns its HTML inside a heredoc and returns it from `render()`. Concrete views live in a `Views/` subfolder of their domain (e.g. `includes/Cockpit/Views/`).
+- PHP that needs markup — a manager, a block `render.php` — prepares the dynamic, already-escaped values and hands them to a view; it never builds HTML itself.
+- Styling belongs in a stylesheet (see **Styles**), never in inline `style` attributes or `<style>` tags printed from PHP.
+
+## Styles
+
+**Author all styles as SCSS — never hand-write `.css` files.** A `.css` file in the source tree is a regression; every stylesheet has a `.scss` source under `src/` compiled to `build/` by `@wordpress/scripts` (mirroring `src/sessions/style.scss` → `build/style-sessions.css`). Enqueue the built `build/style-*.css`, never an `assets/css/*.css` hand-edited by hand.
+
 ## Testing Philosophy
 
 **Test behavior, not implementation.**
@@ -72,6 +84,7 @@ Tests verify that code works correctly for its consumers. Focus on **what** the 
 2. **Consumer-oriented.** When a component's consumer is another component, treat that consumer as the end user. Test what it sees and relies on.
 3. **Implementation-proof.** If an implementation changes but behavior stays the same, tests MUST still pass.
 4. **All code changes need tests.** New features, bug fixes, refactors.
+5. **Never touch the real filesystem.** Tests must never read from or write to actual files or directories. Mock the filesystem boundary — the `$wp_filesystem` abstraction (via an in-memory double) and any file functions — and assert against that. A test that opens, stats, reads, or writes a real path is wrong, even for "just a fixture."
 
 ### What to Assert
 
@@ -178,6 +191,20 @@ public function test_register_meta_prefixes_field_keys(): void {
 ### Tooling
 
 Tests run on **PHPUnit** with **Brain Monkey** for WordPress function/hook mocking. The base `ErdemBircan\BatterySurfBench\Tests\TestCase` wires Brain Monkey's `setUp`/`tearDown` into the lifecycle — extend it for any test that touches WordPress. Run the suite with `composer test` (coverage via `composer test:coverage`).
+
+## Linting & PHPCS
+
+**Never silence a PHPCS finding on your own judgement.** Do not reach for `// phpcs:ignore`/`// phpcs:disable` or a `phpcs.xml.dist` exclusion just to make an error or warning go away. A self-applied suppression hides a problem instead of fixing it.
+
+- **Fix the cause.** Almost every finding has a real fix: read the request through `get_query_var()` instead of `$_GET`, read files through `WP_Filesystem` instead of `file_get_contents`, define test constants in `phpunit.xml` instead of in PHP, restructure output so it is escaped, and so on.
+- **If you genuinely cannot get around a finding, stop and ask.** Surface the exact rule and code, explain why no code fix works, and let the maintainer decide. **Suppression is the maintainer's call, never the agent's.** The maintainer also chooses the form, and both are legitimate once approved:
+  - a **line-scoped inline `// phpcs:ignore <rule> -- <reason>`** for a precise, genuinely-unavoidable single line (e.g. echoing a trusted pre-rendered document), which keeps the sniff guarding every other line in the file;
+  - a **documented, narrowly-scoped exclusion in `phpcs.xml.dist`** for a whole category (e.g. test-infrastructure rules in `tests/`).
+  Every approved suppression names the rule and carries a justification.
+
+## File Reads & Writes
+
+**Never use raw PHP filesystem functions; always go through the WordPress filesystem API.** No `file_get_contents`/`file_put_contents`/`fopen`/`fwrite`/`unlink`/`mkdir`/etc. for reading or writing files — use the `WP_Filesystem` abstraction (request credentials for the target first, then `$wp_filesystem->exists()`/`get_contents()`/`put_contents()`). The lone exception is `require`/`include` of a bundled PHP file (e.g. a build manifest), which is code inclusion, not file I/O.
 
 ## Commit Conventions — Conventional Commits
 

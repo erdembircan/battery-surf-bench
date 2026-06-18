@@ -1,0 +1,332 @@
+<!-- wp:group {"align":"wide"} -->
+<div class="wp-block-group alignwide">
+<!-- wp:html -->
+<div class="bsb-course-content">
+<div class="bsb-container">
+			<div class="bsb-article-wrap">
+				<article class="bsb-article">
+
+					<span class="bsb-article__kicker">Analysis &bull; Power Consumption</span>
+					<h1 class="bsb-article__headline">What Drains a Laptop Battery, Ranked</h1>
+					<p class="bsb-article__deck">
+						Not all battery vampires are created equal. We ranked every major component
+						and software behaviour by measured energy impact so you know exactly
+						where your hours are going.
+					</p>
+					<p class="bsb-article__meta">
+						By <strong>Daniel Orth&eacute;</strong>, Technology Correspondent &mdash;
+						<time datetime="2025-10-04">October 4, 2025</time>
+						&bull; 7 min read
+					</p>
+
+				</article>
+			</div>
+
+			<!-- Two-col layout: main prose + sticky sidebar -->
+			<div class="bsb-two-col" style="padding:0 1.5rem 4rem;">
+
+				<!-- Main content column -->
+				<div class="bsb-article" style="margin:0;">
+
+					<p>
+						Battery life anxiety is endemic among laptop users. We watch the percentage
+						tick down, instinctively reach for a charger, and wonder whether it's the browser
+						or some background process to blame. The answer is almost always: both, plus
+						seven other things you hadn't considered.
+					</p>
+
+					<p>
+						To cut through the guesswork, we instrumented a 14-inch laptop across two
+						weeks of real workloads, correlating inline power-meter readings with
+						component-level performance counters. The result is the most comprehensive
+						laptop battery drain breakdown we have published to date.
+					</p>
+
+					<h2>The Ranked Table</h2>
+
+					<p>
+						The table below shows each drain source, its typical sustained power draw
+						during moderate use, and its relative share of total laptop power at a
+						typical 12W average draw. Numbers are hardware-averaged; your figures
+						will vary.
+					</p>
+
+					<div class="bsb-table-wrap">
+						<table class="bsb-table" aria-label="Battery drain sources ranked by power draw">
+							<thead>
+								<tr>
+									<th class="rank" scope="col">#</th>
+									<th scope="col">Component / Behaviour</th>
+									<th class="watts" scope="col">Peak&nbsp;Draw</th>
+									<th scope="col">Idle&nbsp;Draw</th>
+									<th scope="col">% of Budget</th>
+									<th scope="col">Notes</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr class="bsb-table__high">
+									<td class="rank">1</td>
+									<td><strong>Display (max brightness)</strong></td>
+									<td class="watts">9.5&nbsp;W</td>
+									<td>3.0&nbsp;W</td>
+									<td>25–35%</td>
+									<td>OLED at full white; IPS backlight is constant</td>
+								</tr>
+								<tr class="bsb-table__high">
+									<td class="rank">2</td>
+									<td><strong>Video decode (YouTube 1080p)</strong></td>
+									<td class="watts">8.2&nbsp;W</td>
+									<td>—</td>
+									<td>20–28%</td>
+									<td>Hardware codec lowers this ~60%; browser decode is worst case</td>
+								</tr>
+								<tr class="bsb-table__high">
+									<td class="rank">3</td>
+									<td><strong>Heavy JS execution</strong></td>
+									<td class="watts">7.8&nbsp;W</td>
+									<td>—</td>
+									<td>18–24%</td>
+									<td>Burst during parse + JIT; sustained by timer-heavy pages</td>
+								</tr>
+								<tr>
+									<td class="rank">4</td>
+									<td>GPU compositing / rendering</td>
+									<td class="watts">4.5&nbsp;W</td>
+									<td>0.8&nbsp;W</td>
+									<td>12–18%</td>
+									<td>CSS animations, WebGL, complex layouts</td>
+								</tr>
+								<tr>
+									<td class="rank">5</td>
+									<td>Wi-Fi radio (active transfer)</td>
+									<td class="watts">3.8&nbsp;W</td>
+									<td>0.25&nbsp;W</td>
+									<td>8–14%</td>
+									<td>Idle PSM draws much less; background beacons prevent PSM</td>
+								</tr>
+								<tr>
+									<td class="rank">6</td>
+									<td>CPU idle / background processes</td>
+									<td class="watts">3.2&nbsp;W</td>
+									<td>1.5&nbsp;W</td>
+									<td>8–12%</td>
+									<td>Includes kernel, Spotlight, iCloud sync, Gatekeeper</td>
+								</tr>
+								<tr>
+									<td class="rank">7</td>
+									<td>Keyboard backlight (max)</td>
+									<td class="watts">1.2&nbsp;W</td>
+									<td>0&nbsp;W</td>
+									<td>2–6%</td>
+									<td>Off = zero; easily recoverable 30–90 min of battery life</td>
+								</tr>
+								<tr>
+									<td class="rank">8</td>
+									<td>Active cooling (fan)</td>
+									<td class="watts">0.8&nbsp;W</td>
+									<td>0&nbsp;W</td>
+									<td>2–5%</td>
+									<td>Indirect savings from throttling prevention are larger</td>
+								</tr>
+								<tr>
+									<td class="rank">9</td>
+									<td>Storage (NVMe active reads)</td>
+									<td class="watts">0.7&nbsp;W</td>
+									<td>0.05&nbsp;W</td>
+									<td>1–4%</td>
+									<td>Surprisingly small; NVMe sleeps aggressively</td>
+								</tr>
+								<tr>
+									<td class="rank">10</td>
+									<td>Bluetooth (connected, idle)</td>
+									<td class="watts">0.35&nbsp;W</td>
+									<td>0.1&nbsp;W</td>
+									<td>1–2%</td>
+									<td>Headphones connected vs off: ~20-min runtime difference/day</td>
+								</tr>
+								<tr>
+									<td class="rank">11</td>
+									<td>USB-C peripherals (bus power)</td>
+									<td class="watts">0.3&nbsp;W</td>
+									<td>0.05&nbsp;W</td>
+									<td>&lt;1%</td>
+									<td>Per device; thunderbolt dock can add several watts</td>
+								</tr>
+								<tr>
+									<td class="rank">12</td>
+									<td>Memory (LPDDR5 active)</td>
+									<td class="watts">0.25&nbsp;W</td>
+									<td>0.08&nbsp;W</td>
+									<td>&lt;1%</td>
+									<td>Unified memory on Apple Silicon; slightly different on Intel</td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+
+					<h2>The Display Problem</h2>
+
+					<p>
+						It is not a coincidence that the display tops the list. Most users leave brightness
+						at 100% — or let Auto Brightness push it there whenever a window catches
+						sunlight. At maximum brightness on an OLED panel, the display alone can consume
+						nearly half the laptop's entire power budget for a typical reading workload.
+						Dropping brightness from 100% to 50% typically saves 3–5 W continuously, which
+						translates to 40–70 additional minutes on a 60 Wh battery.
+					</p>
+
+					<p>
+						The dark mode effect deserves special mention here. On OLED hardware, a fully
+						dark-themed interface at 50% brightness draws comparable power to the same UI
+						in light mode at 35% brightness. If you're serious about battery life on OLED,
+						dark mode isn't aesthetic — it's engineering.
+					</p>
+
+					<h2>Video's Hidden Complexity</h2>
+
+					<p>
+						Streaming video ranks second, but the range is enormous. A browser decoding H.264
+						in software draws 7–9W from the CPU alone. The same stream decoded via the
+						dedicated hardware video engine (H.264 or HEVC, present on every modern laptop)
+						draws under 2W for the decode step. Chrome and Firefox both use hardware decode
+						when available, but HEVC support on Windows varies by driver; on macOS it is
+						consistently enabled.
+					</p>
+
+					<p>
+						The remaining power goes to the display (white player controls on dark video
+						background draws surprisingly little on OLED), network radio, and the browser
+						compositor running at 60 fps. VP9 and AV1 streams from YouTube use hardware
+						decode on supported platforms — a significant win for battery life that most
+						users are unaware of.
+					</p>
+
+					<ol>
+						<li>Enable hardware decode in browser settings where it isn't automatic</li>
+						<li>Prefer 720p over 1080p when quality doesn't matter — lower bitrate, less decode work</li>
+						<li>Use Picture-in-Picture and minimise the browser window — the compositor runs faster</li>
+						<li>Mute tab audio when you only need video — the audio subsystem adds ~150 mW</li>
+					</ol>
+
+					<h2>The JavaScript Sawtooth Revisited</h2>
+
+					<p>
+						Our longer feature <a href="?bsbSessionPage=article-1" data-bsb-link>The Hidden Cost of a Browser Tab</a>
+						goes deep on the JavaScript problem, but a brief summary is warranted here.
+						The issue is not just peak power — it is sustained elevated power from timer-driven
+						background activity. Every open tab is, by default, a small power consumer even
+						when you aren't looking at it, because browser background tabs are throttled but
+						not fully silenced. Ten open tabs, each polling an analytics beacon every 500 ms,
+						collectively produce a power floor that prevents the CPU from reaching its deepest
+						idle states.
+					</p>
+
+					<p>
+						One-click browser extensions that enforce aggressive tab sleeping (like Great
+						Suspender alternatives, or Chrome's built-in Memory Saver) can meaningfully
+						reduce this floor. In our tests, enabling tab sleeping on a 12-tab browser
+						session reduced idle-mode power draw by 18–26%.
+					</p>
+
+					<h2>The Bright Side: Quick Wins</h2>
+
+					<p>
+						Not all battery improvements require understanding V8's JIT compiler. Some are
+						immediately actionable:
+					</p>
+
+					<ol>
+						<li><strong>Reduce brightness by 30%</strong> — saves 1.5–3 W immediately</li>
+						<li><strong>Turn off keyboard backlight</strong> — saves 0.8–1.2 W when typing in a lit room</li>
+						<li><strong>Use content blockers</strong> — removes 4–14 background scripts per page, 20–35% JS power reduction</li>
+						<li><strong>Close unused tabs</strong> — each tab has a CPU wake budget; closing 5 open tabs can save 0.4–1 W continuously</li>
+						<li><strong>Enable Battery Saver / Low Power Mode</strong> — modern OSes throttle less-critical background work significantly, often adding 20–30% runtime</li>
+						<li><strong>Disconnect Bluetooth when not in use</strong> — small but free</li>
+					</ol>
+
+					<p>
+						Battery technology has improved dramatically, but the power demands of modern
+						software have grown in parallel. The gap between what hardware can deliver
+						and what software demands has, if anything, widened. Understanding that gap —
+						and the specific components responsible — is the first step toward closing it.
+					</p>
+
+					<p>
+						<span class="bsb-tag">Analysis</span>
+						<span class="bsb-tag">Power</span>
+						<span class="bsb-tag">Laptops</span>
+						<span class="bsb-tag">Performance</span>
+					</p>
+
+					<!-- Next hop -->
+					<a
+						class="bsb-next-card"
+						href="?bsbSessionPage=video"
+						data-bsb-next
+						rel="next"
+					>
+						<div>
+							<div class="bsb-next-card__label">Next: Video</div>
+							<div class="bsb-next-card__title">Watch: Inside a Modern Laptop's Power Path</div>
+						</div>
+						<div class="bsb-next-card__arrow" aria-hidden="true">&rarr;</div>
+					</a>
+
+				</div><!-- /main col -->
+
+				<!-- Sticky sidebar -->
+				<aside class="bsb-sidebar" aria-label="Related analysis">
+
+					<div class="bsb-aside" style="margin-top:0;">
+						<div class="bsb-aside__title">Quick Numbers</div>
+						<p>Average laptop TDP during browsing: <strong>8–14 W</strong></p>
+						<p>Idle with all tabs closed: <strong>2–4 W</strong></p>
+						<p>Video decode, software: <strong>7–9 W</strong></p>
+						<p>Video decode, hardware: <strong>1.5–2 W</strong></p>
+						<p>Display at 100% brightness: <strong>6–10 W</strong></p>
+						<p>Wi-Fi PSM floor: <strong>150–300 mW</strong></p>
+					</div>
+
+					<div class="bsb-aside">
+						<div class="bsb-aside__title">Related Reading</div>
+						<ul>
+							<li>
+								<a href="?bsbSessionPage=article-1" data-bsb-link>
+									The Hidden Cost of a Browser Tab
+								</a>
+							</li>
+							<li>
+								<a href="?bsbSessionPage=gallery" data-bsb-link>
+									Inside the Machine: Visual Essay
+								</a>
+							</li>
+							<li>
+								<a href="?bsbSessionPage=links" data-bsb-link>
+									Latest: Energy &amp; Computing
+								</a>
+							</li>
+						</ul>
+					</div>
+
+					<div class="bsb-aside">
+						<div class="bsb-aside__title">Methodology Note</div>
+						<p>
+							All measurements taken on a 14-inch Apple Silicon laptop at 50%
+							brightness, Wi-Fi connected (802.11ac), ambient temperature 21°C.
+							Each data point represents the mean of five 30-minute runs.
+						</p>
+						<p>
+							Power draw measured with a USB-C inline power meter at 1 ms
+							resolution, cross-validated against
+							<code>powermetrics --samplers cpu_power</code>.
+						</p>
+					</div>
+
+				</aside><!-- /sidebar -->
+
+			</div><!-- /.bsb-two-col -->
+		</div><!-- /.bsb-container -->
+</div>
+<!-- /wp:html -->
+</div>
+<!-- /wp:group -->

@@ -13,8 +13,11 @@ use ErdemBircan\BatterySurfBench\Support\Manager;
 
 use function __;
 use function add_action;
+use function add_query_arg;
 use function add_submenu_page;
 use function esc_html__;
+use function esc_url;
+use function home_url;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -50,10 +53,12 @@ class SessionsScreen implements Manager {
 	 * @param string        $parent_slug Slug of the menu the screen lives under.
 	 * @param string        $page_slug   Slug that identifies the screen's page.
 	 * @param string        $capability  Capability required to view the screen.
-	 * @param string        $bundle      Built listing script, relative to the plugin root.
-	 * @param string        $style       Bundle's stylesheet, relative to the plugin root.
-	 * @param SessionSchema $schema      Source of the post type and field descriptors.
-	 * @param Assets        $assets      Service used to register, localize and enqueue the bundle.
+	 * @param string        $bundle         Built listing script, relative to the plugin root.
+	 * @param string        $style          Bundle's stylesheet, relative to the plugin root.
+	 * @param SessionSchema $schema         Source of the post type and field descriptors.
+	 * @param Assets        $assets         Service used to register, localize and enqueue the bundle.
+	 * @param string        $cockpit_param  Query parameter that opens the cockpit dashboard.
+	 * @param string        $cockpit_value  Value of that parameter which serves the cockpit.
 	 */
 	public function __construct(
 		private string $parent_slug,
@@ -62,7 +67,9 @@ class SessionsScreen implements Manager {
 		private string $bundle,
 		private string $style,
 		private SessionSchema $schema,
-		private Assets $assets
+		private Assets $assets,
+		private string $cockpit_param,
+		private string $cockpit_value
 	) {
 	}
 
@@ -117,15 +124,19 @@ class SessionsScreen implements Manager {
 	}
 
 	/**
-	 * Renders the screen: a wrapped heading and the container the bundle mounts
-	 * the DataViews grid into.
+	 * Renders the screen: a wrapped heading, a link that opens the cockpit
+	 * dashboard, and the container the bundle mounts the DataViews grid into.
 	 *
 	 * @return void
 	 */
 	public function render(): void {
+		$cockpit_url = add_query_arg( $this->cockpit_param, $this->cockpit_value, home_url( '/' ) );
+
 		printf(
-			'<div class="wrap"><h1>%s</h1><div id="bsb-sessions-app"></div></div>',
-			esc_html__( 'Benchmark Sessions', 'battery-surf-bench' )
+			'<div class="wrap"><h1>%1$s <a href="%2$s" class="page-title-action">%3$s</a></h1><div id="bsb-sessions-app"></div></div>',
+			esc_html__( 'Benchmark Sessions', 'battery-surf-bench' ),
+			esc_url( $cockpit_url ),
+			esc_html__( 'Open Cockpit', 'battery-surf-bench' )
 		);
 	}
 

@@ -44,5 +44,41 @@
 				<element value="ErdemBircan\BatterySurfBench"/>
 			</property>
 		</properties>
+		<!-- Block render templates execute inside WP_Block::render(), so their
+		     template variables are function-scoped, not the plugin globals this
+		     sniff guards against — even though a static analyzer reads them as
+		     global because they sit at a file's top level. -->
+		<exclude-pattern>*/render.php</exclude-pattern>
+	</rule>
+
+	<!--
+	  Scoped exceptions for test-infrastructure findings with no in-code fix.
+	  Each is narrowed to the exact rule and path so the sniff still guards the
+	  rest of the codebase. These are deliberate and maintainer-approved, not
+	  blanket silencing. (The two production EscapeOutput sites that output
+	  trusted prepared HTML — */render.php and Cockpit.php — are handled with a
+	  line-scoped inline ignore instead, so a future stray echo there is still
+	  caught.)
+	-->
+
+	<!-- Tests inject mocks by setting the WordPress globals the code under test
+	     reads ($wp_filesystem, $wp_styles, $wp_scripts). This is test
+	     infrastructure, not production code overriding core state. -->
+	<rule ref="WordPress.WP.GlobalVariablesOverride.Prohibited">
+		<exclude-pattern>*/tests/*</exclude-pattern>
+	</rule>
+
+	<!-- The test bootstrap shims WordPress core classes for the test process.
+	     They must carry core's exact (unprefixed) names so type hints and
+	     instanceof checks resolve, several share the one bootstrap file, and the
+	     filesystem double's signature-required parameters go unused. -->
+	<rule ref="WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedClassFound">
+		<exclude-pattern>*/tests/bootstrap.php</exclude-pattern>
+	</rule>
+	<rule ref="Generic.Files.OneObjectStructurePerFile.MultipleFound">
+		<exclude-pattern>*/tests/bootstrap.php</exclude-pattern>
+	</rule>
+	<rule ref="Generic.CodeAnalysis.UnusedFunctionParameter.Found">
+		<exclude-pattern>*/tests/bootstrap.php</exclude-pattern>
 	</rule>
 </ruleset>
