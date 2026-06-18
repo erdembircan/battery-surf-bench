@@ -36,7 +36,7 @@ final class CockpitTest extends TestCase {
 	private const PARAM        = 'bsbSession';
 	private const VALUE        = 'cockpit';
 	private const CAPABILITY   = 'manage_options';
-	private const STYLE        = 'assets/css/cockpit.css';
+	private const STYLE        = 'build/style-cockpit-dashboard.css';
 	private const STYLE_HANDLE = 'bsb-cockpit';
 
 	/**

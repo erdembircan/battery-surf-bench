@@ -20,11 +20,12 @@ return array(
 	'admin_menu' => array(
 		'slug'  => 'battery-surf-bench',
 		// `none` tells WordPress to leave the icon empty so the stylesheet can
-		// paint it: admin-menu.css renders the surfer-battery SVG as a
+		// paint it: the admin-menu style renders the surfer-battery SVG as a
 		// `currentColor` mask, letting the icon inherit each colour scheme's
-		// menu-icon colours instead of showing a fixed-grey bitmap.
+		// menu-icon colours instead of showing a fixed-grey bitmap. Built from
+		// `src/admin/style.scss`.
 		'icon'  => 'none',
-		'style' => 'assets/css/admin-menu.css',
+		'style' => 'build/style-admin-menu.css',
 	),
 	'session'    => array(
 		// Post type benchmark sessions are stored as, and the prefix every one
@@ -47,8 +48,9 @@ return array(
 		// Block Bindings source the cockpit's `pages` attribute binds to.
 		'binding_source' => 'bsb/course-pages',
 		// Stylesheet that styles the course content, scoped to its
-		// `.bsb-course-content` wrapper, enqueued only on course pages.
-		'style'          => 'assets/css/course.css',
+		// `.bsb-course-content` wrapper, enqueued only on course pages. Built
+		// from `src/course/style.scss`.
+		'style'          => 'build/style-course.css',
 	),
 	'cockpit'    => array(
 		// Query parameter + value that serve the cockpit dashboard:
@@ -61,7 +63,7 @@ return array(
 		'block_name' => 'bsb/cockpit',
 		// Stylesheet for the stripped dashboard, enqueued on the cockpit route
 		// and exempted from the dashboard's asset strip so it is the one style
-		// that survives.
-		'style'      => 'assets/css/cockpit.css',
+		// that survives. Built from `src/cockpit/style.scss`.
+		'style'      => 'build/style-cockpit-dashboard.css',
 	),
 );

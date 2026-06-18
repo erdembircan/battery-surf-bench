@@ -40,7 +40,7 @@ final class CourseRouterTest extends TestCase {
 	private function router(): CourseRouter {
 		$catalog = new CourseCatalog( dirname( __DIR__, 2 ) . '/includes/Course/content' );
 
-		return new CourseRouter( $catalog, self::PARAM, Mockery::mock( Assets::class ), 'assets/css/course.css' );
+		return new CourseRouter( $catalog, self::PARAM, Mockery::mock( Assets::class ), 'build/style-course.css' );
 	}
 
 	/**
