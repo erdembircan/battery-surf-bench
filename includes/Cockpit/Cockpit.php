@@ -8,6 +8,7 @@
 namespace ErdemBircan\BatterySurfBench\Cockpit;
 
 use ErdemBircan\BatterySurfBench\Assets;
+use ErdemBircan\BatterySurfBench\Cockpit\Views\CockpitDashboard;
 use ErdemBircan\BatterySurfBench\Support\Manager;
 
 use function __;

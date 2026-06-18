@@ -12,7 +12,7 @@ namespace ErdemBircan\BatterySurfBench\Tests\Cockpit;
 use Brain\Monkey\Functions;
 use ErdemBircan\BatterySurfBench\Assets;
 use ErdemBircan\BatterySurfBench\Cockpit\Cockpit;
-use ErdemBircan\BatterySurfBench\Cockpit\CockpitDashboard;
+use ErdemBircan\BatterySurfBench\Cockpit\Views\CockpitDashboard;
 use ErdemBircan\BatterySurfBench\Support\Manager;
 use ErdemBircan\BatterySurfBench\Tests\TestCase;
 use Mockery;

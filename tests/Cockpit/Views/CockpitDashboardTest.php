@@ -7,10 +7,10 @@
 
 declare( strict_types=1 );
 
-namespace ErdemBircan\BatterySurfBench\Tests\Cockpit;
+namespace ErdemBircan\BatterySurfBench\Tests\Cockpit\Views;
 
 use Brain\Monkey\Functions;
-use ErdemBircan\BatterySurfBench\Cockpit\CockpitDashboard;
+use ErdemBircan\BatterySurfBench\Cockpit\Views\CockpitDashboard;
 use ErdemBircan\BatterySurfBench\Tests\TestCase;
 
 /**

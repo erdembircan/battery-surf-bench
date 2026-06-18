@@ -5,7 +5,7 @@
  * @package ErdemBircan\BatterySurfBench
  */
 
-namespace ErdemBircan\BatterySurfBench\Cockpit;
+namespace ErdemBircan\BatterySurfBench\Cockpit\Views;
 
 use ErdemBircan\BatterySurfBench\Support\View;
 

@@ -10,7 +10,7 @@ namespace ErdemBircan\BatterySurfBench;
 use ErdemBircan\BatterySurfBench\Admin\Menu;
 use ErdemBircan\BatterySurfBench\Admin\SessionsScreen;
 use ErdemBircan\BatterySurfBench\Cockpit\Cockpit;
-use ErdemBircan\BatterySurfBench\Cockpit\CockpitDashboard;
+use ErdemBircan\BatterySurfBench\Cockpit\Views\CockpitDashboard;
 use ErdemBircan\BatterySurfBench\Cockpit\CoursePagesSource;
 use ErdemBircan\BatterySurfBench\Content\SessionSchema;
 use ErdemBircan\BatterySurfBench\Content\SessionType;

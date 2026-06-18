@@ -7,9 +7,9 @@
 
 declare( strict_types=1 );
 
-namespace ErdemBircan\BatterySurfBench\Tests\Cockpit;
+namespace ErdemBircan\BatterySurfBench\Tests\Cockpit\Views;
 
-use ErdemBircan\BatterySurfBench\Cockpit\CockpitView;
+use ErdemBircan\BatterySurfBench\Cockpit\Views\CockpitView;
 use ErdemBircan\BatterySurfBench\Support\View;
 use ErdemBircan\BatterySurfBench\Tests\TestCase;
 

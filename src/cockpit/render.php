@@ -20,7 +20,7 @@
 
 namespace ErdemBircan\BatterySurfBench;
 
-use ErdemBircan\BatterySurfBench\Cockpit\CockpitView;
+use ErdemBircan\BatterySurfBench\Cockpit\Views\CockpitView;
 
 use function esc_attr__;
 use function esc_html__;
