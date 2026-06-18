@@ -111,9 +111,10 @@ final class SessionsScreenTest extends TestCase {
 
 	/**
 	 * On its own screen the listing drives the asset service end to end —
-	 * registering the bundle, localizing the schema onto it, enqueuing it, and
-	 * enqueuing its stylesheet (which declares `wp-components` as a dependency).
-	 * The screen itself never calls WordPress' enqueue functions.
+	 * registering the bundle, localizing the schema onto it, registering its
+	 * translations so its strings localize, enqueuing it, and enqueuing its
+	 * stylesheet (which declares `wp-components` as a dependency). The screen
+	 * itself never calls WordPress' enqueue functions.
 	 */
 	public function test_enqueue_loads_the_listing_on_its_own_screen(): void {
 		$assets = Mockery::mock( Assets::class );
@@ -124,6 +125,9 @@ final class SessionsScreenTest extends TestCase {
 		$assets->shouldReceive( 'localize' )
 			->once()
 			->with( 'bsb-sessions', 'bsbSessions', Mockery::type( 'array' ) );
+		$assets->shouldReceive( 'set_script_translations' )
+			->once()
+			->with( 'bsb-sessions' );
 		$assets->shouldReceive( 'enqueue_script' )
 			->once()
 			->with( 'bsb-sessions' );

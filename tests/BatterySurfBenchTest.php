@@ -42,6 +42,17 @@ final class BatterySurfBenchTest extends TestCase {
 	}
 
 	/**
+	 * Booting wires the translation loader, observable here as a callback hooked
+	 * onto `init` — so the plugin's text domain is loaded once WordPress allows.
+	 */
+	public function test_init_wires_the_translation_loader(): void {
+		$plugin = new BatterySurfBench( '/path/to/plugin.php' );
+		$plugin->init();
+
+		$this->assertNotFalse( has_action( 'init' ) );
+	}
+
+	/**
 	 * The menu icon is configured as the literal `none` so the stylesheet can
 	 * paint it. Booting must hand that value to the menu verbatim and never run
 	 * it through `plugins_url`, which would otherwise point WordPress at a

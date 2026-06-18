@@ -1,6 +1,16 @@
 <?php
 /**
- * Plugin Name: Battery Surf Bench
+ * Plugin Name:       Battery Surf Bench
+ * Plugin URI:        https://github.com/erdembircan/battery-surf-bench
+ * Description:       Benchmarks battery drain by simulating real-world web surfing.
+ * Version:           1.0.0-dev
+ * Requires at least: 7.0
+ * Requires PHP:      8.1
+ * Author:            Erdem Bircan
+ * License:           Apache-2.0
+ * License URI:       https://www.apache.org/licenses/LICENSE-2.0
+ * Text Domain:       battery-surf-bench
+ * Domain Path:       /languages
  *
  * @package ErdemBircan\BatterySurfBench
  */

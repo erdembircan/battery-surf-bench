@@ -123,4 +123,44 @@ final class AssetsTest extends TestCase {
 		$this->expectException( InvalidArgumentException::class );
 		$assets->enqueue( 'assets/data.json' );
 	}
+
+	/**
+	 * A classic script's translations are registered under the plugin's text
+	 * domain — the same string as the handle namespace — and loaded from its
+	 * bundled `languages` directory, so its `@wordpress/i18n` strings localize.
+	 */
+	public function test_set_script_translations_registers_domain_and_languages_path(): void {
+		Functions\when( 'plugin_dir_path' )->justReturn( '/plugins/battery-surf-bench/' );
+
+		Functions\expect( 'wp_set_script_translations' )
+			->once()
+			->with( 'battery-surf-bench-sessions', 'battery-surf-bench', '/plugins/battery-surf-bench/languages' );
+
+		$assets = new Assets( 'battery-surf-bench', new Paths( '/plugins/battery-surf-bench/battery-surf-bench.php' ) );
+		$assets->set_script_translations( 'battery-surf-bench-sessions' );
+
+		// The Mockery expectation above is the assertion; acknowledge it so
+		// PHPUnit does not flag the test as risky.
+		$this->addToAssertionCount( 1 );
+	}
+
+	/**
+	 * A script module's translations are registered through the dedicated module
+	 * API, under the same text domain and bundled `languages` directory, so the
+	 * Interactivity API view's strings localize too.
+	 */
+	public function test_set_script_module_translations_registers_domain_and_languages_path(): void {
+		Functions\when( 'plugin_dir_path' )->justReturn( '/plugins/battery-surf-bench/' );
+
+		Functions\expect( 'wp_set_script_module_translations' )
+			->once()
+			->with( 'bsb-cockpit-view-script-module', 'battery-surf-bench', '/plugins/battery-surf-bench/languages' );
+
+		$assets = new Assets( 'battery-surf-bench', new Paths( '/plugins/battery-surf-bench/battery-surf-bench.php' ) );
+		$assets->set_script_module_translations( 'bsb-cockpit-view-script-module' );
+
+		// The Mockery expectation above is the assertion; acknowledge it so
+		// PHPUnit does not flag the test as risky.
+		$this->addToAssertionCount( 1 );
+	}
 }

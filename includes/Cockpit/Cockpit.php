@@ -19,6 +19,7 @@ use function current_user_can;
 use function do_blocks;
 use function esc_html__;
 use function esc_url;
+use function generate_block_asset_handle;
 use function get_query_var;
 use function home_url;
 use function nocache_headers;
@@ -103,12 +104,20 @@ class Cockpit implements Manager {
 
 	/**
 	 * Registers the cockpit block from its built `block.json`, which wires in
-	 * the server render template and the Interactivity API view module.
+	 * the server render template and the Interactivity API view module, then
+	 * registers that module's translations so its `@wordpress/i18n` strings
+	 * localize. The module id WordPress derives for the block's `viewScriptModule`
+	 * is recomputed with core's own helper so it stays in step with however core
+	 * names it.
 	 *
 	 * @return void
 	 */
 	public function register_block(): void {
 		register_block_type( $this->block_dir );
+
+		$this->assets->set_script_module_translations(
+			generate_block_asset_handle( $this->block_name, 'viewScriptModule' )
+		);
 	}
 
 	/**
