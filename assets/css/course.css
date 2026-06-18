@@ -399,3 +399,14 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: #6b6760;}
+
+/* Course pages render wide (like article-1) with no background around content. */
+.bsb-course-content { background: transparent; }
+.bsb-course-content .bsb-container,
+.bsb-course-content .bsb-article-wrap,
+.bsb-course-content .bsb-gallery__header,
+.bsb-course-content .bsb-gallery__grid,
+.bsb-course-content .bsb-gallery-next,
+.bsb-course-content .bsb-video__content,
+.bsb-course-content .bsb-links__body,
+.bsb-course-content .bsb-two-col { max-width: none; }
