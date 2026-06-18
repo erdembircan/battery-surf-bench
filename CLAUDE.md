@@ -84,6 +84,7 @@ Tests verify that code works correctly for its consumers. Focus on **what** the 
 2. **Consumer-oriented.** When a component's consumer is another component, treat that consumer as the end user. Test what it sees and relies on.
 3. **Implementation-proof.** If an implementation changes but behavior stays the same, tests MUST still pass.
 4. **All code changes need tests.** New features, bug fixes, refactors.
+5. **Never touch the real filesystem.** Tests must never read from or write to actual files or directories. Mock the filesystem boundary — the `$wp_filesystem` abstraction (via an in-memory double) and any file functions — and assert against that. A test that opens, stats, reads, or writes a real path is wrong, even for "just a fixture."
 
 ### What to Assert
 
@@ -190,6 +191,17 @@ public function test_register_meta_prefixes_field_keys(): void {
 ### Tooling
 
 Tests run on **PHPUnit** with **Brain Monkey** for WordPress function/hook mocking. The base `ErdemBircan\BatterySurfBench\Tests\TestCase` wires Brain Monkey's `setUp`/`tearDown` into the lifecycle — extend it for any test that touches WordPress. Run the suite with `composer test` (coverage via `composer test:coverage`).
+
+## Linting & PHPCS
+
+**Never silence a PHPCS finding with an inline suppression.** Do not add `// phpcs:ignore`, `// phpcs:disable`, or `// phpcs:enable` to make an error or warning go away. A suppression hides a problem instead of fixing it.
+
+- **Fix the cause.** Almost every finding has a real fix: read the request through `get_query_var()` instead of `$_GET`, read files through `WP_Filesystem` instead of `file_get_contents`, define test constants in `phpunit.xml` instead of in PHP, restructure output so it is escaped, and so on.
+- **If you genuinely cannot get around a finding, stop and ask.** Do not suppress it on your own judgement. Surface the exact rule and code, explain why no code fix works, and let the maintainer decide how to handle it (including whether a narrowly-scoped, documented exclusion in `phpcs.xml.dist` is warranted). Suppression is the maintainer's call, never the agent's.
+
+## File Reads & Writes
+
+**Never use raw PHP filesystem functions; always go through the WordPress filesystem API.** No `file_get_contents`/`file_put_contents`/`fopen`/`fwrite`/`unlink`/`mkdir`/etc. for reading or writing files — use the `WP_Filesystem` abstraction (request credentials for the target first, then `$wp_filesystem->exists()`/`get_contents()`/`put_contents()`). The lone exception is `require`/`include` of a bundled PHP file (e.g. a build manifest), which is code inclusion, not file I/O.
 
 ## Commit Conventions — Conventional Commits
 
