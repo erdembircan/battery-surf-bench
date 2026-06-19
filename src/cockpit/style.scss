@@ -113,7 +113,6 @@ body {
 	--wave-front: #{wave('%23ffffff', 0.6)};
 	--title-ink: #1f3a5f;
 	--subtitle-ink: #2f9bb3;
-	--mark-shadow: #{rgba(#1f3a5f, 0.28)};
 	--focus: #ff7a5c;
 	--theme-icon: #{$moon};
 	--stage-bg:
@@ -180,7 +179,6 @@ body {
 		--wave-front: #{wave('%23e6f7fb', 0.26)};
 		--title-ink: #ffffff;
 		--subtitle-ink: #ffcf6b;
-		--mark-shadow: #{rgba(#062f57, 0.5)};
 		--focus: #ffcf6b;
 		--theme-icon: #{$sun-icon};
 		--stage-bg: linear-gradient(180deg, #0a3447 0%, #062734 100%);
@@ -296,24 +294,37 @@ body {
 .bsb-deck__brand {
 	position: relative;
 	z-index: 1;
+	overflow: hidden;
 	display: flex;
 	align-items: center;
 	gap: 0.85rem;
-	padding-bottom: 1.4rem;
+	padding-top: 0.5rem;
+	padding-bottom: 1.5rem;
 	margin-bottom: 1.4rem;
 	border-bottom: 1px solid var(--line);
-}
 
-.bsb-deck__mark {
-	width: 46px;
-	height: 46px;
-	flex: 0 0 auto;
-	background: url('../../assets/images/logo.svg') center / contain no-repeat;
-	border-radius: 12px;
-	filter: drop-shadow(0 3px 8px var(--mark-shadow));
+	// Oversized surfer-mark watermark behind the title: tinted to the deck so it
+	// blends in, anchored left, and cropped by the divider so only its crest shows.
+	&::before {
+		content: '';
+		position: absolute;
+		z-index: 0;
+		top: -34px;
+		left: -22px;
+		width: 188px;
+		height: 188px;
+		background-color: var(--text);
+		-webkit-mask: url('../../assets/images/menu-icon.svg') left top / contain
+			no-repeat;
+		mask: url('../../assets/images/menu-icon.svg') left top / contain no-repeat;
+		opacity: 0.09;
+		pointer-events: none;
+	}
 }
 
 .bsb-deck__wordmark {
+	position: relative;
+	z-index: 1;
 	display: flex;
 	flex-direction: column;
 	gap: 0.15rem;
@@ -339,6 +350,8 @@ body {
 }
 
 .bsb-deck__theme {
+	position: relative;
+	z-index: 1;
 	flex: 0 0 auto;
 	width: 2.2rem;
 	height: 2.2rem;
