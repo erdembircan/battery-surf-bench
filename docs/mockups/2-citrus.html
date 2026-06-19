@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Cockpit — Citrus Pop</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Poppins:wght@400;500;600;700;800&family=DM+Mono:wght@500&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    /* Citrus Pop — light, warm */
+    --cream:#fff7e6; --cream-2:#fff1b8; --gold:#ffd166; --orange:#ff8c42; --orange-deep:#f4701e;
+    --teal:#2ec4b6; --teal-deep:#1aa496; --ink:#23170a; --ink-soft:#8a7a63; --line:#f0e2bf;
+    --field:#fdf1d4; --panel:#fffaf0; --coral:#ff6b5e;
+    --font-ui:'Poppins',system-ui,sans-serif;
+    --font-disp:'DM Serif Display',Georgia,serif;
+    --font-mono:'DM Mono',ui-monospace,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{font-family:var(--font-ui);color:var(--ink);background:#f3e6c8}
+  .wrap{display:grid;grid-template-columns:360px 1fr;height:100vh}
+
+  .deck{position:relative;display:flex;flex-direction:column;min-height:0;padding:1.7rem 1.5rem 1.4rem;overflow:hidden;
+    background:
+      radial-gradient(120% 60% at 80% 0%, rgba(255,209,102,.55) 0%, transparent 55%),
+      linear-gradient(180deg,var(--cream-2) 0%, var(--cream) 45%, #fffdf7 100%);
+    border-right:1px solid var(--line)}
+  .deck::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.55;mix-blend-mode:multiply;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.06'/%3E%3C/svg%3E")}
+
+  .brand{position:relative;z-index:1;display:flex;align-items:center;gap:.8rem;padding-bottom:1.3rem;margin-bottom:1.3rem;border-bottom:1px solid var(--line)}
+  .chip{width:48px;height:48px;border-radius:15px;flex:0 0 auto;display:grid;place-items:center;background:linear-gradient(150deg,var(--gold),var(--orange));box-shadow:0 7px 16px rgba(244,112,30,.35),inset 0 1px 0 rgba(255,255,255,.6)}
+  .chip i{width:30px;height:30px;background:#fff;-webkit-mask:url(surfer.svg) center/26px no-repeat;mask:url(surfer.svg) center/26px no-repeat}
+  .title{font-family:var(--font-disp);font-size:1.5rem;line-height:.95;color:var(--ink)}
+  .sub{font-size:.62rem;font-weight:700;letter-spacing:.34em;text-transform:uppercase;color:var(--orange-deep);margin-top:.3rem}
+
+  .body{position:relative;z-index:1;display:flex;flex-direction:column;gap:1.5rem;flex:1 1 auto;min-height:0}
+  .field{display:flex;flex-direction:column;gap:.55rem;animation:rise .5s cubic-bezier(.22,1,.36,1) both}
+  .field:nth-child(2){animation-delay:.05s}.field:nth-child(3){animation-delay:.1s}.field:nth-child(4){animation-delay:.15s}.field:nth-child(5){animation-delay:.2s}
+  .lab{font-family:var(--font-disp);font-size:1.05rem;color:var(--ink)}
+
+  .seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:.25rem;padding:.28rem;border-radius:13px;background:var(--field);box-shadow:inset 0 1px 2px rgba(140,90,20,.12)}
+  .seg button{cursor:pointer;border:0;border-radius:10px;background:transparent;padding:.6rem .4rem;font:600 .85rem var(--font-ui);color:var(--ink-soft);transition:.18s}
+  .seg button:hover{color:var(--ink)}
+  .seg button.on{color:#fff;background:linear-gradient(150deg,var(--orange),var(--orange-deep));box-shadow:0 4px 12px rgba(244,112,30,.45)}
+  .seg.spd button{font-family:var(--font-mono)}
+
+  .step{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:.4rem;padding:.4rem;border-radius:13px;background:var(--field);box-shadow:inset 0 1px 2px rgba(140,90,20,.12)}
+  .step b{cursor:pointer;width:2.4rem;height:2.4rem;border:0;border-radius:10px;background:#fff;color:var(--orange-deep);font-size:1.4rem;line-height:1;box-shadow:0 1px 4px rgba(140,90,20,.18);transition:.16s}
+  .step b:hover{background:var(--orange);color:#fff}
+  .read{display:flex;align-items:baseline;justify-content:center;gap:.35rem}
+  .read em{font-family:var(--font-mono);font-style:normal;font-size:1.7rem;color:var(--ink)}
+  .read span{font-size:.7rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--orange-deep)}
+
+  .tog{display:flex;align-items:center;gap:.7rem;cursor:pointer}
+  .tog .tk{position:relative;width:3.1rem;height:1.7rem;border-radius:99px;background:#f1deb0;transition:.25s;box-shadow:inset 0 1px 2px rgba(140,90,20,.18)}
+  .tog .tb{position:absolute;top:.2rem;left:.2rem;width:1.3rem;height:1.3rem;border-radius:50%;background:#fff;box-shadow:0 2px 5px rgba(140,90,20,.3);transition:.25s cubic-bezier(.34,1.56,.64,1)}
+  .tog.on .tk{background:linear-gradient(150deg,var(--teal),var(--teal-deep))}.tog.on .tb{transform:translateX(1.4rem)}
+  .tog .tx{font-weight:500;font-size:.92rem;color:var(--ink)}
+
+  .run{position:relative;z-index:1;margin-top:.2rem;border-radius:14px;overflow:hidden;background:linear-gradient(150deg,var(--teal),var(--teal-deep));color:#eafffb;padding:.85rem 1rem;display:flex;align-items:center;gap:.6rem;box-shadow:0 8px 20px rgba(26,164,150,.3)}
+  .run .dot{width:.55rem;height:.55rem;border-radius:50%;background:var(--gold);box-shadow:0 0 10px var(--gold);animation:pulse 1.4s ease-in-out infinite}
+  .run .rt{font-size:.7rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase}
+  .run svg{position:absolute;inset:auto 0 -2px 0;width:200%;height:26px;opacity:.5}
+  .run .w1{animation:swim 5s linear infinite}.run .w2{animation:swim 8s linear infinite reverse;opacity:.6}
+
+  .foot{position:relative;z-index:1;padding-top:1.3rem;margin-top:1.1rem;border-top:1px solid var(--line)}
+  .stop{width:100%;padding:.95rem;cursor:pointer;border:0;border-radius:14px;background:linear-gradient(160deg,var(--coral),#e84a3d);color:#fff;font-family:var(--font-disp);font-size:1.2rem;box-shadow:0 8px 18px rgba(232,74,61,.42),inset 0 1px 0 rgba(255,255,255,.3);transition:.15s;display:flex;align-items:center;justify-content:center;gap:.55rem}
+  .stop:hover{transform:translateY(-2px);box-shadow:0 12px 24px rgba(232,74,61,.52)}
+  .stop i{width:.85rem;height:.85rem;border-radius:3px;background:#fff}
+
+  .stage{background:linear-gradient(180deg,#fffdf8,#f7edd6);display:flex;flex-direction:column}
+  .bar{display:flex;align-items:center;justify-content:space-between;padding:.85rem 1.2rem;background:rgba(255,255,255,.6);border-bottom:1px solid var(--line);backdrop-filter:blur(6px)}
+  .bar .pg{font-family:var(--font-mono);font-size:.8rem;color:var(--ink)}
+  .bar .nx{padding:.5rem 1.1rem;border-radius:99px;border:0;background:var(--ink);color:var(--cream);font:600 .72rem var(--font-ui);letter-spacing:.1em;text-transform:uppercase;cursor:pointer}
+  .vp{flex:1;display:grid;place-items:center;color:#c9b485;font-family:var(--font-disp);font-style:italic;font-size:1.1rem}
+
+  @keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(.8)}}
+  @keyframes swim{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+  .tag{position:fixed;top:10px;right:14px;font:700 .7rem var(--font-ui);letter-spacing:.12em;text-transform:uppercase;color:#b89a5e}
+</style>
+</head>
+<body>
+  <div class="tag">2 · Citrus Pop (light / warm)</div>
+  <div class="wrap">
+    <aside class="deck">
+      <header class="brand"><span class="chip"><i></i></span><span><div class="title">Battery Surf Bench</div><div class="sub">Cockpit</div></span></header>
+      <div class="body">
+        <div class="field"><span class="lab">Mode</span><div class="seg"><button class="on">Duration</button><button>Target drop</button></div></div>
+        <div class="field"><span class="lab">Run duration</span><div class="step"><b>&minus;</b><div class="read"><em>30</em><span>min</span></div><b>+</b></div></div>
+        <div class="field"><label class="tog on"><span class="tk"><span class="tb"></span></span><span class="tx">Baseline calibration</span></label></div>
+        <div class="field"><span class="lab">Speed</span><div class="seg spd"><button class="on">1&times;</button><button>4&times;</button><button>10&times;</button></div></div>
+        <div class="run">
+          <span class="dot"></span><span class="rt">Surfing · 12:04 elapsed</span>
+          <svg viewBox="0 0 1200 26" preserveAspectRatio="none"><path class="w1" fill="#eafffb" d="M0 14 q 75 -12 150 0 t 150 0 t 150 0 t 150 0 t 150 0 t 150 0 t 150 0 V26 H0Z"/><path class="w2" fill="#bdf0e9" d="M0 16 q 100 -10 200 0 t 200 0 t 200 0 t 200 0 t 200 0 t 200 0 V26 H0Z"/></svg>
+        </div>
+      </div>
+      <footer class="foot"><button class="stop"><i></i>Stop</button></footer>
+    </aside>
+    <main class="stage">
+      <div class="bar"><span class="pg">1/6 — The Hidden Cost of a Browser Tab</span><button class="nx">Next page</button></div>
+      <div class="vp">surf viewport</div>
+    </main>
+  </div>
+</body>
+</html>
