@@ -83,7 +83,7 @@ All source files (both JS/TS and PHP) must use **CamelCase** (e.g. `BatteryMonit
 
 ## Styles
 
-**Author all styles as SCSS — never hand-write `.css` files.** A `.css` file in the source tree is a regression; every stylesheet has a `.scss` source under `src/` compiled to `build/` by `@wordpress/scripts` (mirroring `src/sessions/style.scss` → `build/style-sessions.css`). Enqueue the built `build/style-*.css`, never an `assets/css/*.css` hand-edited by hand.
+**Author all styles as SCSS — never hand-write `.css` files.** A hand-written `.css` file in the source tree is a regression: every stylesheet must have an SCSS source that the build compiles into its CSS artifact. Always enqueue the compiled artifact, never a CSS file edited by hand. Discover where sources live and where they compile to from the build configuration — don't assume a fixed directory layout, tool, or naming convention.
 
 ## Testing Philosophy
 
@@ -203,7 +203,7 @@ public function test_register_meta_prefixes_field_keys(): void {
 
 ### Tooling
 
-Tests run on **PHPUnit** with **Brain Monkey** for WordPress function/hook mocking. The base `ErdemBircan\BatterySurfBench\Tests\TestCase` wires Brain Monkey's `setUp`/`tearDown` into the lifecycle — extend it for any test that touches WordPress. Run the suite with `composer test` (coverage via `composer test:coverage`).
+Any test that touches WordPress must extend the project's base test case, which wires the WordPress function/hook mocking lifecycle (setup/teardown) so individual tests don't repeat it. Run tests through the project's defined test script rather than invoking a runner directly, so you inherit its configuration. Find the base test case, the mocking library, and the available test/coverage scripts from the test setup and `composer.json` rather than assuming their names.
 
 ## Linting & PHPCS
 
@@ -217,11 +217,11 @@ Tests run on **PHPUnit** with **Brain Monkey** for WordPress function/hook mocki
 
 ## Running Lints & Tests
 
-**Never pipe a lint or test command through `tail` (or `head`).** This applies to `composer lint` (PHPCS), `composer test` (PHPUnit), `pnpm lint:js`, `pnpm test`, `pnpm typecheck`, and the like.
+**Never pipe a lint or test command through `tail` (or `head`), or otherwise truncate its output.** This applies to every lint, test, and type-check command in the project.
 
-- **Findings print above the footer.** PHPCS and PHPUnit print their error reports *before* the trailing `Time: … Memory: …` line. `tail -6` shows only that footer, so an entire report of failures is invisible and the run looks clean.
+- **Findings print above the footer.** Linters and test runners typically print their error report *before* the trailing summary line (e.g. `Time: … Memory: …`). Truncating to the last few lines shows only that footer, so an entire report of failures is invisible and the run looks clean.
 - **A pipe masks the exit code.** In `cmd | tail`, the shell reports `tail`'s status (always `0`), hiding a real non-zero failure.
-- **Instead:** run the command with full output and confirm the genuine exit code, e.g. `composer lint; echo "EXIT=$?"`. Read the whole report, or `grep` for the error summary. Reserve `| tail` for genuinely verbose commands that clearly succeed at the end (installs, builds), and even then append `${PIPESTATUS[0]}` to see the real status.
+- **Instead:** run the command with full output and confirm the genuine exit code, e.g. `composer lint; echo "EXIT=$?"`. Read the whole report, or `grep` for the error summary. Reserve truncation for genuinely verbose commands that clearly succeed at the end (installs, builds), and even then check the real status (e.g. `${PIPESTATUS[0]}`).
 
 ## CI — Wait for Every Check to Finish Green
 
