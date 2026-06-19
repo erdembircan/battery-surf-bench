@@ -79,17 +79,20 @@ final class CockpitViewTest extends TestCase {
 	}
 
 	/**
-	 * The target-drop field is hidden in duration mode, and its slider drives
-	 * the battery fill height and colour through `actions.setTarget`.
+	 * The target-drop field is hidden in duration mode; its battery is a custom
+	 * slider whose fill width and colour come from the store, driven by pointer
+	 * and keyboard actions.
 	 */
 	public function test_render_wires_the_target_control(): void {
 		$markup = $this->render();
 
 		$this->assertStringContainsString( 'class="bsb-field bsb-field--target" data-wp-bind--hidden="state.isModeDuration"', $markup );
-		$this->assertStringContainsString( 'data-wp-style--height="state.targetDisplay"', $markup );
+		$this->assertStringContainsString( 'role="slider"', $markup );
+		$this->assertStringContainsString( 'data-wp-bind--aria-valuenow="context.targetPercent"', $markup );
+		$this->assertStringContainsString( 'data-wp-on--pointerdown="actions.targetPointerDown"', $markup );
+		$this->assertStringContainsString( 'data-wp-on--keydown="actions.targetKeyDown"', $markup );
+		$this->assertStringContainsString( 'data-wp-style--width="state.targetDisplay"', $markup );
 		$this->assertStringContainsString( 'data-wp-style--background="state.targetColor"', $markup );
-		$this->assertStringContainsString( 'data-wp-on--input="actions.setTarget"', $markup );
-		$this->assertStringContainsString( 'data-wp-bind--value="context.targetPercent"', $markup );
 	}
 
 	/**

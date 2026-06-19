@@ -49,7 +49,10 @@ interface CockpitConfig {
 		next: () => void;
 		selectMode: () => void;
 		stepDuration: () => void;
-		setTarget: () => void;
+		targetPointerDown: ( event: PointerEvent ) => void;
+		targetPointerMove: ( event: PointerEvent ) => void;
+		targetPointerUp: () => void;
+		targetKeyDown: ( event: KeyboardEvent ) => void;
 		toggleBaseline: () => void;
 		selectSpeed: () => void;
 		stop: () => void;
@@ -66,6 +69,8 @@ interface MockElement {
 	dataset: Record< string, string >;
 	checked: boolean;
 	value: string;
+	getBoundingClientRect?: () => { left: number; width: number };
+	setPointerCapture?: ( pointerId: number ) => void;
 }
 
 const baseContext = (): CockpitContext => ( {
@@ -116,6 +121,34 @@ const trigger = (
 ): void => {
 	mocks.element = { dataset, checked, value: '' };
 };
+
+/** Makes the triggering element a 100px-wide battery track at x=0. */
+const battery = (): void => {
+	mocks.element = {
+		dataset: {},
+		checked: false,
+		value: '',
+		getBoundingClientRect: () => ( { left: 0, width: 100 } ),
+		setPointerCapture: () => undefined,
+	};
+};
+
+/**
+ * A pointer event at the given x within the battery.
+ * @param clientX
+ */
+const pointer = ( clientX: number ): PointerEvent =>
+	( { clientX, pointerId: 1 } ) as unknown as PointerEvent;
+
+/**
+ * A keydown event for the given key.
+ * @param name
+ */
+const key = ( name: string ): KeyboardEvent =>
+	( {
+		key: name,
+		preventDefault: () => undefined,
+	} ) as unknown as KeyboardEvent;
 
 beforeEach( () => {
 	mocks.context = baseContext();
@@ -211,6 +244,9 @@ describe( 'bsb/cockpit view store', () => {
 	} );
 
 	describe( 'target drop', () => {
+		// Clear any leftover drag state from a prior test.
+		beforeEach( () => mocks.config?.actions.targetPointerUp() );
+
 		it( 'reads the target battery level back as a percentage', () => {
 			expect( mocks.config?.state.targetDisplay ).toBe( '20%' );
 
@@ -230,17 +266,41 @@ describe( 'bsb/cockpit view store', () => {
 			);
 		} );
 
-		it( 'sets the target from the slider, clamped to range', () => {
-			mocks.element = { dataset: {}, checked: false, value: '40' };
-			mocks.config?.actions.setTarget();
+		it( 'sets the target from a pointer press inside the battery', () => {
+			battery();
+			mocks.config?.actions.targetPointerDown( pointer( 40 ) );
 			expect( mocks.context.targetPercent ).toBe( 40 );
+		} );
 
-			mocks.element = { dataset: {}, checked: false, value: '2' };
-			mocks.config?.actions.setTarget();
+		it( 'tracks the pointer only while dragging, and clamps', () => {
+			battery();
+			mocks.config?.actions.targetPointerDown( pointer( 10 ) );
+			mocks.config?.actions.targetPointerMove( pointer( 80 ) );
+			expect( mocks.context.targetPercent ).toBe( 80 );
+
+			// Below the range clamps up to the minimum.
+			mocks.config?.actions.targetPointerMove( pointer( -20 ) );
 			expect( mocks.context.targetPercent ).toBe( 5 );
 
-			mocks.element = { dataset: {}, checked: false, value: '99' };
-			mocks.config?.actions.setTarget();
+			// After release, further moves are ignored.
+			mocks.config?.actions.targetPointerUp();
+			mocks.config?.actions.targetPointerMove( pointer( 70 ) );
+			expect( mocks.context.targetPercent ).toBe( 5 );
+		} );
+
+		it( 'adjusts the target with the keyboard', () => {
+			mocks.context.targetPercent = 50;
+
+			mocks.config?.actions.targetKeyDown( key( 'ArrowRight' ) );
+			expect( mocks.context.targetPercent ).toBe( 55 );
+
+			mocks.config?.actions.targetKeyDown( key( 'ArrowDown' ) );
+			expect( mocks.context.targetPercent ).toBe( 50 );
+
+			mocks.config?.actions.targetKeyDown( key( 'Home' ) );
+			expect( mocks.context.targetPercent ).toBe( 5 );
+
+			mocks.config?.actions.targetKeyDown( key( 'End' ) );
 			expect( mocks.context.targetPercent ).toBe( 95 );
 		} );
 	} );

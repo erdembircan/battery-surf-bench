@@ -112,13 +112,14 @@ class CockpitView implements View {
 			<section class="bsb-field bsb-field--target" data-wp-bind--hidden="state.isModeDuration">
 				<span class="bsb-field__label">{$target_label}</span>
 				<div class="bsb-target">
-					<span class="bsb-target__battery" aria-hidden="true">
-						<span class="bsb-target__fill" data-wp-style--height="state.targetDisplay" data-wp-style--background="state.targetColor"></span>
+					<span class="bsb-target__gauge">
+						<span class="bsb-target__battery" role="slider" tabindex="0" aria-valuemin="5" aria-valuemax="95" aria-label="{$target_aria}" data-wp-bind--aria-valuenow="context.targetPercent" data-wp-bind--aria-valuetext="state.targetDisplay" data-wp-on--pointerdown="actions.targetPointerDown" data-wp-on--pointermove="actions.targetPointerMove" data-wp-on--pointerup="actions.targetPointerUp" data-wp-on--keydown="actions.targetKeyDown">
+							<span class="bsb-target__fill" data-wp-style--width="state.targetDisplay" data-wp-style--background="state.targetColor"></span>
+							<span class="bsb-target__handle" data-wp-style--left="state.targetDisplay"></span>
+						</span>
+						<span class="bsb-target__cap" aria-hidden="true"></span>
 					</span>
-					<div class="bsb-target__control">
-						<span class="bsb-target__value" data-wp-text="state.targetDisplay" data-wp-style--color="state.targetColor"></span>
-						<input type="range" class="bsb-target__slider" min="5" max="95" step="5" data-wp-bind--value="context.targetPercent" data-wp-on--input="actions.setTarget" aria-label="{$target_aria}" />
-					</div>
+					<span class="bsb-target__value" data-wp-text="state.targetDisplay" data-wp-style--color="state.targetColor"></span>
 				</div>
 			</section>
 

@@ -47,6 +47,34 @@ const DURATION_MAX = 240;
 const TARGET_MIN = 5;
 const TARGET_MAX = 95;
 
+/** Step the battery slider snaps to, in percent. */
+const TARGET_STEP = 5;
+
+/** Whether a pointer drag on the battery slider is in progress. */
+let draggingTarget = false;
+
+/**
+ * Clamps a percentage to the slider's stepped, supported range.
+ * @param value
+ */
+const clampTarget = ( value: number ): number =>
+	Math.min(
+		TARGET_MAX,
+		Math.max( TARGET_MIN, Math.round( value / TARGET_STEP ) * TARGET_STEP )
+	);
+
+/**
+ * Maps a pointer x within the battery element to a stepped percentage.
+ * @param clientX
+ * @param el
+ */
+const targetFromPointer = ( clientX: number, el: HTMLElement ): number => {
+	const rect = el.getBoundingClientRect();
+	const ratio = rect.width ? ( clientX - rect.left ) / rect.width : 0;
+
+	return clampTarget( ratio * 100 );
+};
+
 /** localStorage key the chosen theme is remembered under across visits. */
 const THEME_KEY = 'bsb-cockpit-theme';
 
@@ -173,17 +201,69 @@ store( 'bsb/cockpit', {
 			);
 		},
 
-		/** Sets the target stop-at battery level from the slider, clamped. */
-		setTarget(): void {
-			const { ref } = getElement();
-			const value = Number( ( ref as HTMLInputElement | null )?.value );
+		/**
+		 * Begins a battery-slider drag and sets the level from the pointer.
+		 * @param event
+		 */
+		targetPointerDown( event: PointerEvent ): void {
+			const el = getElement().ref as HTMLElement;
+			el.setPointerCapture?.( event.pointerId );
+			draggingTarget = true;
+			getContext< CockpitContext >().targetPercent = targetFromPointer(
+				event.clientX,
+				el
+			);
+		},
 
-			if ( Number.isFinite( value ) ) {
-				getContext< CockpitContext >().targetPercent = Math.min(
-					TARGET_MAX,
-					Math.max( TARGET_MIN, value )
-				);
+		/**
+		 * Tracks the pointer while dragging the battery slider.
+		 * @param event
+		 */
+		targetPointerMove( event: PointerEvent ): void {
+			if ( ! draggingTarget ) {
+				return;
 			}
+
+			getContext< CockpitContext >().targetPercent = targetFromPointer(
+				event.clientX,
+				getElement().ref as HTMLElement
+			);
+		},
+
+		/** Ends a battery-slider drag. */
+		targetPointerUp(): void {
+			draggingTarget = false;
+		},
+
+		/**
+		 * Adjusts the target level with the arrow / Home / End keys.
+		 * @param event
+		 */
+		targetKeyDown( event: KeyboardEvent ): void {
+			const context = getContext< CockpitContext >();
+			let next = context.targetPercent;
+
+			switch ( event.key ) {
+				case 'ArrowLeft':
+				case 'ArrowDown':
+					next -= TARGET_STEP;
+					break;
+				case 'ArrowRight':
+				case 'ArrowUp':
+					next += TARGET_STEP;
+					break;
+				case 'Home':
+					next = TARGET_MIN;
+					break;
+				case 'End':
+					next = TARGET_MAX;
+					break;
+				default:
+					return;
+			}
+
+			event.preventDefault();
+			context.targetPercent = clampTarget( next );
 		},
 
 		/** Toggles whether a baseline calibration precedes the run. */
