@@ -85,6 +85,14 @@ All source files (both JS/TS and PHP) must use **CamelCase** (e.g. `BatteryMonit
 
 **Author all styles as SCSS — never hand-write `.css` files.** A hand-written `.css` file in the source tree is a regression: every stylesheet must have an SCSS source that the build compiles into its CSS artifact. Always enqueue the compiled artifact, never a CSS file edited by hand. Discover where sources live and where they compile to from the build configuration — don't assume a fixed directory layout, tool, or naming convention.
 
+## Mock Big Design Decisions First
+
+**For any significant style or design decision, build a standalone HTML mockup before touching production code.** New UI surfaces, redesigns, distinctive components, palette/typography directions, novel interactions — prototype them as self-contained `.html` files (inline CSS/JS, web fonts via CDN, openable directly in a browser, no build step), iterate on the mockup with the maintainer, and only port the approved direction into the real SCSS/markup/Interactivity code. This keeps exploration off the build/test/lint cycle and avoids churning production files through rejected ideas.
+
+- **Store the mockups in the repo** under `docs/mockups/` (with a short entry in its `README.md`) so the explorations are preserved, reviewable, and easy to revisit — not left in a scratch/temp directory. They are experiments, not production code, and may be deleted once a design is settled.
+- **Present the mockup for review** (screenshot and/or open it) and get a direction approved before implementing. Offer the concrete tweak levers (size, colour, spacing, motion) rather than guessing.
+- **Don't mock trivial tweaks.** A one-off colour/spacing change in an existing, settled component is just an edit — reserve mockups for decisions big enough that a wrong guess wastes real implementation work.
+
 ## Testing Philosophy
 
 **Test behavior, not implementation.**
