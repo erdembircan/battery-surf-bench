@@ -41,6 +41,14 @@ classDiagram
         +register_bundle(string relative) string
         +localize(string handle, string object_name, array data) void
         +enqueue_script(string handle) void
+        +set_script_translations(string handle) void
+        +set_script_module_translations(string id) void
+    }
+
+    class I18n {
+        +__construct(string domain, string plugin_file)
+        +register() void
+        +load_textdomain() void
     }
 
     class Manager {
@@ -137,6 +145,7 @@ classDiagram
         +render(array data) string
     }
 
+    BatterySurfBench --> I18n : creates & owns (composition)
     BatterySurfBench --> Registry : creates & owns (composition)
     BatterySurfBench --> Paths : creates & owns (composition)
     BatterySurfBench --> Assets : creates & owns (composition)
@@ -151,6 +160,7 @@ classDiagram
     BatterySurfBench --> Cockpit : creates & owns (composition)
     BatterySurfBench --> CockpitDashboard : creates & owns (composition)
     BatterySurfBench ..> Manager : registers
+    I18n ..|> Manager : implements
     Menu ..|> Manager : implements
     Menu --> Assets : uses
     SessionType ..|> Manager : implements

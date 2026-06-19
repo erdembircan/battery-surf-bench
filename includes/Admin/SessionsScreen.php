@@ -106,7 +106,8 @@ class SessionsScreen implements Manager {
 	 * Loads the listing bundle, its data and its styles, but only on this
 	 * screen. The bundle is registered, has the session schema localized onto it
 	 * — so the grid builds its columns from the same definition that backs the
-	 * meta — then enqueued; the stylesheet pulls in `wp-components` through its
+	 * meta — and its translations registered so its `@wordpress/i18n` strings
+	 * localize, then enqueued; the stylesheet pulls in `wp-components` through its
 	 * declared dependency. Every step is delegated to the asset service.
 	 *
 	 * @param string $hook_suffix The current admin page's hook.
@@ -119,6 +120,7 @@ class SessionsScreen implements Manager {
 
 		$handle = $this->assets->register_bundle( $this->bundle );
 		$this->assets->localize( $handle, 'bsbSessions', $this->screen_config() );
+		$this->assets->set_script_translations( $handle );
 		$this->assets->enqueue_script( $handle );
 		$this->assets->enqueue( $this->style, array( 'wp-components' ) );
 	}

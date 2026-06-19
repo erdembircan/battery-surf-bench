@@ -40,8 +40,35 @@ jobs:
       - uses: ./.github/actions/setup-node
       - run: pnpm typecheck
 
+  i18n:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+      # PHP runs the WP-CLI phar; Node runs the `i18n:make-pot` script that calls
+      # it. WP-CLI's i18n command scans the PHP and TS/TSX source directly, so no
+      # build step is needed.
+      - uses: ./.github/actions/setup-php
+      - uses: ./.github/actions/setup-node
+      - uses: ./.github/actions/setup-wpcli
+      - run: pnpm run i18n:make-pot
+      # Discard the regenerated template when only its volatile creation-date
+      # header changed, so an unchanged string set never produces a commit.
+      - run: |
+          git add languages/battery-surf-bench.pot
+          if git diff --cached --quiet -I '^"POT-Creation-Date:' -- languages/battery-surf-bench.pot; then
+            git restore --staged --worktree languages/battery-surf-bench.pot
+          fi
+      # Commit the refreshed template back to master so it stays current in the
+      # repo. [skip ci] keeps the push from retriggering this workflow.
+      - uses: EndBug/add-and-commit@v10
+        with:
+          add: languages/battery-surf-bench.pot
+          message: "[CHORE]: regenerate translation template [skip ci]"
+
   e2e:
-    needs: [php-lint, php-test, js-lint, js-test, typecheck]
+    needs: [php-lint, php-test, js-lint, js-test, typecheck, i18n]
     runs-on: ubuntu-latest
     env:
       CI: "true"

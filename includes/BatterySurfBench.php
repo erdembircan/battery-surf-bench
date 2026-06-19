@@ -93,6 +93,12 @@ class BatterySurfBench {
 		$library = new CourseLibrary( $catalog, $this->registry->get( 'course.param' ) );
 
 		return array(
+			// Loads the plugin's PHP translations on `init` before any manager
+			// hooked there renders a translatable string.
+			new I18n(
+				$this->registry->get( 'namespace' ),
+				$this->plugin_file
+			),
 			new Menu(
 				$this->registry->get( 'admin_menu.slug' ),
 				$this->registry->get( 'capability' ),

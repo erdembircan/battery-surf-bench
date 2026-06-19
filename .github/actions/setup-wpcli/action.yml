@@ -1,0 +1,12 @@
+name: Setup WP-CLI
+description: Install the WP-CLI phar, which bundles the i18n command used to generate translation files
+
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      run: |
+        curl -sSL -o "$RUNNER_TEMP/wp-cli.phar" https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
+        chmod +x "$RUNNER_TEMP/wp-cli.phar"
+        sudo mv "$RUNNER_TEMP/wp-cli.phar" /usr/local/bin/wp
+        wp --version

@@ -14,6 +14,8 @@ use function wp_enqueue_script;
 use function wp_enqueue_style;
 use function wp_localize_script;
 use function wp_register_script;
+use function wp_set_script_module_translations;
+use function wp_set_script_translations;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -123,6 +125,39 @@ class Assets {
 	 */
 	public function enqueue_script( string $handle ): void {
 		wp_enqueue_script( $handle );
+	}
+
+	/**
+	 * Registers the plugin's JavaScript translations for a classic script,
+	 * so its `@wordpress/i18n` strings localize. WordPress loads the matching
+	 * translation JSON from the plugin's bundled `languages` directory before the
+	 * script runs; the script must declare `wp-i18n` as a dependency, which the
+	 * build manifest already does for any bundle that imports `@wordpress/i18n`.
+	 *
+	 * The handle namespace doubles as the text domain — both are the plugin's
+	 * `battery-surf-bench` slug — so the service already knows which domain to
+	 * register, just as it owns the path the translations load from.
+	 *
+	 * @param string $handle Handle of a registered script.
+	 * @return void
+	 */
+	public function set_script_translations( string $handle ): void {
+		wp_set_script_translations( $handle, $this->prefix, $this->paths->path( 'languages' ) );
+	}
+
+	/**
+	 * Registers the plugin's JavaScript translations for a script module, the
+	 * Interactivity API counterpart of {@see Assets::set_script_translations()}.
+	 * Script modules localize through this dedicated API (WordPress 7.0+); the
+	 * classic {@see Assets::set_script_translations()} does not reach them.
+	 * WordPress prints the module's `wp.i18n.setLocaleData()` call from the same
+	 * bundled `languages` directory before the module executes.
+	 *
+	 * @param string $id Identifier of a registered script module.
+	 * @return void
+	 */
+	public function set_script_module_translations( string $id ): void {
+		wp_set_script_module_translations( $id, $this->prefix, $this->paths->path( 'languages' ) );
 	}
 
 	/**

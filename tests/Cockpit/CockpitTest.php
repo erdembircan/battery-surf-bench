@@ -99,12 +99,20 @@ final class CockpitTest extends TestCase {
 
 	/**
 	 * The block is registered from its built directory, where its block.json,
-	 * render template and view module live.
+	 * render template and view module live, and the view module's translations
+	 * are registered through the asset service so its strings localize. The
+	 * module id is the one WordPress derives for the block's `viewScriptModule`.
 	 */
-	public function test_register_block_registers_from_the_built_directory(): void {
+	public function test_register_block_registers_the_block_and_its_module_translations(): void {
 		Functions\expect( 'register_block_type' )->once()->with( self::BLOCK_DIR );
+		Functions\when( 'generate_block_asset_handle' )->justReturn( 'bsb-cockpit-view-script-module' );
 
-		$this->cockpit()->register_block();
+		$assets = Mockery::mock( Assets::class );
+		$assets->shouldReceive( 'set_script_module_translations' )
+			->once()
+			->with( 'bsb-cockpit-view-script-module' );
+
+		$this->cockpit( $assets )->register_block();
 
 		// The Mockery expectation above is the assertion; acknowledge it so
 		// PHPUnit does not flag the test as risky.

@@ -67,8 +67,33 @@ pnpm run test:e2e          # build, boot Playground, run specs
 pnpm run typecheck         # tsc --noEmit over src, scripts, and specs
 pnpm run lint:js           # @wordpress/scripts lint-js
 composer test             # PHPUnit
-composer lint             # PHPCS / WPCS
+composer lint             # PHPCS / WPCS (incl. the WordPress.WP.I18n text-domain check)
 ```
+
+### Translations (i18n)
+
+All user-facing strings ship under the `battery-surf-bench` text domain. PHP uses
+the `__()`/`esc_html__()` family; JavaScript uses `@wordpress/i18n`. The text
+domain is loaded on `init` via `load_plugin_textdomain()`, and the script bundles
+register their translations through `wp_set_script_translations()` (classic
+scripts) and `wp_set_script_module_translations()` (the cockpit's Interactivity
+API view module, WordPress 7.0+). On the PHP side, phpcs enforces a correct text
+domain through the `WordPress.WP.I18n` rule.
+
+Translation files live in `languages/`. The toolchain uses [WP-CLI](https://wp-cli.org/)
+(install it separately):
+
+```bash
+pnpm run i18n:make-pot     # regenerate languages/battery-surf-bench.pot (the template)
+pnpm run i18n:make-php     # compile .po → .l10n.php (the fast runtime format, WP 6.5+)
+pnpm run i18n:make-json    # compile JS strings from .po → .json
+pnpm run i18n              # all three, in order
+```
+
+CI regenerates the `.pot` on every run, so a malformed i18n call fails the build;
+on merge to `master` the refreshed template is committed back to the repo
+automatically, keeping it current without anyone running WP-CLI locally. At
+runtime WordPress prefers the `.l10n.php` files over `.mo` automatically.
 
 ### Playground internals
 
