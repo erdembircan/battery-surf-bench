@@ -94,13 +94,13 @@ final class RegistryTest extends TestCase {
 			array(
 				'admin_menu' => array(
 					'slug' => 'battery-surf-bench',
-					'icon' => 'assets/images/menu-icon.png',
+					'icon' => 'assets/images/menu-icon.svg',
 				),
 			)
 		);
 
 		$this->assertSame( 'battery-surf-bench', $registry->get( 'admin_menu.slug' ) );
-		$this->assertSame( 'assets/images/menu-icon.png', $registry->get( 'admin_menu.icon' ) );
+		$this->assertSame( 'assets/images/menu-icon.svg', $registry->get( 'admin_menu.icon' ) );
 	}
 
 	/**

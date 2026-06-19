@@ -25,7 +25,7 @@ final class MenuTest extends TestCase {
 
 	private const SLUG       = 'battery-surf-bench';
 	private const CAPABILITY = 'manage_options';
-	private const ICON_URL   = 'https://example.test/assets/images/menu-icon.png';
+	private const ICON_URL   = 'https://example.test/assets/images/menu-icon.svg';
 	private const STYLE      = 'build/style-admin-menu.css';
 
 	/**
