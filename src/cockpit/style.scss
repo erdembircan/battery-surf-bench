@@ -221,8 +221,7 @@ body {
 	}
 
 	&:focus-visible {
-		outline: 2px solid var(--focus);
-		outline-offset: 2px;
+		@extend %focus-ring;
 	}
 
 	&::before {
@@ -274,14 +273,13 @@ body {
 
 // ── Segmented control (mode + speed) ────────────────────────────────────────
 .bsb-seg {
+	@extend %inset-surface;
+
 	display: grid;
 	grid-auto-flow: column;
 	grid-auto-columns: 1fr;
 	gap: 0.3rem;
 	padding: 0.3rem;
-	border-radius: 13px;
-	background: var(--surface);
-	box-shadow: inset 0 1px 3px var(--surface-shadow);
 }
 
 .bsb-seg__option {
@@ -327,14 +325,13 @@ body {
 
 // ── Duration stepper ────────────────────────────────────────────────────────
 .bsb-stepper {
+	@extend %inset-surface;
+
 	display: grid;
 	grid-template-columns: auto 1fr auto;
 	align-items: center;
 	gap: 0.5rem;
 	padding: 0.45rem;
-	border-radius: 13px;
-	background: var(--surface);
-	box-shadow: inset 0 1px 3px var(--surface-shadow);
 }
 
 .bsb-stepper__btn {
@@ -448,8 +445,7 @@ body {
 }
 
 .bsb-toggle__input:focus-visible + .bsb-toggle__track {
-	outline: 2px solid var(--focus);
-	outline-offset: 2px;
+	@extend %focus-ring;
 }
 
 // ── Stop button ─────────────────────────────────────────────────────────────
@@ -495,7 +491,8 @@ body {
 	}
 
 	&:focus-visible {
-		outline: 2px solid var(--focus);
+		@extend %focus-ring;
+
 		outline-offset: 3px;
 	}
 }
@@ -569,8 +566,7 @@ body {
 	}
 
 	&:focus-visible {
-		outline: 2px solid var(--focus);
-		outline-offset: 2px;
+		@extend %focus-ring;
 	}
 }
 
