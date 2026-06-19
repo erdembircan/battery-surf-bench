@@ -57,9 +57,14 @@ test.describe( 'Cockpit dashboard route', () => {
 			page.locator( 'iframe.bsb-cockpit__viewport' )
 		).toHaveAttribute( 'src', /bsbSessionPage=article-1/ );
 
-		// Stripped dashboard: no theme or other-plugin stylesheets leak in.
-		await expect( page.locator( 'link[rel="stylesheet"]' ) ).toHaveCount(
-			0
+		// Stripped dashboard: the cockpit's own stylesheet is the only one that
+		// survives — every theme or other-plugin stylesheet is dequeued, so no
+		// foreign CSS leaks in.
+		const stylesheets = page.locator( 'link[rel="stylesheet"]' );
+		await expect( stylesheets ).toHaveCount( 1 );
+		await expect( stylesheets ).toHaveAttribute(
+			'href',
+			/style-cockpit-dashboard/
 		);
 
 		await expectNoPhpNotices( page );
