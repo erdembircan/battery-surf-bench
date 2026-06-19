@@ -42,6 +42,8 @@ class CockpitView implements View {
 	 *     @type string $minutes_label     Translated, escaped unit label for the duration readout.
 	 *     @type string $decrease_label    Translated, escaped accessible label for the decrease control.
 	 *     @type string $increase_label    Translated, escaped accessible label for the increase control.
+	 *     @type string $target_label      Translated, escaped label for the target-drop field.
+	 *     @type string $target_aria       Translated, escaped accessible label for the target slider.
 	 *     @type string $baseline_label    Translated, escaped label for the baseline calibration toggle.
 	 *     @type string $speed_label       Translated, escaped label for the speed field.
 	 *     @type string $surfing_label     Translated, escaped "Surfing" word for the running indicator.
@@ -65,6 +67,8 @@ class CockpitView implements View {
 		$minutes_label    = isset( $data['minutes_label'] ) ? (string) $data['minutes_label'] : '';
 		$decrease_label   = isset( $data['decrease_label'] ) ? (string) $data['decrease_label'] : '';
 		$increase_label   = isset( $data['increase_label'] ) ? (string) $data['increase_label'] : '';
+		$target_label     = isset( $data['target_label'] ) ? (string) $data['target_label'] : '';
+		$target_aria      = isset( $data['target_aria'] ) ? (string) $data['target_aria'] : '';
 		$baseline_label   = isset( $data['baseline_label'] ) ? (string) $data['baseline_label'] : '';
 		$speed_label      = isset( $data['speed_label'] ) ? (string) $data['speed_label'] : '';
 		$surfing_label    = isset( $data['surfing_label'] ) ? (string) $data['surfing_label'] : '';
@@ -102,6 +106,19 @@ class CockpitView implements View {
 						<span class="bsb-stepper__unit">{$minutes_label}</span>
 					</span>
 					<button type="button" class="bsb-stepper__btn" data-step="5" data-wp-on--click="actions.stepDuration" aria-label="{$increase_label}">+</button>
+				</div>
+			</section>
+
+			<section class="bsb-field bsb-field--target" data-wp-bind--hidden="state.isModeDuration">
+				<span class="bsb-field__label">{$target_label}</span>
+				<div class="bsb-target">
+					<span class="bsb-target__battery" aria-hidden="true">
+						<span class="bsb-target__fill" data-wp-style--height="state.targetDisplay" data-wp-style--background="state.targetColor"></span>
+					</span>
+					<div class="bsb-target__control">
+						<span class="bsb-target__value" data-wp-text="state.targetDisplay" data-wp-style--color="state.targetColor"></span>
+						<input type="range" class="bsb-target__slider" min="5" max="95" step="5" data-wp-bind--value="context.targetPercent" data-wp-on--input="actions.setTarget" aria-label="{$target_aria}" />
+					</div>
 				</div>
 			</section>
 

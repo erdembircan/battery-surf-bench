@@ -28,6 +28,7 @@ interface CockpitContext {
 	running: boolean;
 	elapsed: number;
 	theme: 'light' | 'dark';
+	targetPercent: number;
 }
 
 interface CockpitConfig {
@@ -37,6 +38,8 @@ interface CockpitConfig {
 		isModeDuration: boolean;
 		isModeTargetDrop: boolean;
 		durationDisplay: string;
+		targetDisplay: string;
+		targetColor: string;
 		isSpeed1: boolean;
 		isSpeed4: boolean;
 		isSpeed10: boolean;
@@ -46,6 +49,7 @@ interface CockpitConfig {
 		next: () => void;
 		selectMode: () => void;
 		stepDuration: () => void;
+		setTarget: () => void;
 		toggleBaseline: () => void;
 		selectSpeed: () => void;
 		stop: () => void;
@@ -61,6 +65,7 @@ interface CockpitConfig {
 interface MockElement {
 	dataset: Record< string, string >;
 	checked: boolean;
+	value: string;
 }
 
 const baseContext = (): CockpitContext => ( {
@@ -73,12 +78,13 @@ const baseContext = (): CockpitContext => ( {
 	running: false,
 	elapsed: 0,
 	theme: 'light',
+	targetPercent: 20,
 } );
 
 const mocks = vi.hoisted( () => ( {
 	config: undefined as CockpitConfig | undefined,
 	context: undefined as unknown as CockpitContext,
-	element: { dataset: {}, checked: false } as MockElement,
+	element: { dataset: {}, checked: false, value: '' } as MockElement,
 } ) );
 
 vi.mock( '@wordpress/interactivity', () => ( {
@@ -108,12 +114,12 @@ const trigger = (
 	dataset: Record< string, string >,
 	checked = false
 ): void => {
-	mocks.element = { dataset, checked };
+	mocks.element = { dataset, checked, value: '' };
 };
 
 beforeEach( () => {
 	mocks.context = baseContext();
-	mocks.element = { dataset: {}, checked: false };
+	mocks.element = { dataset: {}, checked: false, value: '' };
 } );
 
 describe( 'bsb/cockpit view store', () => {
@@ -201,6 +207,41 @@ describe( 'bsb/cockpit view store', () => {
 			trigger( { step: '5' } );
 			mocks.config?.actions.stepDuration();
 			expect( mocks.context.durationMinutes ).toBe( 240 );
+		} );
+	} );
+
+	describe( 'target drop', () => {
+		it( 'reads the target battery level back as a percentage', () => {
+			expect( mocks.config?.state.targetDisplay ).toBe( '20%' );
+
+			mocks.context.targetPercent = 65;
+			expect( mocks.config?.state.targetDisplay ).toBe( '65%' );
+		} );
+
+		it( 'colours the fill green at high levels and red at low ones', () => {
+			mocks.context.targetPercent = 90;
+			expect( mocks.config?.state.targetColor ).toBe(
+				'hsl(108, 72%, 45%)'
+			);
+
+			mocks.context.targetPercent = 10;
+			expect( mocks.config?.state.targetColor ).toBe(
+				'hsl(12, 72%, 45%)'
+			);
+		} );
+
+		it( 'sets the target from the slider, clamped to range', () => {
+			mocks.element = { dataset: {}, checked: false, value: '40' };
+			mocks.config?.actions.setTarget();
+			expect( mocks.context.targetPercent ).toBe( 40 );
+
+			mocks.element = { dataset: {}, checked: false, value: '2' };
+			mocks.config?.actions.setTarget();
+			expect( mocks.context.targetPercent ).toBe( 5 );
+
+			mocks.element = { dataset: {}, checked: false, value: '99' };
+			mocks.config?.actions.setTarget();
+			expect( mocks.context.targetPercent ).toBe( 95 );
 		} );
 	} );
 

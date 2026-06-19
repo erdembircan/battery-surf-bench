@@ -383,6 +383,99 @@ body {
 	color: var(--unit-ink);
 }
 
+// ── Target-drop battery + slider ────────────────────────────────────────────
+.bsb-target {
+	display: flex;
+	align-items: center;
+	gap: 1.1rem;
+	padding: 0.3rem 0.4rem;
+}
+
+// A left-leaning battery; its fill height + colour are set by the store.
+.bsb-target__battery {
+	position: relative;
+	flex: 0 0 auto;
+	width: 2.7rem;
+	height: 4.6rem;
+	border: 3px solid var(--text-soft);
+	border-radius: 9px;
+	overflow: hidden;
+	background: var(--surface);
+	box-shadow: inset 0 1px 3px var(--surface-shadow);
+	transform: rotate(-8deg);
+
+	&::before {
+		content: '';
+		position: absolute;
+		top: -8px;
+		left: 50%;
+		width: 1.1rem;
+		height: 5px;
+		transform: translateX(-50%);
+		border-radius: 3px 3px 0 0;
+		background: var(--text-soft);
+	}
+}
+
+.bsb-target__fill {
+	position: absolute;
+	inset-inline: 0;
+	bottom: 0;
+	transition:
+		height 0.2s ease,
+		background 0.2s ease;
+}
+
+.bsb-target__control {
+	display: flex;
+	flex-direction: column;
+	gap: 0.55rem;
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.bsb-target__value {
+	font-family: theme.$font-mono;
+	font-size: 1.6rem;
+	font-weight: 700;
+	line-height: 1;
+	font-variant-numeric: tabular-nums;
+}
+
+.bsb-target__slider {
+	appearance: none;
+	-webkit-appearance: none;
+	width: 100%;
+	height: 0.5rem;
+	border-radius: 999px;
+	background: var(--surface);
+	box-shadow: inset 0 1px 3px var(--surface-shadow);
+	cursor: pointer;
+
+	@mixin thumb {
+		width: 1.25rem;
+		height: 1.25rem;
+		border: 2px solid var(--surface);
+		border-radius: 50%;
+		background: var(--text-strong);
+		box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+		cursor: pointer;
+	}
+
+	&::-webkit-slider-thumb {
+		-webkit-appearance: none;
+		@include thumb;
+	}
+
+	&::-moz-range-thumb {
+		@include thumb;
+	}
+
+	&:focus-visible {
+		@extend %focus-ring;
+	}
+}
+
 // ── Baseline toggle ─────────────────────────────────────────────────────────
 .bsb-toggle {
 	display: flex;

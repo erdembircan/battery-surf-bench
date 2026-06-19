@@ -46,6 +46,7 @@ $bsb_context = array(
 	'running'         => false,
 	'elapsed'         => 0,
 	'theme'           => 'light',
+	'targetPercent'   => 20,
 );
 
 // The viewport's `src` is owned by the Interactivity API: `data-wp-bind--src`
@@ -67,6 +68,8 @@ $bsb_markup = ( new CockpitView() )->render(
 		'minutes_label'    => esc_html__( 'min', 'battery-surf-bench' ),
 		'decrease_label'   => esc_attr__( 'Decrease duration', 'battery-surf-bench' ),
 		'increase_label'   => esc_attr__( 'Increase duration', 'battery-surf-bench' ),
+		'target_label'     => esc_html__( 'Stop at battery', 'battery-surf-bench' ),
+		'target_aria'      => esc_attr__( 'Target battery percentage', 'battery-surf-bench' ),
 		'baseline_label'   => esc_html__( 'Baseline calibration', 'battery-surf-bench' ),
 		'speed_label'      => esc_html__( 'Speed', 'battery-surf-bench' ),
 		'surfing_label'    => esc_html__( 'Surfing', 'battery-surf-bench' ),

@@ -79,6 +79,20 @@ final class CockpitViewTest extends TestCase {
 	}
 
 	/**
+	 * The target-drop field is hidden in duration mode, and its slider drives
+	 * the battery fill height and colour through `actions.setTarget`.
+	 */
+	public function test_render_wires_the_target_control(): void {
+		$markup = $this->render();
+
+		$this->assertStringContainsString( 'class="bsb-field bsb-field--target" data-wp-bind--hidden="state.isModeDuration"', $markup );
+		$this->assertStringContainsString( 'data-wp-style--height="state.targetDisplay"', $markup );
+		$this->assertStringContainsString( 'data-wp-style--background="state.targetColor"', $markup );
+		$this->assertStringContainsString( 'data-wp-on--input="actions.setTarget"', $markup );
+		$this->assertStringContainsString( 'data-wp-bind--value="context.targetPercent"', $markup );
+	}
+
+	/**
 	 * The baseline toggle binds its checked state to context and reports changes
 	 * back through `actions.toggleBaseline`.
 	 */
@@ -163,6 +177,8 @@ final class CockpitViewTest extends TestCase {
 				'minutes_label'    => 'min',
 				'decrease_label'   => 'Decrease duration',
 				'increase_label'   => 'Increase duration',
+				'target_label'     => 'Stop at battery',
+				'target_aria'      => 'Target battery percentage',
 				'baseline_label'   => 'Baseline calibration',
 				'speed_label'      => 'Speed',
 				'surfing_label'    => 'Surfing',

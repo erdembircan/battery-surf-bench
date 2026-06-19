@@ -36,11 +36,16 @@ interface CockpitContext {
 	running: boolean;
 	elapsed: number;
 	theme: ThemeName;
+	targetPercent: number;
 }
 
 /** Smallest and largest run duration the stepper will set, in minutes. */
 const DURATION_MIN = 5;
 const DURATION_MAX = 240;
+
+/** Smallest and largest battery percentage the target-drop slider allows. */
+const TARGET_MIN = 5;
+const TARGET_MAX = 95;
 
 /** localStorage key the chosen theme is remembered under across visits. */
 const THEME_KEY = 'bsb-cockpit-theme';
@@ -80,6 +85,22 @@ store( 'bsb/cockpit', {
 		/** The configured run duration, as text for the stepper readout. */
 		get durationDisplay(): string {
 			return String( getContext< CockpitContext >().durationMinutes );
+		},
+
+		/** Target stop-at battery level, as a `NN%` string for the readout/fill. */
+		get targetDisplay(): string {
+			return `${ getContext< CockpitContext >().targetPercent }%`;
+		},
+
+		/**
+		 * Colour for the target battery fill: green at high levels grading to red
+		 * at low ones, so a deeper drain target reads hotter.
+		 */
+		get targetColor(): string {
+			const { targetPercent } = getContext< CockpitContext >();
+			const hue = Math.round( ( targetPercent / 100 ) * 120 );
+
+			return `hsl(${ hue }, 72%, 45%)`;
 		},
 
 		/** Whether the 1× surf speed is selected. */
@@ -150,6 +171,19 @@ store( 'bsb/cockpit', {
 				DURATION_MAX,
 				Math.max( DURATION_MIN, next )
 			);
+		},
+
+		/** Sets the target stop-at battery level from the slider, clamped. */
+		setTarget(): void {
+			const { ref } = getElement();
+			const value = Number( ( ref as HTMLInputElement | null )?.value );
+
+			if ( Number.isFinite( value ) ) {
+				getContext< CockpitContext >().targetPercent = Math.min(
+					TARGET_MAX,
+					Math.max( TARGET_MIN, value )
+				);
+			}
 		},
 
 		/** Toggles whether a baseline calibration precedes the run. */
