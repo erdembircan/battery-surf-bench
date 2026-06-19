@@ -1,0 +1,89 @@
+# Copyright (C) 2026 Erdem Bircan
+# This file is distributed under the Apache-2.0.
+msgid ""
+msgstr ""
+"Project-Id-Version: Battery Surf Bench 1.0.0-dev\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/battery-surf-bench\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"POT-Creation-Date: 2026-06-19T10:59:30+00:00\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"X-Generator: WP-CLI 2.12.0\n"
+"X-Domain: battery-surf-bench\n"
+
+#. Plugin Name of the plugin
+#: battery-surf-bench.php
+#: includes/Admin/Menu.php:58
+#: includes/Admin/Menu.php:59
+#: includes/Admin/Menu.php:83
+#: includes/Cockpit/Cockpit.php:300
+msgid "Battery Surf Bench"
+msgstr ""
+
+#. Plugin URI of the plugin
+#: battery-surf-bench.php
+msgid "https://github.com/erdembircan/battery-surf-bench"
+msgstr ""
+
+#. Description of the plugin
+#: battery-surf-bench.php
+msgid "Benchmarks battery drain by simulating real-world web surfing."
+msgstr ""
+
+#. Author of the plugin
+#: battery-surf-bench.php
+msgid "Erdem Bircan"
+msgstr ""
+
+#: includes/Admin/SessionsScreen.php:95
+#: includes/Admin/SessionsScreen.php:139
+#: includes/Content/SessionType.php:102
+msgid "Benchmark Sessions"
+msgstr ""
+
+#: includes/Admin/SessionsScreen.php:96
+msgid "Sessions"
+msgstr ""
+
+#: includes/Admin/SessionsScreen.php:141
+msgid "Open Cockpit"
+msgstr ""
+
+#. translators: %s: login URL.
+#: includes/Cockpit/Cockpit.php:296
+#, php-format
+msgid "The cockpit requires an administrator. Please <a href=\"%s\">log in</a>."
+msgstr ""
+
+#: includes/Cockpit/CoursePagesSource.php:64
+msgid "Course pages"
+msgstr ""
+
+#: includes/Cockpit/Views/CockpitDashboard.php:45
+msgid "Battery Surf Bench — Cockpit"
+msgstr ""
+
+#: includes/Content/SessionType.php:103
+msgid "Benchmark Session"
+msgstr ""
+
+#: src/cockpit/render.php:52
+msgid "Next page"
+msgstr ""
+
+#: src/cockpit/render.php:53
+msgid "Surf viewport"
+msgstr ""
+
+#: src/cockpit/block.json
+msgctxt "block title"
+msgid "Battery Surf Bench Cockpit"
+msgstr ""
+
+#: src/cockpit/block.json
+msgctxt "block description"
+msgid "Drives the benchmark: embeds the surf course pages in a viewport."
+msgstr ""
