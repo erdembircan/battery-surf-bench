@@ -223,18 +223,13 @@ Tests run on **PHPUnit** with **Brain Monkey** for WordPress function/hook mocki
 - **A pipe masks the exit code.** In `cmd | tail`, the shell reports `tail`'s status (always `0`), hiding a real non-zero failure.
 - **Instead:** run the command with full output and confirm the genuine exit code, e.g. `composer lint; echo "EXIT=$?"`. Read the whole report, or `grep` for the error summary. Reserve `| tail` for genuinely verbose commands that clearly succeed at the end (installs, builds), and even then append `${PIPESTATUS[0]}` to see the real status.
 
-## CI — Verify At Both the PR Level and Post-Merge
+## CI — Wait for Every Check to Finish Green
 
-CI is split across two workflows, and they do **not** run the same jobs:
+CI runs after every push to a pull request and after every merge. Before treating any work as done — or moving on to anything that depends on it — **wait until all CI checks have finished and are green.**
 
-- **`pr-checks.yml`** (on pull requests) runs `composer lint`, `composer test`, `pnpm lint:js`, `pnpm test`, `pnpm typecheck`, and the `i18n` template check. It **does not run e2e.**
-- **`merge-checks.yml`** (on push to `master`, i.e. *after* merge) runs all of the above **plus `pnpm test:e2e`** (Playwright + WP Playground) and the `.pot` auto-commit.
-
-Because e2e runs only post-merge, **a green PR does NOT guarantee a green `master`.** Therefore:
-
-- **At PR level:** confirm every PR check is green before merging — never merge on red or pending checks.
-- **After merging:** always watch the `merge-checks` run through to completion and confirm it passed. If it fails (e2e is the usual culprit), fix `master` immediately on a new branch — do not leave `master` red or walk away assuming the merge was clean.
-- When a change could plausibly affect runtime/rendering behavior, run `pnpm test:e2e` locally **before** merging, since PR checks won't.
+- **The visible checks are not necessarily the whole set.** A check that passes can trigger further checks that are queued, not yet started, or not yet visible at the moment you look. Discover which checks the repository actually runs and wait for the complete set to settle — including any that appear only after earlier ones pass.
+- **Never act on a partial or pending result.** Do not merge, report success, or walk away while any check is still running, queued, or yet to be triggered. "Green" means every check that will run has run and passed.
+- **If any check ends red, stop and fix it before proceeding.** Never leave a branch — or the default branch — in a failing state.
 
 ## File Reads & Writes
 
