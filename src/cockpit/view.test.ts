@@ -26,6 +26,7 @@ interface CockpitContext {
 	baseline: boolean;
 	speed: number;
 	running: boolean;
+	elapsed: number;
 }
 
 interface CockpitConfig {
@@ -38,6 +39,7 @@ interface CockpitConfig {
 		isSpeed1: boolean;
 		isSpeed4: boolean;
 		isSpeed10: boolean;
+		elapsedClock: string;
 	};
 	actions: {
 		next: () => void;
@@ -46,6 +48,9 @@ interface CockpitConfig {
 		toggleBaseline: () => void;
 		selectSpeed: () => void;
 		stop: () => void;
+	};
+	callbacks: {
+		tick: () => () => void;
 	};
 }
 
@@ -63,6 +68,7 @@ const baseContext = (): CockpitContext => ( {
 	baseline: false,
 	speed: 1,
 	running: false,
+	elapsed: 0,
 } );
 
 const mocks = vi.hoisted( () => ( {
@@ -237,6 +243,33 @@ describe( 'bsb/cockpit view store', () => {
 			mocks.config?.actions.stop();
 
 			expect( mocks.context.running ).toBe( false );
+		} );
+	} );
+
+	describe( 'surfing indicator', () => {
+		it( 'formats elapsed seconds as a MM:SS clock', () => {
+			mocks.context.elapsed = 0;
+			expect( mocks.config?.state.elapsedClock ).toBe( '00:00' );
+
+			mocks.context.elapsed = 75;
+			expect( mocks.config?.state.elapsedClock ).toBe( '01:15' );
+
+			mocks.context.elapsed = 605;
+			expect( mocks.config?.state.elapsedClock ).toBe( '10:05' );
+		} );
+
+		it( 'ticks the clock once a second until cleaned up', () => {
+			vi.useFakeTimers();
+
+			const cleanup = mocks.config!.callbacks.tick();
+			vi.advanceTimersByTime( 3000 );
+			expect( mocks.context.elapsed ).toBe( 3 );
+
+			cleanup();
+			vi.advanceTimersByTime( 5000 );
+			expect( mocks.context.elapsed ).toBe( 3 );
+
+			vi.useRealTimers();
 		} );
 	} );
 } );

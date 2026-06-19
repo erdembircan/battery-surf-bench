@@ -115,6 +115,20 @@ final class CockpitViewTest extends TestCase {
 	}
 
 	/**
+	 * The surfing indicator starts the clock ticker, reads the elapsed clock
+	 * from the store, and frames it with the translated "Surfing"/"elapsed"
+	 * words so they stay localizable.
+	 */
+	public function test_render_wires_the_surfing_indicator(): void {
+		$markup = $this->render();
+
+		$this->assertStringContainsString( 'data-wp-init="callbacks.tick"', $markup );
+		$this->assertStringContainsString( 'data-wp-text="state.elapsedClock"', $markup );
+		$this->assertStringContainsString( 'Surfing', $markup );
+		$this->assertStringContainsString( 'elapsed', $markup );
+	}
+
+	/**
 	 * Renders the view with a full set of escaped values, as the render template
 	 * supplies them.
 	 *
@@ -136,6 +150,8 @@ final class CockpitViewTest extends TestCase {
 				'increase_label'   => 'Increase duration',
 				'baseline_label'   => 'Baseline calibration',
 				'speed_label'      => 'Speed',
+				'surfing_label'    => 'Surfing',
+				'elapsed_label'    => 'elapsed',
 				'stop_label'       => 'Stop',
 				'next_label'       => 'Next page',
 				'viewport_title'   => 'Surf viewport',

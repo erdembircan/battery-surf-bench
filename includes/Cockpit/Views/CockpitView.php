@@ -43,6 +43,8 @@ class CockpitView implements View {
 	 *     @type string $increase_label    Translated, escaped accessible label for the increase control.
 	 *     @type string $baseline_label    Translated, escaped label for the baseline calibration toggle.
 	 *     @type string $speed_label       Translated, escaped label for the speed field.
+	 *     @type string $surfing_label     Translated, escaped "Surfing" word for the running indicator.
+	 *     @type string $elapsed_label     Translated, escaped "elapsed" word for the running indicator.
 	 *     @type string $stop_label        Translated, escaped label for the stop control.
 	 *     @type string $next_label        Translated, escaped label for the next-page control.
 	 *     @type string $viewport_title    Translated, escaped title for the viewport iframe.
@@ -63,6 +65,8 @@ class CockpitView implements View {
 		$increase_label   = isset( $data['increase_label'] ) ? (string) $data['increase_label'] : '';
 		$baseline_label   = isset( $data['baseline_label'] ) ? (string) $data['baseline_label'] : '';
 		$speed_label      = isset( $data['speed_label'] ) ? (string) $data['speed_label'] : '';
+		$surfing_label    = isset( $data['surfing_label'] ) ? (string) $data['surfing_label'] : '';
+		$elapsed_label    = isset( $data['elapsed_label'] ) ? (string) $data['elapsed_label'] : '';
 		$stop_label       = isset( $data['stop_label'] ) ? (string) $data['stop_label'] : '';
 		$next_label       = isset( $data['next_label'] ) ? (string) $data['next_label'] : '';
 		$viewport_title   = isset( $data['viewport_title'] ) ? (string) $data['viewport_title'] : '';
@@ -115,6 +119,16 @@ class CockpitView implements View {
 					<button type="button" class="bsb-seg__option" data-speed="10" data-wp-on--click="actions.selectSpeed" data-wp-class--is-active="state.isSpeed10" data-wp-bind--aria-pressed="state.isSpeed10">10&times;</button>
 				</div>
 			</section>
+
+			<div class="bsb-deck__status" data-wp-init="callbacks.tick">
+				<span class="bsb-deck__status-dot" aria-hidden="true"></span>
+				<span class="bsb-deck__status-text">{$surfing_label} &middot; <span class="bsb-deck__clock" data-wp-text="state.elapsedClock"></span> {$elapsed_label}</span>
+				<span class="bsb-deck__waves" aria-hidden="true">
+					<span class="bsb-deck__wave bsb-deck__wave--back"></span>
+					<span class="bsb-deck__wave bsb-deck__wave--mid"></span>
+					<span class="bsb-deck__wave bsb-deck__wave--front"></span>
+				</span>
+			</div>
 		</div>
 
 		<footer class="bsb-deck__foot">
@@ -123,12 +137,6 @@ class CockpitView implements View {
 				<span class="bsb-stop__text">{$stop_label}</span>
 			</button>
 		</footer>
-
-		<span class="bsb-deck__waves" aria-hidden="true">
-			<span class="bsb-deck__wave bsb-deck__wave--back"></span>
-			<span class="bsb-deck__wave bsb-deck__wave--mid"></span>
-			<span class="bsb-deck__wave bsb-deck__wave--front"></span>
-		</span>
 	</aside>
 
 	<div class="bsb-cockpit__stage">

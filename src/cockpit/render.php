@@ -44,6 +44,7 @@ $bsb_context = array(
 	'baseline'        => false,
 	'speed'           => 1,
 	'running'         => false,
+	'elapsed'         => 0,
 );
 
 // The viewport's `src` is owned by the Interactivity API: `data-wp-bind--src`
@@ -66,6 +67,8 @@ $bsb_markup = ( new CockpitView() )->render(
 		'increase_label'   => esc_attr__( 'Increase duration', 'battery-surf-bench' ),
 		'baseline_label'   => esc_html__( 'Baseline calibration', 'battery-surf-bench' ),
 		'speed_label'      => esc_html__( 'Speed', 'battery-surf-bench' ),
+		'surfing_label'    => esc_html__( 'Surfing', 'battery-surf-bench' ),
+		'elapsed_label'    => esc_html__( 'elapsed', 'battery-surf-bench' ),
 		'stop_label'       => esc_html__( 'Stop', 'battery-surf-bench' ),
 		'next_label'       => esc_html__( 'Next page', 'battery-surf-bench' ),
 		'viewport_title'   => esc_attr__( 'Surf viewport', 'battery-surf-bench' ),

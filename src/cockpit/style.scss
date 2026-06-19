@@ -118,14 +118,57 @@ body {
 	background: linear-gradient(170deg, $ocean 0%, $ocean-deep 70%);
 }
 
-// ── Parallax waves drifting along the deck's foot ───────────────────────────
+// ── Surfing indicator — the deck's live "it's working" readout ──────────────
+.bsb-deck__status {
+	position: relative;
+	z-index: 1;
+	overflow: hidden;
+	display: flex;
+	align-items: center;
+	gap: 0.6rem;
+	padding: 0.85rem 1rem 1.05rem;
+	border-radius: 14px;
+	color: $foam;
+	background: linear-gradient(150deg, #0f5f74 0%, #06324a 100%);
+	box-shadow:
+		0 8px 20px rgba(0, 0, 0, 0.3),
+		inset 0 0 0 1px rgba(47, 212, 196, 0.18);
+}
+
+.bsb-deck__status-dot {
+	position: relative;
+	z-index: 1;
+	flex: 0 0 auto;
+	width: 0.55rem;
+	height: 0.55rem;
+	border-radius: 50%;
+	background: $sun;
+	box-shadow: 0 0 12px $sun;
+	animation: bsb-pulse 1.4s ease-in-out infinite;
+}
+
+.bsb-deck__status-text {
+	position: relative;
+	z-index: 1;
+	font-size: 0.72rem;
+	font-weight: 700;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+}
+
+.bsb-deck__clock {
+	font-family: $font-mono;
+	font-variant-numeric: tabular-nums;
+}
+
+// ── Parallax waves inside the surfing indicator ─────────────────────────────
 // Three layers scroll at different speeds, heights and opacities so the foam
 // reads with depth instead of a single flat drift.
 .bsb-deck__waves {
 	position: absolute;
 	inset-inline: 0;
 	bottom: 0;
-	height: 88px;
+	height: 46px;
 	overflow: hidden;
 	pointer-events: none;
 	z-index: 0;
@@ -142,24 +185,23 @@ body {
 }
 
 .bsb-deck__wave--back {
-	height: 66px;
-	opacity: 0.6;
+	height: 44px;
+	opacity: 0.7;
 	animation-duration: 20s;
-	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='40' viewBox='0 0 200 40' preserveAspectRatio='none'%3E%3Cpath d='M0 20 q 50 -14 100 0 t 100 0 V40 H0 Z' fill='%23d8f3fa' fill-opacity='0.05'/%3E%3C/svg%3E");
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='40' viewBox='0 0 200 40' preserveAspectRatio='none'%3E%3Cpath d='M0 20 q 50 -14 100 0 t 100 0 V40 H0 Z' fill='%23d8f3fa' fill-opacity='0.08'/%3E%3C/svg%3E");
 }
 
 .bsb-deck__wave--mid {
-	height: 50px;
-	opacity: 0.75;
+	height: 34px;
 	animation-duration: 13s;
 	animation-direction: reverse;
-	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='40' viewBox='0 0 200 40' preserveAspectRatio='none'%3E%3Cpath d='M0 20 q 50 -14 100 0 t 100 0 V40 H0 Z' fill='%232fd4c4' fill-opacity='0.12'/%3E%3C/svg%3E");
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='40' viewBox='0 0 200 40' preserveAspectRatio='none'%3E%3Cpath d='M0 20 q 50 -14 100 0 t 100 0 V40 H0 Z' fill='%232fd4c4' fill-opacity='0.18'/%3E%3C/svg%3E");
 }
 
 .bsb-deck__wave--front {
-	height: 36px;
+	height: 24px;
 	animation-duration: 8s;
-	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='40' viewBox='0 0 200 40' preserveAspectRatio='none'%3E%3Cpath d='M0 20 q 50 -14 100 0 t 100 0 V40 H0 Z' fill='%23d8f3fa' fill-opacity='0.18'/%3E%3C/svg%3E");
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='40' viewBox='0 0 200 40' preserveAspectRatio='none'%3E%3Cpath d='M0 20 q 50 -14 100 0 t 100 0 V40 H0 Z' fill='%23d8f3fa' fill-opacity='0.26'/%3E%3C/svg%3E");
 }
 
 .bsb-deck__brand {

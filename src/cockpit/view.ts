@@ -31,6 +31,7 @@ interface CockpitContext {
 	baseline: boolean;
 	speed: number;
 	running: boolean;
+	elapsed: number;
 }
 
 /** Smallest and largest run duration the stepper will set, in minutes. */
@@ -87,6 +88,17 @@ store( 'bsb/cockpit', {
 		/** Whether the 10× surf speed is selected. */
 		get isSpeed10(): boolean {
 			return getContext< CockpitContext >().speed === 10;
+		},
+
+		/** Elapsed run time as a `MM:SS` clock for the surfing indicator. */
+		get elapsedClock(): string {
+			const { elapsed } = getContext< CockpitContext >();
+			const minutes = Math.floor( elapsed / 60 );
+			const seconds = elapsed % 60;
+			const pad = ( value: number ): string =>
+				String( value ).padStart( 2, '0' );
+
+			return `${ pad( minutes ) }:${ pad( seconds ) }`;
 		},
 	},
 	actions: {
@@ -155,6 +167,21 @@ store( 'bsb/cockpit', {
 		/** Stops the run, returning the cockpit to its idle, ready state. */
 		stop(): void {
 			getContext< CockpitContext >().running = false;
+		},
+	},
+	callbacks: {
+		/**
+		 * Advances the surfing indicator's elapsed clock once a second while the
+		 * indicator is mounted, returning a cleanup that stops the timer. Wired
+		 * through `data-wp-init` so the deck's "it's working" readout ticks live.
+		 */
+		tick(): () => void {
+			const context = getContext< CockpitContext >();
+			const timer = setInterval( () => {
+				context.elapsed += 1;
+			}, 1000 );
+
+			return () => clearInterval( timer );
 		},
 	},
 } );
