@@ -67,13 +67,11 @@ class CockpitView implements View {
 		$next_label       = isset( $data['next_label'] ) ? (string) $data['next_label'] : '';
 		$viewport_title   = isset( $data['viewport_title'] ) ? (string) $data['viewport_title'] : '';
 
-		$mascot = $this->mascot_mark();
-
 		return <<<HTML
 <div {$wrapper} data-wp-interactive="bsb/cockpit" {$context}>
 	<aside class="bsb-cockpit__deck">
 		<header class="bsb-deck__brand">
-			{$mascot}
+			<span class="bsb-deck__mark" aria-hidden="true"></span>
 			<span class="bsb-deck__wordmark">
 				<span class="bsb-deck__title">{$brand_title}</span>
 				<span class="bsb-deck__subtitle">{$brand_subtitle}</span>
@@ -136,26 +134,5 @@ class CockpitView implements View {
 	</div>
 </div>
 HTML;
-	}
-
-	/**
-	 * The deck's brand mark: a single-colour, inline SVG of a battery riding a
-	 * wave, tinted by the stylesheet through `currentColor`. Kept here as
-	 * view-owned markup so the deck shows the plugin's mascot without the view
-	 * reading the logo file or the render template emitting markup of its own.
-	 *
-	 * @return string The inline SVG markup.
-	 */
-	private function mascot_mark(): string {
-		return <<<'SVG'
-<svg class="bsb-deck__mascot" viewBox="0 0 48 48" role="img" aria-hidden="true" focusable="false">
-	<path class="bsb-deck__wave" d="M2 34c5 0 5 4 10 4s5-4 10-4 5 4 10 4 5-4 10-4 5 4 10 4v8H2z" fill="currentColor" opacity="0.35" />
-	<g class="bsb-deck__battery" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round">
-		<rect x="13" y="10" width="22" height="13" rx="3" />
-		<path d="M35 14h3v5h-3" />
-	</g>
-	<path class="bsb-deck__bolt" d="M24 11l-5 7h4l-2 6 6-8h-4z" fill="currentColor" />
-</svg>
-SVG;
 	}
 }

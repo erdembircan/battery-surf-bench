@@ -176,23 +176,13 @@ body {
 	border-bottom: 1px solid $ocean-line;
 }
 
-.bsb-deck__mascot {
-	width: 44px;
-	height: 44px;
+.bsb-deck__mark {
+	width: 46px;
+	height: 46px;
 	flex: 0 0 auto;
-	color: $sun;
-	filter: drop-shadow(0 3px 8px rgba(255, 210, 63, 0.35));
-
-	.bsb-deck__wave {
-		color: $aqua;
-		animation: bsb-bob 4s ease-in-out infinite;
-		transform-origin: center;
-	}
-
-	.bsb-deck__bolt {
-		color: $coral;
-		animation: bsb-spark 3.2s ease-in-out infinite;
-	}
+	background: url('../../assets/images/logo.svg') center / contain no-repeat;
+	border-radius: 12px;
+	filter: drop-shadow(0 3px 8px rgba(6, 47, 87, 0.4));
 }
 
 .bsb-deck__wordmark {
@@ -599,32 +589,6 @@ body {
 	50% {
 		opacity: 1;
 		transform: scale(1.08);
-	}
-}
-
-@keyframes bsb-bob {
-	0%,
-	100% {
-		transform: translateY(0);
-	}
-
-	50% {
-		transform: translateY(1.4px);
-	}
-}
-
-@keyframes bsb-spark {
-	0%,
-	100% {
-		opacity: 1;
-	}
-
-	45% {
-		opacity: 0.45;
-	}
-
-	55% {
-		opacity: 1;
 	}
 }
 
