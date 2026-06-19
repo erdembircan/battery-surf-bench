@@ -2,8 +2,18 @@
 <ruleset name="Battery Surf Bench">
 	<description>WordPress coding standards for Battery Surf Bench.</description>
 
-	<file>.</file>
+	<!-- Scan only our own source. Pointing PHPCS at "." forced it to recurse
+	     and stat the entire tree (vendor, wp-playground's WordPress core,
+	     node_modules — thousands of files) just to discard them via the
+	     excludes below, turning a sub-second lint into a ~30s one. Listing the
+	     source roots skips that traversal entirely. -->
+	<file>battery-surf-bench.php</file>
+	<file>includes/</file>
+	<file>src/</file>
+	<file>tests/</file>
 
+	<!-- Belt-and-suspenders: keep generated/third-party trees out even if a
+	     source root above ever grows to include one. -->
 	<exclude-pattern>/vendor/</exclude-pattern>
 	<exclude-pattern>/node_modules/</exclude-pattern>
 	<exclude-pattern>/build/</exclude-pattern>
