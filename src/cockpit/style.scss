@@ -116,26 +116,50 @@ body {
 	overflow: hidden;
 	color: $foam;
 	background: linear-gradient(170deg, $ocean 0%, $ocean-deep 70%);
+}
 
-	// Foam line that drifts along the deck's foot.
-	&::after {
-		content: '';
-		position: absolute;
-		inset-inline: 0;
-		bottom: 0;
-		height: 46px;
-		background:
-			repeating-linear-gradient(
-				90deg,
-				transparent 0,
-				transparent 14px,
-				rgba(216, 243, 250, 0.07) 14px,
-				rgba(216, 243, 250, 0.07) 28px
-			);
-		mask: linear-gradient(transparent, #000);
-		animation: bsb-drift 9s linear infinite;
-		pointer-events: none;
-	}
+// ── Parallax waves drifting along the deck's foot ───────────────────────────
+// Three layers scroll at different speeds, heights and opacities so the foam
+// reads with depth instead of a single flat drift.
+.bsb-deck__waves {
+	position: absolute;
+	inset-inline: 0;
+	bottom: 0;
+	height: 88px;
+	overflow: hidden;
+	pointer-events: none;
+	z-index: 0;
+}
+
+.bsb-deck__wave {
+	position: absolute;
+	inset-inline: 0;
+	bottom: 0;
+	background-repeat: repeat-x;
+	background-position: bottom;
+	background-size: 200px 100%;
+	animation: bsb-wave 12s linear infinite;
+}
+
+.bsb-deck__wave--back {
+	height: 66px;
+	opacity: 0.6;
+	animation-duration: 20s;
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='40' viewBox='0 0 200 40' preserveAspectRatio='none'%3E%3Cpath d='M0 20 q 50 -14 100 0 t 100 0 V40 H0 Z' fill='%23d8f3fa' fill-opacity='0.05'/%3E%3C/svg%3E");
+}
+
+.bsb-deck__wave--mid {
+	height: 50px;
+	opacity: 0.75;
+	animation-duration: 13s;
+	animation-direction: reverse;
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='40' viewBox='0 0 200 40' preserveAspectRatio='none'%3E%3Cpath d='M0 20 q 50 -14 100 0 t 100 0 V40 H0 Z' fill='%232fd4c4' fill-opacity='0.12'/%3E%3C/svg%3E");
+}
+
+.bsb-deck__wave--front {
+	height: 36px;
+	animation-duration: 8s;
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='40' viewBox='0 0 200 40' preserveAspectRatio='none'%3E%3Cpath d='M0 20 q 50 -14 100 0 t 100 0 V40 H0 Z' fill='%23d8f3fa' fill-opacity='0.18'/%3E%3C/svg%3E");
 }
 
 .bsb-deck__brand {
@@ -552,13 +576,13 @@ body {
 	}
 }
 
-@keyframes bsb-drift {
+@keyframes bsb-wave {
 	from {
-		background-position: 0 0;
+		background-position-x: 0;
 	}
 
 	to {
-		background-position: 56px 0;
+		background-position-x: -200px;
 	}
 }
 

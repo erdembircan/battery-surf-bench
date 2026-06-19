@@ -123,6 +123,12 @@ class CockpitView implements View {
 				<span class="bsb-stop__text">{$stop_label}</span>
 			</button>
 		</footer>
+
+		<span class="bsb-deck__waves" aria-hidden="true">
+			<span class="bsb-deck__wave bsb-deck__wave--back"></span>
+			<span class="bsb-deck__wave bsb-deck__wave--mid"></span>
+			<span class="bsb-deck__wave bsb-deck__wave--front"></span>
+		</span>
 	</aside>
 
 	<div class="bsb-cockpit__stage">
