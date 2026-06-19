@@ -205,6 +205,14 @@ public function test_register_meta_prefixes_field_keys(): void {
 
 Any test that touches WordPress must extend the project's base test case, which wires the WordPress function/hook mocking lifecycle (setup/teardown) so individual tests don't repeat it. Run tests through the project's defined test script rather than invoking a runner directly, so you inherit its configuration. Find the base test case, the mocking library, and the available test/coverage scripts from the test setup and `composer.json` rather than assuming their names.
 
+## Don't Live with Broken Windows
+
+When you notice a defect — a bug, a failing or skipped test, a lint violation, dead or wrong code, a misleading comment, a contract that no longer matches the code — **deal with it.** "It's pre-existing" or "not part of my change" is not a reason to leave it broken: a defect you saw and walked past is one you now own. One unrepaired broken window invites the next, and the codebase rots.
+
+- **Fix it now**, in the same change, when the fix is small and in scope.
+- **If it's genuinely too large or out of scope**, don't silently move on — surface it to the maintainer and track it (issue, backlog item, or a TODO with enough context to act on later). Board the window up; never just pass it.
+- **Never normalize a broken state.** Don't skip/`@xfail` a failing test, suppress a warning, or rewrite an assertion to match wrong behavior just to reach green. That isn't a fix — it's a bigger broken window.
+
 ## Linting & PHPCS
 
 **Never silence a PHPCS finding on your own judgement.** Do not reach for `// phpcs:ignore`/`// phpcs:disable` or a `phpcs.xml.dist` exclusion just to make an error or warning go away. A self-applied suppression hides a problem instead of fixing it.
