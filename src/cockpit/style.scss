@@ -10,63 +10,9 @@
  * its own reset and web fonts (via @font-face, adding no extra stylesheet link).
  */
 
-@font-face {
-	font-family: 'Anton';
-	font-style: normal;
-	font-weight: 400;
-	font-display: swap;
-	src: url('https://cdn.jsdelivr.net/fontsource/fonts/anton@latest/latin-400-normal.woff2')
-		format('woff2');
-}
+@use '../styles/theme' as theme;
 
-@font-face {
-	font-family: 'Hanken Grotesk';
-	font-style: normal;
-	font-weight: 400;
-	font-display: swap;
-	src: url('https://cdn.jsdelivr.net/fontsource/fonts/hanken-grotesk@latest/latin-400-normal.woff2')
-		format('woff2');
-}
-
-@font-face {
-	font-family: 'Hanken Grotesk';
-	font-style: normal;
-	font-weight: 600;
-	font-display: swap;
-	src: url('https://cdn.jsdelivr.net/fontsource/fonts/hanken-grotesk@latest/latin-600-normal.woff2')
-		format('woff2');
-}
-
-@font-face {
-	font-family: 'Hanken Grotesk';
-	font-style: normal;
-	font-weight: 700;
-	font-display: swap;
-	src: url('https://cdn.jsdelivr.net/fontsource/fonts/hanken-grotesk@latest/latin-700-normal.woff2')
-		format('woff2');
-}
-
-@font-face {
-	font-family: 'Space Mono';
-	font-style: normal;
-	font-weight: 700;
-	font-display: swap;
-	src: url('https://cdn.jsdelivr.net/fontsource/fonts/space-mono@latest/latin-700-normal.woff2')
-		format('woff2');
-}
-
-$font-display: 'Anton', 'Oswald', 'Arial Narrow', sans-serif;
-$font-ui: 'Hanken Grotesk', ui-sans-serif, system-ui, -apple-system, sans-serif;
-$font-mono: 'Space Mono', ui-monospace, 'SFMono-Regular', menlo, monospace;
 $deck-width: clamp(300px, 28vw, 372px);
-
-// Reusable wave tile (one fill colour + opacity per layer/theme).
-@function wave($fill, $opacity) {
-	@return url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='40' viewBox='0 0 200 40' preserveAspectRatio='none'%3E%3Cpath d='M0 20 q 50 -14 100 0 t 100 0 V40 H0 Z' fill='#{$fill}' fill-opacity='#{$opacity}'/%3E%3C/svg%3E");
-}
-
-$moon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z'/%3E%3C/svg%3E");
-$sun-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='4' fill='black'/%3E%3Cpath d='M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5 19 19M19 5l-1.5 1.5M6.5 17.5 5 19'/%3E%3C/svg%3E");
 
 html,
 body {
@@ -77,61 +23,13 @@ body {
 // ── Theme tokens ─────────────────────────────────────────────────────────────
 // Default = Coastal Daybreak (light). `[data-theme='dark']` = Dusk Lineup.
 .wp-block-bsb-cockpit {
-	--deck-bg:
-		radial-gradient(120% 70% at 50% -10%, #fff 0%, #f3fafd 40%, transparent 70%),
-		linear-gradient(180deg, #e7f6ff 0%, #fff 60%);
-	--surface: #f1f7fa;
-	--surface-shadow: #{rgba(#1f3a5f, 0.08)};
-	--line: #e1edf2;
-	--text: #1f3a5f;
-	--text-strong: #1f3a5f;
-	--text-soft: #5b7488;
-	--label: #{rgba(#1f3a5f, 0.62)};
-	--accent-grad: linear-gradient(150deg, #2f9bb3 0%, #1c7e96 100%);
-	--accent-ink: #ffffff;
-	--accent-shadow: #{rgba(#2f9bb3, 0.4)};
-	--accent-soft: #{rgba(#2f9bb3, 0.08)};
-	--stepper-btn-bg: #ffffff;
-	--stepper-btn-ink: #2f9bb3;
-	--stepper-btn-hover-bg: #2f9bb3;
-	--stepper-btn-hover-ink: #ffffff;
-	--stepper-btn-shadow: #{rgba(#1f3a5f, 0.12)};
-	--readout-ink: #1f3a5f;
-	--unit-ink: #2f9bb3;
-	--toggle-track: #dce8ee;
-	--toggle-on: linear-gradient(150deg, #59d3a0 0%, #9ad9ea 100%);
-	--toggle-thumb: #ffffff;
-	--stop-grad: linear-gradient(160deg, #ff7a5c 0%, #ef5a3a 100%);
-	--stop-shadow: #{rgba(#ef5a3a, 0.4)};
-	--stop-glyph: #ffffff;
-	--status-grad: linear-gradient(150deg, #2f9bb3 0%, #1c7e96 100%);
-	--status-ink: #eafaff;
-	--status-dot: #ffce5c;
-	--status-ring: #{rgba(#2f9bb3, 0.0)};
-	--wave-back: #{wave('%23eafaff', 0.5)};
-	--wave-mid: #{wave('%23bfe9f5', 0.55)};
-	--wave-front: #{wave('%23ffffff', 0.6)};
-	--title-ink: #1f3a5f;
-	--subtitle-ink: #2f9bb3;
-	--focus: #ff7a5c;
-	--theme-icon: #{$moon};
-	--stage-bg:
-		radial-gradient(140% 60% at 50% 0%, #{rgba(#fff, 0.8)} 0%, transparent 55%),
-		linear-gradient(180deg, #fbfdfe 0%, #eef5f8 100%);
-	--stage-bar: #{rgba(#fff, 0.7)};
-	--stage-line: #e3edf1;
-	--stage-text: #1f3a5f;
-	--stage-text-soft: #9fb6c2;
-	--cycle-bg: #2f9bb3;
-	--cycle-ink: #ffffff;
-	--cycle-hover: #1c7e96;
-	--viewport-bg: #ffffff;
+	@include theme.tokens;
 
 	display: grid;
 	grid-template-columns: $deck-width 1fr;
 	height: 100vh;
 	overflow: hidden;
-	font-family: $font-ui;
+	font-family: theme.$font-ui;
 	color: var(--text);
 	-webkit-font-smoothing: antialiased;
 
@@ -139,57 +37,6 @@ body {
 	*::before,
 	*::after {
 		box-sizing: border-box;
-	}
-
-	&[data-theme='dark'] {
-		--deck-bg:
-			linear-gradient(180deg, #{rgba(#ff8a3d, 0.16)} 0%, #{rgba(#ff8a3d, 0)} 26%),
-			radial-gradient(140% 50% at 50% 30%, #{rgba(#ffb24a, 0.18)} 0%, transparent 55%),
-			linear-gradient(175deg, #0a3a4f 0%, #062b3d 70%);
-		--surface: #{rgba(#031620, 0.5)};
-		--surface-shadow: #{rgba(#000, 0.4)};
-		--line: #{rgba(#a0e1f0, 0.16)};
-		--text: #e6f7fb;
-		--text-strong: #ffffff;
-		--text-soft: #{rgba(#e6f7fb, 0.62)};
-		--label: #{rgba(#e6f7fb, 0.6)};
-		--accent-grad: linear-gradient(150deg, #ffcf6b 0%, #ff8a3d 100%);
-		--accent-ink: #062b3d;
-		--accent-shadow: #{rgba(#ff8a3d, 0.4)};
-		--accent-soft: #{rgba(#e6f7fb, 0.08)};
-		--stepper-btn-bg: #{rgba(#e6f7fb, 0.1)};
-		--stepper-btn-ink: #e6f7fb;
-		--stepper-btn-hover-bg: #46d6c4;
-		--stepper-btn-hover-ink: #062b3d;
-		--stepper-btn-shadow: transparent;
-		--readout-ink: #ffffff;
-		--unit-ink: #ffcf6b;
-		--toggle-track: #{rgba(#031620, 0.6)};
-		--toggle-on: linear-gradient(150deg, #46d6c4 0%, #2bbf9e 100%);
-		--toggle-thumb: #e6f7fb;
-		--stop-grad: linear-gradient(160deg, #ff6a52 0%, #ef4f38 100%);
-		--stop-shadow: #{rgba(#ef4f38, 0.42)};
-		--stop-glyph: #ffffff;
-		--status-grad: linear-gradient(150deg, #0f5e72 0%, #063a4b 100%);
-		--status-ink: #e6f7fb;
-		--status-dot: #ffcf6b;
-		--status-ring: #{rgba(#46d6c4, 0.18)};
-		--wave-back: #{wave('%23e6f7fb', 0.08)};
-		--wave-mid: #{wave('%2346d6c4', 0.18)};
-		--wave-front: #{wave('%23e6f7fb', 0.26)};
-		--title-ink: #ffffff;
-		--subtitle-ink: #ffcf6b;
-		--focus: #ffcf6b;
-		--theme-icon: #{$sun-icon};
-		--stage-bg: linear-gradient(180deg, #0a3447 0%, #062734 100%);
-		--stage-bar: #{rgba(#fff, 0.05)};
-		--stage-line: #{rgba(#a0e1f0, 0.16)};
-		--stage-text: #e6f7fb;
-		--stage-text-soft: #{rgba(#e6f7fb, 0.4)};
-		--cycle-bg: #ffcf6b;
-		--cycle-ink: #062b3d;
-		--cycle-hover: #ffb24a;
-		--viewport-bg: #ffffff;
 	}
 }
 
@@ -244,7 +91,7 @@ body {
 }
 
 .bsb-deck__clock {
-	font-family: $font-mono;
+	font-family: theme.$font-mono;
 	font-variant-numeric: tabular-nums;
 }
 
@@ -333,7 +180,7 @@ body {
 }
 
 .bsb-deck__title {
-	font-family: $font-display;
+	font-family: theme.$font-display;
 	font-size: 1.36rem;
 	letter-spacing: 0.01em;
 	line-height: 0.98;
@@ -445,7 +292,7 @@ body {
 	border-radius: 9px;
 	background: transparent;
 	color: var(--text-soft);
-	font-family: $font-ui;
+	font-family: theme.$font-ui;
 	font-size: 0.86rem;
 	font-weight: 700;
 	letter-spacing: 0.02em;
@@ -474,7 +321,7 @@ body {
 }
 
 .bsb-seg--speed .bsb-seg__option {
-	font-family: $font-mono;
+	font-family: theme.$font-mono;
 	letter-spacing: 0;
 }
 
@@ -524,7 +371,7 @@ body {
 }
 
 .bsb-stepper__value {
-	font-family: $font-mono;
+	font-family: theme.$font-mono;
 	font-size: 1.7rem;
 	font-weight: 700;
 	color: var(--readout-ink);
@@ -626,7 +473,7 @@ body {
 	border-radius: 14px;
 	background: var(--stop-grad);
 	color: #fff;
-	font-family: $font-display;
+	font-family: theme.$font-display;
 	font-size: 1.18rem;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
@@ -683,7 +530,7 @@ body {
 }
 
 .bsb-stage__label {
-	font-family: $font-mono;
+	font-family: theme.$font-mono;
 	font-size: 0.82rem;
 	font-weight: 700;
 	color: var(--stage-text);
@@ -703,7 +550,7 @@ body {
 	border-radius: 999px;
 	background: var(--cycle-bg);
 	color: var(--cycle-ink);
-	font-family: $font-ui;
+	font-family: theme.$font-ui;
 	font-size: 0.74rem;
 	font-weight: 700;
 	letter-spacing: 0.12em;
