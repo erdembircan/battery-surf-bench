@@ -115,34 +115,7 @@ body {
 	padding: 1.6rem 1.5rem 1.4rem;
 	overflow: hidden;
 	color: $foam;
-	background:
-		radial-gradient(
-			120% 80% at 80% -10%,
-			rgba(255, 168, 76, 0.5) 0%,
-			rgba(255, 122, 89, 0.2) 32%,
-			transparent 60%
-		),
-		linear-gradient(170deg, $ocean 0%, $ocean-deep 70%);
-
-	// Sun glow that breathes behind the brand.
-	&::before {
-		content: '';
-		position: absolute;
-		top: -90px;
-		right: -70px;
-		width: 240px;
-		height: 240px;
-		border-radius: 50%;
-		background: radial-gradient(
-			circle,
-			rgba(255, 210, 63, 0.55) 0%,
-			rgba(255, 146, 72, 0.18) 45%,
-			transparent 70%
-		);
-		filter: blur(4px);
-		animation: bsb-sun 7s ease-in-out infinite;
-		pointer-events: none;
-	}
+	background: linear-gradient(170deg, $ocean 0%, $ocean-deep 70%);
 
 	// Foam line that drifts along the deck's foot.
 	&::after {
@@ -576,19 +549,6 @@ body {
 	to {
 		opacity: 1;
 		transform: translateY(0);
-	}
-}
-
-@keyframes bsb-sun {
-	0%,
-	100% {
-		opacity: 0.8;
-		transform: scale(1);
-	}
-
-	50% {
-		opacity: 1;
-		transform: scale(1.08);
 	}
 }
 
