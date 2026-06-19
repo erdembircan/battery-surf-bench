@@ -1,0 +1,12 @@
+# Formatting (and linting) apply to every JS/TS file we author. The only things
+# excluded are code that is not ours. This file replaces wp-scripts' bundled
+# default .prettierignore, so the dependency/output dirs are re-declared here.
+node_modules/
+vendor/
+build/
+
+# Agent worktrees — each a full copy of the repo.
+.claude/
+
+# WordPress instance downloaded by `pnpm run playground`.
+wp-playground/wordpress/
