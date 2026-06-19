@@ -34,6 +34,7 @@ class CockpitView implements View {
 	 *     @type string $context           `data-wp-context` attribute from `wp_interactivity_data_wp_context()`.
 	 *     @type string $brand_title       Translated, escaped plugin name shown in the deck brand.
 	 *     @type string $brand_subtitle    Translated, escaped "Cockpit" label under the brand.
+	 *     @type string $theme_label       Translated, escaped accessible label for the theme toggle.
 	 *     @type string $mode_label        Translated, escaped label for the mode field.
 	 *     @type string $duration_mode     Translated, escaped label for the duration mode option.
 	 *     @type string $target_drop_mode  Translated, escaped label for the target-drop mode option.
@@ -56,6 +57,7 @@ class CockpitView implements View {
 		$context          = isset( $data['context'] ) ? (string) $data['context'] : '';
 		$brand_title      = isset( $data['brand_title'] ) ? (string) $data['brand_title'] : '';
 		$brand_subtitle   = isset( $data['brand_subtitle'] ) ? (string) $data['brand_subtitle'] : '';
+		$theme_label      = isset( $data['theme_label'] ) ? (string) $data['theme_label'] : '';
 		$mode_label       = isset( $data['mode_label'] ) ? (string) $data['mode_label'] : '';
 		$duration_mode    = isset( $data['duration_mode'] ) ? (string) $data['duration_mode'] : '';
 		$target_drop_mode = isset( $data['target_drop_mode'] ) ? (string) $data['target_drop_mode'] : '';
@@ -72,7 +74,7 @@ class CockpitView implements View {
 		$viewport_title   = isset( $data['viewport_title'] ) ? (string) $data['viewport_title'] : '';
 
 		return <<<HTML
-<div {$wrapper} data-wp-interactive="bsb/cockpit" {$context}>
+<div {$wrapper} data-wp-interactive="bsb/cockpit" {$context} data-wp-init="callbacks.initTheme" data-wp-bind--data-theme="context.theme">
 	<aside class="bsb-cockpit__deck">
 		<header class="bsb-deck__brand">
 			<span class="bsb-deck__mark" aria-hidden="true"></span>
@@ -80,6 +82,7 @@ class CockpitView implements View {
 				<span class="bsb-deck__title">{$brand_title}</span>
 				<span class="bsb-deck__subtitle">{$brand_subtitle}</span>
 			</span>
+			<button type="button" class="bsb-deck__theme" data-wp-on--click="actions.toggleTheme" aria-label="{$theme_label}"></button>
 		</header>
 
 		<div class="bsb-deck__body">

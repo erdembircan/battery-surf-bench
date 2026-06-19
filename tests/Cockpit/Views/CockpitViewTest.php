@@ -37,6 +37,8 @@ final class CockpitViewTest extends TestCase {
 		$markup = $this->render();
 
 		$this->assertStringContainsString( 'data-wp-interactive="bsb/cockpit"', $markup );
+		$this->assertStringContainsString( 'data-wp-init="callbacks.initTheme"', $markup );
+		$this->assertStringContainsString( 'data-wp-bind--data-theme="context.theme"', $markup );
 		$this->assertStringContainsString( 'class="wp-block-bsb-cockpit"', $markup );
 		$this->assertStringContainsString( 'data-wp-context=\'{"activeIndex":0}\'', $markup );
 		$this->assertStringContainsString( 'data-wp-on--click="actions.next"', $markup );
@@ -129,6 +131,18 @@ final class CockpitViewTest extends TestCase {
 	}
 
 	/**
+	 * The theme toggle calls `actions.toggleTheme` and carries its accessible
+	 * label so the deck can switch between the light and dark themes.
+	 */
+	public function test_render_wires_the_theme_toggle(): void {
+		$markup = $this->render();
+
+		$this->assertStringContainsString( 'class="bsb-deck__theme"', $markup );
+		$this->assertStringContainsString( 'data-wp-on--click="actions.toggleTheme"', $markup );
+		$this->assertStringContainsString( 'aria-label="Toggle light or dark theme"', $markup );
+	}
+
+	/**
 	 * Renders the view with a full set of escaped values, as the render template
 	 * supplies them.
 	 *
@@ -141,6 +155,7 @@ final class CockpitViewTest extends TestCase {
 				'context'          => 'data-wp-context=\'{"activeIndex":0}\'',
 				'brand_title'      => 'Battery Surf Bench',
 				'brand_subtitle'   => 'Cockpit',
+				'theme_label'      => 'Toggle light or dark theme',
 				'mode_label'       => 'Mode',
 				'duration_mode'    => 'Duration',
 				'target_drop_mode' => 'Target drop',

@@ -1,13 +1,13 @@
 /*
- * Cockpit dashboard styles — "Sunset Lineup".
+ * Cockpit dashboard styles.
  *
- * The cockpit is a two-pane control deck: a dusk-ocean sidebar of run controls
- * on the left, a warm sand surf stage holding the viewport iframe on the right.
- * The palette, the condensed display type and the gentle wave motion give the
- * benchmark cockpit the feel of an analog surf-shop control board rather than a
- * generic admin panel. This is the only stylesheet the stripped dashboard route
- * loads, so it carries its own reset and web fonts (pulled in via @font-face, so
- * no extra stylesheet link is added to the page).
+ * A two-pane control deck: a sidebar of run controls on the left, a surf stage
+ * holding the viewport iframe on the right. The deck ships two themes — Coastal
+ * Daybreak (light, default) and Dusk Lineup (dark) — selectable with the deck's
+ * light/dark toggle. Every colour is a CSS custom property set per theme on the
+ * block wrapper (`[data-theme]`), so the components below are theme-agnostic.
+ * This is the only stylesheet the stripped dashboard route loads, so it carries
+ * its own reset and web fonts (via @font-face, adding no extra stylesheet link).
  */
 
 @font-face {
@@ -55,30 +55,18 @@
 		format('woff2');
 }
 
-// ── Palette ────────────────────────────────────────────────────────────────
-// Dusk over the water: deep ocean for the deck, warm sand for the stage, with
-// a sunset coral / sunshine yellow / foam aqua accent set.
-$ocean-deep: #052c45;
-$ocean: #0a4f7a;
-$ocean-line: rgba(151, 222, 255, 0.16);
-$sand: #f7efe1;
-$sand-deep: #efe3cd;
-$sand-line: #e2d3b8;
-$ink: #14242e;
-$ink-soft: #5d6b6f;
-$coral: #ff5a3c;
-$coral-deep: #e03a1f;
-$tangerine: #ff9248;
-$sun: #ffd23f;
-$aqua: #2fd4c4;
-$foam: #d8f3fa;
-$charge: #5fd38b;
-
 $font-display: 'Anton', 'Oswald', 'Arial Narrow', sans-serif;
 $font-ui: 'Hanken Grotesk', ui-sans-serif, system-ui, -apple-system, sans-serif;
 $font-mono: 'Space Mono', ui-monospace, 'SFMono-Regular', menlo, monospace;
-
 $deck-width: clamp(300px, 28vw, 372px);
+
+// Reusable wave tile (one fill colour + opacity per layer/theme).
+@function wave($fill, $opacity) {
+	@return url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='40' viewBox='0 0 200 40' preserveAspectRatio='none'%3E%3Cpath d='M0 20 q 50 -14 100 0 t 100 0 V40 H0 Z' fill='#{$fill}' fill-opacity='#{$opacity}'/%3E%3C/svg%3E");
+}
+
+$moon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z'/%3E%3C/svg%3E");
+$sun-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='4' fill='black'/%3E%3Cpath d='M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5 19 19M19 5l-1.5 1.5M6.5 17.5 5 19'/%3E%3C/svg%3E");
 
 html,
 body {
@@ -86,23 +74,124 @@ body {
 	height: 100%;
 }
 
+// ── Theme tokens ─────────────────────────────────────────────────────────────
+// Default = Coastal Daybreak (light). `[data-theme='dark']` = Dusk Lineup.
 .wp-block-bsb-cockpit {
-	--bsb-coral: #{$coral};
-	--bsb-aqua: #{$aqua};
-	--bsb-sun: #{$sun};
+	--deck-bg:
+		radial-gradient(120% 70% at 50% -10%, #fff 0%, #f3fafd 40%, transparent 70%),
+		linear-gradient(180deg, #e7f6ff 0%, #fff 60%);
+	--surface: #f1f7fa;
+	--surface-shadow: #{rgba(#1f3a5f, 0.08)};
+	--line: #e1edf2;
+	--text: #1f3a5f;
+	--text-strong: #1f3a5f;
+	--text-soft: #5b7488;
+	--label: #{rgba(#1f3a5f, 0.62)};
+	--accent-grad: linear-gradient(150deg, #2f9bb3 0%, #1c7e96 100%);
+	--accent-ink: #ffffff;
+	--accent-shadow: #{rgba(#2f9bb3, 0.4)};
+	--accent-soft: #{rgba(#2f9bb3, 0.08)};
+	--stepper-btn-bg: #ffffff;
+	--stepper-btn-ink: #2f9bb3;
+	--stepper-btn-hover-bg: #2f9bb3;
+	--stepper-btn-hover-ink: #ffffff;
+	--stepper-btn-shadow: #{rgba(#1f3a5f, 0.12)};
+	--readout-ink: #1f3a5f;
+	--unit-ink: #2f9bb3;
+	--toggle-track: #dce8ee;
+	--toggle-on: linear-gradient(150deg, #59d3a0 0%, #9ad9ea 100%);
+	--toggle-thumb: #ffffff;
+	--stop-grad: linear-gradient(160deg, #ff7a5c 0%, #ef5a3a 100%);
+	--stop-shadow: #{rgba(#ef5a3a, 0.4)};
+	--stop-glyph: #ffffff;
+	--status-grad: linear-gradient(150deg, #2f9bb3 0%, #1c7e96 100%);
+	--status-ink: #eafaff;
+	--status-dot: #ffce5c;
+	--status-ring: #{rgba(#2f9bb3, 0.0)};
+	--wave-back: #{wave('%23eafaff', 0.5)};
+	--wave-mid: #{wave('%23bfe9f5', 0.55)};
+	--wave-front: #{wave('%23ffffff', 0.6)};
+	--title-ink: #1f3a5f;
+	--subtitle-ink: #2f9bb3;
+	--mark-shadow: #{rgba(#1f3a5f, 0.28)};
+	--focus: #ff7a5c;
+	--theme-icon: #{$moon};
+	--stage-bg:
+		radial-gradient(140% 60% at 50% 0%, #{rgba(#fff, 0.8)} 0%, transparent 55%),
+		linear-gradient(180deg, #fbfdfe 0%, #eef5f8 100%);
+	--stage-bar: #{rgba(#fff, 0.7)};
+	--stage-line: #e3edf1;
+	--stage-text: #1f3a5f;
+	--stage-text-soft: #9fb6c2;
+	--cycle-bg: #2f9bb3;
+	--cycle-ink: #ffffff;
+	--cycle-hover: #1c7e96;
+	--viewport-bg: #ffffff;
 
 	display: grid;
 	grid-template-columns: $deck-width 1fr;
 	height: 100vh;
 	overflow: hidden;
 	font-family: $font-ui;
-	color: $ink;
+	color: var(--text);
 	-webkit-font-smoothing: antialiased;
 
 	*,
 	*::before,
 	*::after {
 		box-sizing: border-box;
+	}
+
+	&[data-theme='dark'] {
+		--deck-bg:
+			linear-gradient(180deg, #{rgba(#ff8a3d, 0.16)} 0%, #{rgba(#ff8a3d, 0)} 26%),
+			radial-gradient(140% 50% at 50% 30%, #{rgba(#ffb24a, 0.18)} 0%, transparent 55%),
+			linear-gradient(175deg, #0a3a4f 0%, #062b3d 70%);
+		--surface: #{rgba(#031620, 0.5)};
+		--surface-shadow: #{rgba(#000, 0.4)};
+		--line: #{rgba(#a0e1f0, 0.16)};
+		--text: #e6f7fb;
+		--text-strong: #ffffff;
+		--text-soft: #{rgba(#e6f7fb, 0.62)};
+		--label: #{rgba(#e6f7fb, 0.6)};
+		--accent-grad: linear-gradient(150deg, #ffcf6b 0%, #ff8a3d 100%);
+		--accent-ink: #062b3d;
+		--accent-shadow: #{rgba(#ff8a3d, 0.4)};
+		--accent-soft: #{rgba(#e6f7fb, 0.08)};
+		--stepper-btn-bg: #{rgba(#e6f7fb, 0.1)};
+		--stepper-btn-ink: #e6f7fb;
+		--stepper-btn-hover-bg: #46d6c4;
+		--stepper-btn-hover-ink: #062b3d;
+		--stepper-btn-shadow: transparent;
+		--readout-ink: #ffffff;
+		--unit-ink: #ffcf6b;
+		--toggle-track: #{rgba(#031620, 0.6)};
+		--toggle-on: linear-gradient(150deg, #46d6c4 0%, #2bbf9e 100%);
+		--toggle-thumb: #e6f7fb;
+		--stop-grad: linear-gradient(160deg, #ff6a52 0%, #ef4f38 100%);
+		--stop-shadow: #{rgba(#ef4f38, 0.42)};
+		--stop-glyph: #ffffff;
+		--status-grad: linear-gradient(150deg, #0f5e72 0%, #063a4b 100%);
+		--status-ink: #e6f7fb;
+		--status-dot: #ffcf6b;
+		--status-ring: #{rgba(#46d6c4, 0.18)};
+		--wave-back: #{wave('%23e6f7fb', 0.08)};
+		--wave-mid: #{wave('%2346d6c4', 0.18)};
+		--wave-front: #{wave('%23e6f7fb', 0.26)};
+		--title-ink: #ffffff;
+		--subtitle-ink: #ffcf6b;
+		--mark-shadow: #{rgba(#062f57, 0.5)};
+		--focus: #ffcf6b;
+		--theme-icon: #{$sun-icon};
+		--stage-bg: linear-gradient(180deg, #0a3447 0%, #062734 100%);
+		--stage-bar: #{rgba(#fff, 0.05)};
+		--stage-line: #{rgba(#a0e1f0, 0.16)};
+		--stage-text: #e6f7fb;
+		--stage-text-soft: #{rgba(#e6f7fb, 0.4)};
+		--cycle-bg: #ffcf6b;
+		--cycle-ink: #062b3d;
+		--cycle-hover: #ffb24a;
+		--viewport-bg: #ffffff;
 	}
 }
 
@@ -114,8 +203,8 @@ body {
 	min-height: 0;
 	padding: 1.6rem 1.5rem 1.4rem;
 	overflow: hidden;
-	color: $foam;
-	background: linear-gradient(170deg, $ocean 0%, $ocean-deep 70%);
+	color: var(--text);
+	background: var(--deck-bg);
 }
 
 // ── Surfing indicator — the deck's live "it's working" readout ──────────────
@@ -128,11 +217,11 @@ body {
 	gap: 0.6rem;
 	padding: 0.85rem 1rem 1.05rem;
 	border-radius: 14px;
-	color: $foam;
-	background: linear-gradient(150deg, #0f5f74 0%, #06324a 100%);
+	color: var(--status-ink);
+	background: var(--status-grad);
 	box-shadow:
-		0 8px 20px rgba(0, 0, 0, 0.3),
-		inset 0 0 0 1px rgba(47, 212, 196, 0.18);
+		0 8px 20px rgba(0, 0, 0, 0.2),
+		inset 0 0 0 1px var(--status-ring);
 }
 
 .bsb-deck__status-dot {
@@ -142,8 +231,8 @@ body {
 	width: 0.55rem;
 	height: 0.55rem;
 	border-radius: 50%;
-	background: $sun;
-	box-shadow: 0 0 12px $sun;
+	background: var(--status-dot);
+	box-shadow: 0 0 12px var(--status-dot);
 	animation: bsb-pulse 1.4s ease-in-out infinite;
 }
 
@@ -162,8 +251,7 @@ body {
 }
 
 // ── Parallax waves inside the surfing indicator ─────────────────────────────
-// Three layers scroll at different speeds, heights and opacities so the foam
-// reads with depth instead of a single flat drift.
+// Three layers scroll at different speeds, heights and opacities for depth.
 .bsb-deck__waves {
 	position: absolute;
 	inset-inline: 0;
@@ -188,22 +276,23 @@ body {
 	height: 44px;
 	opacity: 0.7;
 	animation-duration: 20s;
-	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='40' viewBox='0 0 200 40' preserveAspectRatio='none'%3E%3Cpath d='M0 20 q 50 -14 100 0 t 100 0 V40 H0 Z' fill='%23d8f3fa' fill-opacity='0.08'/%3E%3C/svg%3E");
+	background-image: var(--wave-back);
 }
 
 .bsb-deck__wave--mid {
 	height: 34px;
 	animation-duration: 13s;
 	animation-direction: reverse;
-	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='40' viewBox='0 0 200 40' preserveAspectRatio='none'%3E%3Cpath d='M0 20 q 50 -14 100 0 t 100 0 V40 H0 Z' fill='%232fd4c4' fill-opacity='0.18'/%3E%3C/svg%3E");
+	background-image: var(--wave-mid);
 }
 
 .bsb-deck__wave--front {
 	height: 24px;
 	animation-duration: 8s;
-	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='40' viewBox='0 0 200 40' preserveAspectRatio='none'%3E%3Cpath d='M0 20 q 50 -14 100 0 t 100 0 V40 H0 Z' fill='%23d8f3fa' fill-opacity='0.26'/%3E%3C/svg%3E");
+	background-image: var(--wave-front);
 }
 
+// ── Brand + theme toggle ─────────────────────────────────────────────────────
 .bsb-deck__brand {
 	position: relative;
 	z-index: 1;
@@ -212,7 +301,7 @@ body {
 	gap: 0.85rem;
 	padding-bottom: 1.4rem;
 	margin-bottom: 1.4rem;
-	border-bottom: 1px solid $ocean-line;
+	border-bottom: 1px solid var(--line);
 }
 
 .bsb-deck__mark {
@@ -221,7 +310,7 @@ body {
 	flex: 0 0 auto;
 	background: url('../../assets/images/logo.svg') center / contain no-repeat;
 	border-radius: 12px;
-	filter: drop-shadow(0 3px 8px rgba(6, 47, 87, 0.4));
+	filter: drop-shadow(0 3px 8px var(--mark-shadow));
 }
 
 .bsb-deck__wordmark {
@@ -229,6 +318,7 @@ body {
 	flex-direction: column;
 	gap: 0.15rem;
 	min-width: 0;
+	margin-right: auto;
 }
 
 .bsb-deck__title {
@@ -237,7 +327,7 @@ body {
 	letter-spacing: 0.01em;
 	line-height: 0.98;
 	text-transform: uppercase;
-	color: #fff;
+	color: var(--title-ink);
 }
 
 .bsb-deck__subtitle {
@@ -245,7 +335,44 @@ body {
 	font-weight: 700;
 	letter-spacing: 0.42em;
 	text-transform: uppercase;
-	color: $sun;
+	color: var(--subtitle-ink);
+}
+
+.bsb-deck__theme {
+	flex: 0 0 auto;
+	width: 2.2rem;
+	height: 2.2rem;
+	cursor: pointer;
+	border: 1px solid var(--line);
+	border-radius: 10px;
+	background: var(--accent-soft);
+	display: grid;
+	place-items: center;
+	transition:
+		background 0.18s ease,
+		transform 0.12s ease;
+
+	&:hover {
+		background: var(--surface);
+	}
+
+	&:active {
+		transform: scale(0.94);
+	}
+
+	&:focus-visible {
+		outline: 2px solid var(--focus);
+		outline-offset: 2px;
+	}
+
+	&::before {
+		content: '';
+		width: 1.05rem;
+		height: 1.05rem;
+		background: var(--text-soft);
+		-webkit-mask: var(--theme-icon) center / contain no-repeat;
+		mask: var(--theme-icon) center / contain no-repeat;
+	}
 }
 
 .bsb-deck__body {
@@ -282,7 +409,7 @@ body {
 	font-weight: 700;
 	letter-spacing: 0.22em;
 	text-transform: uppercase;
-	color: rgba(216, 243, 250, 0.6);
+	color: var(--label);
 }
 
 // ── Segmented control (mode + speed) ────────────────────────────────────────
@@ -293,8 +420,8 @@ body {
 	gap: 0.3rem;
 	padding: 0.3rem;
 	border-radius: 13px;
-	background: rgba(3, 24, 38, 0.55);
-	box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4);
+	background: var(--surface);
+	box-shadow: inset 0 1px 3px var(--surface-shadow);
 }
 
 .bsb-seg__option {
@@ -304,7 +431,7 @@ body {
 	border: 0;
 	border-radius: 9px;
 	background: transparent;
-	color: rgba(216, 243, 250, 0.75);
+	color: var(--text-soft);
 	font-family: $font-ui;
 	font-size: 0.86rem;
 	font-weight: 700;
@@ -316,8 +443,8 @@ body {
 		box-shadow 0.2s ease;
 
 	&:hover {
-		color: #fff;
-		background: rgba(216, 243, 250, 0.08);
+		color: var(--text-strong);
+		background: var(--accent-soft);
 	}
 
 	&:active {
@@ -325,11 +452,11 @@ body {
 	}
 
 	&.is-active {
-		color: $ocean-deep;
-		background: linear-gradient(155deg, $sun 0%, $tangerine 100%);
+		color: var(--accent-ink);
+		background: var(--accent-grad);
 		box-shadow:
-			0 4px 12px rgba(255, 146, 72, 0.4),
-			inset 0 1px 0 rgba(255, 255, 255, 0.5);
+			0 4px 12px var(--accent-shadow),
+			inset 0 1px 0 rgba(255, 255, 255, 0.4);
 	}
 }
 
@@ -346,8 +473,8 @@ body {
 	gap: 0.5rem;
 	padding: 0.45rem;
 	border-radius: 13px;
-	background: rgba(3, 24, 38, 0.55);
-	box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4);
+	background: var(--surface);
+	box-shadow: inset 0 1px 3px var(--surface-shadow);
 }
 
 .bsb-stepper__btn {
@@ -356,18 +483,19 @@ body {
 	height: 2.4rem;
 	border: 0;
 	border-radius: 10px;
-	background: rgba(216, 243, 250, 0.1);
-	color: $foam;
+	background: var(--stepper-btn-bg);
+	color: var(--stepper-btn-ink);
 	font-size: 1.4rem;
 	line-height: 1;
+	box-shadow: 0 1px 4px var(--stepper-btn-shadow);
 	transition:
 		background 0.18s ease,
 		transform 0.12s ease,
 		color 0.18s ease;
 
 	&:hover {
-		background: $aqua;
-		color: $ocean-deep;
+		background: var(--stepper-btn-hover-bg);
+		color: var(--stepper-btn-hover-ink);
 	}
 
 	&:active {
@@ -386,7 +514,7 @@ body {
 	font-family: $font-mono;
 	font-size: 1.7rem;
 	font-weight: 700;
-	color: #fff;
+	color: var(--readout-ink);
 	font-variant-numeric: tabular-nums;
 }
 
@@ -395,7 +523,7 @@ body {
 	font-weight: 700;
 	letter-spacing: 0.14em;
 	text-transform: uppercase;
-	color: $sun;
+	color: var(--unit-ink);
 }
 
 // ── Baseline toggle ─────────────────────────────────────────────────────────
@@ -425,8 +553,8 @@ body {
 	width: 3.2rem;
 	height: 1.7rem;
 	border-radius: 999px;
-	background: rgba(3, 24, 38, 0.6);
-	box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.45);
+	background: var(--toggle-track);
+	box-shadow: inset 0 1px 3px var(--surface-shadow);
 	transition: background 0.25s ease;
 }
 
@@ -437,8 +565,8 @@ body {
 	width: 1.3rem;
 	height: 1.3rem;
 	border-radius: 50%;
-	background: $foam;
-	box-shadow: 0 2px 5px rgba(0, 0, 0, 0.35);
+	background: var(--toggle-thumb);
+	box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25);
 	transition:
 		transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
 		background 0.25s ease;
@@ -447,11 +575,11 @@ body {
 .bsb-toggle__text {
 	font-size: 0.92rem;
 	font-weight: 600;
-	color: $foam;
+	color: var(--text);
 }
 
 .bsb-toggle__input:checked + .bsb-toggle__track {
-	background: linear-gradient(155deg, $charge 0%, $aqua 100%);
+	background: var(--toggle-on);
 
 	.bsb-toggle__thumb {
 		transform: translateX(1.5rem);
@@ -460,7 +588,7 @@ body {
 }
 
 .bsb-toggle__input:focus-visible + .bsb-toggle__track {
-	outline: 2px solid $sun;
+	outline: 2px solid var(--focus);
 	outline-offset: 2px;
 }
 
@@ -470,7 +598,7 @@ body {
 	z-index: 1;
 	padding-top: 1.4rem;
 	margin-top: 1.2rem;
-	border-top: 1px solid $ocean-line;
+	border-top: 1px solid var(--line);
 }
 
 .bsb-stop {
@@ -483,14 +611,14 @@ body {
 	cursor: pointer;
 	border: 0;
 	border-radius: 14px;
-	background: linear-gradient(160deg, $coral 0%, $coral-deep 100%);
+	background: var(--stop-grad);
 	color: #fff;
 	font-family: $font-display;
 	font-size: 1.18rem;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	box-shadow:
-		0 8px 20px rgba(224, 58, 31, 0.4),
+		0 8px 20px var(--stop-shadow),
 		inset 0 1px 0 rgba(255, 255, 255, 0.3);
 	transition:
 		transform 0.14s ease,
@@ -499,9 +627,6 @@ body {
 
 	&:hover {
 		transform: translateY(-2px);
-		box-shadow:
-			0 12px 26px rgba(224, 58, 31, 0.5),
-			inset 0 1px 0 rgba(255, 255, 255, 0.35);
 		filter: saturate(1.1);
 	}
 
@@ -510,7 +635,7 @@ body {
 	}
 
 	&:focus-visible {
-		outline: 2px solid $sun;
+		outline: 2px solid var(--focus);
 		outline-offset: 3px;
 	}
 }
@@ -519,7 +644,7 @@ body {
 	width: 0.9rem;
 	height: 0.9rem;
 	border-radius: 3px;
-	background: #fff;
+	background: var(--stop-glyph);
 	box-shadow: 0 0 12px rgba(255, 255, 255, 0.65);
 	animation: bsb-pulse 1.8s ease-in-out infinite;
 }
@@ -529,13 +654,7 @@ body {
 	display: flex;
 	flex-direction: column;
 	min-width: 0;
-	background:
-		radial-gradient(
-			140% 60% at 50% 0%,
-			rgba(255, 255, 255, 0.7) 0%,
-			transparent 55%
-		),
-		linear-gradient(180deg, $sand 0%, $sand-deep 100%);
+	background: var(--stage-bg);
 }
 
 .bsb-stage__bar {
@@ -545,8 +664,8 @@ body {
 	gap: 1rem;
 	flex: 0 0 auto;
 	padding: 0.85rem 1.2rem;
-	background: rgba(255, 255, 255, 0.6);
-	border-bottom: 1px solid $sand-line;
+	background: var(--stage-bar);
+	border-bottom: 1px solid var(--stage-line);
 	backdrop-filter: blur(6px);
 }
 
@@ -554,12 +673,12 @@ body {
 	font-family: $font-mono;
 	font-size: 0.82rem;
 	font-weight: 700;
-	color: $ink;
+	color: var(--stage-text);
 	letter-spacing: 0.01em;
 
 	&:empty::before {
 		content: '— — —';
-		color: $ink-soft;
+		color: var(--stage-text-soft);
 	}
 }
 
@@ -567,10 +686,10 @@ body {
 	cursor: pointer;
 	flex: 0 0 auto;
 	padding: 0.5rem 1.1rem;
-	border: 1px solid $ocean;
+	border: 0;
 	border-radius: 999px;
-	background: $ocean;
-	color: $foam;
+	background: var(--cycle-bg);
+	color: var(--cycle-ink);
 	font-family: $font-ui;
 	font-size: 0.74rem;
 	font-weight: 700;
@@ -582,8 +701,7 @@ body {
 		box-shadow 0.18s ease;
 
 	&:hover {
-		background: $ocean-deep;
-		box-shadow: 0 4px 12px rgba(10, 79, 122, 0.35);
+		background: var(--cycle-hover);
 	}
 
 	&:active {
@@ -591,7 +709,7 @@ body {
 	}
 
 	&:focus-visible {
-		outline: 2px solid $coral;
+		outline: 2px solid var(--focus);
 		outline-offset: 2px;
 	}
 }
@@ -602,7 +720,7 @@ body {
 	width: 100%;
 	min-height: 0;
 	border: 0;
-	background: #fff;
+	background: var(--viewport-bg);
 }
 
 // ── Motion ──────────────────────────────────────────────────────────────────

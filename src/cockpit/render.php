@@ -45,6 +45,7 @@ $bsb_context = array(
 	'speed'           => 1,
 	'running'         => false,
 	'elapsed'         => 0,
+	'theme'           => 'light',
 );
 
 // The viewport's `src` is owned by the Interactivity API: `data-wp-bind--src`
@@ -58,6 +59,7 @@ $bsb_markup = ( new CockpitView() )->render(
 		'context'          => wp_interactivity_data_wp_context( $bsb_context ),
 		'brand_title'      => esc_html__( 'Battery Surf Bench', 'battery-surf-bench' ),
 		'brand_subtitle'   => esc_html__( 'Cockpit', 'battery-surf-bench' ),
+		'theme_label'      => esc_attr__( 'Toggle light or dark theme', 'battery-surf-bench' ),
 		'mode_label'       => esc_html__( 'Mode', 'battery-surf-bench' ),
 		'duration_mode'    => esc_html__( 'Duration', 'battery-surf-bench' ),
 		'target_drop_mode' => esc_html__( 'Target drop', 'battery-surf-bench' ),

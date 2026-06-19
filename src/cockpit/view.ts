@@ -22,6 +22,9 @@ interface CoursePage {
 /** Which quantity a benchmark run is bounded by. */
 type RunMode = 'duration' | 'targetDrop';
 
+/** The deck's colour theme — Coastal Daybreak (light) or Dusk Lineup (dark). */
+type ThemeName = 'light' | 'dark';
+
 /** Per-instance context the cockpit's PHP render seeds onto the block. */
 interface CockpitContext {
 	pages: CoursePage[];
@@ -32,11 +35,15 @@ interface CockpitContext {
 	speed: number;
 	running: boolean;
 	elapsed: number;
+	theme: ThemeName;
 }
 
 /** Smallest and largest run duration the stepper will set, in minutes. */
 const DURATION_MIN = 5;
 const DURATION_MAX = 240;
+
+/** localStorage key the chosen theme is remembered under across visits. */
+const THEME_KEY = 'bsb-cockpit-theme';
 
 store( 'bsb/cockpit', {
 	state: {
@@ -168,8 +175,36 @@ store( 'bsb/cockpit', {
 		stop(): void {
 			getContext< CockpitContext >().running = false;
 		},
+
+		/** Flips between the light and dark deck themes and remembers the choice. */
+		toggleTheme(): void {
+			const context = getContext< CockpitContext >();
+			context.theme = context.theme === 'dark' ? 'light' : 'dark';
+
+			try {
+				window.localStorage.setItem( THEME_KEY, context.theme );
+			} catch {
+				// Storage unavailable (private mode); the choice still applies
+				// for this session.
+			}
+		},
 	},
 	callbacks: {
+		/** Restores the visitor's remembered theme when the deck mounts. */
+		initTheme(): void {
+			let stored: string | null = null;
+
+			try {
+				stored = window.localStorage.getItem( THEME_KEY );
+			} catch {
+				stored = null;
+			}
+
+			if ( stored === 'light' || stored === 'dark' ) {
+				getContext< CockpitContext >().theme = stored;
+			}
+		},
+
 		/**
 		 * Advances the surfing indicator's elapsed clock once a second while the
 		 * indicator is mounted, returning a cleanup that stops the timer. Wired

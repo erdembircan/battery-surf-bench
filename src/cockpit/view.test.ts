@@ -27,6 +27,7 @@ interface CockpitContext {
 	speed: number;
 	running: boolean;
 	elapsed: number;
+	theme: 'light' | 'dark';
 }
 
 interface CockpitConfig {
@@ -48,9 +49,11 @@ interface CockpitConfig {
 		toggleBaseline: () => void;
 		selectSpeed: () => void;
 		stop: () => void;
+		toggleTheme: () => void;
 	};
 	callbacks: {
 		tick: () => () => void;
+		initTheme: () => void;
 	};
 }
 
@@ -69,6 +72,7 @@ const baseContext = (): CockpitContext => ( {
 	speed: 1,
 	running: false,
 	elapsed: 0,
+	theme: 'light',
 } );
 
 const mocks = vi.hoisted( () => ( {
@@ -270,6 +274,45 @@ describe( 'bsb/cockpit view store', () => {
 			expect( mocks.context.elapsed ).toBe( 3 );
 
 			vi.useRealTimers();
+		} );
+	} );
+
+	describe( 'theme', () => {
+		beforeEach( () => {
+			window.localStorage.clear();
+		} );
+
+		it( 'toggles between light and dark and remembers the choice', () => {
+			mocks.context.theme = 'light';
+
+			mocks.config?.actions.toggleTheme();
+			expect( mocks.context.theme ).toBe( 'dark' );
+			expect( window.localStorage.getItem( 'bsb-cockpit-theme' ) ).toBe(
+				'dark'
+			);
+
+			mocks.config?.actions.toggleTheme();
+			expect( mocks.context.theme ).toBe( 'light' );
+			expect( window.localStorage.getItem( 'bsb-cockpit-theme' ) ).toBe(
+				'light'
+			);
+		} );
+
+		it( 'restores a remembered theme on init', () => {
+			window.localStorage.setItem( 'bsb-cockpit-theme', 'dark' );
+			mocks.context.theme = 'light';
+
+			mocks.config?.callbacks.initTheme();
+
+			expect( mocks.context.theme ).toBe( 'dark' );
+		} );
+
+		it( 'keeps the seeded theme when nothing is remembered', () => {
+			mocks.context.theme = 'light';
+
+			mocks.config?.callbacks.initTheme();
+
+			expect( mocks.context.theme ).toBe( 'light' );
 		} );
 	} );
 } );
