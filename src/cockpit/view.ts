@@ -37,6 +37,19 @@ interface CockpitContext {
 	elapsed: number;
 	theme: ThemeName;
 	targetPercent: number;
+	batteryLevel: number | null;
+	batteryCharging: boolean;
+	rate10: number | null;
+	rateSession: number | null;
+	secondsToEmpty: number | null;
+}
+
+/** The slice of the Battery Status API the readouts read. */
+interface BatteryLike {
+	level: number;
+	charging: boolean;
+	addEventListener: ( type: string, listener: () => void ) => void;
+	removeEventListener: ( type: string, listener: () => void ) => void;
 }
 
 /** Smallest and largest run duration the stepper will set, in minutes. */
@@ -144,6 +157,70 @@ store( 'bsb/cockpit', {
 		/** Whether the 10× surf speed is selected. */
 		get isSpeed10(): boolean {
 			return getContext< CockpitContext >().speed === 10;
+		},
+
+		/** Current battery level as a readout number, or an em dash if unknown. */
+		get batteryDisplay(): string {
+			const { batteryLevel } = getContext< CockpitContext >();
+
+			return batteryLevel === null ? '—' : String( batteryLevel );
+		},
+
+		/** Current battery level as a CSS width for the readout fill. */
+		get batteryFill(): string {
+			const { batteryLevel } = getContext< CockpitContext >();
+
+			return `${ batteryLevel ?? 0 }%`;
+		},
+
+		/** Battery readout colour: green when full grading to red when low. */
+		get batteryColor(): string {
+			const { batteryLevel } = getContext< CockpitContext >();
+
+			if ( batteryLevel === null ) {
+				return 'var(--text-soft)';
+			}
+
+			const hue = Math.round( ( batteryLevel / 100 ) * 120 );
+
+			return `hsl(${ hue }, 70%, 45%)`;
+		},
+
+		/** Whether the device is charging — drives the readout cable. */
+		get isCharging(): boolean {
+			return getContext< CockpitContext >().batteryCharging;
+		},
+
+		/** Drain rate over the last 10 minutes, or an em dash until known. */
+		get rate10Display(): string {
+			const { rate10 } = getContext< CockpitContext >();
+
+			return rate10 === null ? '—' : String( rate10 );
+		},
+
+		/** Drain rate over the whole session, or an em dash until known. */
+		get rateSessionDisplay(): string {
+			const { rateSession } = getContext< CockpitContext >();
+
+			return rateSession === null ? '—' : String( rateSession );
+		},
+
+		/** Projected time to empty as `H:MM`, or an em dash until known. */
+		get timeToEmptyDisplay(): string {
+			const { secondsToEmpty } = getContext< CockpitContext >();
+
+			if (
+				secondsToEmpty === null ||
+				! Number.isFinite( secondsToEmpty ) ||
+				secondsToEmpty <= 0
+			) {
+				return '—';
+			}
+
+			const hours = Math.floor( secondsToEmpty / 3600 );
+			const minutes = Math.floor( ( secondsToEmpty % 3600 ) / 60 );
+
+			return `${ hours }:${ String( minutes ).padStart( 2, '0' ) }`;
 		},
 
 		/** Elapsed run time as a `MM:SS` clock for the surfing indicator. */
@@ -304,6 +381,45 @@ store( 'bsb/cockpit', {
 		},
 	},
 	callbacks: {
+		/**
+		 * Feeds the battery readouts from the Battery Status API: syncs the level
+		 * and charging state on mount and whenever they change, returning a
+		 * cleanup that detaches the listeners. A no-op where the API is absent,
+		 * leaving the readouts at their em-dash idle state.
+		 */
+		initBattery(): () => void {
+			const provider = (
+				navigator as Navigator & {
+					getBattery?: () => Promise< BatteryLike >;
+				}
+			 ).getBattery?.bind( navigator );
+
+			if ( ! provider ) {
+				return () => undefined;
+			}
+
+			const context = getContext< CockpitContext >();
+			let manager: BatteryLike | undefined;
+			const sync = (): void => {
+				if ( manager ) {
+					context.batteryLevel = Math.round( manager.level * 100 );
+					context.batteryCharging = manager.charging;
+				}
+			};
+
+			provider().then( ( battery ) => {
+				manager = battery;
+				sync();
+				battery.addEventListener( 'levelchange', sync );
+				battery.addEventListener( 'chargingchange', sync );
+			} );
+
+			return () => {
+				manager?.removeEventListener( 'levelchange', sync );
+				manager?.removeEventListener( 'chargingchange', sync );
+			};
+		},
+
 		/** Restores the visitor's remembered theme when the deck mounts. */
 		initTheme(): void {
 			let stored: string | null = null;

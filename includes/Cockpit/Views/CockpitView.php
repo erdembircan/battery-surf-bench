@@ -45,7 +45,12 @@ class CockpitView implements View {
 	 *     @type string $target_label      Translated, escaped label for the target-drop field.
 	 *     @type string $target_aria       Translated, escaped accessible label for the target slider.
 	 *     @type string $baseline_label    Translated, escaped label for the baseline calibration toggle.
-	 *     @type string $speed_label       Translated, escaped label for the speed field.
+	 *     @type string $speed_label        Translated, escaped label for the speed field.
+	 *     @type string $readouts_label     Translated, escaped heading for the readouts section.
+	 *     @type string $battery_label      Translated, escaped label for the battery readout.
+	 *     @type string $rate10_label       Translated, escaped label for the 10-minute drain rate.
+	 *     @type string $rate_session_label Translated, escaped label for the session drain rate.
+	 *     @type string $tte_label          Translated, escaped label for the time-to-empty readout.
 	 *     @type string $surfing_label     Translated, escaped "Surfing" word for the running indicator.
 	 *     @type string $elapsed_label     Translated, escaped "elapsed" word for the running indicator.
 	 *     @type string $stop_label        Translated, escaped label for the stop control.
@@ -70,7 +75,12 @@ class CockpitView implements View {
 		$target_label     = isset( $data['target_label'] ) ? (string) $data['target_label'] : '';
 		$target_aria      = isset( $data['target_aria'] ) ? (string) $data['target_aria'] : '';
 		$baseline_label   = isset( $data['baseline_label'] ) ? (string) $data['baseline_label'] : '';
-		$speed_label      = isset( $data['speed_label'] ) ? (string) $data['speed_label'] : '';
+		$speed_label        = isset( $data['speed_label'] ) ? (string) $data['speed_label'] : '';
+		$readouts_label     = isset( $data['readouts_label'] ) ? (string) $data['readouts_label'] : '';
+		$battery_label      = isset( $data['battery_label'] ) ? (string) $data['battery_label'] : '';
+		$rate10_label       = isset( $data['rate10_label'] ) ? (string) $data['rate10_label'] : '';
+		$rate_session_label = isset( $data['rate_session_label'] ) ? (string) $data['rate_session_label'] : '';
+		$tte_label          = isset( $data['tte_label'] ) ? (string) $data['tte_label'] : '';
 		$surfing_label    = isset( $data['surfing_label'] ) ? (string) $data['surfing_label'] : '';
 		$elapsed_label    = isset( $data['elapsed_label'] ) ? (string) $data['elapsed_label'] : '';
 		$stop_label       = isset( $data['stop_label'] ) ? (string) $data['stop_label'] : '';
@@ -149,6 +159,39 @@ class CockpitView implements View {
 					<span class="bsb-deck__wave bsb-deck__wave--front"></span>
 				</span>
 			</div>
+
+			<section class="bsb-readout" data-wp-init="callbacks.initBattery">
+				<span class="bsb-field__label">{$readouts_label}</span>
+
+				<div class="bsb-readout__feature">
+					<span class="bsb-readout__feature-label">{$battery_label}</span>
+					<div class="bsb-readout__row">
+						<span class="bsb-readout__num" data-wp-style--color="state.batteryColor"><span data-wp-text="state.batteryDisplay"></span><span class="bsb-readout__pct">%</span></span>
+						<span class="bsb-readout__battery" data-wp-class--is-charging="state.isCharging" aria-hidden="true">
+							<span class="bsb-readout__cap"></span>
+							<span class="bsb-readout__rig">
+								<span class="bsb-readout__body"><span class="bsb-readout__fill" data-wp-style--width="state.batteryFill" data-wp-style--background="state.batteryColor"></span></span>
+								<span class="bsb-readout__track"><span class="bsb-readout__cable"></span></span>
+							</span>
+						</span>
+					</div>
+				</div>
+
+				<div class="bsb-readout__grid">
+					<div class="bsb-readout__stat">
+						<span class="bsb-readout__stat-label">{$rate10_label}</span>
+						<span class="bsb-readout__stat-val"><span data-wp-text="state.rate10Display"></span><span class="bsb-readout__unit">%/h</span></span>
+					</div>
+					<div class="bsb-readout__stat">
+						<span class="bsb-readout__stat-label">{$rate_session_label}</span>
+						<span class="bsb-readout__stat-val"><span data-wp-text="state.rateSessionDisplay"></span><span class="bsb-readout__unit">%/h</span></span>
+					</div>
+					<div class="bsb-readout__stat bsb-readout__stat--wide">
+						<span class="bsb-readout__stat-label">{$tte_label}</span>
+						<span class="bsb-readout__stat-val" data-wp-text="state.timeToEmptyDisplay"></span>
+					</div>
+				</div>
+			</section>
 		</div>
 
 		<footer class="bsb-deck__foot">

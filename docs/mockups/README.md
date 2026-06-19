@@ -24,3 +24,5 @@ The shipped deck draws from **Coastal Daybreak** (light) and **Dusk Lineup**
 | File                   | Component                                        |
 | ---------------------- | ------------------------------------------------ |
 | `target-control.html`  | Target-drop battery slider (the battery *is* the slider; drag/keys set the stop-at %, green→red) |
+| `info-section.html`    | Live readouts: battery (level + fill colour, charging shown by the cable), drain rates, time-to-empty |
+| `cable-animate.html`   | Charging cable slide-in / slide-out animation for the readout battery |

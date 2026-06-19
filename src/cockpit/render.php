@@ -47,6 +47,11 @@ $bsb_context = array(
 	'elapsed'         => 0,
 	'theme'           => 'light',
 	'targetPercent'   => 20,
+	'batteryLevel'    => null,
+	'batteryCharging' => false,
+	'rate10'          => null,
+	'rateSession'     => null,
+	'secondsToEmpty'  => null,
 );
 
 // The viewport's `src` is owned by the Interactivity API: `data-wp-bind--src`
@@ -71,7 +76,12 @@ $bsb_markup = ( new CockpitView() )->render(
 		'target_label'     => esc_html__( 'Stop at battery', 'battery-surf-bench' ),
 		'target_aria'      => esc_attr__( 'Target battery percentage', 'battery-surf-bench' ),
 		'baseline_label'   => esc_html__( 'Baseline calibration', 'battery-surf-bench' ),
-		'speed_label'      => esc_html__( 'Speed', 'battery-surf-bench' ),
+		'speed_label'        => esc_html__( 'Speed', 'battery-surf-bench' ),
+		'readouts_label'     => esc_html__( 'Readouts', 'battery-surf-bench' ),
+		'battery_label'      => esc_html__( 'Battery', 'battery-surf-bench' ),
+		'rate10_label'       => esc_html__( 'Rate · 10 min', 'battery-surf-bench' ),
+		'rate_session_label' => esc_html__( 'Rate · session', 'battery-surf-bench' ),
+		'tte_label'          => esc_html__( 'Time to empty', 'battery-surf-bench' ),
 		'surfing_label'    => esc_html__( 'Surfing', 'battery-surf-bench' ),
 		'elapsed_label'    => esc_html__( 'elapsed', 'battery-surf-bench' ),
 		'stop_label'       => esc_html__( 'Stop', 'battery-surf-bench' ),

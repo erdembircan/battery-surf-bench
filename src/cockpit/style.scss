@@ -137,6 +137,187 @@ body {
 	background-image: var(--wave-front);
 }
 
+// ── Battery readouts ────────────────────────────────────────────────────────
+.bsb-readout {
+	display: flex;
+	flex-direction: column;
+	gap: 0.7rem;
+}
+
+.bsb-readout__feature {
+	@extend %inset-surface;
+
+	padding: 0.9rem 1rem;
+}
+
+.bsb-readout__feature-label {
+	display: block;
+	margin-bottom: 0.5rem;
+	font-size: 0.6rem;
+	font-weight: 700;
+	letter-spacing: 0.2em;
+	text-transform: uppercase;
+	color: var(--label);
+}
+
+.bsb-readout__row {
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+}
+
+.bsb-readout__num {
+	font-family: theme.$font-mono;
+	font-size: 2.4rem;
+	font-weight: 700;
+	line-height: 0.9;
+	font-variant-numeric: tabular-nums;
+}
+
+.bsb-readout__pct {
+	font-size: 1rem;
+	color: var(--text-soft);
+}
+
+// Battery laid on its side: cap left, fill from the right, cell ticks; the
+// charging cable slides in from the right and out of view via `.is-charging`.
+.bsb-readout__battery {
+	position: relative;
+	margin-left: auto;
+	display: inline-flex;
+	align-items: center;
+	gap: 3px;
+	flex: 0 0 auto;
+}
+
+.bsb-readout__cap {
+	order: 0;
+	flex: 0 0 auto;
+	width: 6px;
+	height: 1.3rem;
+	border-radius: 3px 0 0 3px;
+	background: var(--text-soft);
+}
+
+.bsb-readout__rig {
+	order: 1;
+	position: relative;
+	display: inline-flex;
+}
+
+.bsb-readout__body {
+	position: relative;
+	width: 7.4rem;
+	height: 3.4rem;
+	border: 3px solid var(--text-soft);
+	border-radius: 10px;
+	overflow: hidden;
+	background: var(--surface);
+	box-shadow: inset 0 1px 3px var(--surface-shadow);
+
+	&::after {
+		content: '';
+		position: absolute;
+		inset: 0;
+		background: repeating-linear-gradient(
+			90deg,
+			transparent 0,
+			transparent 1.74rem,
+			rgba(127, 127, 127, 0.13) 1.74rem,
+			rgba(127, 127, 127, 0.13) calc(1.74rem + 1px)
+		);
+		pointer-events: none;
+	}
+}
+
+.bsb-readout__fill {
+	position: absolute;
+	inset-block: 0;
+	right: 0;
+	transition:
+		width 0.3s ease,
+		background 0.3s ease;
+}
+
+.bsb-readout__track {
+	position: absolute;
+	top: 50%;
+	left: calc(100% - 3px);
+	width: 3.4rem;
+	height: 1.1rem;
+	transform: translateY(-50%);
+	overflow: hidden;
+	pointer-events: none;
+}
+
+.bsb-readout__cable {
+	position: absolute;
+	top: 50%;
+	left: 0;
+	width: 1.7rem;
+	height: 0.46rem;
+	transform: translate(150%, -50%);
+	border-radius: 0 3px 3px 0;
+	background: var(--good);
+	transition: transform 0.5s cubic-bezier(0.5, 0, 0.2, 1);
+
+	&::before {
+		content: '';
+		position: absolute;
+		top: 50%;
+		left: 0;
+		width: 0.4rem;
+		height: 0.86rem;
+		transform: translateY(-50%);
+		border-radius: 2px;
+		background: var(--good);
+	}
+}
+
+.bsb-readout__battery.is-charging .bsb-readout__cable {
+	transform: translate(0, -50%);
+}
+
+.bsb-readout__grid {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 0.7rem;
+}
+
+.bsb-readout__stat {
+	@extend %inset-surface;
+
+	padding: 0.8rem 0.9rem;
+}
+
+.bsb-readout__stat--wide {
+	grid-column: 1 / -1;
+}
+
+.bsb-readout__stat-label {
+	display: block;
+	font-size: 0.58rem;
+	font-weight: 700;
+	letter-spacing: 0.16em;
+	text-transform: uppercase;
+	color: var(--label);
+}
+
+.bsb-readout__stat-val {
+	display: block;
+	margin-top: 0.35rem;
+	font-family: theme.$font-mono;
+	font-size: 1.35rem;
+	font-weight: 700;
+	color: var(--readout-ink);
+	font-variant-numeric: tabular-nums;
+}
+
+.bsb-readout__unit {
+	font-size: 0.8rem;
+	color: var(--text-soft);
+}
+
 // ── Brand + theme toggle ─────────────────────────────────────────────────────
 .bsb-deck__brand {
 	position: relative;

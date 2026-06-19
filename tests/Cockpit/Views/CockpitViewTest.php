@@ -124,6 +124,21 @@ final class CockpitViewTest extends TestCase {
 	}
 
 	/**
+	 * The readouts section starts the battery feed and binds the battery level,
+	 * fill, colour and charging cable to the store.
+	 */
+	public function test_render_wires_the_readouts(): void {
+		$markup = $this->render();
+
+		$this->assertStringContainsString( 'data-wp-init="callbacks.initBattery"', $markup );
+		$this->assertStringContainsString( 'data-wp-text="state.batteryDisplay"', $markup );
+		$this->assertStringContainsString( 'data-wp-style--width="state.batteryFill"', $markup );
+		$this->assertStringContainsString( 'data-wp-class--is-charging="state.isCharging"', $markup );
+		$this->assertStringContainsString( 'data-wp-text="state.timeToEmptyDisplay"', $markup );
+		$this->assertStringContainsString( '>Readouts<', $markup );
+	}
+
+	/**
 	 * The stop control calls `actions.stop` and carries its translated label.
 	 */
 	public function test_render_wires_the_stop_control(): void {
@@ -183,7 +198,12 @@ final class CockpitViewTest extends TestCase {
 				'target_label'     => 'Stop at battery',
 				'target_aria'      => 'Target battery percentage',
 				'baseline_label'   => 'Baseline calibration',
-				'speed_label'      => 'Speed',
+				'speed_label'        => 'Speed',
+				'readouts_label'     => 'Readouts',
+				'battery_label'      => 'Battery',
+				'rate10_label'       => 'Rate · 10 min',
+				'rate_session_label' => 'Rate · session',
+				'tte_label'          => 'Time to empty',
 				'surfing_label'    => 'Surfing',
 				'elapsed_label'    => 'elapsed',
 				'stop_label'       => 'Stop',

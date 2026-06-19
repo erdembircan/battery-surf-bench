@@ -10,7 +10,7 @@
  * element that triggered each action.
  */
 
-import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 
 interface CoursePage {
 	slug: string;
@@ -29,6 +29,11 @@ interface CockpitContext {
 	elapsed: number;
 	theme: 'light' | 'dark';
 	targetPercent: number;
+	batteryLevel: number | null;
+	batteryCharging: boolean;
+	rate10: number | null;
+	rateSession: number | null;
+	secondsToEmpty: number | null;
 }
 
 interface CockpitConfig {
@@ -44,6 +49,13 @@ interface CockpitConfig {
 		isSpeed4: boolean;
 		isSpeed10: boolean;
 		elapsedClock: string;
+		batteryDisplay: string;
+		batteryFill: string;
+		batteryColor: string;
+		isCharging: boolean;
+		rate10Display: string;
+		rateSessionDisplay: string;
+		timeToEmptyDisplay: string;
 	};
 	actions: {
 		next: () => void;
@@ -61,6 +73,7 @@ interface CockpitConfig {
 	callbacks: {
 		tick: () => () => void;
 		initTheme: () => void;
+		initBattery: () => () => void;
 	};
 }
 
@@ -84,6 +97,11 @@ const baseContext = (): CockpitContext => ( {
 	elapsed: 0,
 	theme: 'light',
 	targetPercent: 20,
+	batteryLevel: null,
+	batteryCharging: false,
+	rate10: null,
+	rateSession: null,
+	secondsToEmpty: null,
 } );
 
 const mocks = vi.hoisted( () => ( {
@@ -375,6 +393,84 @@ describe( 'bsb/cockpit view store', () => {
 			expect( mocks.context.elapsed ).toBe( 3 );
 
 			vi.useRealTimers();
+		} );
+	} );
+
+	describe( 'battery readouts', () => {
+		afterEach( () => {
+			delete ( navigator as { getBattery?: unknown } ).getBattery;
+		} );
+
+		it( 'reads the battery level, fill and colour, idle by default', () => {
+			expect( mocks.config?.state.batteryDisplay ).toBe( '—' );
+			expect( mocks.config?.state.batteryFill ).toBe( '0%' );
+			expect( mocks.config?.state.batteryColor ).toBe(
+				'var(--text-soft)'
+			);
+			expect( mocks.config?.state.isCharging ).toBe( false );
+
+			mocks.context.batteryLevel = 90;
+			expect( mocks.config?.state.batteryDisplay ).toBe( '90' );
+			expect( mocks.config?.state.batteryFill ).toBe( '90%' );
+			expect( mocks.config?.state.batteryColor ).toBe(
+				'hsl(108, 70%, 45%)'
+			);
+
+			mocks.context.batteryCharging = true;
+			expect( mocks.config?.state.isCharging ).toBe( true );
+		} );
+
+		it( 'shows em dashes for rates and time to empty until known', () => {
+			expect( mocks.config?.state.rate10Display ).toBe( '—' );
+			expect( mocks.config?.state.rateSessionDisplay ).toBe( '—' );
+			expect( mocks.config?.state.timeToEmptyDisplay ).toBe( '—' );
+
+			mocks.context.rate10 = 7.2;
+			mocks.context.rateSession = 6.8;
+			expect( mocks.config?.state.rate10Display ).toBe( '7.2' );
+			expect( mocks.config?.state.rateSessionDisplay ).toBe( '6.8' );
+		} );
+
+		it( 'formats time to empty as H:MM', () => {
+			mocks.context.secondsToEmpty = 32040;
+			expect( mocks.config?.state.timeToEmptyDisplay ).toBe( '8:54' );
+
+			mocks.context.secondsToEmpty = 0;
+			expect( mocks.config?.state.timeToEmptyDisplay ).toBe( '—' );
+		} );
+
+		it( 'syncs level and charging from the Battery Status API', async () => {
+			const mockBattery = {
+				level: 0.42,
+				charging: true,
+				addEventListener: vi.fn(),
+				removeEventListener: vi.fn(),
+			};
+			( navigator as { getBattery?: unknown } ).getBattery = () =>
+				Promise.resolve( mockBattery );
+
+			const cleanup = mocks.config!.callbacks.initBattery();
+
+			await vi.waitFor( () =>
+				expect( mocks.context.batteryLevel ).toBe( 42 )
+			);
+			expect( mocks.context.batteryCharging ).toBe( true );
+			expect( mockBattery.addEventListener ).toHaveBeenCalledWith(
+				'levelchange',
+				expect.any( Function )
+			);
+
+			cleanup();
+			expect( mockBattery.removeEventListener ).toHaveBeenCalledTimes(
+				2
+			);
+		} );
+
+		it( 'no-ops where the Battery Status API is unavailable', () => {
+			const cleanup = mocks.config?.callbacks.initBattery();
+			cleanup?.();
+
+			expect( mocks.context.batteryLevel ).toBeNull();
 		} );
 	} );
 
