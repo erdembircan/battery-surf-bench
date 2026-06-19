@@ -5,11 +5,6 @@
       <stop offset="0.55" stop-color="#1c83c9"/>
       <stop offset="1" stop-color="#0a4f8f"/>
     </linearGradient>
-    <radialGradient id="sun" cx="0.5" cy="0.5" r="0.5">
-      <stop offset="0" stop-color="#fff7d6" stop-opacity="0.95"/>
-      <stop offset="0.6" stop-color="#ffe08a" stop-opacity="0.45"/>
-      <stop offset="1" stop-color="#ffe08a" stop-opacity="0"/>
-    </radialGradient>
     <clipPath id="badge">
       <rect x="0" y="0" width="300" height="300" rx="64"/>
     </clipPath>
@@ -20,7 +15,6 @@
 
   <g clip-path="url(#badge)">
     <rect x="0" y="0" width="300" height="300" fill="url(#ocean)"/>
-    <circle cx="232" cy="74" r="78" fill="url(#sun)"/>
     <!-- foam swells behind the mascot -->
     <path d="M-10 214 Q 60 188 130 214 T 310 214 V 320 H -10 Z" fill="#ffffff" opacity="0.10"/>
     <path d="M-10 236 Q 70 210 150 236 T 320 236 V 320 H -10 Z" fill="#ffffff" opacity="0.14"/>
