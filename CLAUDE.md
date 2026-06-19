@@ -83,7 +83,7 @@ All source files (both JS/TS and PHP) must use **CamelCase** (e.g. `BatteryMonit
 
 ## Styles
 
-**Author all styles as SCSS — never hand-write `.css` files.** A `.css` file in the source tree is a regression; every stylesheet has a `.scss` source under `src/` compiled to `build/` by `@wordpress/scripts` (mirroring `src/sessions/style.scss` → `build/style-sessions.css`). Enqueue the built `build/style-*.css`, never an `assets/css/*.css` hand-edited by hand.
+**Author all styles as SCSS — never hand-write `.css` files.** A hand-written `.css` file in the source tree is a regression: every stylesheet must have an SCSS source that the build compiles into its CSS artifact. Always enqueue the compiled artifact, never a CSS file edited by hand. Discover where sources live and where they compile to from the build configuration — don't assume a fixed directory layout, tool, or naming convention.
 
 ## Testing Philosophy
 
@@ -203,7 +203,15 @@ public function test_register_meta_prefixes_field_keys(): void {
 
 ### Tooling
 
-Tests run on **PHPUnit** with **Brain Monkey** for WordPress function/hook mocking. The base `ErdemBircan\BatterySurfBench\Tests\TestCase` wires Brain Monkey's `setUp`/`tearDown` into the lifecycle — extend it for any test that touches WordPress. Run the suite with `composer test` (coverage via `composer test:coverage`).
+Any test that touches WordPress must extend the project's base test case, which wires the WordPress function/hook mocking lifecycle (setup/teardown) so individual tests don't repeat it. Run tests through the project's defined test script rather than invoking a runner directly, so you inherit its configuration. Find the base test case, the mocking library, and the available test/coverage scripts from the test setup and `composer.json` rather than assuming their names.
+
+## Don't Live with Broken Windows
+
+When you notice a defect — a bug, a failing or skipped test, a lint violation, dead or wrong code, a misleading comment, a contract that no longer matches the code — **deal with it.** "It's pre-existing" or "not part of my change" is not a reason to leave it broken: a defect you saw and walked past is one you now own. One unrepaired broken window invites the next, and the codebase rots.
+
+- **Fix it now**, in the same change, when the fix is small and in scope.
+- **If it's genuinely too large or out of scope**, don't silently move on — surface it to the maintainer and track it (issue, backlog item, or a TODO with enough context to act on later). Board the window up; never just pass it.
+- **Never normalize a broken state.** Don't skip/`@xfail` a failing test, suppress a warning, or rewrite an assertion to match wrong behavior just to reach green. That isn't a fix — it's a bigger broken window.
 
 ## Linting & PHPCS
 
@@ -217,24 +225,19 @@ Tests run on **PHPUnit** with **Brain Monkey** for WordPress function/hook mocki
 
 ## Running Lints & Tests
 
-**Never pipe a lint or test command through `tail` (or `head`).** This applies to `composer lint` (PHPCS), `composer test` (PHPUnit), `pnpm lint:js`, `pnpm test`, `pnpm typecheck`, and the like.
+**Never pipe a lint or test command through `tail` (or `head`), or otherwise truncate its output.** This applies to every lint, test, and type-check command in the project.
 
-- **Findings print above the footer.** PHPCS and PHPUnit print their error reports *before* the trailing `Time: … Memory: …` line. `tail -6` shows only that footer, so an entire report of failures is invisible and the run looks clean.
+- **Findings print above the footer.** Linters and test runners typically print their error report *before* the trailing summary line (e.g. `Time: … Memory: …`). Truncating to the last few lines shows only that footer, so an entire report of failures is invisible and the run looks clean.
 - **A pipe masks the exit code.** In `cmd | tail`, the shell reports `tail`'s status (always `0`), hiding a real non-zero failure.
-- **Instead:** run the command with full output and confirm the genuine exit code, e.g. `composer lint; echo "EXIT=$?"`. Read the whole report, or `grep` for the error summary. Reserve `| tail` for genuinely verbose commands that clearly succeed at the end (installs, builds), and even then append `${PIPESTATUS[0]}` to see the real status.
+- **Instead:** run the command with full output and confirm the genuine exit code, e.g. `composer lint; echo "EXIT=$?"`. Read the whole report, or `grep` for the error summary. Reserve truncation for genuinely verbose commands that clearly succeed at the end (installs, builds), and even then check the real status (e.g. `${PIPESTATUS[0]}`).
 
-## CI — Verify At Both the PR Level and Post-Merge
+## CI — Wait for Every Check to Finish Green
 
-CI is split across two workflows, and they do **not** run the same jobs:
+CI runs after every push to a pull request and after every merge. Before treating any work as done — or moving on to anything that depends on it — **wait until all CI checks have finished and are green.**
 
-- **`pr-checks.yml`** (on pull requests) runs `composer lint`, `composer test`, `pnpm lint:js`, `pnpm test`, `pnpm typecheck`, and the `i18n` template check. It **does not run e2e.**
-- **`merge-checks.yml`** (on push to `master`, i.e. *after* merge) runs all of the above **plus `pnpm test:e2e`** (Playwright + WP Playground) and the `.pot` auto-commit.
-
-Because e2e runs only post-merge, **a green PR does NOT guarantee a green `master`.** Therefore:
-
-- **At PR level:** confirm every PR check is green before merging — never merge on red or pending checks.
-- **After merging:** always watch the `merge-checks` run through to completion and confirm it passed. If it fails (e2e is the usual culprit), fix `master` immediately on a new branch — do not leave `master` red or walk away assuming the merge was clean.
-- When a change could plausibly affect runtime/rendering behavior, run `pnpm test:e2e` locally **before** merging, since PR checks won't.
+- **The visible checks are not necessarily the whole set.** A check that passes can trigger further checks that are queued, not yet started, or not yet visible at the moment you look. Discover which checks the repository actually runs and wait for the complete set to settle — including any that appear only after earlier ones pass.
+- **Never act on a partial or pending result.** Do not merge, report success, or walk away while any check is still running, queued, or yet to be triggered. "Green" means every check that will run has run and passed.
+- **If any check ends red, stop and fix it before proceeding.** Never leave a branch — or the default branch — in a failing state.
 
 ## File Reads & Writes
 
