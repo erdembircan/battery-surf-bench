@@ -31,13 +31,19 @@ defined( 'ABSPATH' ) || exit;
 
 $bsb_pages = isset( $attributes['pages'] ) && is_array( $attributes['pages'] ) ? $attributes['pages'] : array();
 
-// Per-instance Interactivity context: the surfable pages and which one is
-// active. The active page's URL is derived from these on the client (see
-// view.ts) and bound onto the iframe, so changing the index later re-points
-// the viewport with no reload of the cockpit itself.
+// Per-instance Interactivity context: the surfable pages, which one is active,
+// and the run configuration the control deck edits. The active page's URL is
+// derived from these on the client (see view.ts) and bound onto the iframe, so
+// changing the index later re-points the viewport with no reload of the cockpit
+// itself; the deck reads and writes the run fields through the same store.
 $bsb_context = array(
-	'pages'       => $bsb_pages,
-	'activeIndex' => 0,
+	'pages'           => $bsb_pages,
+	'activeIndex'     => 0,
+	'mode'            => 'duration',
+	'durationMinutes' => 30,
+	'baseline'        => false,
+	'speed'           => 1,
+	'running'         => false,
 );
 
 // The viewport's `src` is owned by the Interactivity API: `data-wp-bind--src`
@@ -47,10 +53,22 @@ $bsb_context = array(
 // is defined client-side.
 $bsb_markup = ( new CockpitView() )->render(
 	array(
-		'wrapper'        => get_block_wrapper_attributes(),
-		'context'        => wp_interactivity_data_wp_context( $bsb_context ),
-		'next_label'     => esc_html__( 'Next page', 'battery-surf-bench' ),
-		'viewport_title' => esc_attr__( 'Surf viewport', 'battery-surf-bench' ),
+		'wrapper'          => get_block_wrapper_attributes(),
+		'context'          => wp_interactivity_data_wp_context( $bsb_context ),
+		'brand_title'      => esc_html__( 'Battery Surf Bench', 'battery-surf-bench' ),
+		'brand_subtitle'   => esc_html__( 'Cockpit', 'battery-surf-bench' ),
+		'mode_label'       => esc_html__( 'Mode', 'battery-surf-bench' ),
+		'duration_mode'    => esc_html__( 'Duration', 'battery-surf-bench' ),
+		'target_drop_mode' => esc_html__( 'Target drop', 'battery-surf-bench' ),
+		'duration_label'   => esc_html__( 'Run duration', 'battery-surf-bench' ),
+		'minutes_label'    => esc_html__( 'min', 'battery-surf-bench' ),
+		'decrease_label'   => esc_attr__( 'Decrease duration', 'battery-surf-bench' ),
+		'increase_label'   => esc_attr__( 'Increase duration', 'battery-surf-bench' ),
+		'baseline_label'   => esc_html__( 'Baseline calibration', 'battery-surf-bench' ),
+		'speed_label'      => esc_html__( 'Speed', 'battery-surf-bench' ),
+		'stop_label'       => esc_html__( 'Stop', 'battery-surf-bench' ),
+		'next_label'       => esc_html__( 'Next page', 'battery-surf-bench' ),
+		'viewport_title'   => esc_attr__( 'Surf viewport', 'battery-surf-bench' ),
 	)
 );
 

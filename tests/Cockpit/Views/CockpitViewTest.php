@@ -30,18 +30,11 @@ final class CockpitViewTest extends TestCase {
 
 	/**
 	 * The supplied wrapper attributes and per-instance context are placed onto
-	 * the interactive region, and the controls and viewport carry the store
-	 * directives the client view (view.ts) hydrates against.
+	 * the interactive region, and the viewport carries the store directives the
+	 * client view (view.ts) hydrates against.
 	 */
 	public function test_render_wires_the_interactive_region(): void {
-		$markup = ( new CockpitView() )->render(
-			array(
-				'wrapper'        => 'class="wp-block-bsb-cockpit"',
-				'context'        => 'data-wp-context=\'{"activeIndex":0}\'',
-				'next_label'     => 'Next page',
-				'viewport_title' => 'Surf viewport',
-			)
-		);
+		$markup = $this->render();
 
 		$this->assertStringContainsString( 'data-wp-interactive="bsb/cockpit"', $markup );
 		$this->assertStringContainsString( 'class="wp-block-bsb-cockpit"', $markup );
@@ -51,5 +44,102 @@ final class CockpitViewTest extends TestCase {
 		$this->assertStringContainsString( 'data-wp-text="state.currentLabel"', $markup );
 		$this->assertStringContainsString( 'data-wp-bind--src="state.currentSrc"', $markup );
 		$this->assertStringContainsString( 'title="Surf viewport"', $markup );
+	}
+
+	/**
+	 * The control deck wires the mode segmented control to the store: each option
+	 * names its mode, calls `actions.selectMode`, and reflects the active mode.
+	 */
+	public function test_render_wires_the_mode_control(): void {
+		$markup = $this->render();
+
+		$this->assertStringContainsString( 'data-mode="duration"', $markup );
+		$this->assertStringContainsString( 'data-mode="targetDrop"', $markup );
+		$this->assertStringContainsString( 'data-wp-on--click="actions.selectMode"', $markup );
+		$this->assertStringContainsString( 'data-wp-class--is-active="state.isModeDuration"', $markup );
+		$this->assertStringContainsString( 'data-wp-class--is-active="state.isModeTargetDrop"', $markup );
+		$this->assertStringContainsString( '>Duration<', $markup );
+		$this->assertStringContainsString( '>Target drop<', $markup );
+	}
+
+	/**
+	 * The duration field is hidden unless duration mode is active, and its
+	 * stepper steps the duration and reads it back from the store.
+	 */
+	public function test_render_wires_the_duration_control(): void {
+		$markup = $this->render();
+
+		$this->assertStringContainsString( 'data-wp-bind--hidden="state.isModeTargetDrop"', $markup );
+		$this->assertStringContainsString( 'data-step="-5"', $markup );
+		$this->assertStringContainsString( 'data-step="5"', $markup );
+		$this->assertStringContainsString( 'data-wp-on--click="actions.stepDuration"', $markup );
+		$this->assertStringContainsString( 'data-wp-text="state.durationDisplay"', $markup );
+	}
+
+	/**
+	 * The baseline toggle binds its checked state to context and reports changes
+	 * back through `actions.toggleBaseline`.
+	 */
+	public function test_render_wires_the_baseline_toggle(): void {
+		$markup = $this->render();
+
+		$this->assertStringContainsString( 'data-wp-bind--checked="context.baseline"', $markup );
+		$this->assertStringContainsString( 'data-wp-on--change="actions.toggleBaseline"', $markup );
+		$this->assertStringContainsString( '>Baseline calibration<', $markup );
+	}
+
+	/**
+	 * The speed segmented control names each multiplier, calls
+	 * `actions.selectSpeed`, and reflects the active speed.
+	 */
+	public function test_render_wires_the_speed_control(): void {
+		$markup = $this->render();
+
+		$this->assertStringContainsString( 'data-speed="1"', $markup );
+		$this->assertStringContainsString( 'data-speed="4"', $markup );
+		$this->assertStringContainsString( 'data-speed="10"', $markup );
+		$this->assertStringContainsString( 'data-wp-on--click="actions.selectSpeed"', $markup );
+		$this->assertStringContainsString( 'data-wp-class--is-active="state.isSpeed1"', $markup );
+		$this->assertStringContainsString( 'data-wp-class--is-active="state.isSpeed4"', $markup );
+		$this->assertStringContainsString( 'data-wp-class--is-active="state.isSpeed10"', $markup );
+	}
+
+	/**
+	 * The stop control calls `actions.stop` and carries its translated label.
+	 */
+	public function test_render_wires_the_stop_control(): void {
+		$markup = $this->render();
+
+		$this->assertStringContainsString( 'data-wp-on--click="actions.stop"', $markup );
+		$this->assertStringContainsString( '>Stop</span>', $markup );
+	}
+
+	/**
+	 * Renders the view with a full set of escaped values, as the render template
+	 * supplies them.
+	 *
+	 * @return string The rendered cockpit markup.
+	 */
+	private function render(): string {
+		return ( new CockpitView() )->render(
+			array(
+				'wrapper'          => 'class="wp-block-bsb-cockpit"',
+				'context'          => 'data-wp-context=\'{"activeIndex":0}\'',
+				'brand_title'      => 'Battery Surf Bench',
+				'brand_subtitle'   => 'Cockpit',
+				'mode_label'       => 'Mode',
+				'duration_mode'    => 'Duration',
+				'target_drop_mode' => 'Target drop',
+				'duration_label'   => 'Run duration',
+				'minutes_label'    => 'min',
+				'decrease_label'   => 'Decrease duration',
+				'increase_label'   => 'Increase duration',
+				'baseline_label'   => 'Baseline calibration',
+				'speed_label'      => 'Speed',
+				'stop_label'       => 'Stop',
+				'next_label'       => 'Next page',
+				'viewport_title'   => 'Surf viewport',
+			)
+		);
 	}
 }

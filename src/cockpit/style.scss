@@ -1,24 +1,675 @@
-html, body{margin: 0;
-  height: 100%;}
-.wp-block-bsb-cockpit{display: flex;
-  flex-direction: column;
-  height: 100vh;}
-.bsb-cockpit__controls{flex: 0 0 auto;
-  display: flex;
-  gap: 0.75rem;
-  align-items: center;
-  padding: 0.6rem 0.9rem;
-  border-bottom: 1px solid #e8e4dc;
-  font: 14px/1.4 -apple-system, blinkmacsystemfont, "Segoe UI", helvetica, arial, sans-serif;}
-.bsb-cockpit__cycle{cursor: pointer;
-  padding: 0.4rem 0.9rem;
-  border: 1px solid #1a1a18;
-  border-radius: 4px;
-  background: #1a1a18;
-  color: #fff;
-  font: inherit;}
-.bsb-cockpit__label{color: #6b6760;}
-.bsb-cockpit__viewport{flex: 1 1 auto;
-  display: block;
-  width: 100%;
-  border: 0;}
+/*
+ * Cockpit dashboard styles — "Sunset Lineup".
+ *
+ * The cockpit is a two-pane control deck: a dusk-ocean sidebar of run controls
+ * on the left, a warm sand surf stage holding the viewport iframe on the right.
+ * The palette, the condensed display type and the gentle wave motion give the
+ * benchmark cockpit the feel of an analog surf-shop control board rather than a
+ * generic admin panel. This is the only stylesheet the stripped dashboard route
+ * loads, so it carries its own reset and web fonts (pulled in via @font-face, so
+ * no extra stylesheet link is added to the page).
+ */
+
+@font-face {
+	font-family: 'Anton';
+	font-style: normal;
+	font-weight: 400;
+	font-display: swap;
+	src: url('https://cdn.jsdelivr.net/fontsource/fonts/anton@latest/latin-400-normal.woff2')
+		format('woff2');
+}
+
+@font-face {
+	font-family: 'Hanken Grotesk';
+	font-style: normal;
+	font-weight: 400;
+	font-display: swap;
+	src: url('https://cdn.jsdelivr.net/fontsource/fonts/hanken-grotesk@latest/latin-400-normal.woff2')
+		format('woff2');
+}
+
+@font-face {
+	font-family: 'Hanken Grotesk';
+	font-style: normal;
+	font-weight: 600;
+	font-display: swap;
+	src: url('https://cdn.jsdelivr.net/fontsource/fonts/hanken-grotesk@latest/latin-600-normal.woff2')
+		format('woff2');
+}
+
+@font-face {
+	font-family: 'Hanken Grotesk';
+	font-style: normal;
+	font-weight: 700;
+	font-display: swap;
+	src: url('https://cdn.jsdelivr.net/fontsource/fonts/hanken-grotesk@latest/latin-700-normal.woff2')
+		format('woff2');
+}
+
+@font-face {
+	font-family: 'Space Mono';
+	font-style: normal;
+	font-weight: 700;
+	font-display: swap;
+	src: url('https://cdn.jsdelivr.net/fontsource/fonts/space-mono@latest/latin-700-normal.woff2')
+		format('woff2');
+}
+
+// ── Palette ────────────────────────────────────────────────────────────────
+// Dusk over the water: deep ocean for the deck, warm sand for the stage, with
+// a sunset coral / sunshine yellow / foam aqua accent set.
+$ocean-deep: #052c45;
+$ocean: #0a4f7a;
+$ocean-line: rgba(151, 222, 255, 0.16);
+$sand: #f7efe1;
+$sand-deep: #efe3cd;
+$sand-line: #e2d3b8;
+$ink: #14242e;
+$ink-soft: #5d6b6f;
+$coral: #ff5a3c;
+$coral-deep: #e03a1f;
+$tangerine: #ff9248;
+$sun: #ffd23f;
+$aqua: #2fd4c4;
+$foam: #d8f3fa;
+$charge: #5fd38b;
+
+$font-display: 'Anton', 'Oswald', 'Arial Narrow', sans-serif;
+$font-ui: 'Hanken Grotesk', ui-sans-serif, system-ui, -apple-system, sans-serif;
+$font-mono: 'Space Mono', ui-monospace, 'SFMono-Regular', menlo, monospace;
+
+$deck-width: clamp(300px, 28vw, 372px);
+
+html,
+body {
+	margin: 0;
+	height: 100%;
+}
+
+.wp-block-bsb-cockpit {
+	--bsb-coral: #{$coral};
+	--bsb-aqua: #{$aqua};
+	--bsb-sun: #{$sun};
+
+	display: grid;
+	grid-template-columns: $deck-width 1fr;
+	height: 100vh;
+	overflow: hidden;
+	font-family: $font-ui;
+	color: $ink;
+	-webkit-font-smoothing: antialiased;
+
+	*,
+	*::before,
+	*::after {
+		box-sizing: border-box;
+	}
+}
+
+// ── Control deck (left) ──────────────────────────────────────────────────────
+.bsb-cockpit__deck {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+	padding: 1.6rem 1.5rem 1.4rem;
+	overflow: hidden;
+	color: $foam;
+	background:
+		radial-gradient(
+			120% 80% at 80% -10%,
+			rgba(255, 168, 76, 0.5) 0%,
+			rgba(255, 122, 89, 0.2) 32%,
+			transparent 60%
+		),
+		linear-gradient(170deg, $ocean 0%, $ocean-deep 70%);
+
+	// Sun glow that breathes behind the brand.
+	&::before {
+		content: '';
+		position: absolute;
+		top: -90px;
+		right: -70px;
+		width: 240px;
+		height: 240px;
+		border-radius: 50%;
+		background: radial-gradient(
+			circle,
+			rgba(255, 210, 63, 0.55) 0%,
+			rgba(255, 146, 72, 0.18) 45%,
+			transparent 70%
+		);
+		filter: blur(4px);
+		animation: bsb-sun 7s ease-in-out infinite;
+		pointer-events: none;
+	}
+
+	// Foam line that drifts along the deck's foot.
+	&::after {
+		content: '';
+		position: absolute;
+		inset-inline: 0;
+		bottom: 0;
+		height: 46px;
+		background:
+			repeating-linear-gradient(
+				90deg,
+				transparent 0,
+				transparent 14px,
+				rgba(216, 243, 250, 0.07) 14px,
+				rgba(216, 243, 250, 0.07) 28px
+			);
+		mask: linear-gradient(transparent, #000);
+		animation: bsb-drift 9s linear infinite;
+		pointer-events: none;
+	}
+}
+
+.bsb-deck__brand {
+	position: relative;
+	z-index: 1;
+	display: flex;
+	align-items: center;
+	gap: 0.85rem;
+	padding-bottom: 1.4rem;
+	margin-bottom: 1.4rem;
+	border-bottom: 1px solid $ocean-line;
+}
+
+.bsb-deck__mascot {
+	width: 44px;
+	height: 44px;
+	flex: 0 0 auto;
+	color: $sun;
+	filter: drop-shadow(0 3px 8px rgba(255, 210, 63, 0.35));
+
+	.bsb-deck__wave {
+		color: $aqua;
+		animation: bsb-bob 4s ease-in-out infinite;
+		transform-origin: center;
+	}
+
+	.bsb-deck__bolt {
+		color: $coral;
+		animation: bsb-spark 3.2s ease-in-out infinite;
+	}
+}
+
+.bsb-deck__wordmark {
+	display: flex;
+	flex-direction: column;
+	gap: 0.15rem;
+	min-width: 0;
+}
+
+.bsb-deck__title {
+	font-family: $font-display;
+	font-size: 1.36rem;
+	letter-spacing: 0.01em;
+	line-height: 0.98;
+	text-transform: uppercase;
+	color: #fff;
+}
+
+.bsb-deck__subtitle {
+	font-size: 0.62rem;
+	font-weight: 700;
+	letter-spacing: 0.42em;
+	text-transform: uppercase;
+	color: $sun;
+}
+
+.bsb-deck__body {
+	position: relative;
+	z-index: 1;
+	display: flex;
+	flex-direction: column;
+	gap: 1.55rem;
+	flex: 1 1 auto;
+	min-height: 0;
+	overflow-y: auto;
+}
+
+// Staggered rise of each control as the deck hydrates.
+.bsb-field {
+	display: flex;
+	flex-direction: column;
+	gap: 0.6rem;
+	animation: bsb-rise 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+
+	@for $i from 1 through 5 {
+		&:nth-child(#{$i}) {
+			animation-delay: #{0.06s * $i};
+		}
+	}
+
+	&[hidden] {
+		display: none;
+	}
+}
+
+.bsb-field__label {
+	font-size: 0.66rem;
+	font-weight: 700;
+	letter-spacing: 0.22em;
+	text-transform: uppercase;
+	color: rgba(216, 243, 250, 0.6);
+}
+
+// ── Segmented control (mode + speed) ────────────────────────────────────────
+.bsb-seg {
+	display: grid;
+	grid-auto-flow: column;
+	grid-auto-columns: 1fr;
+	gap: 0.3rem;
+	padding: 0.3rem;
+	border-radius: 13px;
+	background: rgba(3, 24, 38, 0.55);
+	box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+.bsb-seg__option {
+	appearance: none;
+	cursor: pointer;
+	padding: 0.62rem 0.4rem;
+	border: 0;
+	border-radius: 9px;
+	background: transparent;
+	color: rgba(216, 243, 250, 0.75);
+	font-family: $font-ui;
+	font-size: 0.86rem;
+	font-weight: 700;
+	letter-spacing: 0.02em;
+	transition:
+		background 0.2s ease,
+		color 0.2s ease,
+		transform 0.12s ease,
+		box-shadow 0.2s ease;
+
+	&:hover {
+		color: #fff;
+		background: rgba(216, 243, 250, 0.08);
+	}
+
+	&:active {
+		transform: translateY(1px);
+	}
+
+	&.is-active {
+		color: $ocean-deep;
+		background: linear-gradient(155deg, $sun 0%, $tangerine 100%);
+		box-shadow:
+			0 4px 12px rgba(255, 146, 72, 0.4),
+			inset 0 1px 0 rgba(255, 255, 255, 0.5);
+	}
+}
+
+.bsb-seg--speed .bsb-seg__option {
+	font-family: $font-mono;
+	letter-spacing: 0;
+}
+
+// ── Duration stepper ────────────────────────────────────────────────────────
+.bsb-stepper {
+	display: grid;
+	grid-template-columns: auto 1fr auto;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.45rem;
+	border-radius: 13px;
+	background: rgba(3, 24, 38, 0.55);
+	box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+.bsb-stepper__btn {
+	cursor: pointer;
+	width: 2.4rem;
+	height: 2.4rem;
+	border: 0;
+	border-radius: 10px;
+	background: rgba(216, 243, 250, 0.1);
+	color: $foam;
+	font-size: 1.4rem;
+	line-height: 1;
+	transition:
+		background 0.18s ease,
+		transform 0.12s ease,
+		color 0.18s ease;
+
+	&:hover {
+		background: $aqua;
+		color: $ocean-deep;
+	}
+
+	&:active {
+		transform: scale(0.92);
+	}
+}
+
+.bsb-stepper__readout {
+	display: flex;
+	align-items: baseline;
+	justify-content: center;
+	gap: 0.35rem;
+}
+
+.bsb-stepper__value {
+	font-family: $font-mono;
+	font-size: 1.7rem;
+	font-weight: 700;
+	color: #fff;
+	font-variant-numeric: tabular-nums;
+}
+
+.bsb-stepper__unit {
+	font-size: 0.7rem;
+	font-weight: 700;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	color: $sun;
+}
+
+// ── Baseline toggle ─────────────────────────────────────────────────────────
+.bsb-toggle {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	cursor: pointer;
+	user-select: none;
+}
+
+.bsb-toggle__input {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	margin: -1px;
+	padding: 0;
+	border: 0;
+	overflow: hidden;
+	clip: rect(0 0 0 0);
+	white-space: nowrap;
+}
+
+.bsb-toggle__track {
+	position: relative;
+	flex: 0 0 auto;
+	width: 3.2rem;
+	height: 1.7rem;
+	border-radius: 999px;
+	background: rgba(3, 24, 38, 0.6);
+	box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.45);
+	transition: background 0.25s ease;
+}
+
+.bsb-toggle__thumb {
+	position: absolute;
+	top: 0.2rem;
+	left: 0.2rem;
+	width: 1.3rem;
+	height: 1.3rem;
+	border-radius: 50%;
+	background: $foam;
+	box-shadow: 0 2px 5px rgba(0, 0, 0, 0.35);
+	transition:
+		transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
+		background 0.25s ease;
+}
+
+.bsb-toggle__text {
+	font-size: 0.92rem;
+	font-weight: 600;
+	color: $foam;
+}
+
+.bsb-toggle__input:checked + .bsb-toggle__track {
+	background: linear-gradient(155deg, $charge 0%, $aqua 100%);
+
+	.bsb-toggle__thumb {
+		transform: translateX(1.5rem);
+		background: #fff;
+	}
+}
+
+.bsb-toggle__input:focus-visible + .bsb-toggle__track {
+	outline: 2px solid $sun;
+	outline-offset: 2px;
+}
+
+// ── Stop button ─────────────────────────────────────────────────────────────
+.bsb-deck__foot {
+	position: relative;
+	z-index: 1;
+	padding-top: 1.4rem;
+	margin-top: 1.2rem;
+	border-top: 1px solid $ocean-line;
+}
+
+.bsb-stop {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.7rem;
+	width: 100%;
+	padding: 1rem;
+	cursor: pointer;
+	border: 0;
+	border-radius: 14px;
+	background: linear-gradient(160deg, $coral 0%, $coral-deep 100%);
+	color: #fff;
+	font-family: $font-display;
+	font-size: 1.18rem;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	box-shadow:
+		0 8px 20px rgba(224, 58, 31, 0.4),
+		inset 0 1px 0 rgba(255, 255, 255, 0.3);
+	transition:
+		transform 0.14s ease,
+		box-shadow 0.2s ease,
+		filter 0.2s ease;
+
+	&:hover {
+		transform: translateY(-2px);
+		box-shadow:
+			0 12px 26px rgba(224, 58, 31, 0.5),
+			inset 0 1px 0 rgba(255, 255, 255, 0.35);
+		filter: saturate(1.1);
+	}
+
+	&:active {
+		transform: translateY(0);
+	}
+
+	&:focus-visible {
+		outline: 2px solid $sun;
+		outline-offset: 3px;
+	}
+}
+
+.bsb-stop__glyph {
+	width: 0.9rem;
+	height: 0.9rem;
+	border-radius: 3px;
+	background: #fff;
+	box-shadow: 0 0 12px rgba(255, 255, 255, 0.65);
+	animation: bsb-pulse 1.8s ease-in-out infinite;
+}
+
+// ── Surf stage (right) ──────────────────────────────────────────────────────
+.bsb-cockpit__stage {
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+	background:
+		radial-gradient(
+			140% 60% at 50% 0%,
+			rgba(255, 255, 255, 0.7) 0%,
+			transparent 55%
+		),
+		linear-gradient(180deg, $sand 0%, $sand-deep 100%);
+}
+
+.bsb-stage__bar {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+	flex: 0 0 auto;
+	padding: 0.85rem 1.2rem;
+	background: rgba(255, 255, 255, 0.6);
+	border-bottom: 1px solid $sand-line;
+	backdrop-filter: blur(6px);
+}
+
+.bsb-stage__label {
+	font-family: $font-mono;
+	font-size: 0.82rem;
+	font-weight: 700;
+	color: $ink;
+	letter-spacing: 0.01em;
+
+	&:empty::before {
+		content: '— — —';
+		color: $ink-soft;
+	}
+}
+
+.bsb-stage__cycle {
+	cursor: pointer;
+	flex: 0 0 auto;
+	padding: 0.5rem 1.1rem;
+	border: 1px solid $ocean;
+	border-radius: 999px;
+	background: $ocean;
+	color: $foam;
+	font-family: $font-ui;
+	font-size: 0.74rem;
+	font-weight: 700;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	transition:
+		background 0.18s ease,
+		transform 0.12s ease,
+		box-shadow 0.18s ease;
+
+	&:hover {
+		background: $ocean-deep;
+		box-shadow: 0 4px 12px rgba(10, 79, 122, 0.35);
+	}
+
+	&:active {
+		transform: translateY(1px);
+	}
+
+	&:focus-visible {
+		outline: 2px solid $coral;
+		outline-offset: 2px;
+	}
+}
+
+.bsb-cockpit__viewport {
+	flex: 1 1 auto;
+	display: block;
+	width: 100%;
+	min-height: 0;
+	border: 0;
+	background: #fff;
+}
+
+// ── Motion ──────────────────────────────────────────────────────────────────
+@keyframes bsb-rise {
+	from {
+		opacity: 0;
+		transform: translateY(12px);
+	}
+
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+@keyframes bsb-sun {
+	0%,
+	100% {
+		opacity: 0.8;
+		transform: scale(1);
+	}
+
+	50% {
+		opacity: 1;
+		transform: scale(1.08);
+	}
+}
+
+@keyframes bsb-bob {
+	0%,
+	100% {
+		transform: translateY(0);
+	}
+
+	50% {
+		transform: translateY(1.4px);
+	}
+}
+
+@keyframes bsb-spark {
+	0%,
+	100% {
+		opacity: 1;
+	}
+
+	45% {
+		opacity: 0.45;
+	}
+
+	55% {
+		opacity: 1;
+	}
+}
+
+@keyframes bsb-drift {
+	from {
+		background-position: 0 0;
+	}
+
+	to {
+		background-position: 56px 0;
+	}
+}
+
+@keyframes bsb-pulse {
+	0%,
+	100% {
+		opacity: 1;
+		transform: scale(1);
+	}
+
+	50% {
+		opacity: 0.5;
+		transform: scale(0.82);
+	}
+}
+
+// Respect reduced-motion: hold everything still.
+@media (prefers-reduced-motion: reduce) {
+	.wp-block-bsb-cockpit *,
+	.wp-block-bsb-cockpit *::before,
+	.wp-block-bsb-cockpit *::after {
+		animation: none !important;
+		transition: none !important;
+	}
+}
+
+// ── Narrow viewports: stack deck over stage ─────────────────────────────────
+@media (max-width: 720px) {
+	.wp-block-bsb-cockpit {
+		grid-template-columns: 1fr;
+		grid-template-rows: auto 1fr;
+		height: 100vh;
+	}
+
+	.bsb-cockpit__deck {
+		overflow-y: auto;
+	}
+}
