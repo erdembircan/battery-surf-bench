@@ -1,36 +1,57 @@
 /**
  * Project ESLint flat config.
  *
- * Extends the default config shipped with `@wordpress/scripts`. That default
- * applies its TypeScript treatment only to `.ts`/`.tsx` files, so `.mts`/`.cts`
- * modules (the Playground tooling and e2e specs) were being parsed as plain
- * JavaScript -- which misreports type-only imports as unused and demands the
- * redundant JSDoc `@param`/`@return` types this project deliberately omits.
+ * Builds on the default config shipped with `@wordpress/scripts`, with two
+ * project-specific adjustments it cannot know about:
  *
- * Rather than redeclare the TypeScript parser, plugin, and rules (and pull in
- * `typescript-eslint` as a direct dependency), reuse the exact block the
- * default config already builds and extend its file globs to cover the
- * additional module extensions.
+ * 1. TypeScript module extensions. wp-scripts applies its TypeScript parser and
+ *    type-aware rule overrides only to `.ts`/`.tsx`. We also author `.mts`/`.cts`
+ *    (Playground tooling, e2e specs, build configs) — development files we want
+ *    linted exactly like the rest of our TypeScript. Extend every TS-targeted
+ *    block to also match `.mts`/`.cts`, so they get the real parser instead of
+ *    being read as plain JavaScript (which misreads type-only imports as unused
+ *    and demands the redundant JSDoc types this project omits).
  *
- * The default config ignores `node_modules`, `build` and `vendor` but not two
- * trees that would otherwise be linted, turning a sub-second run into a
- * minute-long one: the Playground WordPress install that `npm run playground`
- * downloads into `wp-playground/wordpress/` (hundreds of core JS files), and
- * `.claude/` — where the agent worktrees live, each a full copy of the project.
- * Ignore both.
+ * 2. Ignores. Lint runs across the whole project, so skip the code that is not
+ *    ours: the WordPress instance `pnpm run playground` downloads into
+ *    `wp-playground/wordpress/**`, and the agent worktrees under `.claude/**`
+ *    (each a full copy of the repo). `node_modules`, `build`, and `vendor` are
+ *    already ignored by the default config.
+ *
+ * It also points the already-enabled `@wordpress/i18n-text-domain` rule at this
+ * plugin's text domain. The default config turns the rule on but configures no
+ * domain, so a wrong/missing JS text domain passes; naming the domain makes
+ * `__()`/`_x()`/etc. with the wrong domain fail lint — the JS counterpart of the
+ * `WordPress.WP.I18n` phpcs rule.
  */
 
-const wpScriptsConfig = require( '@wordpress/scripts/config/eslint.config.cjs' );
+const defaultConfig = require( '@wordpress/scripts/config/eslint.config.cjs' );
 
-const tsBlock = wpScriptsConfig.find(
-	( entry ) =>
-		Array.isArray( entry.files ) &&
-		entry.files.includes( '**/*.ts' ) &&
-		entry.languageOptions?.parser
+const TS_MODULE_GLOBS = [ '**/*.mts', '**/*.cts' ];
+
+// Mirror wp-scripts' TypeScript treatment onto the `.mts`/`.cts` modules we also
+// author by adding those extensions to every block that already targets
+// `.ts`/`.tsx`. Keying on the `files` globs (rather than a single block) keeps
+// this robust to changes in the default config's internal shape.
+const withTsModules = defaultConfig.map( ( block ) =>
+	Array.isArray( block.files ) &&
+	block.files.some( ( glob ) => glob === '**/*.ts' || glob === '**/*.tsx' )
+		? {
+				...block,
+				files: [ ...new Set( [ ...block.files, ...TS_MODULE_GLOBS ] ) ],
+		  }
+		: block
 );
 
 module.exports = [
+	...withTsModules,
 	{ ignores: [ '.claude/**', 'wp-playground/wordpress/**' ] },
-	...wpScriptsConfig,
-	...( tsBlock ? [ { ...tsBlock, files: [ '**/*.mts', '**/*.cts' ] } ] : [] ),
+	{
+		rules: {
+			'@wordpress/i18n-text-domain': [
+				'error',
+				{ allowedTextDomain: 'battery-surf-bench' },
+			],
+		},
+	},
 ];
