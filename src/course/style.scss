@@ -1,412 +1,737 @@
-.bsb-course-content *, .bsb-course-content *::before, .bsb-course-content *::after{box-sizing: border-box;
-  margin: 0;
-  padding: 0;}
-.bsb-course-content{background: #fafaf8;
-  color: #1a1a18;
-  font-family: georgia, "Times New Roman", times, serif;
-  line-height: 1.75;
-  -webkit-font-smoothing: antialiased;}
-.bsb-course-content img, .bsb-course-content svg{display: block;
-  max-width: 100%;}
-.bsb-course-content a{color: #2c5f8a;
-  text-decoration: underline;
-  text-underline-offset: 3px;}
-.bsb-course-content a:hover{color: #c0392b;}
-.bsb-course-content .bsb-progress{position: fixed;
-  top: 0;
-  left: 0;
-  height: 3px;
-  width: 0%;
-  background: #c0392b;
-  z-index: 9999;
-  transition: width 0.1s linear;}
-.bsb-course-content .bsb-masthead{background: #1a1a18;
-  color: #fff;
-  padding: 0.75rem 2rem;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;}
-.bsb-course-content .bsb-masthead__title{font-family: -apple-system, blinkmacsystemfont, "Segoe UI", helvetica, arial, sans-serif;
-  font-size: 1.1rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: #fff;
-  text-decoration: none;}
-.bsb-course-content .bsb-masthead__title:hover{color: #ddd;}
-.bsb-course-content .bsb-masthead__tagline{font-family: -apple-system, blinkmacsystemfont, "Segoe UI", helvetica, arial, sans-serif;
-  font-size: 0.7rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.55);}
-.bsb-course-content .bsb-masthead__nav{display: flex;
-  gap: 1.25rem;
-  list-style: none;}
-.bsb-course-content .bsb-masthead__nav a{font-family: -apple-system, blinkmacsystemfont, "Segoe UI", helvetica, arial, sans-serif;
-  font-size: 0.75rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.7);
-  text-decoration: none;}
-.bsb-course-content .bsb-masthead__nav a:hover{color: #fff;}
-.bsb-course-content .bsb-container{max-width: 960px;
-  margin: 0 auto;
-  padding: 0 1.5rem;}
-.bsb-course-content .bsb-article-wrap{max-width: 680px;
-  margin: 0 auto;
-  padding: 0 1.5rem;}
-.bsb-course-content .bsb-article{padding-bottom: 4rem;}
-.bsb-course-content .bsb-article__kicker{display: block;
-  font-family: -apple-system, blinkmacsystemfont, "Segoe UI", helvetica, arial, sans-serif;
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: #c0392b;
-  margin-top: 3rem;
-  margin-bottom: 0.6rem;}
-.bsb-course-content .bsb-article__headline{font-family: georgia, "Times New Roman", times, serif;
-  font-size: clamp(2rem, 5vw, 2.8rem);
-  line-height: 1.2;
-  font-weight: 700;
-  color: #1a1a18;
-  margin-bottom: 0.8rem;}
-.bsb-course-content .bsb-article__meta{font-family: -apple-system, blinkmacsystemfont, "Segoe UI", helvetica, arial, sans-serif;
-  font-size: 0.78rem;
-  color: #6b6760;
-  margin-bottom: 2rem;
-  padding-bottom: 1.5rem;
-  border-bottom: 1px solid #e8e4dc;}
-.bsb-course-content .bsb-article__deck{font-size: 1.15rem;
-  line-height: 1.6;
-  color: #3d3d3a;
-  margin-bottom: 2rem;
-  font-style: italic;}
-.bsb-course-content .bsb-article h2{font-family: georgia, "Times New Roman", times, serif;
-  font-size: 1.55rem;
-  font-weight: 700;
-  line-height: 1.3;
-  margin-top: 2.8rem;
-  margin-bottom: 0.9rem;
-  color: #1a1a18;}
-.bsb-course-content .bsb-article h3{font-family: georgia, "Times New Roman", times, serif;
-  font-size: 1.2rem;
-  font-weight: 700;
-  line-height: 1.35;
-  margin-top: 2rem;
-  margin-bottom: 0.6rem;
-  color: #1a1a18;}
-.bsb-course-content .bsb-article p{margin-bottom: 1.4rem;}
-.bsb-course-content .bsb-article ul, .bsb-course-content .bsb-article ol{padding-left: 1.6rem;
-  margin-bottom: 1.4rem;}
-.bsb-course-content .bsb-article ul li, .bsb-course-content .bsb-article ol li{margin-bottom: 0.4rem;}
-.bsb-course-content .bsb-article .bsb-pullquote{margin: 2.5rem 0;
-  padding: 1.6rem 2rem;
-  border-left: 4px solid #c0392b;
-  background: #f0ede6;
-  border-radius: 0 6px 6px 0;}
-.bsb-course-content .bsb-article .bsb-pullquote blockquote{font-family: georgia, "Times New Roman", times, serif;
-  font-size: 1.3rem;
-  line-height: 1.45;
-  font-style: italic;
-  color: #3d3d3a;
-  margin: 0;}
-.bsb-course-content .bsb-article .bsb-pullquote cite{display: block;
-  font-family: -apple-system, blinkmacsystemfont, "Segoe UI", helvetica, arial, sans-serif;
-  font-size: 0.75rem;
-  color: #6b6760;
-  margin-top: 0.75rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  font-style: normal;}
-.bsb-course-content .bsb-article figure{margin: 2.5rem 0;}
-.bsb-course-content .bsb-article figure svg{width: 100%;
-  height: auto;
-  border-radius: 6px;}
-.bsb-course-content .bsb-article figure figcaption{font-family: -apple-system, blinkmacsystemfont, "Segoe UI", helvetica, arial, sans-serif;
-  font-size: 0.75rem;
-  color: #6b6760;
-  margin-top: 0.6rem;
-  text-align: center;
-  line-height: 1.4;}
-.bsb-course-content .bsb-article hr{border: none;
-  border-top: 1px solid #e8e4dc;
-  margin: 2.5rem 0;}
-.bsb-course-content .bsb-tag{display: inline-block;
-  background: #eef3f8;
-  color: #2c5f8a;
-  font-family: -apple-system, blinkmacsystemfont, "Segoe UI", helvetica, arial, sans-serif;
-  font-size: 0.7rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  padding: 0.2em 0.65em;
-  border-radius: 3px;
-  margin-right: 0.4rem;
-  margin-bottom: 0.4rem;
-  text-decoration: none;}
-.bsb-course-content .bsb-tag:hover{background: rgb(216.325, 227.7, 239.075);
-  color: #2c5f8a;}
-.bsb-course-content .bsb-next-card{margin-top: 3rem;
-  padding: 2rem;
-  background: #1a1a18;
-  border-radius: 8px;
-  color: #fff;
-  text-decoration: none;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  transition: background 0.15s ease;}
-.bsb-course-content .bsb-next-card:hover{background: #2a2a27;
-  color: #fff;}
-.bsb-course-content .bsb-next-card__label{font-family: -apple-system, blinkmacsystemfont, "Segoe UI", helvetica, arial, sans-serif;
-  font-size: 0.72rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  opacity: 0.6;
-  margin-bottom: 0.3rem;}
-.bsb-course-content .bsb-next-card__title{font-family: georgia, "Times New Roman", times, serif;
-  font-size: 1.15rem;
-  font-weight: 700;}
-.bsb-course-content .bsb-next-card__arrow{font-size: 1.5rem;
-  opacity: 0.6;
-  flex-shrink: 0;}
-.bsb-course-content .bsb-aside{background: #f0ede6;
-  border: 1px solid #e8e4dc;
-  border-radius: 6px;
-  padding: 1.4rem 1.6rem;
-  margin: 2.5rem 0;
-  font-family: -apple-system, blinkmacsystemfont, "Segoe UI", helvetica, arial, sans-serif;
-  font-size: 0.9rem;}
-.bsb-course-content .bsb-aside__title{font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: #6b6760;
-  margin-bottom: 0.9rem;}
-.bsb-course-content .bsb-aside p{margin-bottom: 0.75rem;
-  line-height: 1.5;}
-.bsb-course-content .bsb-aside p:last-child{margin-bottom: 0;}
-.bsb-course-content .bsb-aside ul{padding-left: 1.2rem;}
-.bsb-course-content .bsb-aside ul li{margin-bottom: 0.35rem;}
-.bsb-course-content .bsb-table-wrap{overflow-x: auto;
-  margin: 2rem 0;}
-.bsb-course-content table.bsb-table{width: 100%;
-  border-collapse: collapse;
-  font-family: -apple-system, blinkmacsystemfont, "Segoe UI", helvetica, arial, sans-serif;
-  font-size: 0.88rem;}
-.bsb-course-content table.bsb-table th{background: #f0ede6;
-  font-weight: 700;
-  text-align: left;
-  padding: 0.7rem 0.9rem;
-  border-bottom: 2px solid #e8e4dc;
-  white-space: nowrap;}
-.bsb-course-content table.bsb-table td{padding: 0.65rem 0.9rem;
-  border-bottom: 1px solid #e8e4dc;
-  vertical-align: top;}
-.bsb-course-content table.bsb-table tr:last-child td{border-bottom: none;}
-.bsb-course-content table.bsb-table tr:hover td{background: rgba(0, 0, 0, 0.02);}
-.bsb-course-content table.bsb-table .rank{font-weight: 700;
-  color: #6b6760;
-  text-align: center;
-  width: 2.5rem;}
-.bsb-course-content table.bsb-table .watts{font-weight: 700;
-  color: #c0392b;
-  white-space: nowrap;}
-.bsb-course-content table.bsb-table__high td{background: rgba(192, 57, 43, 0.05);}
-.bsb-course-content .bsb-two-col{display: grid;
-  grid-template-columns: 1fr 300px;
-  gap: 2.5rem;
-  align-items: start;}
-@media (max-width: 760px){.bsb-course-content .bsb-two-col{grid-template-columns: 1fr;}}
-.bsb-course-content .bsb-sidebar{position: sticky;
-  top: 1.5rem;}
-.bsb-course-content .bsb-gallery__header{max-width: 680px;
-  margin: 0 auto;
-  padding: 3rem 1.5rem 2rem;}
-.bsb-course-content .bsb-gallery__header h1{font-family: georgia, "Times New Roman", times, serif;
-  font-size: clamp(1.8rem, 4vw, 2.4rem);
-  font-weight: 700;
-  margin-bottom: 0.75rem;}
-.bsb-course-content .bsb-gallery__header p{font-size: 1.05rem;
-  color: #6b6760;
-  line-height: 1.6;}
-.bsb-course-content .bsb-gallery__grid{display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 1.25rem;
-  padding: 0 1.5rem 4rem;
-  max-width: 1200px;
-  margin: 0 auto;}
-@media (max-width: 540px){.bsb-course-content .bsb-gallery__grid{grid-template-columns: repeat(2, 1fr);
-    gap: 0.75rem;}}
-.bsb-course-content .bsb-gallery figure{margin: 0;
-  overflow: hidden;
-  border-radius: 6px;
-  background: #f0ede6;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;}
-.bsb-course-content .bsb-gallery figure:hover{transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);}
-.bsb-course-content .bsb-gallery figure svg{width: 100%;
-  height: 220px;
-  display: block;}
-.bsb-course-content .bsb-gallery figure figcaption{font-family: -apple-system, blinkmacsystemfont, "Segoe UI", helvetica, arial, sans-serif;
-  font-size: 0.72rem;
-  color: #6b6760;
-  padding: 0.6rem 0.8rem 0.8rem;
-  line-height: 1.35;}
-.bsb-course-content .bsb-gallery-next{max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 1.5rem 4rem;}
-.bsb-course-content .bsb-video__hero{background: #000;
-  padding: 2rem 0 0;}
-.bsb-course-content .bsb-video__ratio{position: relative;
-  width: 100%;
-  max-width: 900px;
-  margin: 0 auto;
-  padding-bottom: calc(0.5625 * min(100%, 900px));
-  height: 0;}
-@media (min-width: 900px){.bsb-course-content .bsb-video__ratio{padding-bottom: 506px;}}
-.bsb-course-content .bsb-video__ratio iframe{position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  border: none;}
-.bsb-course-content .bsb-video__content{max-width: 680px;
-  margin: 0 auto;
-  padding: 2.5rem 1.5rem 4rem;}
-.bsb-course-content .bsb-video__content h1{font-family: georgia, "Times New Roman", times, serif;
-  font-size: clamp(1.6rem, 4vw, 2.2rem);
-  font-weight: 700;
-  margin-bottom: 1rem;}
-.bsb-course-content .bsb-video__content p{margin-bottom: 1.3rem;
-  line-height: 1.75;}
-.bsb-course-content .bsb-links__header{background: #1a1a18;
-  color: #fff;
-  padding: 2.5rem 1.5rem 2rem;
-  margin-bottom: 0;}
-.bsb-course-content .bsb-links__header .bsb-container{max-width: 960px;}
-.bsb-course-content .bsb-links__header h1{font-family: georgia, "Times New Roman", times, serif;
-  font-size: clamp(1.8rem, 4vw, 2.4rem);
-  font-weight: 700;
-  margin-bottom: 0.5rem;}
-.bsb-course-content .bsb-links__header p{font-size: 0.9rem;
-  opacity: 0.65;
-  font-family: -apple-system, blinkmacsystemfont, "Segoe UI", helvetica, arial, sans-serif;}
-.bsb-course-content .bsb-links__body{max-width: 960px;
-  margin: 0 auto;
-  padding: 2rem 1.5rem 4rem;}
-.bsb-course-content .bsb-links__section-title{font-family: -apple-system, blinkmacsystemfont, "Segoe UI", helvetica, arial, sans-serif;
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: #6b6760;
-  margin-bottom: 1rem;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid #e8e4dc;}
-.bsb-course-content .bsb-links__grid{display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 1rem;
-  margin-bottom: 2.5rem;}
-.bsb-course-content .bsb-card{background: #fff;
-  border: 1px solid #e8e4dc;
-  border-radius: 6px;
-  padding: 1.1rem 1.25rem;
-  text-decoration: none;
-  color: #1a1a18;
-  display: block;
-  transition: border-color 0.15s, box-shadow 0.15s;}
-.bsb-course-content .bsb-card:hover{border-color: #2c5f8a;
-  box-shadow: 0 2px 12px rgba(44, 95, 138, 0.1);
-  color: #1a1a18;}
-.bsb-course-content .bsb-card__kicker{font-family: -apple-system, blinkmacsystemfont, "Segoe UI", helvetica, arial, sans-serif;
-  font-size: 0.65rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: #c0392b;
-  margin-bottom: 0.35rem;}
-.bsb-course-content .bsb-card__headline{font-family: georgia, "Times New Roman", times, serif;
-  font-size: 1.02rem;
-  line-height: 1.35;
-  font-weight: 700;
-  margin-bottom: 0.4rem;}
-.bsb-course-content .bsb-card__meta{font-family: -apple-system, blinkmacsystemfont, "Segoe UI", helvetica, arial, sans-serif;
-  font-size: 0.72rem;
-  color: #6b6760;}
-.bsb-course-content .bsb-links-next{margin-top: 1.5rem;}
-.bsb-course-content .bsb-blank{display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: calc(100vh - 120px);
-  text-align: center;
-  padding: 4rem 2rem;}
-.bsb-course-content .bsb-blank__label{font-family: -apple-system, blinkmacsystemfont, "Segoe UI", helvetica, arial, sans-serif;
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: #6b6760;
-  margin-bottom: 1.5rem;}
-.bsb-course-content .bsb-blank__title{font-family: georgia, "Times New Roman", times, serif;
-  font-size: 1.5rem;
-  color: #1a1a18;
-  font-style: italic;
-  margin-bottom: 1rem;}
-.bsb-course-content .bsb-blank__pulse{width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #6b6760;
-  margin: 1.5rem auto;
-  animation: bsb-pulse 2s ease-in-out infinite;}
-.bsb-course-content .bsb-blank__next{margin-top: 3rem;
-  font-family: -apple-system, blinkmacsystemfont, "Segoe UI", helvetica, arial, sans-serif;
-  font-size: 0.8rem;
-  color: #6b6760;
-  text-decoration: none;}
-.bsb-course-content .bsb-blank__next:hover{color: #2c5f8a;}
-@keyframes bsb-pulse{
-  0%, 100% {
-    opacity: 0.25;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.8;
-    transform: scale(1.4);
-  }
-}
-.bsb-course-content .bsb-footer{border-top: 1px solid #e8e4dc;
-  padding: 1.5rem 2rem;
-  background: #fafaf8;}
-.bsb-course-content .bsb-footer__inner{display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  max-width: 960px;
-  margin: 0 auto;
-  font-family: -apple-system, blinkmacsystemfont, "Segoe UI", helvetica, arial, sans-serif;
-  font-size: 0.72rem;
-  color: #6b6760;}
-.bsb-course-content .bsb-footer__badge{background: #f0ede6;
-  border: 1px solid #e8e4dc;
-  border-radius: 3px;
-  padding: 0.2em 0.65em;
-  font-size: 0.65rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: #6b6760;}
+@use "sass:color";
 
-/* Course pages render wide (like article-1) with no background around content. */
-.bsb-course-content { background: transparent; }
-.bsb-course-content .bsb-container,
-.bsb-course-content .bsb-article-wrap,
-.bsb-course-content .bsb-gallery__header,
-.bsb-course-content .bsb-gallery__grid,
-.bsb-course-content .bsb-gallery-next,
-.bsb-course-content .bsb-video__content,
-.bsb-course-content .bsb-links__body,
-.bsb-course-content .bsb-two-col { max-width: none; }
+// Typography
+$font-serif: georgia, "Times New Roman", times, serif;
+$font-sans: -apple-system, blinkmacsystemfont, "Segoe UI", helvetica, arial, sans-serif;
+
+// Palette
+$paper: #fafaf8; // page background
+$ink: #1a1a18; // near-black text, headlines, dark panels
+$ink-soft: #2a2a27; // dark panel, hovered
+$ink-muted: #3d3d3a; // deck / pullquote body
+$grey: #6b6760; // meta, captions, muted labels
+$border: #e8e4dc; // hairlines and panel borders
+$panel: #f0ede6; // cream panels, asides, table headers
+$blue: #2c5f8a; // links and accents
+$red: #c0392b; // kickers, accents, progress bar
+$white: #fff;
+$black: #000;
+$tag-bg: #eef3f8; // light-blue tag chip
+
+.bsb-course-content {
+	background: $paper;
+	color: $ink;
+	font-family: $font-serif;
+	line-height: 1.75;
+	-webkit-font-smoothing: antialiased;
+
+	*,
+	*::before,
+	*::after {
+		box-sizing: border-box;
+		margin: 0;
+		padding: 0;
+	}
+
+	img,
+	svg {
+		display: block;
+		max-width: 100%;
+	}
+
+	a {
+		color: $blue;
+		text-decoration: underline;
+		text-underline-offset: 3px;
+
+		&:hover {
+			color: $red;
+		}
+	}
+
+	.bsb-progress {
+		position: fixed;
+		top: 0;
+		left: 0;
+		height: 3px;
+		width: 0%;
+		background: $red;
+		z-index: 9999;
+		transition: width 0.1s linear;
+	}
+
+	.bsb-masthead {
+		background: $ink;
+		color: $white;
+		padding: 0.75rem 2rem;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 1rem;
+
+		&__title {
+			font-family: $font-sans;
+			font-size: 1.1rem;
+			font-weight: 700;
+			letter-spacing: 0.08em;
+			text-transform: uppercase;
+			color: $white;
+			text-decoration: none;
+
+			&:hover {
+				color: #ddd;
+			}
+		}
+
+		&__tagline {
+			font-family: $font-sans;
+			font-size: 0.7rem;
+			letter-spacing: 0.12em;
+			text-transform: uppercase;
+			color: rgba($white, 0.55);
+		}
+
+		&__nav {
+			display: flex;
+			gap: 1.25rem;
+			list-style: none;
+
+			a {
+				font-family: $font-sans;
+				font-size: 0.75rem;
+				letter-spacing: 0.06em;
+				text-transform: uppercase;
+				color: rgba($white, 0.7);
+				text-decoration: none;
+
+				&:hover {
+					color: $white;
+				}
+			}
+		}
+	}
+
+	.bsb-container {
+		max-width: 960px;
+		margin: 0 auto;
+		padding: 0 1.5rem;
+	}
+
+	.bsb-article-wrap {
+		max-width: 680px;
+		margin: 0 auto;
+		padding: 0 1.5rem;
+	}
+
+	.bsb-article {
+		padding-bottom: 4rem;
+
+		&__kicker {
+			display: block;
+			font-family: $font-sans;
+			font-size: 0.72rem;
+			font-weight: 700;
+			letter-spacing: 0.14em;
+			text-transform: uppercase;
+			color: $red;
+			margin-top: 3rem;
+			margin-bottom: 0.6rem;
+		}
+
+		&__headline {
+			font-family: $font-serif;
+			font-size: clamp(2rem, 5vw, 2.8rem);
+			line-height: 1.2;
+			font-weight: 700;
+			color: $ink;
+			margin-bottom: 0.8rem;
+		}
+
+		&__meta {
+			font-family: $font-sans;
+			font-size: 0.78rem;
+			color: $grey;
+			margin-bottom: 2rem;
+			padding-bottom: 1.5rem;
+			border-bottom: 1px solid $border;
+		}
+
+		&__deck {
+			font-size: 1.15rem;
+			line-height: 1.6;
+			color: $ink-muted;
+			margin-bottom: 2rem;
+			font-style: italic;
+		}
+
+		h2 {
+			font-family: $font-serif;
+			font-size: 1.55rem;
+			font-weight: 700;
+			line-height: 1.3;
+			margin-top: 2.8rem;
+			margin-bottom: 0.9rem;
+			color: $ink;
+		}
+
+		h3 {
+			font-family: $font-serif;
+			font-size: 1.2rem;
+			font-weight: 700;
+			line-height: 1.35;
+			margin-top: 2rem;
+			margin-bottom: 0.6rem;
+			color: $ink;
+		}
+
+		p {
+			margin-bottom: 1.4rem;
+		}
+
+		ul,
+		ol {
+			padding-left: 1.6rem;
+			margin-bottom: 1.4rem;
+
+			li {
+				margin-bottom: 0.4rem;
+			}
+		}
+
+		.bsb-pullquote {
+			margin: 2.5rem 0;
+			padding: 1.6rem 2rem;
+			border-left: 4px solid $red;
+			background: $panel;
+			border-radius: 0 6px 6px 0;
+
+			blockquote {
+				font-family: $font-serif;
+				font-size: 1.3rem;
+				line-height: 1.45;
+				font-style: italic;
+				color: $ink-muted;
+				margin: 0;
+			}
+
+			cite {
+				display: block;
+				font-family: $font-sans;
+				font-size: 0.75rem;
+				color: $grey;
+				margin-top: 0.75rem;
+				letter-spacing: 0.06em;
+				text-transform: uppercase;
+				font-style: normal;
+			}
+		}
+
+		figure {
+			margin: 2.5rem 0;
+
+			svg {
+				width: 100%;
+				height: auto;
+				border-radius: 6px;
+			}
+
+			figcaption {
+				font-family: $font-sans;
+				font-size: 0.75rem;
+				color: $grey;
+				margin-top: 0.6rem;
+				text-align: center;
+				line-height: 1.4;
+			}
+		}
+
+		hr {
+			border: none;
+			border-top: 1px solid $border;
+			margin: 2.5rem 0;
+		}
+	}
+
+	.bsb-tag {
+		display: inline-block;
+		background: $tag-bg;
+		color: $blue;
+		font-family: $font-sans;
+		font-size: 0.7rem;
+		font-weight: 600;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+		padding: 0.2em 0.65em;
+		border-radius: 3px;
+		margin-right: 0.4rem;
+		margin-bottom: 0.4rem;
+		text-decoration: none;
+
+		&:hover {
+			background: color.adjust($tag-bg, $lightness: -6%);
+			color: $blue;
+		}
+	}
+
+	.bsb-next-card {
+		margin-top: 3rem;
+		padding: 2rem;
+		background: $ink;
+		border-radius: 8px;
+		color: $white;
+		text-decoration: none;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 1rem;
+		transition: background 0.15s ease;
+
+		&:hover {
+			background: $ink-soft;
+			color: $white;
+		}
+
+		&__label {
+			font-family: $font-sans;
+			font-size: 0.72rem;
+			letter-spacing: 0.12em;
+			text-transform: uppercase;
+			opacity: 0.6;
+			margin-bottom: 0.3rem;
+		}
+
+		&__title {
+			font-family: $font-serif;
+			font-size: 1.15rem;
+			font-weight: 700;
+		}
+
+		&__arrow {
+			font-size: 1.5rem;
+			opacity: 0.6;
+			flex-shrink: 0;
+		}
+	}
+
+	.bsb-aside {
+		background: $panel;
+		border: 1px solid $border;
+		border-radius: 6px;
+		padding: 1.4rem 1.6rem;
+		margin: 2.5rem 0;
+		font-family: $font-sans;
+		font-size: 0.9rem;
+
+		&__title {
+			font-size: 0.7rem;
+			font-weight: 700;
+			letter-spacing: 0.14em;
+			text-transform: uppercase;
+			color: $grey;
+			margin-bottom: 0.9rem;
+		}
+
+		p {
+			margin-bottom: 0.75rem;
+			line-height: 1.5;
+
+			&:last-child {
+				margin-bottom: 0;
+			}
+		}
+
+		ul {
+			padding-left: 1.2rem;
+
+			li {
+				margin-bottom: 0.35rem;
+			}
+		}
+	}
+
+	.bsb-table-wrap {
+		overflow-x: auto;
+		margin: 2rem 0;
+	}
+
+	table.bsb-table {
+		width: 100%;
+		border-collapse: collapse;
+		font-family: $font-sans;
+		font-size: 0.88rem;
+
+		th {
+			background: $panel;
+			font-weight: 700;
+			text-align: left;
+			padding: 0.7rem 0.9rem;
+			border-bottom: 2px solid $border;
+			white-space: nowrap;
+		}
+
+		td {
+			padding: 0.65rem 0.9rem;
+			border-bottom: 1px solid $border;
+			vertical-align: top;
+		}
+
+		tr:last-child td {
+			border-bottom: none;
+		}
+
+		tr:hover td {
+			background: rgba($black, 0.02);
+		}
+
+		.rank {
+			font-weight: 700;
+			color: $grey;
+			text-align: center;
+			width: 2.5rem;
+		}
+
+		.watts {
+			font-weight: 700;
+			color: $red;
+			white-space: nowrap;
+		}
+
+		&__high td {
+			background: rgba($red, 0.05);
+		}
+	}
+
+	.bsb-two-col {
+		display: grid;
+		grid-template-columns: 1fr 300px;
+		gap: 2.5rem;
+		align-items: start;
+
+		@media (max-width: 760px) {
+			grid-template-columns: 1fr;
+		}
+	}
+
+	.bsb-sidebar {
+		position: sticky;
+		top: 1.5rem;
+	}
+
+	.bsb-gallery {
+		&__header {
+			max-width: 680px;
+			margin: 0 auto;
+			padding: 3rem 1.5rem 2rem;
+
+			h1 {
+				font-family: $font-serif;
+				font-size: clamp(1.8rem, 4vw, 2.4rem);
+				font-weight: 700;
+				margin-bottom: 0.75rem;
+			}
+
+			p {
+				font-size: 1.05rem;
+				color: $grey;
+				line-height: 1.6;
+			}
+		}
+
+		&__grid {
+			display: grid;
+			grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+			gap: 1.25rem;
+			padding: 0 1.5rem 4rem;
+			max-width: 1200px;
+			margin: 0 auto;
+
+			@media (max-width: 540px) {
+				grid-template-columns: repeat(2, 1fr);
+				gap: 0.75rem;
+			}
+		}
+
+		figure {
+			margin: 0;
+			overflow: hidden;
+			border-radius: 6px;
+			background: $panel;
+			transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+			&:hover {
+				transform: translateY(-2px);
+				box-shadow: 0 8px 24px rgba($black, 0.12);
+			}
+
+			svg {
+				width: 100%;
+				height: 220px;
+				display: block;
+			}
+
+			figcaption {
+				font-family: $font-sans;
+				font-size: 0.72rem;
+				color: $grey;
+				padding: 0.6rem 0.8rem 0.8rem;
+				line-height: 1.35;
+			}
+		}
+	}
+
+	.bsb-gallery-next {
+		max-width: 1200px;
+		margin: 0 auto;
+		padding: 0 1.5rem 4rem;
+	}
+
+	.bsb-video {
+		&__hero {
+			background: $black;
+			padding: 2rem 0 0;
+		}
+
+		&__ratio {
+			position: relative;
+			width: 100%;
+			max-width: 900px;
+			margin: 0 auto;
+			padding-bottom: calc(0.5625 * min(100%, 900px));
+			height: 0;
+
+			@media (min-width: 900px) {
+				padding-bottom: 506px;
+			}
+
+			iframe {
+				position: absolute;
+				top: 0;
+				left: 0;
+				width: 100%;
+				height: 100%;
+				border: none;
+			}
+		}
+
+		&__content {
+			max-width: 680px;
+			margin: 0 auto;
+			padding: 2.5rem 1.5rem 4rem;
+
+			h1 {
+				font-family: $font-serif;
+				font-size: clamp(1.6rem, 4vw, 2.2rem);
+				font-weight: 700;
+				margin-bottom: 1rem;
+			}
+
+			p {
+				margin-bottom: 1.3rem;
+				line-height: 1.75;
+			}
+		}
+	}
+
+	.bsb-links {
+		&__header {
+			background: $ink;
+			color: $white;
+			padding: 2.5rem 1.5rem 2rem;
+			margin-bottom: 0;
+
+			.bsb-container {
+				max-width: 960px;
+			}
+
+			h1 {
+				font-family: $font-serif;
+				font-size: clamp(1.8rem, 4vw, 2.4rem);
+				font-weight: 700;
+				margin-bottom: 0.5rem;
+			}
+
+			p {
+				font-size: 0.9rem;
+				opacity: 0.65;
+				font-family: $font-sans;
+			}
+		}
+
+		&__body {
+			max-width: 960px;
+			margin: 0 auto;
+			padding: 2rem 1.5rem 4rem;
+		}
+
+		&__section-title {
+			font-family: $font-sans;
+			font-size: 0.7rem;
+			font-weight: 700;
+			letter-spacing: 0.14em;
+			text-transform: uppercase;
+			color: $grey;
+			margin-bottom: 1rem;
+			padding-bottom: 0.5rem;
+			border-bottom: 1px solid $border;
+		}
+
+		&__grid {
+			display: grid;
+			grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+			gap: 1rem;
+			margin-bottom: 2.5rem;
+		}
+	}
+
+	.bsb-card {
+		background: $white;
+		border: 1px solid $border;
+		border-radius: 6px;
+		padding: 1.1rem 1.25rem;
+		text-decoration: none;
+		color: $ink;
+		display: block;
+		transition: border-color 0.15s, box-shadow 0.15s;
+
+		&:hover {
+			border-color: $blue;
+			box-shadow: 0 2px 12px rgba($blue, 0.1);
+			color: $ink;
+		}
+
+		&__kicker {
+			font-family: $font-sans;
+			font-size: 0.65rem;
+			font-weight: 700;
+			letter-spacing: 0.12em;
+			text-transform: uppercase;
+			color: $red;
+			margin-bottom: 0.35rem;
+		}
+
+		&__headline {
+			font-family: $font-serif;
+			font-size: 1.02rem;
+			line-height: 1.35;
+			font-weight: 700;
+			margin-bottom: 0.4rem;
+		}
+
+		&__meta {
+			font-family: $font-sans;
+			font-size: 0.72rem;
+			color: $grey;
+		}
+	}
+
+	.bsb-links-next {
+		margin-top: 1.5rem;
+	}
+
+	.bsb-blank {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		min-height: calc(100vh - 120px);
+		text-align: center;
+		padding: 4rem 2rem;
+
+		&__label {
+			font-family: $font-sans;
+			font-size: 0.7rem;
+			font-weight: 700;
+			letter-spacing: 0.18em;
+			text-transform: uppercase;
+			color: $grey;
+			margin-bottom: 1.5rem;
+		}
+
+		&__title {
+			font-family: $font-serif;
+			font-size: 1.5rem;
+			color: $ink;
+			font-style: italic;
+			margin-bottom: 1rem;
+		}
+
+		&__pulse {
+			width: 8px;
+			height: 8px;
+			border-radius: 50%;
+			background: $grey;
+			margin: 1.5rem auto;
+			animation: bsb-pulse 2s ease-in-out infinite;
+		}
+
+		&__next {
+			margin-top: 3rem;
+			font-family: $font-sans;
+			font-size: 0.8rem;
+			color: $grey;
+			text-decoration: none;
+
+			&:hover {
+				color: $blue;
+			}
+		}
+	}
+
+	.bsb-footer {
+		border-top: 1px solid $border;
+		padding: 1.5rem 2rem;
+		background: $paper;
+
+		&__inner {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			gap: 1rem;
+			max-width: 960px;
+			margin: 0 auto;
+			font-family: $font-sans;
+			font-size: 0.72rem;
+			color: $grey;
+		}
+
+		&__badge {
+			background: $panel;
+			border: 1px solid $border;
+			border-radius: 3px;
+			padding: 0.2em 0.65em;
+			font-size: 0.65rem;
+			letter-spacing: 0.08em;
+			text-transform: uppercase;
+			color: $grey;
+		}
+	}
+}
+
+@keyframes bsb-pulse {
+	0%,
+	100% {
+		opacity: 0.25;
+		transform: scale(1);
+	}
+
+	50% {
+		opacity: 0.8;
+		transform: scale(1.4);
+	}
+}
+
+// Course pages render wide (like article-1) with no background around content.
+.bsb-course-content {
+	background: transparent;
+
+	.bsb-container,
+	.bsb-article-wrap,
+	.bsb-gallery__header,
+	.bsb-gallery__grid,
+	.bsb-gallery-next,
+	.bsb-video__content,
+	.bsb-links__body,
+	.bsb-two-col {
+		max-width: none;
+	}
+}
