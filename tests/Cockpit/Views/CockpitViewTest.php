@@ -131,7 +131,7 @@ final class CockpitViewTest extends TestCase {
 		$markup = $this->render();
 
 		$this->assertStringContainsString( 'data-wp-bind--hidden="state.isIdle"', $markup );
-		$this->assertStringContainsString( 'data-wp-init--battery="callbacks.initBattery"', $markup );
+		$this->assertStringContainsString( 'data-wp-init---battery="callbacks.initBattery"', $markup );
 		$this->assertStringContainsString( 'data-wp-text="state.batteryDisplay"', $markup );
 		$this->assertStringContainsString( 'data-wp-class--is-charging="state.isCharging"', $markup );
 		$this->assertStringContainsString( 'class="bsb-stat__bolt"', $markup );
@@ -139,13 +139,26 @@ final class CockpitViewTest extends TestCase {
 	}
 
 	/**
-	 * The stop control calls `actions.stop` and carries its translated label.
+	 * The run control toggles the run, reflects the running state for its
+	 * Start/Stop swap, and carries both translated labels.
 	 */
-	public function test_render_wires_the_stop_control(): void {
+	public function test_render_wires_the_run_control(): void {
 		$markup = $this->render();
 
-		$this->assertStringContainsString( 'data-wp-on--click="actions.stop"', $markup );
+		$this->assertStringContainsString( 'data-wp-on--click="actions.toggleRun"', $markup );
+		$this->assertStringContainsString( 'data-wp-class--is-running="state.isRunning"', $markup );
+		$this->assertStringContainsString( '>Start</span>', $markup );
 		$this->assertStringContainsString( '>Stop</span>', $markup );
+	}
+
+	/**
+	 * The configuration controls are grouped so they give way to the readouts
+	 * pill while a run is live.
+	 */
+	public function test_render_hides_the_config_while_running(): void {
+		$markup = $this->render();
+
+		$this->assertStringContainsString( 'class="bsb-deck__config" data-wp-bind--hidden="state.isRunning"', $markup );
 	}
 
 	/**
@@ -156,7 +169,7 @@ final class CockpitViewTest extends TestCase {
 	public function test_render_wires_the_surfing_indicator(): void {
 		$markup = $this->render();
 
-		$this->assertStringContainsString( 'data-wp-init--clock="callbacks.tick"', $markup );
+		$this->assertStringContainsString( 'data-wp-init---clock="callbacks.tick"', $markup );
 		$this->assertStringContainsString( 'data-wp-text="state.elapsedClock"', $markup );
 		$this->assertStringContainsString( 'Surfing', $markup );
 		$this->assertStringContainsString( 'elapsed', $markup );
@@ -205,6 +218,7 @@ final class CockpitViewTest extends TestCase {
 				'tte_label'          => 'Time to empty',
 				'surfing_label'      => 'Surfing',
 				'elapsed_label'      => 'elapsed',
+				'start_label'        => 'Start',
 				'stop_label'         => 'Stop',
 				'next_label'         => 'Next page',
 				'viewport_title'     => 'Surf viewport',

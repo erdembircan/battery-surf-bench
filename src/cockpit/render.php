@@ -83,6 +83,7 @@ $bsb_markup = ( new CockpitView() )->render(
 		'tte_label'          => esc_html__( 'Time to empty', 'battery-surf-bench' ),
 		'surfing_label'      => esc_html__( 'Surfing', 'battery-surf-bench' ),
 		'elapsed_label'      => esc_html__( 'elapsed', 'battery-surf-bench' ),
+		'start_label'        => esc_html__( 'Start', 'battery-surf-bench' ),
 		'stop_label'         => esc_html__( 'Stop', 'battery-surf-bench' ),
 		'next_label'         => esc_html__( 'Next page', 'battery-surf-bench' ),
 		'viewport_title'     => esc_attr__( 'Surf viewport', 'battery-surf-bench' ),

@@ -14,8 +14,10 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Renders the `bsb/cockpit` block's front-end markup: the Interactivity-driven
  * region split into a control deck and a surf stage. The deck carries the run
- * controls — mode, duration, baseline calibration, speed and stop — each wired
- * to the client store ({@see src/cockpit/view.ts}); the stage carries the page
+ * controls — mode, duration, baseline calibration, speed and a start/stop
+ * control — each wired to the client store ({@see src/cockpit/view.ts}). While a
+ * run is live the configuration controls give way to the live readouts pill; the
+ * stage carries the page
  * label, the cycle control and the viewport iframe. The block's server render
  * template ({@see src/cockpit/render.php}) prepares the dynamic, already-escaped
  * values — wrapper attributes, the per-instance `data-wp-context`, and the
@@ -52,7 +54,8 @@ class CockpitView implements View {
 	 *     @type string $tte_label          Translated, escaped label for the time-to-empty readout.
 	 *     @type string $surfing_label     Translated, escaped "Surfing" word for the running indicator.
 	 *     @type string $elapsed_label     Translated, escaped "elapsed" word for the running indicator.
-	 *     @type string $stop_label        Translated, escaped label for the stop control.
+	 *     @type string $start_label       Translated, escaped label for the run control when idle.
+	 *     @type string $stop_label        Translated, escaped label for the run control when running.
 	 *     @type string $next_label        Translated, escaped label for the next-page control.
 	 *     @type string $viewport_title    Translated, escaped title for the viewport iframe.
 	 * }
@@ -81,6 +84,7 @@ class CockpitView implements View {
 		$tte_label          = isset( $data['tte_label'] ) ? (string) $data['tte_label'] : '';
 		$surfing_label      = isset( $data['surfing_label'] ) ? (string) $data['surfing_label'] : '';
 		$elapsed_label      = isset( $data['elapsed_label'] ) ? (string) $data['elapsed_label'] : '';
+		$start_label        = isset( $data['start_label'] ) ? (string) $data['start_label'] : '';
 		$stop_label         = isset( $data['stop_label'] ) ? (string) $data['stop_label'] : '';
 		$next_label         = isset( $data['next_label'] ) ? (string) $data['next_label'] : '';
 		$viewport_title     = isset( $data['viewport_title'] ) ? (string) $data['viewport_title'] : '';
@@ -97,6 +101,7 @@ class CockpitView implements View {
 		</header>
 
 		<div class="bsb-deck__body">
+			<div class="bsb-deck__config" data-wp-bind--hidden="state.isRunning">
 			<section class="bsb-field">
 				<span class="bsb-field__label">{$mode_label}</span>
 				<div class="bsb-seg" role="group" aria-label="{$mode_label}">
@@ -147,8 +152,9 @@ class CockpitView implements View {
 					<button type="button" class="bsb-seg__option" data-speed="10" data-wp-on--click="actions.selectSpeed" data-wp-class--is-active="state.isSpeed10" data-wp-bind--aria-pressed="state.isSpeed10">10&times;</button>
 				</div>
 			</section>
+			</div>
 
-			<div class="bsb-deck__status" data-wp-init--clock="callbacks.tick" data-wp-init--battery="callbacks.initBattery" data-wp-bind--hidden="state.isIdle">
+			<div class="bsb-deck__status" data-wp-init---clock="callbacks.tick" data-wp-init---battery="callbacks.initBattery" data-wp-bind--hidden="state.isIdle">
 				<div class="bsb-deck__status-head">
 					<span class="bsb-deck__status-dot" aria-hidden="true"></span>
 					<span class="bsb-deck__status-text">{$surfing_label} &middot; <span class="bsb-deck__clock" data-wp-text="state.elapsedClock"></span> {$elapsed_label}</span>
@@ -182,9 +188,10 @@ class CockpitView implements View {
 		</div>
 
 		<footer class="bsb-deck__foot">
-			<button type="button" class="bsb-stop" data-wp-on--click="actions.stop">
-				<span class="bsb-stop__glyph" aria-hidden="true"></span>
-				<span class="bsb-stop__text">{$stop_label}</span>
+			<button type="button" class="bsb-run" data-wp-on--click="actions.toggleRun" data-wp-class--is-running="state.isRunning">
+				<span class="bsb-run__glyph" aria-hidden="true"></span>
+				<span class="bsb-run__text" data-wp-bind--hidden="state.isRunning">{$start_label}</span>
+				<span class="bsb-run__text" data-wp-bind--hidden="state.isIdle">{$stop_label}</span>
 			</button>
 		</footer>
 	</aside>

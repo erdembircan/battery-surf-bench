@@ -309,6 +309,18 @@ body {
 	overflow-y: auto;
 }
 
+// The run-configuration controls. Swapped out for the live readouts pill while
+// a run is active (each toggles its own `hidden` on the run state).
+.bsb-deck__config {
+	display: flex;
+	flex-direction: column;
+	gap: 1.55rem;
+
+	&[hidden] {
+		display: none;
+	}
+}
+
 // Staggered rise of each control as the deck hydrates.
 .bsb-field {
 	display: flex;
@@ -609,7 +621,9 @@ body {
 	border-top: 1px solid var(--line);
 }
 
-.bsb-stop {
+// Run control: a green "Start" go-button when idle that becomes the coral
+// "Stop" button (`.is-running`) once a run is live.
+.bsb-run {
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -619,14 +633,14 @@ body {
 	cursor: pointer;
 	border: 0;
 	border-radius: 14px;
-	background: var(--stop-grad);
-	color: #fff;
+	background: var(--accent-grad);
+	color: var(--accent-ink);
 	font-family: theme.$font-display;
 	font-size: 1.18rem;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	box-shadow:
-		0 8px 20px var(--stop-shadow),
+		0 8px 20px var(--accent-shadow),
 		inset 0 1px 0 rgba(255, 255, 255, 0.3);
 	transition:
 		transform 0.14s ease,
@@ -647,15 +661,33 @@ body {
 
 		outline-offset: 3px;
 	}
+
+	&.is-running {
+		background: var(--stop-grad);
+		color: #fff;
+		box-shadow:
+			0 8px 20px var(--stop-shadow),
+			inset 0 1px 0 rgba(255, 255, 255, 0.3);
+	}
 }
 
-.bsb-stop__glyph {
+.bsb-run__text[hidden] {
+	display: none;
+}
+
+// Idle: a "play" triangle. Running: the pulsing stop square.
+.bsb-run__glyph {
 	width: 0.9rem;
 	height: 0.9rem;
-	border-radius: 3px;
-	background: var(--stop-glyph);
-	box-shadow: 0 0 12px rgba(255, 255, 255, 0.65);
-	animation: bsb-pulse 1.8s ease-in-out infinite;
+	background: currentColor;
+	clip-path: polygon(12% 0%, 100% 50%, 12% 100%);
+
+	.bsb-run.is-running & {
+		clip-path: none;
+		border-radius: 3px;
+		box-shadow: 0 0 12px rgba(255, 255, 255, 0.65);
+		animation: bsb-pulse 1.8s ease-in-out infinite;
+	}
 }
 
 // ── Surf stage (right) ──────────────────────────────────────────────────────

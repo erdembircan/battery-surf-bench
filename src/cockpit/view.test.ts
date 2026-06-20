@@ -4,7 +4,7 @@
  * The store's consumer is the block markup: the viewport iframe binds its `src`
  * to `state.currentSrc`, a label binds to `state.currentLabel`, the cycle button
  * calls `actions.next`, and the control deck binds its mode, duration, baseline,
- * speed and stop controls to the rest of the store. These tests stub the
+ * speed and run controls to the rest of the store. These tests stub the
  * Interactivity runtime, capture the store definition the module registers, and
  * assert what those derive from (and do to) the per-instance context and the
  * element that triggered each action.
@@ -53,6 +53,7 @@ interface CockpitConfig {
 		batteryColor: string;
 		isCharging: boolean;
 		isIdle: boolean;
+		isRunning: boolean;
 		rate10Display: string;
 		rateSessionDisplay: string;
 		timeToEmptyDisplay: string;
@@ -67,7 +68,7 @@ interface CockpitConfig {
 		targetKeyDown: ( event: KeyboardEvent ) => void;
 		toggleBaseline: () => void;
 		selectSpeed: () => void;
-		stop: () => void;
+		toggleRun: () => void;
 		toggleTheme: () => void;
 	};
 	callbacks: {
@@ -359,11 +360,29 @@ describe( 'bsb/cockpit view store', () => {
 		} );
 	} );
 
-	describe( 'stop', () => {
-		it( 'returns the cockpit to its idle state', () => {
+	describe( 'run', () => {
+		it( 'reflects whether a run is live', () => {
+			expect( mocks.config?.state.isRunning ).toBe( false );
+			expect( mocks.config?.state.isIdle ).toBe( true );
+
+			mocks.context.running = true;
+			expect( mocks.config?.state.isRunning ).toBe( true );
+			expect( mocks.config?.state.isIdle ).toBe( false );
+		} );
+
+		it( 'starts a run, resetting the elapsed clock', () => {
+			mocks.context.elapsed = 999;
+
+			mocks.config?.actions.toggleRun();
+
+			expect( mocks.context.running ).toBe( true );
+			expect( mocks.context.elapsed ).toBe( 0 );
+		} );
+
+		it( 'stops a live run back to the idle state', () => {
 			mocks.context.running = true;
 
-			mocks.config?.actions.stop();
+			mocks.config?.actions.toggleRun();
 
 			expect( mocks.context.running ).toBe( false );
 		} );
@@ -381,8 +400,9 @@ describe( 'bsb/cockpit view store', () => {
 			expect( mocks.config?.state.elapsedClock ).toBe( '10:05' );
 		} );
 
-		it( 'ticks the clock once a second until cleaned up', () => {
+		it( 'ticks the clock once a second while running, until cleaned up', () => {
 			vi.useFakeTimers();
+			mocks.context.running = true;
 
 			const cleanup = mocks.config!.callbacks.tick();
 			vi.advanceTimersByTime( 3000 );
@@ -392,6 +412,18 @@ describe( 'bsb/cockpit view store', () => {
 			vi.advanceTimersByTime( 5000 );
 			expect( mocks.context.elapsed ).toBe( 3 );
 
+			vi.useRealTimers();
+		} );
+
+		it( 'holds the clock while idle so it stays at rest between runs', () => {
+			vi.useFakeTimers();
+			mocks.context.running = false;
+
+			const cleanup = mocks.config!.callbacks.tick();
+			vi.advanceTimersByTime( 4000 );
+			expect( mocks.context.elapsed ).toBe( 0 );
+
+			cleanup();
 			vi.useRealTimers();
 		} );
 	} );

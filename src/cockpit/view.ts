@@ -189,6 +189,11 @@ store( 'bsb/cockpit', {
 			return ! getContext< CockpitContext >().running;
 		},
 
+		/** Whether a run is live — shows the pill and hides the config controls. */
+		get isRunning(): boolean {
+			return getContext< CockpitContext >().running;
+		},
+
 		/** Drain rate over the last 10 minutes, or an em dash until known. */
 		get rate10Display(): string {
 			const { rate10 } = getContext< CockpitContext >();
@@ -360,9 +365,21 @@ store( 'bsb/cockpit', {
 			}
 		},
 
-		/** Stops the run, returning the cockpit to its idle, ready state. */
-		stop(): void {
-			getContext< CockpitContext >().running = false;
+		/**
+		 * Starts or stops the run. Starting resets the elapsed clock, reveals the
+		 * readouts pill and hides the configuration controls; stopping returns the
+		 * cockpit to its idle, ready state with the controls back.
+		 */
+		toggleRun(): void {
+			const context = getContext< CockpitContext >();
+
+			if ( context.running ) {
+				context.running = false;
+				return;
+			}
+
+			context.elapsed = 0;
+			context.running = true;
 		},
 
 		/** Flips between the light and dark deck themes and remembers the choice. */
@@ -434,14 +451,17 @@ store( 'bsb/cockpit', {
 		},
 
 		/**
-		 * Advances the surfing indicator's elapsed clock once a second while the
-		 * indicator is mounted, returning a cleanup that stops the timer. Wired
-		 * through `data-wp-init` so the deck's "it's working" readout ticks live.
+		 * Advances the surfing indicator's elapsed clock once a second while a run
+		 * is live, returning a cleanup that stops the timer. Wired through
+		 * `data-wp-init` on the always-mounted pill, so the timer only counts while
+		 * `running` — it stays at rest (and `toggleRun` resets it) between runs.
 		 */
 		tick(): () => void {
 			const context = getContext< CockpitContext >();
 			const timer = setInterval( () => {
-				context.elapsed += 1;
+				if ( context.running ) {
+					context.elapsed += 1;
+				}
 			}, 1000 );
 
 			return () => clearInterval( timer );
