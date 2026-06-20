@@ -27,3 +27,4 @@ The shipped deck draws from **Coastal Daybreak** (light) and **Dusk Lineup**
 | `info-section.html`    | Live readouts as a card grid: battery (level + fill colour, charging via cable), drain rates, time-to-empty |
 | `cable-animate.html`   | Charging cable slide-in / slide-out animation for the readout battery |
 | `info-pill.html`       | Final readouts layout: folded into the taller wave pill (no battery gauge), charging shown by a bolt; shown only while a run is live |
+| `config-pill-transition.html` | Config ⇄ pill swap motion study: crossfade / **slide swap** (shipped) / sequential, with a speed slider; also the softened, less-blocky pill shadow |
