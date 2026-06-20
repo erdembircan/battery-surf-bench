@@ -63,39 +63,27 @@ test.describe( 'Cockpit dashboard route', () => {
 		// the server markup — it must not flash in before hydration hides it.
 		await expect( page.locator( '.bsb-field--target' ) ).toBeHidden();
 
-		// Interactivity hydrates the iframe src from the bound course list.
+		// Before a run the stage shows the idle postcard, not the iframe.
+		await expect( page.locator( '.bsb-cockpit__idle' ) ).toBeVisible();
+		await expect(
+			page.locator( '.bsb-cockpit__postcard-heading' )
+		).toHaveText( /how this run works/i );
+
+		// The viewport ships hidden and the benchmarked page is NOT fetched while
+		// idle — the iframe src stays empty until surfing starts.
+		await expect(
+			page.locator( '.bsb-cockpit__viewport-wrap' )
+		).toBeHidden();
 		await expect(
 			page.locator( 'iframe.bsb-cockpit__viewport' )
-		).toHaveAttribute( 'src', /bsbSessionPage=article-1/ );
+		).not.toHaveAttribute( 'src', /bsbSessionPage/ );
 
-		// The shield covers the viewport: at the iframe's centre the topmost
-		// element is the shield, so pointer input lands on it and never reaches
-		// the benchmarked page.
-		const shieldOnTop = await page.evaluate( () => {
-			const frame = document.querySelector(
-				'iframe.bsb-cockpit__viewport'
-			);
-			if ( ! frame ) {
-				return false;
-			}
-			const rect = frame.getBoundingClientRect();
-			const top = document.elementFromPoint(
-				rect.left + rect.width / 2,
-				rect.top + rect.height / 2
-			);
-			return top?.classList.contains( 'bsb-cockpit__shield' ) ?? false;
-		} );
-		expect( shieldOnTop ).toBe( true );
-
-		// A "view only" chip names the state — hidden at rest, revealed only while
-		// the pointer is over the viewport, so it never sits there nagging.
-		const badge = page.locator( '.bsb-cockpit__shield-badge' );
-		await expect( badge ).toHaveText(
-			/view only while the run is surfing/i
-		);
-		await expect( badge ).toHaveCSS( 'opacity', '0' );
-		await page.locator( '.bsb-cockpit__viewport-wrap' ).hover();
-		await expect( badge ).toHaveCSS( 'opacity', '1' );
+		// The interaction shield and "view only" chip remain in the markup — they
+		// govern the viewport once a run starts; their behaviour is unit-covered.
+		await expect( page.locator( '.bsb-cockpit__shield' ) ).toBeAttached();
+		await expect(
+			page.locator( '.bsb-cockpit__shield-badge' )
+		).toBeAttached();
 
 		// Stripped dashboard: the cockpit's own stylesheet is the only one that
 		// survives — every theme or other-plugin stylesheet is dequeued, so no

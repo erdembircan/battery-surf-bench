@@ -62,6 +62,15 @@ class CockpitView implements View {
 	 *     @type string $expand_label      Translated, escaped accessible label for the expand control.
 	 *     @type string $viewport_title    Translated, escaped title for the viewport iframe.
 	 *     @type string $shield_label      Translated, escaped "view only" chip text over the viewport.
+	 *     @type string $greeting_lead     Translated, escaped "Greetings from" line of the idle postcard.
+	 *     @type string $idle_heading      Translated, escaped heading on the idle postcard back.
+	 *     @type string $idle_subtitle     Translated, escaped subtitle under the idle heading.
+	 *     @type string $idle_step1_title  Translated, escaped title of idle step 1.
+	 *     @type string $idle_step1_text   Translated, escaped body of idle step 1.
+	 *     @type string $idle_step2_title  Translated, escaped title of idle step 2.
+	 *     @type string $idle_step2_text   Translated, escaped body of idle step 2.
+	 *     @type string $idle_step3_title  Translated, escaped title of idle step 3.
+	 *     @type string $idle_step3_text   Translated, escaped body of idle step 3.
 	 * }
 	 * @return string The block's HTML.
 	 */
@@ -97,6 +106,15 @@ class CockpitView implements View {
 		$expand_label       = isset( $data['expand_label'] ) ? (string) $data['expand_label'] : '';
 		$viewport_title     = isset( $data['viewport_title'] ) ? (string) $data['viewport_title'] : '';
 		$shield_label       = isset( $data['shield_label'] ) ? (string) $data['shield_label'] : '';
+		$greeting_lead      = isset( $data['greeting_lead'] ) ? (string) $data['greeting_lead'] : '';
+		$idle_heading       = isset( $data['idle_heading'] ) ? (string) $data['idle_heading'] : '';
+		$idle_subtitle      = isset( $data['idle_subtitle'] ) ? (string) $data['idle_subtitle'] : '';
+		$idle_step1_title   = isset( $data['idle_step1_title'] ) ? (string) $data['idle_step1_title'] : '';
+		$idle_step1_text    = isset( $data['idle_step1_text'] ) ? (string) $data['idle_step1_text'] : '';
+		$idle_step2_title   = isset( $data['idle_step2_title'] ) ? (string) $data['idle_step2_title'] : '';
+		$idle_step2_text    = isset( $data['idle_step2_text'] ) ? (string) $data['idle_step2_text'] : '';
+		$idle_step3_title   = isset( $data['idle_step3_title'] ) ? (string) $data['idle_step3_title'] : '';
+		$idle_step3_text    = isset( $data['idle_step3_text'] ) ? (string) $data['idle_step3_text'] : '';
 
 		// Each duration-odometer wheel is a strip of 0–9 repeated three times; the
 		// client store (rollDuration) slides it to roll the digit. Built here so
@@ -245,7 +263,28 @@ INNER;
 				</div>
 			</div>
 		</div>
-		<div class="bsb-cockpit__viewport-wrap">
+		<div class="bsb-cockpit__idle" data-wp-bind--hidden="state.isRunning">
+			<div class="bsb-cockpit__postcard">
+				<div class="bsb-cockpit__postcard-pic">
+					<span class="bsb-cockpit__postcard-mark" aria-hidden="true"></span>
+					<span class="bsb-cockpit__postcard-wash" aria-hidden="true"></span>
+					<span class="bsb-cockpit__postcard-grain" aria-hidden="true"></span>
+					<p class="bsb-cockpit__postcard-greet">{$greeting_lead}<span>{$brand_title}</span></p>
+				</div>
+				<div class="bsb-cockpit__postcard-note">
+					<span class="bsb-cockpit__stamp" aria-hidden="true"></span>
+					<h2 class="bsb-cockpit__postcard-heading">{$idle_heading}</h2>
+					<p class="bsb-cockpit__postcard-subtitle">{$idle_subtitle}</p>
+					<span class="bsb-cockpit__postcard-divide" aria-hidden="true"></span>
+					<ol class="bsb-cockpit__postcard-steps">
+						<li><span class="bsb-cockpit__postcard-num">1</span><span class="bsb-cockpit__postcard-step"><b>{$idle_step1_title}</b>{$idle_step1_text}</span></li>
+						<li><span class="bsb-cockpit__postcard-num">2</span><span class="bsb-cockpit__postcard-step"><b>{$idle_step2_title}</b>{$idle_step2_text}</span></li>
+						<li><span class="bsb-cockpit__postcard-num">3</span><span class="bsb-cockpit__postcard-step"><b>{$idle_step3_title}</b>{$idle_step3_text}</span></li>
+					</ol>
+				</div>
+			</div>
+		</div>
+		<div class="bsb-cockpit__viewport-wrap" hidden data-wp-bind--hidden="state.isIdle">
 			<iframe class="bsb-cockpit__viewport" title="{$viewport_title}" data-wp-bind--src="state.currentSrc"></iframe>
 			<div class="bsb-cockpit__shield" aria-hidden="true"></div>
 			<p class="bsb-cockpit__shield-badge">{$shield_label}</p>

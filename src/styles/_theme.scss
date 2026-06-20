@@ -63,9 +63,31 @@
 		format('woff2');
 }
 
+// Pacifico — the retro brush script for the idle postcard greeting.
+@font-face {
+	font-family: 'Pacifico';
+	font-style: normal;
+	font-weight: 400;
+	font-display: swap;
+	src: url('https://cdn.jsdelivr.net/fontsource/fonts/pacifico@latest/latin-400-normal.woff2')
+		format('woff2');
+}
+
+// Caveat — the handwritten note on the idle postcard "back".
+@font-face {
+	font-family: 'Caveat';
+	font-style: normal;
+	font-weight: 700;
+	font-display: swap;
+	src: url('https://cdn.jsdelivr.net/fontsource/fonts/caveat@latest/latin-700-normal.woff2')
+		format('woff2');
+}
+
 $font-display: 'Anton', 'Oswald', 'Arial Narrow', sans-serif;
 $font-ui: 'Hanken Grotesk', ui-sans-serif, system-ui, -apple-system, sans-serif;
 $font-mono: 'Space Mono', ui-monospace, 'SFMono-Regular', menlo, monospace;
+$font-script: 'Pacifico', ui-rounded, cursive;
+$font-hand: 'Caveat', ui-rounded, cursive;
 
 // ── Palette ─────────────────────────────────────────────────────────────────
 // Coastal Daybreak (light).
@@ -187,6 +209,15 @@ $lock-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' vi
 	--shield-chip-ink: #{$coastal-navy};
 	--shield-chip-line: #{$coastal-line};
 	--shield-chip-shadow: #{rgba($coastal-navy, 0.18)};
+	--idle-sky:
+		radial-gradient(120% 70% at 50% -10%, #{rgba($coastal-sun, 0.34)} 0%, #{rgba($coastal-sun, 0)} 55%),
+		linear-gradient(180deg, #eaf6fb 0%, #dcf0f6 60%, #cfe9f2 100%);
+	--paper: #fffaf0;
+	--paper-ink: #3a4a57;
+	--paper-line: #e7ddc7;
+	--stamp-edge: #dfe4e8;
+	--stamp-rule: #{rgba(#7889a0, 0.42)};
+	--paper-accent: #{$coastal-teal};
 
 	&[data-theme='dark'] {
 		--deck-bg:
@@ -236,5 +267,14 @@ $lock-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' vi
 		--shield-chip-ink: #{$dusk-foam};
 		--shield-chip-line: #{rgba($dusk-aqua, 0.22)};
 		--shield-chip-shadow: #{rgba(#000, 0.45)};
+		--idle-sky:
+			radial-gradient(120% 70% at 50% -10%, #{rgba($dusk-amber, 0.26)} 0%, #{rgba($dusk-amber, 0)} 55%),
+			linear-gradient(180deg, #0c3e52 0%, #0a3447 55%, #062734 100%);
+		--paper: #0f3346;
+		--paper-ink: #dcebf2;
+		--paper-line: #{rgba($dusk-aqua, 0.18)};
+		--stamp-edge: #294656;
+		--stamp-rule: #{rgba(#8caab9, 0.22)};
+		--paper-accent: #{$dusk-aqua};
 	}
 }

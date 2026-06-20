@@ -182,7 +182,8 @@ beforeEach( () => {
 
 describe( 'bsb/cockpit view store', () => {
 	describe( 'viewport', () => {
-		it( 'derives the viewport src from the active course page', () => {
+		it( 'derives the viewport src from the active course page once running', () => {
+			mocks.context.running = true;
 			mocks.context.pages = [ page( 'article-1' ) ];
 
 			expect( mocks.config?.state.currentSrc ).toBe(
@@ -190,11 +191,21 @@ describe( 'bsb/cockpit view store', () => {
 			);
 		} );
 
+		it( 'yields an empty src while idle, so pages do not load before a run', () => {
+			mocks.context.running = false;
+			mocks.context.pages = [ page( 'article-1' ) ];
+
+			expect( mocks.config?.state.currentSrc ).toBe( '' );
+		} );
+
 		it( 'yields an empty src when there are no pages to surf', () => {
+			mocks.context.running = true;
+
 			expect( mocks.config?.state.currentSrc ).toBe( '' );
 		} );
 
 		it( 'tracks the active page index for the src', () => {
+			mocks.context.running = true;
 			mocks.context.pages = [ page( 'article-1' ), page( 'gallery' ) ];
 			mocks.context.activeIndex = 1;
 

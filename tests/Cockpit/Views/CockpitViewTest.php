@@ -64,6 +64,23 @@ final class CockpitViewTest extends TestCase {
 	}
 
 	/**
+	 * Before a run the stage shows the idle postcard, not the iframe: the idle
+	 * screen is hidden while running and the viewport-wrap (shipped hidden) is
+	 * hidden while idle, so the benchmarked page never loads on the idle screen.
+	 */
+	public function test_render_shows_the_idle_postcard_until_running(): void {
+		$markup = $this->render();
+
+		$this->assertStringContainsString( 'class="bsb-cockpit__idle" data-wp-bind--hidden="state.isRunning"', $markup );
+		$this->assertStringContainsString( 'class="bsb-cockpit__viewport-wrap" hidden data-wp-bind--hidden="state.isIdle"', $markup );
+		$this->assertStringContainsString( 'class="bsb-cockpit__postcard-mark"', $markup );
+		$this->assertStringContainsString( 'class="bsb-cockpit__stamp"', $markup );
+		$this->assertStringContainsString( 'How this run works', $markup );
+		$this->assertStringContainsString( 'Greetings from', $markup );
+		$this->assertStringContainsString( 'Set the session', $markup );
+	}
+
+	/**
 	 * The control deck wires the mode segmented control to the store: each option
 	 * names its mode, calls `actions.selectMode`, and reflects the active mode.
 	 */
@@ -277,6 +294,15 @@ final class CockpitViewTest extends TestCase {
 				'expand_label'       => 'Expand the dashboard',
 				'viewport_title'     => 'Surf viewport',
 				'shield_label'       => 'View only while the run is surfing',
+				'greeting_lead'      => 'Greetings from',
+				'idle_heading'       => 'How this run works',
+				'idle_subtitle'      => 'a controlled, repeatable battery run.',
+				'idle_step1_title'   => 'Set the session',
+				'idle_step1_text'    => 'Pick a run length, or a battery % to stop at.',
+				'idle_step2_title'   => 'Drop in',
+				'idle_step2_text'    => 'Hit Start. The charger unplugs and the run begins on its own.',
+				'idle_step3_title'   => 'Watch the slope',
+				'idle_step3_text'    => 'It runs hands-free while the battery drains; you just watch the numbers.',
 			)
 		);
 	}

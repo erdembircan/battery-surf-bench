@@ -96,6 +96,15 @@ $bsb_markup = ( new CockpitView() )->render(
 		'expand_label'       => esc_attr__( 'Expand the dashboard', 'battery-surf-bench' ),
 		'viewport_title'     => esc_attr__( 'Surf viewport', 'battery-surf-bench' ),
 		'shield_label'       => esc_html__( 'View only while the run is surfing', 'battery-surf-bench' ),
+		'greeting_lead'      => esc_html__( 'Greetings from', 'battery-surf-bench' ),
+		'idle_heading'       => esc_html__( 'How this run works', 'battery-surf-bench' ),
+		'idle_subtitle'      => esc_html__( 'a controlled, repeatable battery run.', 'battery-surf-bench' ),
+		'idle_step1_title'   => esc_html__( 'Set the session', 'battery-surf-bench' ),
+		'idle_step1_text'    => esc_html__( 'Pick a run length, or a battery % to stop at.', 'battery-surf-bench' ),
+		'idle_step2_title'   => esc_html__( 'Drop in', 'battery-surf-bench' ),
+		'idle_step2_text'    => esc_html__( 'Hit Start. The charger unplugs and the run begins on its own.', 'battery-surf-bench' ),
+		'idle_step3_title'   => esc_html__( 'Watch the slope', 'battery-surf-bench' ),
+		'idle_step3_text'    => esc_html__( 'It runs hands-free while the battery drains; you just watch the numbers.', 'battery-surf-bench' ),
 	)
 );
 

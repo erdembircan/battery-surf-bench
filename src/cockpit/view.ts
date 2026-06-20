@@ -181,9 +181,18 @@ const formatClock = ( totalSeconds: number ): string => {
 
 store( 'bsb/cockpit', {
 	state: {
-		/** URL of the active course page, bound onto the viewport iframe. */
+		/**
+		 * URL of the active course page, bound onto the viewport iframe. Empty
+		 * until a run starts, so the benchmarked pages are not fetched while the
+		 * idle screen is showing — the iframe loads only once surfing begins.
+		 */
 		get currentSrc(): string {
-			const { pages, activeIndex } = getContext< CockpitContext >();
+			const { pages, activeIndex, running } =
+				getContext< CockpitContext >();
+
+			if ( ! running ) {
+				return '';
+			}
 
 			return pages[ activeIndex ]?.url ?? '';
 		},
