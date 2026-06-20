@@ -95,6 +95,7 @@ $bsb_markup = ( new CockpitView() )->render(
 		'compact_label'      => esc_attr__( 'Compact the dashboard', 'battery-surf-bench' ),
 		'expand_label'       => esc_attr__( 'Expand the dashboard', 'battery-surf-bench' ),
 		'viewport_title'     => esc_attr__( 'Surf viewport', 'battery-surf-bench' ),
+		'shield_label'       => esc_html__( 'View only while the run is surfing', 'battery-surf-bench' ),
 	)
 );
 

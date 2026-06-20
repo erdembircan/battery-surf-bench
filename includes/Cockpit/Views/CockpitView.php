@@ -61,6 +61,7 @@ class CockpitView implements View {
 	 *     @type string $compact_label     Translated, escaped accessible label for the compact control.
 	 *     @type string $expand_label      Translated, escaped accessible label for the expand control.
 	 *     @type string $viewport_title    Translated, escaped title for the viewport iframe.
+	 *     @type string $shield_label      Translated, escaped "view only" chip text over the viewport.
 	 * }
 	 * @return string The block's HTML.
 	 */
@@ -95,6 +96,7 @@ class CockpitView implements View {
 		$compact_label      = isset( $data['compact_label'] ) ? (string) $data['compact_label'] : '';
 		$expand_label       = isset( $data['expand_label'] ) ? (string) $data['expand_label'] : '';
 		$viewport_title     = isset( $data['viewport_title'] ) ? (string) $data['viewport_title'] : '';
+		$shield_label       = isset( $data['shield_label'] ) ? (string) $data['shield_label'] : '';
 
 		// Each duration-odometer wheel is a strip of 0–9 repeated three times; the
 		// client store (rollDuration) slides it to roll the digit. Built here so
@@ -246,6 +248,7 @@ INNER;
 		<div class="bsb-cockpit__viewport-wrap">
 			<iframe class="bsb-cockpit__viewport" title="{$viewport_title}" data-wp-bind--src="state.currentSrc"></iframe>
 			<div class="bsb-cockpit__shield" aria-hidden="true"></div>
+			<p class="bsb-cockpit__shield-badge">{$shield_label}</p>
 		</div>
 	</div>
 </div>

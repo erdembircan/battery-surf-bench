@@ -51,13 +51,16 @@ final class CockpitViewTest extends TestCase {
 	/**
 	 * The viewport iframe is covered by an interaction shield so the benchmarked
 	 * page is shown but cannot be interacted with. The shield is a sibling of the
-	 * iframe inside a shared positioned wrapper and is hidden from assistive tech.
+	 * iframe inside a shared positioned wrapper and is hidden from assistive tech,
+	 * and a "view only" chip names the state to sighted users.
 	 */
 	public function test_render_shields_the_viewport_from_interaction(): void {
 		$markup = $this->render();
 
 		$this->assertStringContainsString( 'class="bsb-cockpit__viewport-wrap"', $markup );
 		$this->assertStringContainsString( 'class="bsb-cockpit__shield" aria-hidden="true"', $markup );
+		$this->assertStringContainsString( 'class="bsb-cockpit__shield-badge"', $markup );
+		$this->assertStringContainsString( 'View only while the run is surfing', $markup );
 	}
 
 	/**
@@ -273,6 +276,7 @@ final class CockpitViewTest extends TestCase {
 				'compact_label'      => 'Compact the dashboard',
 				'expand_label'       => 'Expand the dashboard',
 				'viewport_title'     => 'Surf viewport',
+				'shield_label'       => 'View only while the run is surfing',
 			)
 		);
 	}

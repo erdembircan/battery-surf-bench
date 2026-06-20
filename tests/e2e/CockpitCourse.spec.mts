@@ -87,6 +87,11 @@ test.describe( 'Cockpit dashboard route', () => {
 		} );
 		expect( shieldOnTop ).toBe( true );
 
+		// A "view only" chip names the state to sighted users.
+		await expect( page.locator( '.bsb-cockpit__shield-badge' ) ).toHaveText(
+			/view only while the run is surfing/i
+		);
+
 		// Stripped dashboard: the cockpit's own stylesheet is the only one that
 		// survives — every theme or other-plugin stylesheet is dequeued, so no
 		// foreign CSS leaks in.
