@@ -28,6 +28,7 @@ interface CockpitContext {
 	running: boolean;
 	elapsed: number;
 	theme: 'light' | 'dark';
+	themePref: 'light' | 'dark' | 'system';
 	targetPercent: number;
 	batteryLevel: number | null;
 	batteryCharging: boolean;
@@ -100,6 +101,7 @@ const baseContext = (): CockpitContext => ( {
 	running: false,
 	elapsed: 0,
 	theme: 'light',
+	themePref: 'system',
 	targetPercent: 20,
 	batteryLevel: null,
 	batteryCharging: false,
@@ -683,61 +685,63 @@ describe( 'bsb/cockpit view store', () => {
 			return mql;
 		};
 
-		it( 'toggles between light and dark and remembers the choice', () => {
-			mocks.context.theme = 'light';
-
+		it( 'cycles system → light → dark and remembers the preference', () => {
+			// The seeded preference is "system"; with no OS dark, it resolves light.
 			mocks.config?.actions.toggleTheme();
-			expect( mocks.context.theme ).toBe( 'dark' );
-			expect( window.localStorage.getItem( 'bsb-cockpit-theme' ) ).toBe(
-				'dark'
-			);
-
-			mocks.config?.actions.toggleTheme();
+			expect( mocks.context.themePref ).toBe( 'light' );
 			expect( mocks.context.theme ).toBe( 'light' );
 			expect( window.localStorage.getItem( 'bsb-cockpit-theme' ) ).toBe(
 				'light'
 			);
+
+			mocks.config?.actions.toggleTheme();
+			expect( mocks.context.themePref ).toBe( 'dark' );
+			expect( mocks.context.theme ).toBe( 'dark' );
+
+			mocks.config?.actions.toggleTheme();
+			expect( mocks.context.themePref ).toBe( 'system' );
+			expect( window.localStorage.getItem( 'bsb-cockpit-theme' ) ).toBe(
+				'system'
+			);
 		} );
 
-		it( 'restores a remembered theme on init', () => {
+		it( 'restores a remembered fixed preference on init', () => {
 			window.localStorage.setItem( 'bsb-cockpit-theme', 'dark' );
-			mocks.context.theme = 'light';
 
 			mocks.config?.callbacks.initTheme();
 
+			expect( mocks.context.themePref ).toBe( 'dark' );
 			expect( mocks.context.theme ).toBe( 'dark' );
 		} );
 
-		it( 'keeps the seeded theme when nothing is remembered', () => {
-			mocks.context.theme = 'light';
-
+		it( 'defaults to following the system when nothing is remembered', () => {
 			mocks.config?.callbacks.initTheme();
 
+			expect( mocks.context.themePref ).toBe( 'system' );
 			expect( mocks.context.theme ).toBe( 'light' );
 		} );
 
-		it( 'follows the OS dark preference when nothing is remembered', () => {
+		it( 'resolves the system preference to the OS dark scheme', () => {
 			mockOsDark( true );
-			mocks.context.theme = 'light';
 
 			mocks.config?.callbacks.initTheme();
 
+			expect( mocks.context.themePref ).toBe( 'system' );
 			expect( mocks.context.theme ).toBe( 'dark' );
 		} );
 
-		it( 'lets a remembered choice override the OS preference', () => {
+		it( 'lets a fixed preference override the OS', () => {
 			mockOsDark( true );
 			window.localStorage.setItem( 'bsb-cockpit-theme', 'light' );
-			mocks.context.theme = 'dark';
 
 			mocks.config?.callbacks.initTheme();
 
+			expect( mocks.context.themePref ).toBe( 'light' );
 			expect( mocks.context.theme ).toBe( 'light' );
 		} );
 
-		it( 're-applies on OS change, until cleaned up', () => {
+		it( 're-applies on OS change while on system, until cleaned up', () => {
 			const mql = mockOsDark( false );
-			mocks.context.theme = 'light';
 
 			const cleanup = mocks.config!.callbacks.initTheme();
 			expect( mocks.context.theme ).toBe( 'light' );

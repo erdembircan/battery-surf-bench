@@ -22,8 +22,11 @@ interface CoursePage {
 /** Which quantity a benchmark run is bounded by. */
 type RunMode = 'duration' | 'targetDrop';
 
-/** The deck's colour theme — Coastal Daybreak (light) or Dusk Lineup (dark). */
+/** The deck's resolved colour theme — Coastal Daybreak or Dusk Lineup. */
 type ThemeName = 'light' | 'dark';
+
+/** The visitor's theme preference: a fixed theme, or follow the OS. */
+type ThemePref = 'light' | 'dark' | 'system';
 
 /** Per-instance context the cockpit's PHP render seeds onto the block. */
 interface CockpitContext {
@@ -36,6 +39,7 @@ interface CockpitContext {
 	running: boolean;
 	elapsed: number;
 	theme: ThemeName;
+	themePref: ThemePref;
 	targetPercent: number;
 	batteryLevel: number | null;
 	batteryCharging: boolean;
@@ -111,8 +115,29 @@ const targetFromPointer = (
 	return clampTarget( ratio * 100, max );
 };
 
-/** localStorage key the chosen theme is remembered under across visits. */
+/** localStorage key the theme preference is remembered under across visits. */
 const THEME_KEY = 'bsb-cockpit-theme';
+
+/** The order the theme control cycles through on each press. */
+const THEME_ORDER: ThemePref[] = [ 'system', 'light', 'dark' ];
+
+/** Whether the operating system currently prefers a dark colour scheme. */
+const osPrefersDark = (): boolean =>
+	typeof window.matchMedia === 'function' &&
+	window.matchMedia( '(prefers-color-scheme: dark)' ).matches;
+
+/**
+ * Resolves a preference to the theme actually applied: a fixed choice as-is, or
+ * the operating system's current scheme when following the system.
+ * @param pref
+ */
+const resolveTheme = ( pref: ThemePref ): ThemeName => {
+	if ( pref !== 'system' ) {
+		return pref;
+	}
+
+	return osPrefersDark() ? 'dark' : 'light';
+};
 
 /** Per-odometer roll state: the last duration shown and each wheel's position. */
 interface OdometerState {
@@ -461,13 +486,23 @@ store( 'bsb/cockpit', {
 			context.running = true;
 		},
 
-		/** Flips between the light and dark deck themes and remembers the choice. */
+		/**
+		 * Cycles the theme preference (system → light → dark → system) and
+		 * remembers it. "System" follows the OS, so it is a sticky choice in its
+		 * own right; a fixed light/dark choice overrides the OS until changed.
+		 */
 		toggleTheme(): void {
 			const context = getContext< CockpitContext >();
-			context.theme = context.theme === 'dark' ? 'light' : 'dark';
+			const next =
+				THEME_ORDER[
+					( THEME_ORDER.indexOf( context.themePref ) + 1 ) %
+						THEME_ORDER.length
+				];
+			context.themePref = next;
+			context.theme = resolveTheme( next );
 
 			try {
-				window.localStorage.setItem( THEME_KEY, context.theme );
+				window.localStorage.setItem( THEME_KEY, next );
 			} catch {
 				// Storage unavailable (private mode); the choice still applies
 				// for this session.
@@ -531,10 +566,10 @@ store( 'bsb/cockpit', {
 		},
 
 		/**
-		 * Sets the deck theme on mount and keeps it in sync. A remembered manual
-		 * choice (localStorage) always wins; with none, the deck follows the
-		 * operating system's light/dark preference and re-applies if that
-		 * preference changes. Returns a cleanup that detaches the OS listener.
+		 * Restores the remembered theme preference on mount and keeps the resolved
+		 * theme in sync: a fixed light/dark choice applies as-is, while "system"
+		 * (the default) follows the OS and re-applies when its scheme changes.
+		 * Returns a cleanup that detaches the OS listener.
 		 */
 		initTheme(): () => void {
 			const context = getContext< CockpitContext >();
@@ -543,22 +578,23 @@ store( 'bsb/cockpit', {
 					? window.matchMedia( '(prefers-color-scheme: dark)' )
 					: null;
 
-			const remembered = (): string | null => {
-				try {
-					return window.localStorage.getItem( THEME_KEY );
-				} catch {
-					return null;
-				}
-			};
-
 			const apply = (): void => {
-				const choice = remembered();
-				if ( choice === 'light' || choice === 'dark' ) {
-					context.theme = choice;
-					return;
+				let pref: ThemePref = 'system';
+				try {
+					const stored = window.localStorage.getItem( THEME_KEY );
+					if (
+						stored === 'light' ||
+						stored === 'dark' ||
+						stored === 'system'
+					) {
+						pref = stored;
+					}
+				} catch {
+					// Storage unavailable; fall back to following the system.
 				}
 
-				context.theme = media?.matches ? 'dark' : 'light';
+				context.themePref = pref;
+				context.theme = resolveTheme( pref );
 			};
 
 			apply();

@@ -189,14 +189,16 @@ final class CockpitViewTest extends TestCase {
 	}
 
 	/**
-	 * The theme toggle calls `actions.toggleTheme` and carries its accessible
-	 * label so the deck can switch between the light and dark themes.
+	 * The theme toggle cycles the preference through `actions.toggleTheme`,
+	 * reflects the current preference for its icon, and carries its accessible
+	 * label so the deck can switch between light, dark and system themes.
 	 */
 	public function test_render_wires_the_theme_toggle(): void {
 		$markup = $this->render();
 
 		$this->assertStringContainsString( 'class="bsb-deck__theme"', $markup );
 		$this->assertStringContainsString( 'data-wp-on--click="actions.toggleTheme"', $markup );
+		$this->assertStringContainsString( 'data-wp-bind--data-pref="context.themePref"', $markup );
 		$this->assertStringContainsString( 'aria-label="Toggle light or dark theme"', $markup );
 	}
 

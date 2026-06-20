@@ -107,7 +107,7 @@ CELLS;
 				<span class="bsb-deck__title">{$brand_title}</span>
 				<span class="bsb-deck__subtitle">{$brand_subtitle}</span>
 			</span>
-			<button type="button" class="bsb-deck__theme" data-wp-on--click="actions.toggleTheme" aria-label="{$theme_label}"></button>
+			<button type="button" class="bsb-deck__theme" data-pref="system" data-wp-bind--data-pref="context.themePref" data-wp-on--click="actions.toggleTheme" aria-label="{$theme_label}"></button>
 		</header>
 
 		<div class="bsb-deck__body">
