@@ -52,26 +52,36 @@ body {
 	background: var(--deck-bg);
 }
 
-// ── Surfing indicator — the deck's live "it's working" readout ──────────────
+// ── Readouts pill — the deck's live "it's working" panel (shown while running) ─
 .bsb-deck__status {
 	position: relative;
 	z-index: 1;
 	overflow: hidden;
 	display: flex;
-	align-items: center;
-	gap: 0.6rem;
-	padding: 0.85rem 1rem 1.05rem;
-	border-radius: 14px;
+	flex-direction: column;
+	gap: 1rem;
+	padding: 1rem 1.1rem 1.5rem;
+	border-radius: 16px;
 	color: var(--status-ink);
 	background: var(--status-grad);
 	box-shadow:
 		0 8px 20px rgba(0, 0, 0, 0.2),
 		inset 0 0 0 1px var(--status-ring);
+
+	&[hidden] {
+		display: none;
+	}
+}
+
+.bsb-deck__status-head {
+	position: relative;
+	z-index: 1;
+	display: flex;
+	align-items: center;
+	gap: 0.55rem;
 }
 
 .bsb-deck__status-dot {
-	position: relative;
-	z-index: 1;
 	flex: 0 0 auto;
 	width: 0.55rem;
 	height: 0.55rem;
@@ -82,9 +92,7 @@ body {
 }
 
 .bsb-deck__status-text {
-	position: relative;
-	z-index: 1;
-	font-size: 0.72rem;
+	font-size: 0.7rem;
 	font-weight: 700;
 	letter-spacing: 0.14em;
 	text-transform: uppercase;
@@ -93,6 +101,62 @@ body {
 .bsb-deck__clock {
 	font-family: theme.$font-mono;
 	font-variant-numeric: tabular-nums;
+}
+
+// readouts grid inside the pill
+.bsb-deck__readouts {
+	position: relative;
+	z-index: 1;
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 0.5rem 1rem;
+}
+
+.bsb-stat__label {
+	display: block;
+	font-size: 0.56rem;
+	font-weight: 700;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	color: var(--status-ink);
+	opacity: 0.62;
+}
+
+.bsb-stat__value {
+	display: block;
+	margin-top: 0.15rem;
+	font-family: theme.$font-mono;
+	font-size: 1.45rem;
+	font-weight: 700;
+	line-height: 1.05;
+	color: var(--status-ink);
+	font-variant-numeric: tabular-nums;
+}
+
+.bsb-stat__value--lg {
+	display: flex;
+	align-items: center;
+	gap: 0.4rem;
+	font-size: 1.9rem;
+}
+
+.bsb-stat__unit {
+	font-size: 0.72rem;
+	opacity: 0.7;
+}
+
+// charging bolt — shown beside the battery % only while charging
+.bsb-stat__bolt {
+	width: 0.7rem;
+	height: 1rem;
+	display: none;
+	background: var(--status-dot);
+	filter: drop-shadow(0 0 5px var(--status-dot));
+	clip-path: polygon(55% 0, 0 58%, 42% 58%, 30% 100%, 100% 38%, 55% 38%);
+}
+
+.bsb-stat--battery.is-charging .bsb-stat__bolt {
+	display: block;
 }
 
 // ── Parallax waves inside the surfing indicator ─────────────────────────────
@@ -135,187 +199,6 @@ body {
 	height: 24px;
 	animation-duration: 8s;
 	background-image: var(--wave-front);
-}
-
-// ── Battery readouts ────────────────────────────────────────────────────────
-.bsb-readout {
-	display: flex;
-	flex-direction: column;
-	gap: 0.7rem;
-}
-
-.bsb-readout__feature {
-	@extend %inset-surface;
-
-	padding: 0.9rem 1rem;
-}
-
-.bsb-readout__feature-label {
-	display: block;
-	margin-bottom: 0.5rem;
-	font-size: 0.6rem;
-	font-weight: 700;
-	letter-spacing: 0.2em;
-	text-transform: uppercase;
-	color: var(--label);
-}
-
-.bsb-readout__row {
-	display: flex;
-	align-items: center;
-	gap: 1rem;
-}
-
-.bsb-readout__num {
-	font-family: theme.$font-mono;
-	font-size: 2.4rem;
-	font-weight: 700;
-	line-height: 0.9;
-	font-variant-numeric: tabular-nums;
-}
-
-.bsb-readout__pct {
-	font-size: 1rem;
-	color: var(--text-soft);
-}
-
-// Battery laid on its side: cap left, fill from the right, cell ticks; the
-// charging cable slides in from the right and out of view via `.is-charging`.
-.bsb-readout__battery {
-	position: relative;
-	margin-left: auto;
-	display: inline-flex;
-	align-items: center;
-	gap: 3px;
-	flex: 0 0 auto;
-}
-
-.bsb-readout__cap {
-	order: 0;
-	flex: 0 0 auto;
-	width: 6px;
-	height: 1.3rem;
-	border-radius: 3px 0 0 3px;
-	background: var(--text-soft);
-}
-
-.bsb-readout__rig {
-	order: 1;
-	position: relative;
-	display: inline-flex;
-}
-
-.bsb-readout__body {
-	position: relative;
-	width: 7.4rem;
-	height: 3.4rem;
-	border: 3px solid var(--text-soft);
-	border-radius: 10px;
-	overflow: hidden;
-	background: var(--surface);
-	box-shadow: inset 0 1px 3px var(--surface-shadow);
-
-	&::after {
-		content: '';
-		position: absolute;
-		inset: 0;
-		background: repeating-linear-gradient(
-			90deg,
-			transparent 0,
-			transparent 1.74rem,
-			rgba(127, 127, 127, 0.13) 1.74rem,
-			rgba(127, 127, 127, 0.13) calc(1.74rem + 1px)
-		);
-		pointer-events: none;
-	}
-}
-
-.bsb-readout__fill {
-	position: absolute;
-	inset-block: 0;
-	right: 0;
-	transition:
-		width 0.3s ease,
-		background 0.3s ease;
-}
-
-.bsb-readout__track {
-	position: absolute;
-	top: 50%;
-	left: calc(100% - 3px);
-	width: 3.4rem;
-	height: 1.1rem;
-	transform: translateY(-50%);
-	overflow: hidden;
-	pointer-events: none;
-}
-
-.bsb-readout__cable {
-	position: absolute;
-	top: 50%;
-	left: 0;
-	width: 1.7rem;
-	height: 0.46rem;
-	transform: translate(150%, -50%);
-	border-radius: 0 3px 3px 0;
-	background: var(--good);
-	transition: transform 0.5s cubic-bezier(0.5, 0, 0.2, 1);
-
-	&::before {
-		content: '';
-		position: absolute;
-		top: 50%;
-		left: 0;
-		width: 0.4rem;
-		height: 0.86rem;
-		transform: translateY(-50%);
-		border-radius: 2px;
-		background: var(--good);
-	}
-}
-
-.bsb-readout__battery.is-charging .bsb-readout__cable {
-	transform: translate(0, -50%);
-}
-
-.bsb-readout__grid {
-	display: grid;
-	grid-template-columns: 1fr 1fr;
-	gap: 0.7rem;
-}
-
-.bsb-readout__stat {
-	@extend %inset-surface;
-
-	padding: 0.8rem 0.9rem;
-}
-
-.bsb-readout__stat--wide {
-	grid-column: 1 / -1;
-}
-
-.bsb-readout__stat-label {
-	display: block;
-	font-size: 0.58rem;
-	font-weight: 700;
-	letter-spacing: 0.16em;
-	text-transform: uppercase;
-	color: var(--label);
-}
-
-.bsb-readout__stat-val {
-	display: block;
-	margin-top: 0.35rem;
-	font-family: theme.$font-mono;
-	font-size: 1.35rem;
-	font-weight: 700;
-	color: var(--readout-ink);
-	font-variant-numeric: tabular-nums;
-}
-
-.bsb-readout__unit {
-	font-size: 0.8rem;
-	color: var(--text-soft);
 }
 
 // ── Brand + theme toggle ─────────────────────────────────────────────────────

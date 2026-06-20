@@ -50,9 +50,9 @@ interface CockpitConfig {
 		isSpeed10: boolean;
 		elapsedClock: string;
 		batteryDisplay: string;
-		batteryFill: string;
 		batteryColor: string;
 		isCharging: boolean;
+		isIdle: boolean;
 		rate10Display: string;
 		rateSessionDisplay: string;
 		timeToEmptyDisplay: string;
@@ -401,9 +401,8 @@ describe( 'bsb/cockpit view store', () => {
 			delete ( navigator as { getBattery?: unknown } ).getBattery;
 		} );
 
-		it( 'reads the battery level, fill and colour, idle by default', () => {
+		it( 'reads the battery level and colour, idle by default', () => {
 			expect( mocks.config?.state.batteryDisplay ).toBe( '—' );
-			expect( mocks.config?.state.batteryFill ).toBe( '0%' );
 			expect( mocks.config?.state.batteryColor ).toBe(
 				'var(--text-soft)'
 			);
@@ -411,13 +410,19 @@ describe( 'bsb/cockpit view store', () => {
 
 			mocks.context.batteryLevel = 90;
 			expect( mocks.config?.state.batteryDisplay ).toBe( '90' );
-			expect( mocks.config?.state.batteryFill ).toBe( '90%' );
 			expect( mocks.config?.state.batteryColor ).toBe(
 				'hsl(108, 70%, 45%)'
 			);
 
 			mocks.context.batteryCharging = true;
 			expect( mocks.config?.state.isCharging ).toBe( true );
+		} );
+
+		it( 'hides the readouts pill until a run is live', () => {
+			expect( mocks.config?.state.isIdle ).toBe( true );
+
+			mocks.context.running = true;
+			expect( mocks.config?.state.isIdle ).toBe( false );
 		} );
 
 		it( 'shows em dashes for rates and time to empty until known', () => {

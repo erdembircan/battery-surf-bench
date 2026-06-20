@@ -124,18 +124,18 @@ final class CockpitViewTest extends TestCase {
 	}
 
 	/**
-	 * The readouts section starts the battery feed and binds the battery level,
-	 * fill, colour and charging cable to the store.
+	 * The readouts pill is hidden until a run is live, starts the battery feed,
+	 * and binds the battery level, colour, charging bolt and metrics to the store.
 	 */
 	public function test_render_wires_the_readouts(): void {
 		$markup = $this->render();
 
-		$this->assertStringContainsString( 'data-wp-init="callbacks.initBattery"', $markup );
+		$this->assertStringContainsString( 'data-wp-bind--hidden="state.isIdle"', $markup );
+		$this->assertStringContainsString( 'data-wp-init--battery="callbacks.initBattery"', $markup );
 		$this->assertStringContainsString( 'data-wp-text="state.batteryDisplay"', $markup );
-		$this->assertStringContainsString( 'data-wp-style--width="state.batteryFill"', $markup );
 		$this->assertStringContainsString( 'data-wp-class--is-charging="state.isCharging"', $markup );
+		$this->assertStringContainsString( 'class="bsb-stat__bolt"', $markup );
 		$this->assertStringContainsString( 'data-wp-text="state.timeToEmptyDisplay"', $markup );
-		$this->assertStringContainsString( '>Readouts<', $markup );
 	}
 
 	/**
@@ -156,7 +156,7 @@ final class CockpitViewTest extends TestCase {
 	public function test_render_wires_the_surfing_indicator(): void {
 		$markup = $this->render();
 
-		$this->assertStringContainsString( 'data-wp-init="callbacks.tick"', $markup );
+		$this->assertStringContainsString( 'data-wp-init--clock="callbacks.tick"', $markup );
 		$this->assertStringContainsString( 'data-wp-text="state.elapsedClock"', $markup );
 		$this->assertStringContainsString( 'Surfing', $markup );
 		$this->assertStringContainsString( 'elapsed', $markup );
@@ -199,7 +199,6 @@ final class CockpitViewTest extends TestCase {
 				'target_aria'      => 'Target battery percentage',
 				'baseline_label'   => 'Baseline calibration',
 				'speed_label'        => 'Speed',
-				'readouts_label'     => 'Readouts',
 				'battery_label'      => 'Battery',
 				'rate10_label'       => 'Rate · 10 min',
 				'rate_session_label' => 'Rate · session',

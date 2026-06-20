@@ -166,13 +166,6 @@ store( 'bsb/cockpit', {
 			return batteryLevel === null ? '—' : String( batteryLevel );
 		},
 
-		/** Current battery level as a CSS width for the readout fill. */
-		get batteryFill(): string {
-			const { batteryLevel } = getContext< CockpitContext >();
-
-			return `${ batteryLevel ?? 0 }%`;
-		},
-
 		/** Battery readout colour: green when full grading to red when low. */
 		get batteryColor(): string {
 			const { batteryLevel } = getContext< CockpitContext >();
@@ -186,9 +179,14 @@ store( 'bsb/cockpit', {
 			return `hsl(${ hue }, 70%, 45%)`;
 		},
 
-		/** Whether the device is charging — drives the readout cable. */
+		/** Whether the device is charging — drives the charging bolt. */
 		get isCharging(): boolean {
 			return getContext< CockpitContext >().batteryCharging;
+		},
+
+		/** Whether no run is live — hides the readouts pill until one starts. */
+		get isIdle(): boolean {
+			return ! getContext< CockpitContext >().running;
 		},
 
 		/** Drain rate over the last 10 minutes, or an em dash until known. */

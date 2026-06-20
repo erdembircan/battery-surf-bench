@@ -46,7 +46,6 @@ class CockpitView implements View {
 	 *     @type string $target_aria       Translated, escaped accessible label for the target slider.
 	 *     @type string $baseline_label    Translated, escaped label for the baseline calibration toggle.
 	 *     @type string $speed_label        Translated, escaped label for the speed field.
-	 *     @type string $readouts_label     Translated, escaped heading for the readouts section.
 	 *     @type string $battery_label      Translated, escaped label for the battery readout.
 	 *     @type string $rate10_label       Translated, escaped label for the 10-minute drain rate.
 	 *     @type string $rate_session_label Translated, escaped label for the session drain rate.
@@ -76,7 +75,6 @@ class CockpitView implements View {
 		$target_aria      = isset( $data['target_aria'] ) ? (string) $data['target_aria'] : '';
 		$baseline_label   = isset( $data['baseline_label'] ) ? (string) $data['baseline_label'] : '';
 		$speed_label        = isset( $data['speed_label'] ) ? (string) $data['speed_label'] : '';
-		$readouts_label     = isset( $data['readouts_label'] ) ? (string) $data['readouts_label'] : '';
 		$battery_label      = isset( $data['battery_label'] ) ? (string) $data['battery_label'] : '';
 		$rate10_label       = isset( $data['rate10_label'] ) ? (string) $data['rate10_label'] : '';
 		$rate_session_label = isset( $data['rate_session_label'] ) ? (string) $data['rate_session_label'] : '';
@@ -150,48 +148,37 @@ class CockpitView implements View {
 				</div>
 			</section>
 
-			<div class="bsb-deck__status" data-wp-init="callbacks.tick">
-				<span class="bsb-deck__status-dot" aria-hidden="true"></span>
-				<span class="bsb-deck__status-text">{$surfing_label} &middot; <span class="bsb-deck__clock" data-wp-text="state.elapsedClock"></span> {$elapsed_label}</span>
+			<div class="bsb-deck__status" data-wp-init--clock="callbacks.tick" data-wp-init--battery="callbacks.initBattery" data-wp-bind--hidden="state.isIdle">
+				<div class="bsb-deck__status-head">
+					<span class="bsb-deck__status-dot" aria-hidden="true"></span>
+					<span class="bsb-deck__status-text">{$surfing_label} &middot; <span class="bsb-deck__clock" data-wp-text="state.elapsedClock"></span> {$elapsed_label}</span>
+				</div>
+
+				<div class="bsb-deck__readouts">
+					<div class="bsb-stat bsb-stat--battery" data-wp-class--is-charging="state.isCharging">
+						<span class="bsb-stat__label">{$battery_label}</span>
+						<span class="bsb-stat__value bsb-stat__value--lg" data-wp-style--color="state.batteryColor"><span data-wp-text="state.batteryDisplay"></span>%<span class="bsb-stat__bolt" aria-hidden="true"></span></span>
+					</div>
+					<div class="bsb-stat">
+						<span class="bsb-stat__label">{$tte_label}</span>
+						<span class="bsb-stat__value" data-wp-text="state.timeToEmptyDisplay"></span>
+					</div>
+					<div class="bsb-stat">
+						<span class="bsb-stat__label">{$rate10_label}</span>
+						<span class="bsb-stat__value"><span data-wp-text="state.rate10Display"></span><span class="bsb-stat__unit">%/h</span></span>
+					</div>
+					<div class="bsb-stat">
+						<span class="bsb-stat__label">{$rate_session_label}</span>
+						<span class="bsb-stat__value"><span data-wp-text="state.rateSessionDisplay"></span><span class="bsb-stat__unit">%/h</span></span>
+					</div>
+				</div>
+
 				<span class="bsb-deck__waves" aria-hidden="true">
 					<span class="bsb-deck__wave bsb-deck__wave--back"></span>
 					<span class="bsb-deck__wave bsb-deck__wave--mid"></span>
 					<span class="bsb-deck__wave bsb-deck__wave--front"></span>
 				</span>
 			</div>
-
-			<section class="bsb-readout" data-wp-init="callbacks.initBattery">
-				<span class="bsb-field__label">{$readouts_label}</span>
-
-				<div class="bsb-readout__feature">
-					<span class="bsb-readout__feature-label">{$battery_label}</span>
-					<div class="bsb-readout__row">
-						<span class="bsb-readout__num" data-wp-style--color="state.batteryColor"><span data-wp-text="state.batteryDisplay"></span><span class="bsb-readout__pct">%</span></span>
-						<span class="bsb-readout__battery" data-wp-class--is-charging="state.isCharging" aria-hidden="true">
-							<span class="bsb-readout__cap"></span>
-							<span class="bsb-readout__rig">
-								<span class="bsb-readout__body"><span class="bsb-readout__fill" data-wp-style--width="state.batteryFill" data-wp-style--background="state.batteryColor"></span></span>
-								<span class="bsb-readout__track"><span class="bsb-readout__cable"></span></span>
-							</span>
-						</span>
-					</div>
-				</div>
-
-				<div class="bsb-readout__grid">
-					<div class="bsb-readout__stat">
-						<span class="bsb-readout__stat-label">{$rate10_label}</span>
-						<span class="bsb-readout__stat-val"><span data-wp-text="state.rate10Display"></span><span class="bsb-readout__unit">%/h</span></span>
-					</div>
-					<div class="bsb-readout__stat">
-						<span class="bsb-readout__stat-label">{$rate_session_label}</span>
-						<span class="bsb-readout__stat-val"><span data-wp-text="state.rateSessionDisplay"></span><span class="bsb-readout__unit">%/h</span></span>
-					</div>
-					<div class="bsb-readout__stat bsb-readout__stat--wide">
-						<span class="bsb-readout__stat-label">{$tte_label}</span>
-						<span class="bsb-readout__stat-val" data-wp-text="state.timeToEmptyDisplay"></span>
-					</div>
-				</div>
-			</section>
 		</div>
 
 		<footer class="bsb-deck__foot">

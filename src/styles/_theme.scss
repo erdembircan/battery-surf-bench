@@ -159,7 +159,6 @@ $sun-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' vie
 	--wave-front: #{wave('%23ffffff', 0.6)};
 	--title-ink: #{$coastal-navy};
 	--subtitle-ink: #{$coastal-teal};
-	--good: #3fae57;
 	--focus: #{$coastal-coral};
 	--theme-icon: #{$moon};
 	--stage-bg:
@@ -212,7 +211,6 @@ $sun-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' vie
 		--wave-front: #{wave('%23e6f7fb', 0.26)};
 		--title-ink: #ffffff;
 		--subtitle-ink: #{$dusk-sun};
-		--good: #5fd38b;
 		--focus: #{$dusk-sun};
 		--theme-icon: #{$sun-icon};
 		--stage-bg: linear-gradient(180deg, #0a3447 0%, #062734 100%);

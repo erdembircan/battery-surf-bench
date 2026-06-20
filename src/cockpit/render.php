@@ -77,7 +77,6 @@ $bsb_markup = ( new CockpitView() )->render(
 		'target_aria'      => esc_attr__( 'Target battery percentage', 'battery-surf-bench' ),
 		'baseline_label'   => esc_html__( 'Baseline calibration', 'battery-surf-bench' ),
 		'speed_label'        => esc_html__( 'Speed', 'battery-surf-bench' ),
-		'readouts_label'     => esc_html__( 'Readouts', 'battery-surf-bench' ),
 		'battery_label'      => esc_html__( 'Battery', 'battery-surf-bench' ),
 		'rate10_label'       => esc_html__( 'Rate · 10 min', 'battery-surf-bench' ),
 		'rate_session_label' => esc_html__( 'Rate · session', 'battery-surf-bench' ),
