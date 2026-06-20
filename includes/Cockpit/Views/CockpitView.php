@@ -148,6 +148,7 @@ INNER;
 <div {$wrapper} data-wp-interactive="bsb/cockpit" {$context} data-wp-init="callbacks.initTheme" data-wp-init---battery="callbacks.initBattery" data-wp-init---clock="callbacks.tick" data-wp-bind--data-theme="context.theme" data-wp-class--is-compact="state.isCompact">
 	<aside class="bsb-cockpit__deck">
 		<header class="bsb-deck__brand">
+			<span class="bsb-deck__mark" aria-hidden="true"></span>
 			<span class="bsb-deck__wordmark">
 				<span class="bsb-deck__title">{$brand_title}</span>
 				<span class="bsb-deck__subtitle">{$brand_subtitle}</span>

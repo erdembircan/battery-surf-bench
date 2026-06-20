@@ -228,7 +228,6 @@ body {
 .bsb-deck__brand {
 	position: relative;
 	z-index: 1;
-	overflow: hidden;
 	display: flex;
 	align-items: center;
 	gap: 0.85rem;
@@ -236,24 +235,23 @@ body {
 	padding-bottom: 1.5rem;
 	margin-bottom: 1.4rem;
 	border-bottom: 1px solid var(--line);
+}
 
-	// Oversized surfer-mark watermark behind the title: tinted to the deck so it
-	// blends in, anchored left, and cropped by the divider so only its crest shows.
-	&::before {
-		content: '';
-		position: absolute;
-		z-index: 0;
-		top: 4px;
-		left: -10px;
-		width: 150px;
-		height: 150px;
-		background-color: var(--text);
-		-webkit-mask: url('../../assets/images/menu-icon.svg') left top / contain
-			no-repeat;
-		mask: url('../../assets/images/menu-icon.svg') left top / contain no-repeat;
-		opacity: 0.09;
-		pointer-events: none;
-	}
+// Brand mark — a small, solid surfer beside the wordmark, tinted to the brand
+// accent. No figure faded behind the title; the open space is the point.
+.bsb-deck__mark {
+	flex: 0 0 auto;
+	width: 2.3rem;
+	height: 2.3rem;
+	background: var(--subtitle-ink);
+	mask-image: url('../../assets/images/menu-icon.svg');
+	mask-repeat: no-repeat;
+	mask-position: center;
+	mask-size: contain;
+	-webkit-mask-image: url('../../assets/images/menu-icon.svg');
+	-webkit-mask-repeat: no-repeat;
+	-webkit-mask-position: center;
+	-webkit-mask-size: contain;
 }
 
 .bsb-deck__wordmark {
