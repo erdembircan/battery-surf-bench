@@ -94,14 +94,13 @@
   .pcWrap { position:relative; z-index:2; height:100%; display:grid; place-items:center; padding:2.2rem; }
   .card { position:relative; width:min(860px,96%); display:grid; grid-template-columns:1.05fr 1.2fr; background:var(--paper); border-radius:14px; overflow:hidden;
     box-shadow:0 26px 60px rgba(0,0,0,.32); transform:rotate(-1.4deg); border:1px solid var(--paper-line); }
-  /* left: the picture side */
-  .pic { position:relative; min-height:340px; overflow:hidden; }
-  .picSky { position:absolute; inset:0; background:linear-gradient(180deg,#ff9e5e 0%,#ffc857 40%,#7fd9d2 72%,#2f9bb3 100%); }
-  body.dark .picSky { background:linear-gradient(180deg,#3a2a4f 0%,#7a3f63 32%,#b85a4f 54%,#0f5e72 100%); }
-  .picSun { position:absolute; left:50%; top:44%; transform:translate(-50%,-50%); width:128px; height:128px; border-radius:50%; background:radial-gradient(circle,#fff3c4 0%,#ffd166 65%,transparent 70%); }
-  .board { position:absolute; right:9%; bottom:7%; width:44px; height:150px; border-radius:50% 50% 48% 48%/28% 28% 72% 72%; background:linear-gradient(180deg,#ff6b5e,#ffc857); transform:rotate(22deg); box-shadow:0 8px 18px rgba(0,0,0,.25); }
-  .board::after { content:''; position:absolute; left:50%; top:8%; bottom:8%; width:2px; transform:translateX(-50%); background:rgba(255,255,255,.55); }
-  .greet { position:absolute; left:0; right:0; top:18px; text-align:center; font-family:'Anton'; font-size:1.15rem; letter-spacing:.06em; text-transform:uppercase; color:#fff; text-shadow:0 2px 0 rgba(0,0,0,.18); }
+  /* left: the picture side — a real photo (Unsplash) instead of CSS shapes */
+  .pic { position:relative; min-height:360px; overflow:hidden; background-color:#0c3346;
+    background-size:cover; background-position:center; background-repeat:no-repeat; }
+  /* scrims so the white greeting + the postcard edge read over any photo */
+  .pic::before { content:''; position:absolute; inset:0; z-index:1; pointer-events:none;
+    background:linear-gradient(180deg, rgba(0,0,0,.34) 0%, rgba(0,0,0,0) 34%, rgba(0,0,0,0) 70%, rgba(0,0,0,.22) 100%); }
+  .greet { position:absolute; z-index:2; left:0; right:0; top:18px; text-align:center; font-family:'Anton'; font-size:1.15rem; letter-spacing:.06em; text-transform:uppercase; color:#fff; text-shadow:0 2px 6px rgba(0,0,0,.4); }
   /* right: the written back */
   .msg { padding:1.5rem 1.6rem 1.5rem; position:relative; }
   .stamp { position:absolute; top:1rem; right:1rem; width:58px; height:68px; border-radius:4px; background:color-mix(in srgb,var(--teal) 14%,var(--paper)); border:2px dashed color-mix(in srgb,var(--teal) 45%,transparent); display:grid; place-items:center; }
@@ -154,6 +153,15 @@
     <span style="flex:1"></span>
     <label><input type="checkbox" id="dark" /> dark deck</label>
   </div>
+  <div class="ctl" id="imgCtl">
+    <strong>Postcard photo</strong>
+    <label><input type="radio" name="img" value="0" checked /> 1 board · golden</label>
+    <label><input type="radio" name="img" value="1" /> 2 board · sunset</label>
+    <label><input type="radio" name="img" value="2" /> 3 surfer · sunset</label>
+    <label><input type="radio" name="img" value="3" /> 4 carrying boards</label>
+    <label><input type="radio" name="img" value="4" /> 5 wave</label>
+    <span style="flex:1; font-size:.72rem; color:var(--ink-soft)">Unsplash (free license) · hotlinked for the mock</span>
+  </div>
   <p class="note" id="note"></p>
 
   <div class="cockpit">
@@ -180,6 +188,16 @@
 
 <script>
   const stage = document.getElementById('stage'), note = document.getElementById('note');
+  // Unsplash photos (free Unsplash License). Hotlinked here for the mock only; if
+  // we ship one we'll download + self-host it with attribution.
+  const PHOTOS = [
+    'https://images.unsplash.com/photo-1583790803390-56c0b919f7d1?w=1100&q=80&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1551304885-7d8cc4ac849e?w=1100&q=80&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1685816743223-25081c377e82?w=1100&q=80&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1569611566310-44d14cc8ed86?w=1100&q=80&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1560260240-c6ef90a163a4?w=1100&q=80&auto=format&fit=crop',
+  ];
+  let PC_IMG = PHOTOS[0];
   const arrowL = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>`;
   const decor = `<span class="waves"><i></i><i></i><i></i></span>`;
   const iGear = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg>`;
@@ -190,10 +208,8 @@
     postcard: () => `${decor}
       <div class="pcWrap">
         <div class="card">
-          <div class="pic">
-            <div class="picSky"></div><div class="picSun"></div>
+          <div class="pic" style="background-image:url('${PC_IMG}')">
             <div class="greet">Greetings from the lineup</div>
-            <div class="board"></div>
           </div>
           <div class="msg">
             <div class="stamp"><i></i></div>
@@ -226,8 +242,14 @@
     route:'How it works, redesigned — the three steps strung along a dashed swell line as buoys (gear / play / wave), a journey instead of a stack of cards.',
   };
 
-  function paint(){ const v = document.querySelector('input[name=c]:checked').value; stage.innerHTML = concepts[v](); note.textContent = notes[v]; }
+  const imgCtl = document.getElementById('imgCtl');
+  function paint(){
+    const v = document.querySelector('input[name=c]:checked').value;
+    stage.innerHTML = concepts[v](); note.textContent = notes[v];
+    imgCtl.style.display = v === 'postcard' ? '' : 'none';
+  }
   document.querySelectorAll('input[name=c]').forEach(r => r.addEventListener('change', paint));
+  document.querySelectorAll('input[name=img]').forEach(r => r.addEventListener('change', () => { if(r.checked){ PC_IMG = PHOTOS[+r.value]; paint(); } }));
   document.getElementById('dark').addEventListener('change', e => document.body.classList.toggle('dark', e.target.checked));
   paint();
 </script>
