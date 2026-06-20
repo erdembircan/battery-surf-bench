@@ -40,6 +40,13 @@ jobs:
       - uses: ./.github/actions/setup-node
       - run: pnpm typecheck
 
+  license:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup-node
+      - run: pnpm license:verify
+
   i18n:
     runs-on: ubuntu-latest
     steps:
