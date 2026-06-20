@@ -530,19 +530,41 @@ store( 'bsb/cockpit', {
 			};
 		},
 
-		/** Restores the visitor's remembered theme when the deck mounts. */
-		initTheme(): void {
-			let stored: string | null = null;
+		/**
+		 * Sets the deck theme on mount and keeps it in sync. A remembered manual
+		 * choice (localStorage) always wins; with none, the deck follows the
+		 * operating system's light/dark preference and re-applies if that
+		 * preference changes. Returns a cleanup that detaches the OS listener.
+		 */
+		initTheme(): () => void {
+			const context = getContext< CockpitContext >();
+			const media =
+				typeof window.matchMedia === 'function'
+					? window.matchMedia( '(prefers-color-scheme: dark)' )
+					: null;
 
-			try {
-				stored = window.localStorage.getItem( THEME_KEY );
-			} catch {
-				stored = null;
-			}
+			const remembered = (): string | null => {
+				try {
+					return window.localStorage.getItem( THEME_KEY );
+				} catch {
+					return null;
+				}
+			};
 
-			if ( stored === 'light' || stored === 'dark' ) {
-				getContext< CockpitContext >().theme = stored;
-			}
+			const apply = (): void => {
+				const choice = remembered();
+				if ( choice === 'light' || choice === 'dark' ) {
+					context.theme = choice;
+					return;
+				}
+
+				context.theme = media?.matches ? 'dark' : 'light';
+			};
+
+			apply();
+			media?.addEventListener?.( 'change', apply );
+
+			return () => media?.removeEventListener?.( 'change', apply );
 		},
 
 		/**

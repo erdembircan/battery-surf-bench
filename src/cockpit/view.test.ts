@@ -75,7 +75,7 @@ interface CockpitConfig {
 	};
 	callbacks: {
 		tick: () => () => void;
-		initTheme: () => void;
+		initTheme: () => () => void;
 		initBattery: () => () => void;
 		rollDuration: () => void;
 	};
@@ -657,6 +657,32 @@ describe( 'bsb/cockpit view store', () => {
 			window.localStorage.clear();
 		} );
 
+		afterEach( () => {
+			delete ( window as { matchMedia?: unknown } ).matchMedia;
+		} );
+
+		/**
+		 * Stubs `prefers-color-scheme: dark` and lets a test flip it live.
+		 * @param matches
+		 */
+		const mockOsDark = ( matches: boolean ) => {
+			const listeners = new Set< () => void >();
+			const mql = {
+				matches,
+				addEventListener: ( _type: string, cb: () => void ) =>
+					listeners.add( cb ),
+				removeEventListener: ( _type: string, cb: () => void ) =>
+					listeners.delete( cb ),
+				flip: ( next: boolean ) => {
+					mql.matches = next;
+					listeners.forEach( ( cb ) => cb() );
+				},
+			};
+			( window as { matchMedia?: unknown } ).matchMedia = () => mql;
+
+			return mql;
+		};
+
 		it( 'toggles between light and dark and remembers the choice', () => {
 			mocks.context.theme = 'light';
 
@@ -688,6 +714,40 @@ describe( 'bsb/cockpit view store', () => {
 			mocks.config?.callbacks.initTheme();
 
 			expect( mocks.context.theme ).toBe( 'light' );
+		} );
+
+		it( 'follows the OS dark preference when nothing is remembered', () => {
+			mockOsDark( true );
+			mocks.context.theme = 'light';
+
+			mocks.config?.callbacks.initTheme();
+
+			expect( mocks.context.theme ).toBe( 'dark' );
+		} );
+
+		it( 'lets a remembered choice override the OS preference', () => {
+			mockOsDark( true );
+			window.localStorage.setItem( 'bsb-cockpit-theme', 'light' );
+			mocks.context.theme = 'dark';
+
+			mocks.config?.callbacks.initTheme();
+
+			expect( mocks.context.theme ).toBe( 'light' );
+		} );
+
+		it( 're-applies on OS change, until cleaned up', () => {
+			const mql = mockOsDark( false );
+			mocks.context.theme = 'light';
+
+			const cleanup = mocks.config!.callbacks.initTheme();
+			expect( mocks.context.theme ).toBe( 'light' );
+
+			mql.flip( true );
+			expect( mocks.context.theme ).toBe( 'dark' );
+
+			cleanup();
+			mql.flip( false );
+			expect( mocks.context.theme ).toBe( 'dark' );
 		} );
 	} );
 } );
