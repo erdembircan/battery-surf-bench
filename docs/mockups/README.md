@@ -34,3 +34,4 @@ The shipped deck draws from **Coastal Daybreak** (light) and **Dusk Lineup**
 | `duration-odometer.html` | Run-duration stepper analog-counter roll: each digit rolls (+ up / − down), seamless 9⇄0 wrap, up to 3 digits (5–240); speed + easing levers |
 | `theme-toggle-3state.html` | Three-state theme control — light / dark / **system** (follows OS, sticky stored choice); cycle-button vs segmented options |
 | `compact-mode.html`    | Compact layout: deck slides out → full-width viewport + a horizontal top info pill. Options for the compact icon, top-info layout (spread / left-stacked), and expand control (pill icon / left edge-handle) |
+| `brand-header.html`    | Deck brand-header directions — current faded watermark vs no-logo, icon badge, inline mark, wave accent, side bar, corner watermark. Serve from the **repo root** (`python3 -m http.server` at the project root, open `/docs/mockups/brand-header.html`) so it can load `/assets/images/menu-icon.svg` |
