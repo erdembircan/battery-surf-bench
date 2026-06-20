@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Deck brand — icon matched to title height</title>
+<title>Deck brand — mark auto-sized to the title (grid)</title>
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Hanken+Grotesk:wght@400;600;700&display=swap" rel="stylesheet" />
 <style>
   :root {
@@ -13,82 +13,49 @@
   * { box-sizing: border-box; }
   body { margin: 0; padding: 2rem; font-family: 'Hanken Grotesk', sans-serif; color: var(--navy); background: #dfe8ed; }
   h1 { font-family: 'Anton'; font-weight: 400; font-size: 1.25rem; margin: 0 0 0.2rem; }
-  p.sub { margin: 0 0 1.6rem; color: #5b7488; font-size: 0.85rem; }
-  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 1.6rem; max-width: 1180px; }
-  .cell > h2 { font-size: 0.62rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--teal); margin: 0 0 0.6rem; }
-  .cell > .note { font-size: 0.76rem; color: #5b7488; margin: 0 0 0.7rem; min-height: 2.4em; }
+  p.sub { margin: 0 0 1.4rem; color: #5b7488; font-size: 0.85rem; max-width: 620px; }
+  .demo { display: flex; align-items: center; gap: 0.7rem; margin-bottom: 1.4rem; font-size: 0.82rem; color: #5b7488; }
+  .demo input { width: 280px; }
 
-  .deck { width: 380px; padding: 1.4rem 1.5rem; border-radius: 16px; background: var(--surface); box-shadow: 0 10px 30px rgba(31,58,95,0.1); }
-  .brand { display: flex; align-items: center; gap: 0.85rem; padding-top: 0.5rem; padding-bottom: 1.4rem; border-bottom: 1px solid var(--line); }
-  .mark { flex: 0 0 auto; background: var(--teal); aspect-ratio: 1;
+  .deck { width: var(--dw, 360px); padding: 1.4rem 1.5rem; border-radius: 16px; background: var(--surface); box-shadow: 0 10px 30px rgba(31,58,95,0.12); transition: width 0.12s linear; }
+
+  /* the brand as a grid: [mark] [wordmark] [actions]. align-items:stretch makes
+     the mark cell as tall as the wordmark; aspect-ratio keeps it square, so it
+     grows automatically when the title wraps to two lines. */
+  .brand { display: grid; grid-template-columns: auto 1fr auto; align-items: stretch; gap: 0.85rem;
+    padding-top: 0.5rem; padding-bottom: 1.4rem; border-bottom: 1px solid var(--line); }
+  .mark { aspect-ratio: 1; min-height: 0; background: var(--teal);
     -webkit-mask: var(--surfer) center / contain no-repeat; mask: var(--surfer) center / contain no-repeat; }
-  .wordmark { display: flex; flex-direction: column; gap: 0.15rem; margin-right: auto; min-width: 0; }
-  .title { font-family: 'Anton'; font-size: 1.36rem; letter-spacing: 0.01em; line-height: 0.98; text-transform: uppercase; }
+  .wordmark { align-self: center; display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }
+  .title { font-family: 'Anton'; font-size: 1.5rem; letter-spacing: 0.01em; line-height: 0.98; text-transform: uppercase; }
   .subtitle { font-size: 0.62rem; font-weight: 700; letter-spacing: 0.42em; text-transform: uppercase; color: var(--teal); }
-  .actions { display: flex; gap: 0.5rem; align-self: flex-start; }
+  .actions { align-self: center; display: flex; gap: 0.5rem; }
   .ibtn { width: 2.1rem; height: 2.1rem; border: 1px solid var(--line); border-radius: 9px; background: var(--accent-soft); display: grid; place-items: center; color: var(--navy); }
   .ibtn svg { width: 1.15rem; height: 1.15rem; }
   .filler { height: 64px; margin-top: 1.1rem; border-radius: 11px; background: repeating-linear-gradient(180deg,#fff,#fff 18px,#f6fafc 18px,#f6fafc 36px); border: 1px solid var(--line); }
-
-  /* size variants — explicit box sizes (the surfer has SVG whitespace, so the
-     box must be larger than the text block for the surfer to read its height) */
-  .ref  .mark { width: 2.3rem; height: 2.3rem; }       /* current small mark */
-  .fit  .mark { width: 3rem;   height: 3rem; }         /* surfer ≈ wordmark height */
-  .fit2 .mark { width: 3.5rem; height: 3.5rem; }       /* bolder, surfer overscans the text a touch */
 </style>
 </head>
 <body>
-  <h1>Brand mark sized to the title block</h1>
-  <p class="sub">The inline mark looks small when it's shorter than the text it sits beside. These match the mark height to the wordmark (title + subtitle) so it reads as a balanced lockup.</p>
+  <h1>Brand mark auto-sized to the title (grid)</h1>
+  <p class="sub">No fixed rem. The mark cell stretches to the wordmark's height and stays square (aspect-ratio), so when the deck narrows and "Battery Surf Bench" wraps to two lines, the mark grows with it. Drag the width.</p>
 
-  <div class="grid">
-    <div class="cell ref">
-      <h2>Reference · current 2.3rem mark</h2>
-      <p class="note">The shipped size — noticeably shorter than the two-line wordmark.</p>
-      <div class="deck">
-        <div class="brand">
-          <span class="mark"></span>
-          <span class="wordmark"><span class="title">Battery Surf Bench</span><span class="subtitle">Cockpit</span></span>
-          <div class="actions">
-            <button class="ibtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg></button>
-            <button class="ibtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg></button>
-          </div>
-        </div>
-        <div class="filler"></div>
+  <div class="demo"><strong>Deck width</strong><input type="range" id="w" min="260" max="440" value="360" /><span id="wv">360px</span></div>
+
+  <div class="deck" id="deck">
+    <div class="brand">
+      <span class="mark"></span>
+      <span class="wordmark"><span class="title">Battery Surf Bench</span><span class="subtitle">Cockpit</span></span>
+      <div class="actions">
+        <button class="ibtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg></button>
+        <button class="ibtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg></button>
       </div>
     </div>
-
-    <div class="cell fit">
-      <h2>A · Mark = wordmark height</h2>
-      <p class="note">Mark stretches to the full height of the title block — square, top and bottom flush with the text.</p>
-      <div class="deck">
-        <div class="brand">
-          <span class="mark"></span>
-          <span class="wordmark"><span class="title">Battery Surf Bench</span><span class="subtitle">Cockpit</span></span>
-          <div class="actions">
-            <button class="ibtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg></button>
-            <button class="ibtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg></button>
-          </div>
-        </div>
-        <div class="filler"></div>
-      </div>
-    </div>
-
-    <div class="cell fit2">
-      <h2>B · Match height + larger title</h2>
-      <p class="note">Same height-match, with a slightly larger title so the lockup reads bigger overall.</p>
-      <div class="deck">
-        <div class="brand">
-          <span class="mark"></span>
-          <span class="wordmark"><span class="title">Battery Surf Bench</span><span class="subtitle">Cockpit</span></span>
-          <div class="actions">
-            <button class="ibtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg></button>
-            <button class="ibtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg></button>
-          </div>
-        </div>
-        <div class="filler"></div>
-      </div>
-    </div>
+    <div class="filler"></div>
   </div>
+
+<script>
+  const w = document.getElementById('w'), wv = document.getElementById('wv'), deck = document.getElementById('deck');
+  w.addEventListener('input', () => { deck.style.setProperty('--dw', w.value + 'px'); wv.textContent = w.value + 'px'; });
+</script>
 </body>
 </html>
