@@ -26,9 +26,10 @@
   }
   .cockpit.compact { grid-template-columns: 0 1fr; }
 
-  .deck { overflow: hidden; min-width: 0; padding: 1.4rem; display: flex; flex-direction: column; gap: 1.1rem; background: var(--surface);
-    transition: transform var(--dur) var(--ease), opacity var(--dur) var(--ease), padding var(--dur) var(--ease); }
-  .cockpit.compact .deck { transform: translateX(-24px); opacity: 0; padding-inline: 0; pointer-events: none; }
+  /* min-width holds the deck at full width so its content never reflows; it slides out whole */
+  .deck { overflow: hidden; min-width: var(--deck-w); padding: 1.4rem; display: flex; flex-direction: column; gap: 1.1rem; background: var(--surface);
+    transition: transform var(--dur) var(--ease); }
+  .cockpit.compact .deck { transform: translateX(-100%); pointer-events: none; }
   .dhead { display: flex; align-items: center; justify-content: space-between; }
   .brand { font-family: 'Anton'; font-size: 1.3rem; line-height: 1; }
   .brand small { display: block; font-family: 'Hanken Grotesk'; font-size: 0.6rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--teal); margin-top: 0.2rem; }

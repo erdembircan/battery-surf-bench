@@ -54,20 +54,21 @@ body {
 	display: flex;
 	flex-direction: column;
 	min-height: 0;
+	// Hold the deck at full width so its content never reflows (the brand text
+	// re-wrapping word by word) while the grid column animates to zero — it
+	// slides out as a whole instead of being squeezed.
+	min-width: $deck-width;
 	padding: 1.6rem 1.5rem 1.4rem;
 	overflow: hidden;
 	color: var(--text);
 	background: var(--deck-bg);
-	transition:
-		transform $compact-dur $ease,
-		opacity $compact-dur $ease,
-		padding $compact-dur $ease;
+	transition: transform $compact-dur $ease;
 
-	// Compact: slide and fade out as the grid column collapses to zero.
+	// Compact: slide fully out to the left, in step with the column collapse. The
+	// translation magnitude tracks the column width, so the deck's right edge
+	// stays flush with the stage's left edge — no gap, no overlap, no reflow.
 	.wp-block-bsb-cockpit.is-compact & {
-		padding-inline: 0;
-		opacity: 0;
-		transform: translateX(-24px);
+		transform: translateX(-100%);
 		pointer-events: none;
 	}
 }
