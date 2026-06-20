@@ -59,31 +59,31 @@ class CockpitView implements View {
 	 * @return string The block's HTML.
 	 */
 	public function render( array $data = array() ): string {
-		$wrapper          = isset( $data['wrapper'] ) ? (string) $data['wrapper'] : '';
-		$context          = isset( $data['context'] ) ? (string) $data['context'] : '';
-		$brand_title      = isset( $data['brand_title'] ) ? (string) $data['brand_title'] : '';
-		$brand_subtitle   = isset( $data['brand_subtitle'] ) ? (string) $data['brand_subtitle'] : '';
-		$theme_label      = isset( $data['theme_label'] ) ? (string) $data['theme_label'] : '';
-		$mode_label       = isset( $data['mode_label'] ) ? (string) $data['mode_label'] : '';
-		$duration_mode    = isset( $data['duration_mode'] ) ? (string) $data['duration_mode'] : '';
-		$target_drop_mode = isset( $data['target_drop_mode'] ) ? (string) $data['target_drop_mode'] : '';
-		$duration_label   = isset( $data['duration_label'] ) ? (string) $data['duration_label'] : '';
-		$minutes_label    = isset( $data['minutes_label'] ) ? (string) $data['minutes_label'] : '';
-		$decrease_label   = isset( $data['decrease_label'] ) ? (string) $data['decrease_label'] : '';
-		$increase_label   = isset( $data['increase_label'] ) ? (string) $data['increase_label'] : '';
-		$target_label     = isset( $data['target_label'] ) ? (string) $data['target_label'] : '';
-		$target_aria      = isset( $data['target_aria'] ) ? (string) $data['target_aria'] : '';
-		$baseline_label   = isset( $data['baseline_label'] ) ? (string) $data['baseline_label'] : '';
+		$wrapper            = isset( $data['wrapper'] ) ? (string) $data['wrapper'] : '';
+		$context            = isset( $data['context'] ) ? (string) $data['context'] : '';
+		$brand_title        = isset( $data['brand_title'] ) ? (string) $data['brand_title'] : '';
+		$brand_subtitle     = isset( $data['brand_subtitle'] ) ? (string) $data['brand_subtitle'] : '';
+		$theme_label        = isset( $data['theme_label'] ) ? (string) $data['theme_label'] : '';
+		$mode_label         = isset( $data['mode_label'] ) ? (string) $data['mode_label'] : '';
+		$duration_mode      = isset( $data['duration_mode'] ) ? (string) $data['duration_mode'] : '';
+		$target_drop_mode   = isset( $data['target_drop_mode'] ) ? (string) $data['target_drop_mode'] : '';
+		$duration_label     = isset( $data['duration_label'] ) ? (string) $data['duration_label'] : '';
+		$minutes_label      = isset( $data['minutes_label'] ) ? (string) $data['minutes_label'] : '';
+		$decrease_label     = isset( $data['decrease_label'] ) ? (string) $data['decrease_label'] : '';
+		$increase_label     = isset( $data['increase_label'] ) ? (string) $data['increase_label'] : '';
+		$target_label       = isset( $data['target_label'] ) ? (string) $data['target_label'] : '';
+		$target_aria        = isset( $data['target_aria'] ) ? (string) $data['target_aria'] : '';
+		$baseline_label     = isset( $data['baseline_label'] ) ? (string) $data['baseline_label'] : '';
 		$speed_label        = isset( $data['speed_label'] ) ? (string) $data['speed_label'] : '';
 		$battery_label      = isset( $data['battery_label'] ) ? (string) $data['battery_label'] : '';
 		$rate10_label       = isset( $data['rate10_label'] ) ? (string) $data['rate10_label'] : '';
 		$rate_session_label = isset( $data['rate_session_label'] ) ? (string) $data['rate_session_label'] : '';
 		$tte_label          = isset( $data['tte_label'] ) ? (string) $data['tte_label'] : '';
-		$surfing_label    = isset( $data['surfing_label'] ) ? (string) $data['surfing_label'] : '';
-		$elapsed_label    = isset( $data['elapsed_label'] ) ? (string) $data['elapsed_label'] : '';
-		$stop_label       = isset( $data['stop_label'] ) ? (string) $data['stop_label'] : '';
-		$next_label       = isset( $data['next_label'] ) ? (string) $data['next_label'] : '';
-		$viewport_title   = isset( $data['viewport_title'] ) ? (string) $data['viewport_title'] : '';
+		$surfing_label      = isset( $data['surfing_label'] ) ? (string) $data['surfing_label'] : '';
+		$elapsed_label      = isset( $data['elapsed_label'] ) ? (string) $data['elapsed_label'] : '';
+		$stop_label         = isset( $data['stop_label'] ) ? (string) $data['stop_label'] : '';
+		$next_label         = isset( $data['next_label'] ) ? (string) $data['next_label'] : '';
+		$viewport_title     = isset( $data['viewport_title'] ) ? (string) $data['viewport_title'] : '';
 
 		return <<<HTML
 <div {$wrapper} data-wp-interactive="bsb/cockpit" {$context} data-wp-init="callbacks.initTheme" data-wp-bind--data-theme="context.theme">
