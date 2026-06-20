@@ -168,6 +168,17 @@ const durationDigits = ( minutes: number ): number[] => [
 	minutes % 10,
 ];
 
+/**
+ * Formats a number of seconds as a `MM:SS` clock, clamped at zero.
+ * @param totalSeconds
+ */
+const formatClock = ( totalSeconds: number ): string => {
+	const safe = Math.max( 0, totalSeconds );
+	const pad = ( value: number ): string => String( value ).padStart( 2, '0' );
+
+	return `${ pad( Math.floor( safe / 60 ) ) }:${ pad( safe % 60 ) }`;
+};
+
 store( 'bsb/cockpit', {
 	state: {
 		/** URL of the active course page, bound onto the viewport iframe. */
@@ -316,15 +327,18 @@ store( 'bsb/cockpit', {
 			return `${ hours }:${ String( minutes ).padStart( 2, '0' ) }`;
 		},
 
-		/** Elapsed run time as a `MM:SS` clock for the surfing indicator. */
-		get elapsedClock(): string {
-			const { elapsed } = getContext< CockpitContext >();
-			const minutes = Math.floor( elapsed / 60 );
-			const seconds = elapsed % 60;
-			const pad = ( value: number ): string =>
-				String( value ).padStart( 2, '0' );
+		/**
+		 * The run clock as a `MM:SS` string: a countdown from the chosen duration
+		 * in duration mode, or elapsed time in target-drop mode (which has no fixed
+		 * length).
+		 */
+		get runClock(): string {
+			const { mode, durationMinutes, elapsed } =
+				getContext< CockpitContext >();
 
-			return `${ pad( minutes ) }:${ pad( seconds ) }`;
+			return mode === 'duration'
+				? formatClock( durationMinutes * 60 - elapsed )
+				: formatClock( elapsed );
 		},
 	},
 	actions: {

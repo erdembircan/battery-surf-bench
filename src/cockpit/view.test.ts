@@ -49,7 +49,7 @@ interface CockpitConfig {
 		isSpeed1: boolean;
 		isSpeed4: boolean;
 		isSpeed10: boolean;
-		elapsedClock: string;
+		runClock: string;
 		batteryDisplay: string;
 		batteryColor: string;
 		isCharging: boolean;
@@ -487,15 +487,32 @@ describe( 'bsb/cockpit view store', () => {
 	} );
 
 	describe( 'surfing indicator', () => {
-		it( 'formats elapsed seconds as a MM:SS clock', () => {
+		it( 'counts the duration down to zero in duration mode', () => {
+			mocks.context.mode = 'duration';
+			mocks.context.durationMinutes = 30;
+
 			mocks.context.elapsed = 0;
-			expect( mocks.config?.state.elapsedClock ).toBe( '00:00' );
+			expect( mocks.config?.state.runClock ).toBe( '30:00' );
 
 			mocks.context.elapsed = 75;
-			expect( mocks.config?.state.elapsedClock ).toBe( '01:15' );
+			expect( mocks.config?.state.runClock ).toBe( '28:45' );
+
+			// Clamped at zero once the duration is reached.
+			mocks.context.elapsed = 2000;
+			expect( mocks.config?.state.runClock ).toBe( '00:00' );
+		} );
+
+		it( 'counts elapsed time up in target-drop mode', () => {
+			mocks.context.mode = 'targetDrop';
+
+			mocks.context.elapsed = 0;
+			expect( mocks.config?.state.runClock ).toBe( '00:00' );
+
+			mocks.context.elapsed = 75;
+			expect( mocks.config?.state.runClock ).toBe( '01:15' );
 
 			mocks.context.elapsed = 605;
-			expect( mocks.config?.state.elapsedClock ).toBe( '10:05' );
+			expect( mocks.config?.state.runClock ).toBe( '10:05' );
 		} );
 
 		it( 'ticks the clock once a second while running, until cleaned up', () => {

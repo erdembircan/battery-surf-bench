@@ -51,8 +51,10 @@ class CockpitView implements View {
 	 *     @type string $rate10_label       Translated, escaped label for the 10-minute drain rate.
 	 *     @type string $rate_session_label Translated, escaped label for the session drain rate.
 	 *     @type string $tte_label          Translated, escaped label for the time-to-empty readout.
+	 *     @type string $target_short_label Translated, escaped label for the target readout (target-drop mode).
 	 *     @type string $surfing_label     Translated, escaped "Surfing" word for the running indicator.
-	 *     @type string $elapsed_label     Translated, escaped "elapsed" word for the running indicator.
+	 *     @type string $elapsed_label     Translated, escaped "elapsed" word (target-drop mode clock).
+	 *     @type string $remaining_label   Translated, escaped "left" word (duration-mode countdown clock).
 	 *     @type string $start_label       Translated, escaped label for the run control when idle.
 	 *     @type string $stop_label        Translated, escaped label for the run control when running.
 	 *     @type string $plugged_label     Translated, escaped run-control label when blocked by charging.
@@ -83,8 +85,10 @@ class CockpitView implements View {
 		$rate10_label       = isset( $data['rate10_label'] ) ? (string) $data['rate10_label'] : '';
 		$rate_session_label = isset( $data['rate_session_label'] ) ? (string) $data['rate_session_label'] : '';
 		$tte_label          = isset( $data['tte_label'] ) ? (string) $data['tte_label'] : '';
+		$target_short_label = isset( $data['target_short_label'] ) ? (string) $data['target_short_label'] : '';
 		$surfing_label      = isset( $data['surfing_label'] ) ? (string) $data['surfing_label'] : '';
 		$elapsed_label      = isset( $data['elapsed_label'] ) ? (string) $data['elapsed_label'] : '';
+		$remaining_label    = isset( $data['remaining_label'] ) ? (string) $data['remaining_label'] : '';
 		$start_label        = isset( $data['start_label'] ) ? (string) $data['start_label'] : '';
 		$stop_label         = isset( $data['stop_label'] ) ? (string) $data['stop_label'] : '';
 		$plugged_label      = isset( $data['plugged_label'] ) ? (string) $data['plugged_label'] : '';
@@ -107,13 +111,17 @@ CELLS;
 		$pill_inner = <<<INNER
 <div class="bsb-deck__status-head">
 				<span class="bsb-deck__status-dot" aria-hidden="true"></span>
-				<span class="bsb-deck__status-text">{$surfing_label} &middot; <span class="bsb-deck__clock" data-wp-text="state.elapsedClock"></span> {$elapsed_label}</span>
+				<span class="bsb-deck__status-text">{$surfing_label} &middot; <span class="bsb-deck__clock" data-wp-text="state.runClock"></span> <span data-wp-bind--hidden="state.isModeDuration">{$elapsed_label}</span><span data-wp-bind--hidden="state.isModeTargetDrop">{$remaining_label}</span></span>
 			</div>
 
 			<div class="bsb-deck__readouts">
 				<div class="bsb-stat bsb-stat--battery" data-wp-class--is-charging="state.isCharging">
 					<span class="bsb-stat__label">{$battery_label}</span>
 					<span class="bsb-stat__value bsb-stat__value--lg" data-wp-style--color="state.batteryColor"><span data-wp-text="state.batteryDisplay"></span>%<span class="bsb-stat__bolt" aria-hidden="true"></span></span>
+				</div>
+				<div class="bsb-stat bsb-stat--target" data-wp-bind--hidden="state.isModeDuration">
+					<span class="bsb-stat__label">{$target_short_label}</span>
+					<span class="bsb-stat__value" data-wp-text="state.targetDisplay" data-wp-style--color="state.targetColor"></span>
 				</div>
 				<div class="bsb-stat">
 					<span class="bsb-stat__label">{$tte_label}</span>

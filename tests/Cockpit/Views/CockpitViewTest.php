@@ -174,17 +174,20 @@ final class CockpitViewTest extends TestCase {
 	}
 
 	/**
-	 * The surfing indicator starts the clock ticker, reads the elapsed clock
-	 * from the store, and frames it with the translated "Surfing"/"elapsed"
-	 * words so they stay localizable.
+	 * The surfing indicator reads the run clock from the store and frames it with
+	 * the mode-dependent "elapsed"/"left" words (each shown for its mode), and the
+	 * pill shows the target readout only in target-drop mode.
 	 */
 	public function test_render_wires_the_surfing_indicator(): void {
 		$markup = $this->render();
 
-		$this->assertStringContainsString( 'data-wp-init---clock="callbacks.tick"', $markup );
-		$this->assertStringContainsString( 'data-wp-text="state.elapsedClock"', $markup );
+		$this->assertStringContainsString( 'data-wp-text="state.runClock"', $markup );
+		$this->assertStringContainsString( '<span data-wp-bind--hidden="state.isModeDuration">elapsed</span>', $markup );
+		$this->assertStringContainsString( '<span data-wp-bind--hidden="state.isModeTargetDrop">left</span>', $markup );
 		$this->assertStringContainsString( 'Surfing', $markup );
-		$this->assertStringContainsString( 'elapsed', $markup );
+
+		// The target readout is shown only in target-drop mode.
+		$this->assertStringContainsString( 'class="bsb-stat bsb-stat--target" data-wp-bind--hidden="state.isModeDuration"', $markup );
 	}
 
 	/**
@@ -248,8 +251,10 @@ final class CockpitViewTest extends TestCase {
 				'rate10_label'       => 'Rate · 10 min',
 				'rate_session_label' => 'Rate · session',
 				'tte_label'          => 'Time to empty',
+				'target_short_label' => 'Target',
 				'surfing_label'      => 'Surfing',
 				'elapsed_label'      => 'elapsed',
+				'remaining_label'    => 'left',
 				'start_label'        => 'Start',
 				'stop_label'         => 'Stop',
 				'plugged_label'      => 'Plugged in',
