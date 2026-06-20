@@ -87,10 +87,15 @@ test.describe( 'Cockpit dashboard route', () => {
 		} );
 		expect( shieldOnTop ).toBe( true );
 
-		// A "view only" chip names the state to sighted users.
-		await expect( page.locator( '.bsb-cockpit__shield-badge' ) ).toHaveText(
+		// A "view only" chip names the state — hidden at rest, revealed only while
+		// the pointer is over the viewport, so it never sits there nagging.
+		const badge = page.locator( '.bsb-cockpit__shield-badge' );
+		await expect( badge ).toHaveText(
 			/view only while the run is surfing/i
 		);
+		await expect( badge ).toHaveCSS( 'opacity', '0' );
+		await page.locator( '.bsb-cockpit__viewport-wrap' ).hover();
+		await expect( badge ).toHaveCSS( 'opacity', '1' );
 
 		// Stripped dashboard: the cockpit's own stylesheet is the only one that
 		// survives — every theme or other-plugin stylesheet is dequeued, so no

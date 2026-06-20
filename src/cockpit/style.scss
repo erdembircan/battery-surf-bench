@@ -938,6 +938,8 @@ body {
 // A small frosted chip resting in the bottom-centre of the viewport that names
 // the state — the page stays pristine, the chip just says it is view-only. It
 // never intercepts the pointer, so the not-allowed cursor shows over it too.
+// Hidden at rest and revealed only while the pointer is over the viewport, so it
+// never sits there nagging when the cursor is elsewhere.
 .bsb-cockpit__shield-badge {
 	position: absolute;
 	inset-block-end: 1.1rem;
@@ -960,6 +962,12 @@ body {
 	letter-spacing: 0.04em;
 	white-space: nowrap;
 	pointer-events: none;
+	opacity: 0;
+	transition: opacity 0.18s ease;
+
+	.bsb-cockpit__viewport-wrap:hover & {
+		opacity: 1;
+	}
 
 	&::before {
 		content: '';
