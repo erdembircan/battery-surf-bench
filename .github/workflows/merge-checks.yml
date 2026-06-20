@@ -40,6 +40,13 @@ jobs:
       - uses: ./.github/actions/setup-node
       - run: pnpm typecheck
 
+  license:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup-node
+      - run: pnpm license:verify
+
   i18n:
     runs-on: ubuntu-latest
     permissions:
@@ -68,7 +75,7 @@ jobs:
           message: "[CHORE]: regenerate translation template [skip ci]"
 
   e2e:
-    needs: [php-lint, php-test, js-lint, js-test, typecheck, i18n]
+    needs: [php-lint, php-test, js-lint, js-test, typecheck, license, i18n]
     runs-on: ubuntu-latest
     env:
       CI: "true"
