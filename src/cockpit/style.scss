@@ -907,6 +907,15 @@ body {
 	background: var(--stage-bg);
 }
 
+// The iframe and its interaction shield share one positioned box so the shield
+// covers exactly the viewport (never the top pill).
+.bsb-cockpit__viewport-wrap {
+	position: relative;
+	flex: 1 1 auto;
+	min-height: 0;
+	display: flex;
+}
+
 .bsb-cockpit__viewport {
 	flex: 1 1 auto;
 	display: block;
@@ -914,6 +923,15 @@ body {
 	min-height: 0;
 	border: 0;
 	background: var(--viewport-bg);
+}
+
+// Transparent overlay that swallows pointer input so the benchmarked page can be
+// shown but never interacted with — the run drives the page, not the user.
+.bsb-cockpit__shield {
+	position: absolute;
+	inset: 0;
+	z-index: 1;
+	cursor: default;
 }
 
 // ── Compact top pill ─────────────────────────────────────────────────────────

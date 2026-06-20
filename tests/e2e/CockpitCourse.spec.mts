@@ -68,6 +68,25 @@ test.describe( 'Cockpit dashboard route', () => {
 			page.locator( 'iframe.bsb-cockpit__viewport' )
 		).toHaveAttribute( 'src', /bsbSessionPage=article-1/ );
 
+		// The shield covers the viewport: at the iframe's centre the topmost
+		// element is the shield, so pointer input lands on it and never reaches
+		// the benchmarked page.
+		const shieldOnTop = await page.evaluate( () => {
+			const frame = document.querySelector(
+				'iframe.bsb-cockpit__viewport'
+			);
+			if ( ! frame ) {
+				return false;
+			}
+			const rect = frame.getBoundingClientRect();
+			const top = document.elementFromPoint(
+				rect.left + rect.width / 2,
+				rect.top + rect.height / 2
+			);
+			return top?.classList.contains( 'bsb-cockpit__shield' ) ?? false;
+		} );
+		expect( shieldOnTop ).toBe( true );
+
 		// Stripped dashboard: the cockpit's own stylesheet is the only one that
 		// survives — every theme or other-plugin stylesheet is dequeued, so no
 		// foreign CSS leaks in.

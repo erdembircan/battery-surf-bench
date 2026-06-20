@@ -243,7 +243,10 @@ INNER;
 				</div>
 			</div>
 		</div>
-		<iframe class="bsb-cockpit__viewport" title="{$viewport_title}" data-wp-bind--src="state.currentSrc"></iframe>
+		<div class="bsb-cockpit__viewport-wrap">
+			<iframe class="bsb-cockpit__viewport" title="{$viewport_title}" data-wp-bind--src="state.currentSrc"></iframe>
+			<div class="bsb-cockpit__shield" aria-hidden="true"></div>
+		</div>
 	</div>
 </div>
 HTML;

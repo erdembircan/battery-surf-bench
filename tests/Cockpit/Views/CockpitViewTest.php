@@ -49,6 +49,18 @@ final class CockpitViewTest extends TestCase {
 	}
 
 	/**
+	 * The viewport iframe is covered by an interaction shield so the benchmarked
+	 * page is shown but cannot be interacted with. The shield is a sibling of the
+	 * iframe inside a shared positioned wrapper and is hidden from assistive tech.
+	 */
+	public function test_render_shields_the_viewport_from_interaction(): void {
+		$markup = $this->render();
+
+		$this->assertStringContainsString( 'class="bsb-cockpit__viewport-wrap"', $markup );
+		$this->assertStringContainsString( 'class="bsb-cockpit__shield" aria-hidden="true"', $markup );
+	}
+
+	/**
 	 * The control deck wires the mode segmented control to the store: each option
 	 * names its mode, calls `actions.selectMode`, and reflects the active mode.
 	 */
