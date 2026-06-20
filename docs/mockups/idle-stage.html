@@ -100,7 +100,8 @@
   .picPhoto { position:absolute; inset:0; z-index:0; background-size:cover; background-position:center; background-repeat:no-repeat; filter:var(--pc-filter, none); }
   /* "our logo" option: the expanded surfer mark (icon.svg) tinted over a summer
      gradient — an illustrated postcard, no photo licence needed. */
-  .picMark { position:absolute; inset:0; z-index:0; background:#fff6e6;
+  .picMark { position:absolute; inset:0; z-index:3; background:linear-gradient(155deg,#0a4f8f 0%,#1c83c9 48%,#5fc7f0 100%);
+    filter:drop-shadow(0 6px 14px rgba(6,40,70,.4));
     -webkit-mask:url('/assets/images/icon.svg') center/74% no-repeat; mask:url('/assets/images/icon.svg') center/74% no-repeat; }
   /* warm wash — the "left in the sun" cast (blend-mode tints the photo) */
   .picWash { position:absolute; inset:0; z-index:1; pointer-events:none; background:var(--pc-wash, transparent); mix-blend-mode:var(--pc-wash-blend, normal); }
