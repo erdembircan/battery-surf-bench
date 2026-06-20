@@ -52,11 +52,11 @@ test.describe( 'Cockpit dashboard route', () => {
 			page.locator( '[data-wp-interactive="bsb/cockpit"]' )
 		).toBeAttached();
 
-		// The control deck is rendered alongside the stage, with the stop
+		// The control deck is rendered alongside the stage, with the run
 		// control wired to the store.
 		await expect( page.locator( '.bsb-cockpit__deck' ) ).toBeAttached();
 		await expect(
-			page.locator( '.bsb-stop[data-wp-on--click="actions.stop"]' )
+			page.locator( '.bsb-run[data-wp-on--click="actions.toggleRun"]' )
 		).toBeAttached();
 
 		// Interactivity hydrates the iframe src from the bound course list.
