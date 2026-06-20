@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Deck brand header — options</title>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Hanken+Grotesk:wght@400;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --surface: #f1f7fa; --line: #e1edf2; --navy: #1f3a5f; --teal: #2f9bb3; --teal-deep: #1c7e96;
+    --label: rgba(31,58,95,0.62); --accent-soft: rgba(47,155,179,0.08);
+    --surfer: url('/assets/images/menu-icon.svg');
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 2rem; font-family: 'Hanken Grotesk', sans-serif; color: var(--navy);
+    background: #dfe8ed; }
+  h1 { font-family: 'Anton'; font-weight: 400; font-size: 1.3rem; margin: 0 0 0.2rem; }
+  p.sub { margin: 0 0 1.6rem; color: #5b7488; font-size: 0.85rem; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 1.6rem; max-width: 1180px; }
+  .cell > h2 { font-size: 0.62rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--teal); margin: 0 0 0.6rem; }
+  .cell > .note { font-size: 0.76rem; color: #5b7488; margin: 0 0 0.7rem; min-height: 2.4em; }
+
+  /* a slice of the real deck */
+  .deck { width: 360px; padding: 1.4rem 1.5rem; border-radius: 16px; background: var(--surface); box-shadow: 0 10px 30px rgba(31,58,95,0.1); }
+  .brand { position: relative; overflow: hidden; display: flex; align-items: center; gap: 0.85rem; padding-top: 0.5rem; padding-bottom: 1.4rem; border-bottom: 1px solid var(--line); }
+  .wordmark { display: flex; flex-direction: column; gap: 0.15rem; margin-right: auto; min-width: 0; }
+  .title { font-family: 'Anton'; font-size: 1.36rem; letter-spacing: 0.01em; line-height: 0.98; text-transform: uppercase; }
+  .subtitle { font-size: 0.62rem; font-weight: 700; letter-spacing: 0.42em; text-transform: uppercase; color: var(--teal); }
+  .actions { display: flex; gap: 0.5rem; }
+  .ibtn { width: 2.1rem; height: 2.1rem; border: 1px solid var(--line); border-radius: 9px; background: var(--accent-soft); display: grid; place-items: center; color: var(--navy); }
+  .ibtn svg { width: 1.15rem; height: 1.15rem; }
+  /* filler so the card reads like a deck */
+  .filler { height: 64px; margin-top: 1.1rem; border-radius: 11px; background: repeating-linear-gradient(180deg, #fff, #fff 18px, #f6fafc 18px, #f6fafc 36px); border: 1px solid var(--line); }
+
+  /* surfer mark helper */
+  .surf { -webkit-mask: var(--surfer) center / contain no-repeat; mask: var(--surfer) center / contain no-repeat; }
+
+  /* ── A · current (faded watermark) — for reference ── */
+  .a .brand::before { content: ''; position: absolute; z-index: 0; top: 4px; left: -10px; width: 150px; height: 150px;
+    background: var(--navy); -webkit-mask: var(--surfer) left top / contain no-repeat; mask: var(--surfer) left top / contain no-repeat; opacity: 0.09; }
+  .a .wordmark, .a .actions { position: relative; z-index: 1; }
+
+  /* ── B · no logo — clean wordmark ── */
+
+  /* ── C · icon badge (app-icon lockup) ── */
+  .badge { width: 2.6rem; height: 2.6rem; flex: 0 0 auto; border-radius: 11px; background: linear-gradient(150deg, var(--teal), var(--teal-deep));
+    display: grid; place-items: center; box-shadow: 0 4px 10px rgba(28,126,150,0.32); }
+  .badge .surf { width: 1.7rem; height: 1.7rem; background: #eafaff; }
+
+  /* ── D · inline tinted mark ── */
+  .inlinemark { width: 2.3rem; height: 2.3rem; flex: 0 0 auto; background: var(--teal); }
+
+  /* ── E · wave accent (no surfer) ── */
+  .wave-accent { margin-top: 0.5rem; height: 8px; width: 88px; background-repeat: repeat-x; background-size: 44px 8px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='44' height='8' viewBox='0 0 44 8' preserveAspectRatio='none'%3E%3Cpath d='M0 4 q 11 -5 22 0 t 22 0' fill='none' stroke='%232f9bb3' stroke-width='2'/%3E%3C/svg%3E"); }
+
+  /* ── F · side accent bar ── */
+  .bar { width: 5px; align-self: stretch; flex: 0 0 auto; border-radius: 3px; background: linear-gradient(180deg, var(--teal), var(--teal-deep)); margin: 0.2rem 0; }
+
+  /* ── G · corner watermark (out of the title's way) ── */
+  .g .brand::after { content: ''; position: absolute; right: -18px; bottom: -28px; width: 96px; height: 96px;
+    background: var(--teal); -webkit-mask: var(--surfer) center / contain no-repeat; mask: var(--surfer) center / contain no-repeat; opacity: 0.1; }
+</style>
+</head>
+<body>
+  <h1>Deck brand header — options</h1>
+  <p class="sub">The faded surfer behind the title (A) reads cluttered. Alternatives below — including no logo, a crisp badge, and non-surfer approaches.</p>
+
+  <div class="grid" id="grid"></div>
+
+<script>
+  const actions = `<div class="actions">
+    <button class="ibtn" aria-label="Compact"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg></button>
+    <button class="ibtn" aria-label="Theme"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg></button>
+  </div>`;
+  const word = `<div class="wordmark"><span class="title">Battery Surf Bench</span><span class="subtitle">Cockpit</span></div>`;
+
+  const opts = [
+    { cls: 'a', name: 'A · Current (faded watermark)', note: 'The big surfer dissolved behind the title — the one that feels cluttered.',
+      brand: `${word}${actions}` },
+    { cls: 'b', name: 'B · No logo', note: 'Clean wordmark only. Lets the typography carry the brand. Calmest.',
+      brand: `${word}${actions}` },
+    { cls: 'c', name: 'C · Icon badge (app-icon lockup)', note: 'Crisp surfer in a teal rounded badge beside the wordmark — a proper logo lockup.',
+      brand: `<span class="badge"><span class="surf"></span></span>${word}${actions}` },
+    { cls: 'd', name: 'D · Inline tinted mark', note: 'The surfer as a small solid teal mark, no chip — lighter than the badge.',
+      brand: `<span class="inlinemark surf"></span>${word}${actions}` },
+    { cls: 'e', name: 'E · Wave accent (no surfer)', note: 'Drop the surfer entirely; a small wave line under the subtitle signals the theme abstractly.',
+      brand: `<div class="wordmark"><span class="title">Battery Surf Bench</span><span class="subtitle">Cockpit</span><span class="wave-accent"></span></div>${actions}` },
+    { cls: 'f', name: 'F · Side accent bar', note: 'A teal brand bar to the left of the wordmark — minimal, no figure at all.',
+      brand: `<span class="bar"></span>${word}${actions}` },
+    { cls: 'g', name: 'G · Corner watermark', note: 'Keep the surfer but move it out of the title — a faint mark tucked into the bottom-right corner.',
+      brand: `${word}${actions}` },
+  ];
+
+  document.getElementById('grid').innerHTML = opts.map((o) => `
+    <div class="cell ${o.cls}">
+      <h2>${o.name}</h2>
+      <p class="note">${o.note}</p>
+      <div class="deck">
+        <div class="brand">${o.brand}</div>
+        <div class="filler"></div>
+      </div>
+    </div>`).join('');
+</script>
+</body>
+</html>

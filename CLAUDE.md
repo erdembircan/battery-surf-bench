@@ -85,6 +85,14 @@ All source files (both JS/TS and PHP) must use **CamelCase** (e.g. `BatteryMonit
 
 **Author all styles as SCSS — never hand-write `.css` files.** A hand-written `.css` file in the source tree is a regression: every stylesheet must have an SCSS source that the build compiles into its CSS artifact. Always enqueue the compiled artifact, never a CSS file edited by hand. Discover where sources live and where they compile to from the build configuration — don't assume a fixed directory layout, tool, or naming convention.
 
+## Mock Big Design Decisions First
+
+**For any significant style or design decision, build a standalone HTML mockup before touching production code.** New UI surfaces, redesigns, distinctive components, palette/typography directions, novel interactions — prototype them as self-contained `.html` files (inline CSS/JS, web fonts via CDN, openable directly in a browser, no build step), iterate on the mockup with the maintainer, and only port the approved direction into the real SCSS/markup/Interactivity code. This keeps exploration off the build/test/lint cycle and avoids churning production files through rejected ideas.
+
+- **Store the mockups in the repo** under `docs/mockups/` (with a short entry in its `README.md`) so the explorations are preserved, reviewable, and easy to revisit — not left in a scratch/temp directory. They are experiments, not production code, and may be deleted once a design is settled.
+- **Present the mockup for review** (screenshot and/or open it) and get a direction approved before implementing. Offer the concrete tweak levers (size, colour, spacing, motion) rather than guessing.
+- **Don't mock trivial tweaks.** A one-off colour/spacing change in an existing, settled component is just an edit — reserve mockups for decisions big enough that a wrong guess wastes real implementation work.
+
 ## Testing Philosophy
 
 **Test behavior, not implementation.**
@@ -98,6 +106,15 @@ Tests verify that code works correctly for its consumers. Focus on **what** the 
 3. **Implementation-proof.** If an implementation changes but behavior stays the same, tests MUST still pass.
 4. **All code changes need tests.** New features, bug fixes, refactors.
 5. **Never touch the real filesystem.** Tests must never read from or write to actual files or directories. Mock the filesystem boundary — the `$wp_filesystem` abstraction (via an in-memory double) and any file functions — and assert against that. A test that opens, stats, reads, or writes a real path is wrong, even for "just a fixture."
+
+### Unit and End-to-End Coverage
+
+"All code changes need tests" means **both** layers, where each applies:
+
+- **Unit tests** — for logic and component behavior: PHP through PHPUnit, JS/TS through vitest. The default for stores, views, services and helpers. Run with the project's `test` scripts.
+- **End-to-end tests** — Playwright specs under `tests/e2e/` (`*.spec.mts`), run via `pnpm test:e2e` against a real WordPress instance. Add or extend these whenever a change affects **rendered markup, a URL route, or a user-facing flow** (e.g. the cockpit's controls and the store directives the markup exposes, the dashboard/course routes). The e2e blueprint runs with `WP_DEBUG_DISPLAY`, so any PHP notice printed into the page fails the run.
+
+Keep e2e **in sync with the markup it asserts on.** An e2e selector or store-binding assertion (a class like `.bsb-run`, a directive like `data-wp-on--click="actions.toggleRun"`) is a contract: when you rename a class, action, or directive, update every e2e that references it **in the same change**. A stale selector matches nothing and silently rots until it fails far from the change that broke it.
 
 ### What to Assert
 

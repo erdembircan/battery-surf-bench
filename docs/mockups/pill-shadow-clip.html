@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Info pill — shadow clipping fix</title>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Hanken+Grotesk:wght@400;600;700&family=Space+Mono:wght@700&display=swap" rel="stylesheet" />
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 2.5rem; display: flex; gap: 3rem; flex-wrap: wrap; font-family: 'Hanken Grotesk', sans-serif; color: #1f3a5f; background: #eef3f6; }
+  .col > h2 { font-size: 0.7rem; letter-spacing: 0.16em; text-transform: uppercase; margin: 0 0 0.8rem; }
+  .col.bad h2 { color: #ef5a3a; }
+  .col.good h2 { color: #2f9bb3; }
+
+  /* replicate the real deck clipping stack */
+  .deck {
+    width: 340px;
+    height: 560px;
+    overflow: hidden;                 /* crops watermark in prod — must stay */
+    padding: 1.6rem 1.5rem 1.4rem;    /* 24px sides */
+    background:
+      radial-gradient(120% 70% at 50% -10%, #fff 0%, #f3fafd 40%, transparent 70%),
+      linear-gradient(180deg, #e7f6ff 0%, #fff 60%);
+    display: flex; flex-direction: column;
+  }
+  .body { flex: 1 1 auto; min-height: 0; overflow-y: auto; }      /* forces overflow-x:auto */
+  .good .body { padding-inline: 20px; margin-inline: -20px; }     /* the fix */
+
+  .pill {
+    position: relative; overflow: hidden; border-radius: 16px;
+    padding: 1rem 1.1rem 1.4rem;
+    background: linear-gradient(150deg, #2f9bb3 0%, #1c7e96 100%);
+    color: #eafaff;
+  }
+  .bad .pill  { box-shadow: 0 22px 44px -16px rgba(28,126,150,0.5), 0 8px 18px -10px rgba(0,0,0,0.22); }  /* wide → clipped */
+  .good .pill { box-shadow: 0 18px 36px -16px rgba(28,126,150,0.5), 0 6px 14px -8px rgba(0,0,0,0.2); }    /* contained → fits */
+
+  .head { display: flex; align-items: center; gap: 0.5rem; font-size: 0.6rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; }
+  .dot { width: 0.5rem; height: 0.5rem; border-radius: 50%; background: #ffce5c; box-shadow: 0 0 10px #ffce5c; }
+  .ro { display: grid; grid-template-columns: 1fr 1fr; gap: 0.7rem 1rem; margin-top: 0.85rem; position: relative; z-index: 2; }
+  .l { display: block; font-size: 0.54rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; opacity: 0.72; }
+  .v { font-family: 'Space Mono'; font-weight: 700; font-size: 1rem; }
+  .v.lg { font-size: 1.6rem; }
+  .waves { position: absolute; inset-inline: 0; bottom: 0; height: 28px; z-index: 1; }
+  .waves i { position: absolute; inset-inline: 0; bottom: 0; height: 28px; background-repeat: repeat-x; background-size: 200px 100%; }
+  .waves i:nth-child(1){ opacity:.5; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='40' viewBox='0 0 200 40' preserveAspectRatio='none'%3E%3Cpath d='M0 20 q 50 -14 100 0 t 100 0 V40 H0 Z' fill='%23eafaff' fill-opacity='0.5'/%3E%3C/svg%3E"); }
+  .waves i:nth-child(2){ background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='40' viewBox='0 0 200 40' preserveAspectRatio='none'%3E%3Cpath d='M0 20 q 50 -14 100 0 t 100 0 V40 H0 Z' fill='%23bfe9f5' fill-opacity='0.55'/%3E%3C/svg%3E"); }
+  .brand { font-family: 'Anton'; font-size: 1.3rem; margin-bottom: 1.2rem; }
+</style>
+</head>
+<body>
+  <div class="col bad">
+    <h2>Before — body overflow clips the sides (the block)</h2>
+    <div class="deck">
+      <div class="brand">Battery Surf Bench</div>
+      <div class="body">
+        <div class="pill">
+          <div class="head"><span class="dot"></span><span>Surfing · 00:06 elapsed</span></div>
+          <div class="ro"><div><span class="l">Battery</span><span class="v lg">80%</span></div><div><span class="l">Time to empty</span><span class="v">6:18</span></div><div><span class="l">Rate · 10 min</span><span class="v">7.2%/h</span></div><div><span class="l">Rate · session</span><span class="v">6.8%/h</span></div></div>
+          <span class="waves"><i></i><i></i></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col good">
+    <h2>After — padded scroll viewport + contained shadow</h2>
+    <div class="deck">
+      <div class="brand">Battery Surf Bench</div>
+      <div class="body">
+        <div class="pill">
+          <div class="head"><span class="dot"></span><span>Surfing · 00:06 elapsed</span></div>
+          <div class="ro"><div><span class="l">Battery</span><span class="v lg">80%</span></div><div><span class="l">Time to empty</span><span class="v">6:18</span></div><div><span class="l">Rate · 10 min</span><span class="v">7.2%/h</span></div><div><span class="l">Rate · session</span><span class="v">6.8%/h</span></div></div>
+          <span class="waves"><i></i><i></i></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

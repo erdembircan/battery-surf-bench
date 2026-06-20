@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Viewport shield — "view only" treatments</title>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Hanken+Grotesk:wght@400;600;700&family=Space+Mono:wght@700&display=swap" rel="stylesheet" />
+<style>
+  /* Coastal Daybreak (light) + Dusk Lineup (dark) — real theme tokens */
+  :root {
+    --foam:#ffffff; --sand:#f1f7fa; --line:#e1edf2; --navy:#1f3a5f; --ink-soft:#5b7488;
+    --teal:#2f9bb3; --teal-deep:#1f7d93; --amber:#ef8f3c;
+    --stage-bg:linear-gradient(180deg,#eef6f9 0%,#e3eef3 100%);
+    --page-ink:#22323f; --page-bg:#fbfdfe; --page-line:#e7eef2; --page-soft:#7d93a3;
+    /* shield knobs (variants override) */
+    --sh-cursor:default; --sh-bg:transparent; --sh-blur:none; --sh-ring:transparent; --sh-tint:transparent;
+  }
+  body.dark {
+    --foam:#0a3a4f; --sand:#062b3d; --line:rgba(160,225,240,0.16); --navy:#ffffff; --ink-soft:rgba(230,247,251,0.6);
+    --teal:#46d6c4; --teal-deep:#0f5e72; --amber:#ffb24a;
+    --stage-bg:linear-gradient(180deg,#0a3447 0%,#062734 100%);
+    --page-ink:#dfeef4; --page-bg:#0b2c3a; --page-line:rgba(160,225,240,0.12); --page-soft:#6f93a3;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; padding:1.4rem; font-family:'Hanken Grotesk',sans-serif; color:var(--navy); background:var(--sand); transition:background .25s; }
+  h1 { font-family:'Anton'; font-weight:400; font-size:1.35rem; margin:0 0 .2rem; }
+  p.sub { margin:0 0 1.2rem; color:var(--ink-soft); font-size:.86rem; max-width:760px; }
+
+  .ctl { display:flex; flex-wrap:wrap; gap:.45rem 1.3rem; align-items:center; padding:.75rem 1rem; margin-bottom:1.1rem; border-radius:12px; background:color-mix(in srgb, var(--navy) 6%, transparent); font-size:.84rem; }
+  .ctl strong { font-size:.6rem; letter-spacing:.16em; text-transform:uppercase; color:var(--ink-soft); }
+  .ctl label { display:inline-flex; align-items:center; gap:.3rem; cursor:pointer; }
+  .note { font-size:.82rem; color:var(--ink-soft); margin:.2rem 0 1rem; min-height:1.2em; }
+
+  /* ── stage = the cockpit's right pane ── */
+  .stage { position:relative; height:560px; border-radius:16px; overflow:hidden; background:var(--stage-bg); box-shadow:0 16px 44px rgba(0,0,0,.16); }
+  .frame { position:relative; height:100%; }
+
+  /* faux benchmarked page (stands in for the iframe content) */
+  .page { position:absolute; inset:0; overflow:hidden; background:var(--page-bg); color:var(--page-ink); padding:2.2rem 2.6rem; }
+  .page .kicker { font-size:.66rem; letter-spacing:.2em; text-transform:uppercase; color:var(--teal); font-weight:700; }
+  .page h2 { font-family:'Anton'; font-weight:400; font-size:2rem; line-height:1.04; margin:.5rem 0 1rem; max-width:22ch; }
+  .page p { font-size:.95rem; line-height:1.7; max-width:60ch; color:var(--page-ink); }
+  .page .meta { display:flex; gap:1.4rem; margin-top:1.6rem; font-size:.8rem; color:var(--page-soft); }
+  .page a { color:var(--teal); }
+  .page .btn { display:inline-block; margin-top:1.4rem; padding:.6rem 1.1rem; border-radius:9px; background:var(--teal); color:#fff; font-weight:700; font-size:.85rem; }
+  .page hr { border:0; border-top:1px solid var(--page-line); margin:1.6rem 0; }
+
+  /* ── the shield ── */
+  .shield {
+    position:absolute; inset:0; z-index:5;
+    cursor:var(--sh-cursor);
+    background:var(--sh-bg);
+    backdrop-filter:var(--sh-blur);
+    box-shadow:var(--sh-ring);
+    transition:background .2s, box-shadow .2s;
+  }
+
+  /* persistent corner chip */
+  .badge {
+    position:absolute; z-index:6; left:50%; bottom:1.1rem; transform:translateX(-50%);
+    display:none; align-items:center; gap:.5rem; padding:.5rem .9rem; border-radius:999px;
+    font-size:.72rem; font-weight:700; letter-spacing:.04em;
+    background:color-mix(in srgb, var(--foam) 86%, transparent); color:var(--navy);
+    border:1px solid var(--line); box-shadow:0 8px 22px rgba(0,0,0,.18); backdrop-filter:blur(6px);
+  }
+  .badge svg { width:.95rem; height:.95rem; }
+
+  /* hover-only centred hint */
+  .hint {
+    position:absolute; z-index:6; inset:0; display:grid; place-items:center; pointer-events:none;
+    opacity:0; transition:opacity .18s;
+  }
+  .hint > span {
+    display:inline-flex; align-items:center; gap:.55rem; padding:.7rem 1.2rem; border-radius:999px;
+    font-size:.84rem; font-weight:700; color:#fff;
+    background:linear-gradient(150deg, var(--teal), var(--teal-deep));
+    box-shadow:0 12px 30px rgba(0,0,0,.28);
+  }
+  .hint svg { width:1.05rem; height:1.05rem; }
+
+  /* ── variant switches (set data-v on .stage) ── */
+  /* A · cursor only */
+  [data-v="a"] { --sh-cursor:not-allowed; }
+  /* B · foam wash — barely-there cool glass, on-brand (foam, not grey) */
+  [data-v="b"] { --sh-cursor:not-allowed; --sh-bg:linear-gradient(180deg, rgba(47,155,179,.05), rgba(47,155,179,.09)); }
+  body.dark [data-v="b"] { --sh-bg:linear-gradient(180deg, rgba(70,214,196,.06), rgba(6,30,42,.18)); }
+  /* C · corner chip + cursor */
+  [data-v="c"] { --sh-cursor:not-allowed; }
+  [data-v="c"] .badge { display:inline-flex; }
+  /* D · hover hint (page pristine until you reach for it) */
+  [data-v="d"] { --sh-cursor:not-allowed; }
+  [data-v="d"] .shield:hover ~ .hint { opacity:1; }
+  /* E · behind-glass vignette + cursor */
+  [data-v="e"] { --sh-cursor:not-allowed; --sh-ring:inset 0 0 0 1px rgba(47,155,179,.18), inset 0 0 90px rgba(31,58,95,.14); }
+  body.dark [data-v="e"] { --sh-ring:inset 0 0 0 1px rgba(70,214,196,.22), inset 0 0 90px rgba(0,0,0,.4); }
+  /* F · foam wash + corner chip + cursor (combo) */
+  [data-v="f"] { --sh-cursor:not-allowed; --sh-bg:linear-gradient(180deg, rgba(47,155,179,.05), rgba(47,155,179,.09)); }
+  body.dark [data-v="f"] { --sh-bg:linear-gradient(180deg, rgba(70,214,196,.06), rgba(6,30,42,.18)); }
+  [data-v="f"] .badge { display:inline-flex; }
+</style>
+</head>
+<body>
+  <h1>Viewport shield — signalling "view only"</h1>
+  <p class="sub">The shield already blocks input; this is purely how we <em>show</em> it. Hover the page to feel the cursor and (for D) the hint. Surf palette — foam/teal, no flat grey or generic blue.</p>
+
+  <div class="ctl">
+    <strong>Treatment</strong>
+    <label><input type="radio" name="v" value="a" /> A cursor only</label>
+    <label><input type="radio" name="v" value="b" /> B foam wash</label>
+    <label><input type="radio" name="v" value="c" /> C corner chip</label>
+    <label><input type="radio" name="v" value="d" /> D hover hint</label>
+    <label><input type="radio" name="v" value="e" /> E behind-glass</label>
+    <label><input type="radio" name="v" value="f" checked /> F wash + chip</label>
+    <span style="flex:1"></span>
+    <label><input type="checkbox" id="dark" /> dark deck</label>
+  </div>
+  <p class="note" id="note"></p>
+
+  <div class="stage" id="stage" data-v="f">
+    <div class="frame">
+      <article class="page">
+        <span class="kicker">Battery Field Notes</span>
+        <h2>The Hidden Cost of a Browser Tab</h2>
+        <p>Every open tab is a tiny negotiation with your battery. A page that looks idle can keep timers ticking, repaint on a loop, and hold the radio awake — draining charge while nothing visibly happens.</p>
+        <p>This benchmark surfs a fixed reading route and watches the slope, so two laptops face the exact same workload. <a href="#">Read the method →</a></p>
+        <a class="btn" href="#">Start reading</a>
+        <hr />
+        <div class="meta"><span>6 min read</span><span>Updated today</span><span>By the Bench</span></div>
+      </article>
+      <div class="shield"></div>
+      <span class="badge">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+        View only while the run is surfing
+      </span>
+      <div class="hint">
+        <span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+          The bench is driving — view only
+        </span>
+      </div>
+    </div>
+  </div>
+
+<script>
+  const stage = document.getElementById('stage'), note = document.getElementById('note');
+  const notes = {
+    a:'A · Nothing painted on the page — the not-allowed cursor on hover is the only tell. Cleanest, but discoverable only when you try.',
+    b:'B · A whisper-thin foam/teal wash sits over the page — reads as "behind glass" without hiding content. Cursor confirms it.',
+    c:'C · Page pristine; a small frosted chip names the state ("view only"). Always visible, never in the way.',
+    d:'D · Page stays pristine; reach for it and a centred hint fades in. Zero clutter at rest, explicit on intent.',
+    e:'E · A soft inner vignette + hairline ring frames the viewport as a sealed surface. Subtle, ambient.',
+    f:'F · The combo I lean to: foam wash for the ambient "glass" + the chip to say why + not-allowed cursor. Felt and explained.',
+  };
+  function setNote(){ note.textContent = notes[stage.dataset.v] || ''; }
+  document.querySelectorAll('input[name=v]').forEach(r => r.addEventListener('change', () => { if(r.checked){ stage.dataset.v = r.value; setNote(); } }));
+  document.getElementById('dark').addEventListener('change', e => document.body.classList.toggle('dark', e.target.checked));
+  setNote();
+</script>
+</body>
+</html>

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@700&family=Hanken+Grotesk:wght@700;800&display=swap" rel="stylesheet"/>
+<style>
+  :root{--surface:rgba(3,22,32,.5);--surface-2:rgba(8,40,54,.6);--wall:rgba(230,247,251,.6);--good:#5fd38b;--fill:#d8c33a;--label:rgba(230,247,251,.5);--text:#e6f7fb}
+  body{margin:0;background:linear-gradient(175deg,#0a3a4f,#062b3d 70%);padding:40px;font-family:'Hanken Grotesk',sans-serif;color:var(--text)}
+  .card{width:340px;padding:1.1rem 1.2rem;border-radius:14px;background:var(--surface)}
+  .lab{font-size:.6rem;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:var(--label);margin-bottom:.6rem}
+  .row{display:flex;align-items:center;gap:1rem}
+  .num{font-family:'Space Mono',monospace;font-size:2.4rem;font-weight:700;color:var(--fill);line-height:.9}
+  .num small{font-size:1rem;color:var(--text)}
+
+  .batt{position:relative;margin-left:auto;display:inline-flex;align-items:center;gap:3px}
+  .cap{order:0;width:6px;height:1.3rem;border-radius:3px 0 0 3px;background:var(--wall)}
+  .rig{order:1;position:relative;display:inline-flex}
+  .body{position:relative;width:7.4rem;height:3.4rem;border:3px solid var(--wall);border-radius:10px;background:var(--surface-2);overflow:hidden}
+  .body::after{content:'';position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0,transparent 1.74rem,rgba(127,127,127,.13) 1.74rem,rgba(127,127,127,.13) calc(1.74rem + 1px))}
+  .fill{position:absolute;inset-block:0;left:0;width:42%;background:var(--fill)}
+  /* clip track: left edge sits at the inner border, so the cable vanishes there */
+  .track{position:absolute;top:50%;left:calc(100% - 3px);transform:translateY(-50%);width:3.4rem;height:1.1rem;overflow:hidden;pointer-events:none}
+  .cable{position:absolute;top:50%;left:0;transform:translate(150%,-50%);width:1.7rem;height:.46rem;border-radius:0 3px 3px 0;background:var(--good);transition:transform .5s cubic-bezier(.5,0,.2,1)}
+  .cable::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);width:.4rem;height:.86rem;border-radius:2px;background:var(--good)}
+  .batt--chg .cable{transform:translate(0,-50%)}
+
+  .state{margin-top:.9rem;font-size:.72rem;font-weight:800;letter-spacing:.04em;padding:.2rem .6rem;border-radius:999px;display:inline-block;background:rgba(127,127,127,.22);color:var(--label);transition:.3s}
+  .batt--chg ~ .state{background:rgba(95,211,139,.25);color:var(--good)}
+  .wrap.on .batt{}
+</style></head>
+<body>
+<div class="card">
+  <div class="lab">Battery</div>
+  <div class="row">
+    <span class="num">42<small>%</small></span>
+    <span class="batt" id="b"><span class="cap"></span><span class="rig"><span class="body"><span class="fill"></span></span><span class="track"><span class="cable"></span></span></span></span>
+  </div>
+  <span class="state" id="s">Not charging</span>
+</div>
+<script>
+  const b=document.getElementById('b'), s=document.getElementById('s');
+  let on=false;
+  setInterval(()=>{on=!on;b.classList.toggle('batt--chg',on);s.textContent=on?'Charging':'Not charging';s.style.background=on?'rgba(95,211,139,.25)':'rgba(127,127,127,.22)';s.style.color=on?'#5fd38b':'rgba(230,247,251,.5)';},1900);
+</script>
+</body></html>

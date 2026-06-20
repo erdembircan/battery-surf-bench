@@ -1,24 +1,1398 @@
-html, body{margin: 0;
-  height: 100%;}
-.wp-block-bsb-cockpit{display: flex;
-  flex-direction: column;
-  height: 100vh;}
-.bsb-cockpit__controls{flex: 0 0 auto;
-  display: flex;
-  gap: 0.75rem;
-  align-items: center;
-  padding: 0.6rem 0.9rem;
-  border-bottom: 1px solid #e8e4dc;
-  font: 14px/1.4 -apple-system, blinkmacsystemfont, "Segoe UI", helvetica, arial, sans-serif;}
-.bsb-cockpit__cycle{cursor: pointer;
-  padding: 0.4rem 0.9rem;
-  border: 1px solid #1a1a18;
-  border-radius: 4px;
-  background: #1a1a18;
-  color: #fff;
-  font: inherit;}
-.bsb-cockpit__label{color: #6b6760;}
-.bsb-cockpit__viewport{flex: 1 1 auto;
-  display: block;
-  width: 100%;
-  border: 0;}
+/*
+ * Cockpit dashboard styles.
+ *
+ * A two-pane control deck: a sidebar of run controls on the left, a surf stage
+ * holding the viewport iframe on the right. The deck ships two themes — Coastal
+ * Daybreak (light, default) and Dusk Lineup (dark) — selectable with the deck's
+ * light/dark toggle. Every colour is a CSS custom property set per theme on the
+ * block wrapper (`[data-theme]`), so the components below are theme-agnostic.
+ * This is the only stylesheet the stripped dashboard route loads, so it carries
+ * its own reset and web fonts (via @font-face, adding no extra stylesheet link).
+ */
+
+@use '../styles/theme' as theme;
+
+$deck-width: clamp(300px, 28vw, 372px);
+$ease: cubic-bezier(0.22, 1, 0.36, 1);
+$compact-dur: 0.42s;
+
+html,
+body {
+	margin: 0;
+	height: 100%;
+}
+
+// ── Theme tokens ─────────────────────────────────────────────────────────────
+// Default = Coastal Daybreak (light). `[data-theme='dark']` = Dusk Lineup.
+.wp-block-bsb-cockpit {
+	@include theme.tokens;
+
+	display: grid;
+	grid-template-columns: $deck-width 1fr;
+	height: 100vh;
+	overflow: hidden;
+	font-family: theme.$font-ui;
+	color: var(--text);
+	-webkit-font-smoothing: antialiased;
+	transition: grid-template-columns $compact-dur $ease;
+
+	// Compact: the deck collapses to nothing so the stage fills the width.
+	&.is-compact {
+		grid-template-columns: 0 1fr;
+	}
+
+	*,
+	*::before,
+	*::after {
+		box-sizing: border-box;
+	}
+}
+
+// ── Control deck (left) ──────────────────────────────────────────────────────
+.bsb-cockpit__deck {
+	position: relative;
+	// Lift the deck above the stage so its right-edge shadow falls onto the
+	// viewport/idle screen, keeping the sidebar visually separate from a light
+	// page being benchmarked (which would otherwise blend into the light deck).
+	z-index: 2;
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+	// Hold the deck at full width so its content never reflows (the brand text
+	// re-wrapping word by word) while the grid column animates to zero — it
+	// slides out as a whole instead of being squeezed.
+	min-width: $deck-width;
+	padding: 1.6rem 1.5rem 1.4rem;
+	overflow: hidden;
+	color: var(--text);
+	background: var(--deck-bg);
+	box-shadow: 2px 0 8px -5px rgba(0, 20, 40, 0.14);
+	transition: transform $compact-dur $ease;
+
+	// Compact: slide fully out to the left, in step with the column collapse. The
+	// translation magnitude tracks the column width, so the deck's right edge
+	// stays flush with the stage's left edge — no gap, no overlap, no reflow.
+	.wp-block-bsb-cockpit.is-compact & {
+		transform: translateX(-100%);
+		pointer-events: none;
+	}
+}
+
+// ── Readouts pill — the deck's live "it's working" panel (shown while running) ─
+.bsb-deck__status {
+	position: relative;
+	z-index: 1;
+	overflow: hidden;
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+	padding: 1rem 1.1rem 1.5rem;
+	border-radius: 16px;
+	color: var(--status-ink);
+	background: var(--status-grad);
+	// A soft, lifted glow rather than a tight blocky drop. Negative spread keeps
+	// the lateral reach (~20px) inside the deck's available padding so it fades
+	// out smoothly instead of being clipped flush at the edge.
+	box-shadow:
+		0 18px 36px -16px var(--status-cast),
+		0 6px 14px -8px rgba(0, 0, 0, 0.2),
+		inset 0 0 0 1px var(--status-ring);
+}
+
+.bsb-deck__status-head {
+	position: relative;
+	z-index: 1;
+	display: flex;
+	align-items: center;
+	gap: 0.55rem;
+}
+
+.bsb-deck__status-dot {
+	flex: 0 0 auto;
+	width: 0.55rem;
+	height: 0.55rem;
+	border-radius: 50%;
+	background: var(--status-dot);
+	box-shadow: 0 0 12px var(--status-dot);
+	animation: bsb-pulse 1.4s ease-in-out infinite;
+}
+
+.bsb-deck__status-text {
+	font-size: 0.7rem;
+	font-weight: 700;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+}
+
+.bsb-deck__clock {
+	font-family: theme.$font-mono;
+	font-variant-numeric: tabular-nums;
+}
+
+// readouts grid inside the pill
+.bsb-deck__readouts {
+	position: relative;
+	z-index: 1;
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 0.5rem 1rem;
+}
+
+.bsb-stat__label {
+	display: block;
+	font-size: 0.56rem;
+	font-weight: 700;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	color: var(--status-ink);
+	opacity: 0.62;
+}
+
+.bsb-stat__value {
+	display: block;
+	margin-top: 0.15rem;
+	font-family: theme.$font-mono;
+	font-size: 1.45rem;
+	font-weight: 700;
+	line-height: 1.05;
+	color: var(--status-ink);
+	font-variant-numeric: tabular-nums;
+}
+
+.bsb-stat__value--lg {
+	display: flex;
+	align-items: center;
+	gap: 0.4rem;
+	font-size: 1.9rem;
+}
+
+.bsb-stat__unit {
+	font-size: 0.72rem;
+	opacity: 0.7;
+}
+
+// charging bolt — shown beside the battery % only while charging
+.bsb-stat__bolt {
+	width: 0.7rem;
+	height: 1rem;
+	display: none;
+	background: var(--status-dot);
+	filter: drop-shadow(0 0 5px var(--status-dot));
+	clip-path: polygon(55% 0, 0 58%, 42% 58%, 30% 100%, 100% 38%, 55% 38%);
+}
+
+.bsb-stat--battery.is-charging .bsb-stat__bolt {
+	display: block;
+}
+
+// ── Parallax waves inside the surfing indicator ─────────────────────────────
+// Three layers scroll at different speeds, heights and opacities for depth. The
+// scroll rate is divided by `--bsb-wave-speed` (the run's demo-speed multiplier,
+// bound from the store), so a 4×/10× run visibly churns the water faster.
+.bsb-deck__waves {
+	position: absolute;
+	inset-inline: 0;
+	bottom: 0;
+	height: 46px;
+	overflow: hidden;
+	pointer-events: none;
+	z-index: 0;
+}
+
+.bsb-deck__wave {
+	position: absolute;
+	inset-inline: 0;
+	bottom: 0;
+	background-repeat: repeat-x;
+	background-position: bottom;
+	background-size: 200px 100%;
+	animation: bsb-wave 12s linear infinite;
+}
+
+.bsb-deck__wave--back {
+	height: 44px;
+	opacity: 0.7;
+	animation-duration: calc(20s / var(--bsb-wave-speed, 1));
+	background-image: var(--wave-back);
+}
+
+.bsb-deck__wave--mid {
+	height: 34px;
+	animation-duration: calc(13s / var(--bsb-wave-speed, 1));
+	animation-direction: reverse;
+	background-image: var(--wave-mid);
+}
+
+.bsb-deck__wave--front {
+	height: 24px;
+	animation-duration: calc(8s / var(--bsb-wave-speed, 1));
+	background-image: var(--wave-front);
+}
+
+// ── Brand + theme toggle ─────────────────────────────────────────────────────
+// Two-row grid: [mark] [title] [actions] on row 1, the subtitle on row 2 under
+// the title. The mark shares the title's row, so it sizes to the TITLE height
+// only (not the subtitle) and tracks it when the title wraps.
+.bsb-deck__brand {
+	display: grid;
+	grid-template-columns: auto 1fr auto;
+	grid-template-rows: auto auto;
+	align-items: stretch;
+	column-gap: 1rem;
+	row-gap: 0.15rem;
+	padding-top: 0.5rem;
+	padding-bottom: 1.5rem;
+	margin-bottom: 1.4rem;
+	border-bottom: 1px solid var(--line);
+}
+
+// Brand mark — a solid surfer tinted to the brand accent. It stretches to the
+// title row's height, and the square aspect-ratio sizes its width to match — so
+// it grows with the title (one line or two). No fixed dimensions to drift.
+.bsb-deck__mark {
+	grid-area: 1 / 1;
+	align-self: stretch;
+	aspect-ratio: 1;
+	min-height: 0;
+	background: var(--subtitle-ink);
+	mask-image: url('../../assets/images/menu-icon.svg');
+	mask-repeat: no-repeat;
+	mask-position: center;
+	mask-size: contain;
+	-webkit-mask-image: url('../../assets/images/menu-icon.svg');
+	-webkit-mask-repeat: no-repeat;
+	-webkit-mask-position: center;
+	-webkit-mask-size: contain;
+}
+
+.bsb-deck__title {
+	grid-area: 1 / 2;
+	min-width: 0;
+	align-self: center;
+	font-family: theme.$font-display;
+	font-size: 1.5rem;
+	letter-spacing: 0.01em;
+	line-height: 0.98;
+	text-transform: uppercase;
+	color: var(--title-ink);
+}
+
+.bsb-deck__subtitle {
+	grid-area: 2 / 2;
+	font-size: 0.62rem;
+	font-weight: 700;
+	letter-spacing: 0.42em;
+	text-transform: uppercase;
+	color: var(--subtitle-ink);
+}
+
+// Deck header actions — the compact and theme toggles, grouped on the right.
+.bsb-deck__actions {
+	grid-area: 1 / 3;
+	align-self: center;
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.bsb-deck__theme,
+.bsb-deck__compact {
+	position: relative;
+	z-index: 1;
+	flex: 0 0 auto;
+	width: 2.2rem;
+	height: 2.2rem;
+	cursor: pointer;
+	border: 1px solid var(--line);
+	border-radius: 10px;
+	background: var(--accent-soft);
+	display: grid;
+	place-items: center;
+	transition:
+		background 0.18s ease,
+		transform 0.12s ease;
+
+	&:hover {
+		background: var(--surface);
+	}
+
+	&:active {
+		transform: scale(0.94);
+	}
+
+	&:focus-visible {
+		@extend %focus-ring;
+	}
+
+	&::before {
+		content: '';
+		width: 1.05rem;
+		height: 1.05rem;
+		background: var(--text-soft);
+		mask-repeat: no-repeat;
+		mask-position: center;
+		mask-size: contain;
+		-webkit-mask-repeat: no-repeat;
+		-webkit-mask-position: center;
+		-webkit-mask-size: contain;
+	}
+}
+
+// Compact toggle — a chevron pointing up (send the readouts to the top pill).
+.bsb-deck__compact {
+	transition: opacity 0.2s ease;
+
+	// Hidden while idle, but keep its slot in the header so starting a run reveals
+	// it in place instead of popping in and reflowing the brand row.
+	&.is-hidden {
+		visibility: hidden;
+		opacity: 0;
+	}
+
+	&::before {
+		mask-image: theme.$chevron-down;
+		-webkit-mask-image: theme.$chevron-down;
+		transform: rotate(180deg);
+	}
+}
+
+// The theme icon reflects the current preference: sun (light), moon (dark), or
+// a monitor (system / follow-the-OS), masked from the shared theme icons.
+.bsb-deck__theme {
+
+	&[data-pref='light']::before {
+		mask-image: theme.$sun-icon;
+		-webkit-mask-image: theme.$sun-icon;
+	}
+
+	&[data-pref='dark']::before {
+		mask-image: theme.$moon;
+		-webkit-mask-image: theme.$moon;
+	}
+
+	&[data-pref='system']::before {
+		mask-image: theme.$monitor-icon;
+		-webkit-mask-image: theme.$monitor-icon;
+	}
+}
+
+.bsb-deck__body {
+	position: relative;
+	z-index: 1;
+	display: flex;
+	flex-direction: column;
+	gap: 1.55rem;
+	flex: 1 1 auto;
+	min-height: 0;
+	// Vertical scroll forces `overflow-x` to compute to `auto`, which would clip
+	// the pill's soft side shadows flush at the body edge (the "blocky" look).
+	// Pad the scroll viewport and pull it back out with a matching negative
+	// margin so the shadow has lateral room while the content stays put. The
+	// inset stays within the deck's 1.5rem padding so the deck doesn't re-clip.
+	padding-inline: 20px;
+	margin-inline: -20px;
+	overflow-y: auto;
+}
+
+// The config controls and the readouts pill share one grid cell, stacked, and
+// slide past each other on run start/stop: config exits left as the pill enters
+// from the right (and the reverse on stop). Both stay mounted; `visibility`
+// keeps the off-screen one out of the tab and accessibility trees. Sizing to the
+// taller panel (config) keeps the run button from jumping between states.
+.bsb-deck__swap {
+	display: grid;
+	// Top-align so the shorter pill keeps its own height instead of stretching
+	// to fill the cell (which the taller config panel sizes).
+	align-items: start;
+
+	> .bsb-deck__config,
+	> .bsb-deck__status {
+		grid-area: 1 / 1;
+		transition:
+			opacity 0.34s cubic-bezier(0.22, 1, 0.36, 1),
+			transform 0.34s cubic-bezier(0.22, 1, 0.36, 1),
+			visibility 0.34s;
+	}
+
+	// Idle: config in place, pill parked off to the right.
+	> .bsb-deck__status {
+		opacity: 0;
+		visibility: hidden;
+		transform: translateX(34px);
+	}
+
+	// Running: config slides out left, pill slides in.
+	&.is-running > .bsb-deck__config {
+		opacity: 0;
+		visibility: hidden;
+		transform: translateX(-34px);
+	}
+
+	&.is-running > .bsb-deck__status {
+		opacity: 1;
+		visibility: visible;
+		transform: none;
+	}
+}
+
+.bsb-deck__config {
+	display: flex;
+	flex-direction: column;
+	gap: 1.55rem;
+}
+
+// Staggered rise of each control as the deck hydrates.
+.bsb-field {
+	display: flex;
+	flex-direction: column;
+	gap: 0.6rem;
+	animation: bsb-rise 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+
+	@for $i from 1 through 5 {
+		&:nth-child(#{$i}) {
+			animation-delay: #{0.06s * $i};
+		}
+	}
+
+	&[hidden] {
+		display: none;
+	}
+}
+
+.bsb-field__label {
+	font-size: 0.66rem;
+	font-weight: 700;
+	letter-spacing: 0.22em;
+	text-transform: uppercase;
+	color: var(--label);
+}
+
+// ── Segmented control (mode + speed) ────────────────────────────────────────
+.bsb-seg {
+	@extend %inset-surface;
+
+	display: grid;
+	grid-auto-flow: column;
+	grid-auto-columns: 1fr;
+	gap: 0.3rem;
+	padding: 0.3rem;
+}
+
+.bsb-seg__option {
+	appearance: none;
+	cursor: pointer;
+	padding: 0.62rem 0.4rem;
+	border: 0;
+	border-radius: 9px;
+	background: transparent;
+	color: var(--text-soft);
+	font-family: theme.$font-ui;
+	font-size: 0.86rem;
+	font-weight: 700;
+	letter-spacing: 0.02em;
+	transition:
+		background 0.2s ease,
+		color 0.2s ease,
+		transform 0.12s ease,
+		box-shadow 0.2s ease;
+
+	&:hover {
+		color: var(--text-strong);
+		background: var(--accent-soft);
+	}
+
+	&:active {
+		transform: translateY(1px);
+	}
+
+	&.is-active {
+		color: var(--accent-ink);
+		background: var(--accent-grad);
+		box-shadow:
+			0 4px 12px var(--accent-shadow),
+			inset 0 1px 0 rgba(255, 255, 255, 0.4);
+	}
+}
+
+.bsb-seg--speed .bsb-seg__option {
+	font-family: theme.$font-mono;
+	letter-spacing: 0;
+}
+
+// ── Duration stepper ────────────────────────────────────────────────────────
+.bsb-stepper {
+	@extend %inset-surface;
+
+	display: grid;
+	grid-template-columns: auto 1fr auto;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.45rem;
+}
+
+.bsb-stepper__btn {
+	cursor: pointer;
+	width: 2.4rem;
+	height: 2.4rem;
+	border: 0;
+	border-radius: 10px;
+	background: var(--stepper-btn-bg);
+	color: var(--stepper-btn-ink);
+	font-size: 1.4rem;
+	line-height: 1;
+	box-shadow: 0 1px 4px var(--stepper-btn-shadow);
+	transition:
+		background 0.18s ease,
+		transform 0.12s ease,
+		color 0.18s ease;
+
+	&:hover {
+		background: var(--stepper-btn-hover-bg);
+		color: var(--stepper-btn-hover-ink);
+	}
+
+	&:active {
+		transform: scale(0.92);
+	}
+}
+
+.bsb-stepper__readout {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.35rem;
+}
+
+// ── Run-duration odometer ───────────────────────────────────────────────────
+// The duration readout as analog rolling wheels. Each digit sits on a vertical
+// strip of 0–9 (repeated, so a 9⇄0 wrap rolls seamlessly); the store's
+// `rollDuration` watch slides each strip — increase rolls up, decrease down —
+// with an overshoot ease for a mechanical-counter snap. Leading wheels collapse
+// so there are no leading zeros.
+.bsb-odometer {
+	--bsb-od-cell: 2rem;
+
+	display: inline-flex;
+	height: var(--bsb-od-cell);
+	font-family: theme.$font-mono;
+	font-size: 1.7rem;
+	font-weight: 700;
+	line-height: 1;
+	color: var(--readout-ink);
+}
+
+.bsb-odometer__wheel {
+	width: 0.62em;
+	height: var(--bsb-od-cell);
+	overflow: hidden;
+
+	&.is-collapsed {
+		width: 0;
+	}
+}
+
+// Leading wheels expand/collapse as digits come and go.
+.bsb-odometer__wheel--lead {
+	transition: width 0.3s ease;
+}
+
+.bsb-odometer__strip {
+	display: flex;
+	flex-direction: column;
+	// Rest on the middle 0–9 set (offset 10 cells); the watch sets the exact
+	// transform. This default keeps SSR / no-JS showing a single 0.
+	transform: translateY(calc(var(--bsb-od-cell) * -10));
+	transition: transform 0.36s cubic-bezier(0.34, 1.56, 0.64, 1);
+	will-change: transform;
+}
+
+.bsb-odometer__cell {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	height: var(--bsb-od-cell);
+	font-variant-numeric: tabular-nums;
+}
+
+// Visually hidden, but read by assistive tech (the wheels are aria-hidden).
+.bsb-stepper__sr {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
+	border: 0;
+}
+
+.bsb-stepper__value {
+	font-family: theme.$font-mono;
+	font-size: 1.7rem;
+	font-weight: 700;
+	color: var(--readout-ink);
+	font-variant-numeric: tabular-nums;
+}
+
+.bsb-stepper__unit {
+	font-size: 0.7rem;
+	font-weight: 700;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	color: var(--unit-ink);
+}
+
+// ── Target-drop: the battery IS the slider ──────────────────────────────────
+.bsb-target {
+	display: flex;
+	align-items: center;
+	gap: 1.1rem;
+	padding: 0.3rem 0.2rem;
+}
+
+.bsb-target__gauge {
+	display: inline-flex;
+	align-items: center;
+	gap: 3px;
+	flex: 0 0 auto;
+}
+
+// Horizontal battery whose fill is a draggable slider. Its level + colour are
+// set by the store; click/drag inside it or use the arrow keys to change it.
+.bsb-target__battery {
+	position: relative;
+	width: 7.4rem;
+	height: 3.4rem;
+	border: 3px solid var(--text-soft);
+	border-radius: 10px;
+	overflow: hidden;
+	background: var(--surface);
+	box-shadow: inset 0 1px 3px var(--surface-shadow);
+	cursor: ew-resize;
+	touch-action: none;
+
+	// faint cell ticks
+	&::after {
+		content: '';
+		position: absolute;
+		inset: 0;
+		background: repeating-linear-gradient(
+			90deg,
+			transparent 0,
+			transparent 1.74rem,
+			rgba(127, 127, 127, 0.13) 1.74rem,
+			rgba(127, 127, 127, 0.13) calc(1.74rem + 1px)
+		);
+		pointer-events: none;
+	}
+
+	&:focus-visible {
+		@extend %focus-ring;
+	}
+}
+
+.bsb-target__fill {
+	position: absolute;
+	inset-block: 0;
+	left: 0;
+	transition:
+		width 0.12s ease,
+		background 0.12s ease;
+}
+
+.bsb-target__handle {
+	position: absolute;
+	top: 50%;
+	width: 9px;
+	height: 64%;
+	transform: translate(-50%, -50%);
+	border-radius: 5px;
+	background: #fff;
+	box-shadow: 0 1px 5px rgba(0, 0, 0, 0.4);
+	transition: left 0.12s ease;
+	pointer-events: none;
+}
+
+.bsb-target__cap {
+	flex: 0 0 auto;
+	width: 6px;
+	height: 1.3rem;
+	border-radius: 0 3px 3px 0;
+	background: var(--text-soft);
+}
+
+.bsb-target__value {
+	margin-left: auto;
+	font-family: theme.$font-mono;
+	font-size: 1.7rem;
+	font-weight: 700;
+	line-height: 1;
+	font-variant-numeric: tabular-nums;
+}
+
+// ── Baseline toggle ─────────────────────────────────────────────────────────
+.bsb-toggle {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	cursor: pointer;
+	user-select: none;
+}
+
+.bsb-toggle__input {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	margin: -1px;
+	padding: 0;
+	border: 0;
+	overflow: hidden;
+	clip: rect(0 0 0 0);
+	white-space: nowrap;
+}
+
+.bsb-toggle__track {
+	position: relative;
+	flex: 0 0 auto;
+	width: 3.2rem;
+	height: 1.7rem;
+	border-radius: 999px;
+	background: var(--toggle-track);
+	box-shadow: inset 0 1px 3px var(--surface-shadow);
+	transition: background 0.25s ease;
+}
+
+.bsb-toggle__thumb {
+	position: absolute;
+	top: 0.2rem;
+	left: 0.2rem;
+	width: 1.3rem;
+	height: 1.3rem;
+	border-radius: 50%;
+	background: var(--toggle-thumb);
+	box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25);
+	transition:
+		transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
+		background 0.25s ease;
+}
+
+.bsb-toggle__text {
+	font-size: 0.92rem;
+	font-weight: 600;
+	color: var(--text);
+}
+
+.bsb-toggle__input:checked + .bsb-toggle__track {
+	background: var(--toggle-on);
+
+	.bsb-toggle__thumb {
+		transform: translateX(1.5rem);
+		background: #fff;
+	}
+}
+
+.bsb-toggle__input:focus-visible + .bsb-toggle__track {
+	@extend %focus-ring;
+}
+
+// ── Stop button ─────────────────────────────────────────────────────────────
+.bsb-deck__foot {
+	position: relative;
+	z-index: 1;
+	padding-top: 1.4rem;
+	margin-top: 1.2rem;
+	border-top: 1px solid var(--line);
+}
+
+// Run control. Three states, selected by store-bound classes:
+//   (default)     idle & on battery → green "Start" go-button (play glyph)
+//   .is-running   a run is live      → coral "Stop" button (pulsing square)
+//   .is-blocked   plugged in & idle  → disabled "Plugged in" (plug glyph)
+.bsb-run {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.7rem;
+	width: 100%;
+	padding: 1rem;
+	cursor: pointer;
+	border: 0;
+	border-radius: 14px;
+	background: var(--accent-grad);
+	color: var(--accent-ink);
+	font-family: theme.$font-display;
+	font-size: 1.18rem;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	box-shadow:
+		0 8px 20px var(--accent-shadow),
+		inset 0 1px 0 rgba(255, 255, 255, 0.3);
+	transition:
+		transform 0.14s ease,
+		box-shadow 0.2s ease,
+		filter 0.2s ease;
+
+	&:not(.is-blocked):hover {
+		transform: translateY(-2px);
+		filter: saturate(1.1);
+	}
+
+	&:active {
+		transform: translateY(0);
+	}
+
+	&:focus-visible {
+		@extend %focus-ring;
+
+		outline-offset: 3px;
+	}
+
+	&.is-running {
+		background: var(--stop-grad);
+		color: #fff;
+		box-shadow:
+			0 8px 20px var(--stop-shadow),
+			inset 0 1px 0 rgba(255, 255, 255, 0.3);
+	}
+
+	&.is-blocked {
+		background: var(--run-disabled-bg);
+		color: var(--run-disabled-ink);
+		box-shadow: none;
+		cursor: not-allowed;
+	}
+}
+
+// One label per state; the active class decides which shows.
+.bsb-run__text {
+	display: none;
+}
+
+.bsb-run:not(.is-running):not(.is-blocked) .bsb-run__text--start,
+.bsb-run.is-running .bsb-run__text--stop,
+.bsb-run.is-blocked .bsb-run__text--blocked {
+	display: inline;
+}
+
+// Idle: a "play" triangle. Running: the pulsing stop square. Blocked: a plug.
+.bsb-run__glyph {
+	width: 0.9rem;
+	height: 0.9rem;
+	background: currentColor;
+	clip-path: polygon(12% 0%, 100% 50%, 12% 100%);
+
+	.bsb-run.is-running & {
+		clip-path: none;
+		border-radius: 3px;
+		box-shadow: 0 0 12px rgba(255, 255, 255, 0.65);
+		animation: bsb-pulse 1.8s ease-in-out infinite;
+	}
+
+	.bsb-run.is-blocked & {
+		width: 1rem;
+		height: 1rem;
+		clip-path: none;
+		mask-image: theme.$plug-icon;
+		mask-repeat: no-repeat;
+		mask-position: center;
+		mask-size: contain;
+		-webkit-mask-image: theme.$plug-icon;
+		-webkit-mask-repeat: no-repeat;
+		-webkit-mask-position: center;
+		-webkit-mask-size: contain;
+	}
+}
+
+// ── Surf stage (right) ──────────────────────────────────────────────────────
+.bsb-cockpit__stage {
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+	background: var(--stage-bg);
+}
+
+// The iframe and its interaction shield share one positioned box so the shield
+// covers exactly the viewport (never the top pill).
+.bsb-cockpit__viewport-wrap {
+	position: relative;
+	flex: 1 1 auto;
+	min-height: 0;
+	display: flex;
+}
+
+.bsb-cockpit__viewport {
+	flex: 1 1 auto;
+	display: block;
+	width: 100%;
+	min-height: 0;
+	border: 0;
+	background: var(--viewport-bg);
+}
+
+// Transparent overlay that swallows pointer input so the benchmarked page can be
+// shown but never interacted with — the run drives the page, not the user. The
+// not-allowed cursor signals it the moment the pointer reaches the page.
+.bsb-cockpit__shield {
+	position: absolute;
+	inset: 0;
+	z-index: 1;
+	cursor: not-allowed;
+}
+
+// A small frosted chip resting in the bottom-centre of the viewport that names
+// the state — the page stays pristine, the chip just says it is view-only. It
+// never intercepts the pointer, so the not-allowed cursor shows over it too.
+// Hidden at rest and revealed only while the pointer is over the viewport, so it
+// never sits there nagging when the cursor is elsewhere.
+.bsb-cockpit__shield-badge {
+	position: absolute;
+	inset-block-end: 1.1rem;
+	inset-inline-start: 50%;
+	transform: translateX(-50%);
+	z-index: 2;
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+	margin: 0;
+	padding: 0.5rem 0.9rem;
+	border: 1px solid var(--shield-chip-line);
+	border-radius: 999px;
+	background: var(--shield-chip-bg);
+	box-shadow: 0 8px 22px var(--shield-chip-shadow);
+	backdrop-filter: blur(6px);
+	color: var(--shield-chip-ink);
+	font-size: 0.72rem;
+	font-weight: 700;
+	letter-spacing: 0.04em;
+	white-space: nowrap;
+	pointer-events: none;
+	opacity: 0;
+	transition: opacity 0.18s ease;
+
+	.bsb-cockpit__viewport-wrap:hover & {
+		opacity: 1;
+	}
+
+	&::before {
+		content: '';
+		width: 0.95rem;
+		height: 0.95rem;
+		background: currentcolor;
+		mask-image: theme.$lock-icon;
+		mask-repeat: no-repeat;
+		mask-position: center;
+		mask-size: contain;
+		-webkit-mask-image: theme.$lock-icon;
+		-webkit-mask-repeat: no-repeat;
+		-webkit-mask-position: center;
+		-webkit-mask-size: contain;
+	}
+}
+
+// ── Idle "ready" screen ──────────────────────────────────────────────────────
+// Before a run the stage shows a postcard instead of the iframe: an illustrated
+// front (the surfer mark on a sun-faded gradient) with the run's "how it works"
+// written on the back. The viewport loads only once running; each side is hidden
+// by the store via the `hidden` attribute, so guard the flex/grid displays.
+.bsb-cockpit__idle[hidden],
+.bsb-cockpit__viewport-wrap[hidden] {
+	display: none;
+}
+
+.bsb-cockpit__idle {
+	flex: 1 1 auto;
+	min-height: 0;
+	display: grid;
+	place-items: center;
+	padding: 2.2rem;
+	background: var(--idle-sky);
+}
+
+.bsb-cockpit__postcard {
+	display: grid;
+	grid-template-columns: 1.05fr 1.2fr;
+	width: min(860px, 100%);
+	overflow: hidden;
+	border: 1px solid var(--paper-line);
+	border-radius: 14px;
+	background: var(--paper);
+	box-shadow: 0 26px 60px rgba(0, 0, 0, 0.32);
+	transform: rotate(-1.4deg);
+}
+
+// front: the illustrated picture side
+.bsb-cockpit__postcard-pic {
+	position: relative;
+	min-height: 360px;
+	overflow: hidden;
+	background: linear-gradient(180deg, #ffbf86 0%, #ffd778 35%, #9fe0d2 70%, #5cc0ca 100%);
+
+	// sun-bleached corners + greeting/edge scrim, above the wash, below the mark
+	&::after {
+		content: '';
+		position: absolute;
+		inset: 0;
+		z-index: 3;
+		pointer-events: none;
+		box-shadow: inset 0 0 70px rgba(70, 46, 20, 0.28);
+	}
+
+	&::before {
+		content: '';
+		position: absolute;
+		inset: 0;
+		z-index: 3;
+		pointer-events: none;
+		background: linear-gradient(
+			180deg,
+			rgba(0, 0, 0, 0.34) 0%,
+			rgba(0, 0, 0, 0) 34%,
+			rgba(0, 0, 0, 0) 70%,
+			rgba(0, 0, 0, 0.22) 100%
+		);
+	}
+}
+
+// the surfer mark, tinted ocean-blue, lifted above the sun-faded wash
+.bsb-cockpit__postcard-mark {
+	position: absolute;
+	inset: 0;
+	z-index: 3;
+	background: linear-gradient(155deg, #0a4f8f 0%, #1c83c9 48%, #5fc7f0 100%);
+	filter: drop-shadow(0 6px 14px rgba(6, 40, 70, 0.4));
+	mask-image: url('../../assets/images/icon.svg');
+	mask-repeat: no-repeat;
+	mask-position: center;
+	mask-size: 74%;
+	-webkit-mask-image: url('../../assets/images/icon.svg');
+	-webkit-mask-repeat: no-repeat;
+	-webkit-mask-position: center;
+	-webkit-mask-size: 74%;
+}
+
+// the warm "left in the sun" wash over the gradient
+.bsb-cockpit__postcard-wash {
+	position: absolute;
+	inset: 0;
+	z-index: 1;
+	pointer-events: none;
+	mix-blend-mode: soft-light;
+	background: radial-gradient(
+		130% 120% at 50% 0%,
+		rgba(255, 236, 205, 0.22),
+		rgba(255, 196, 150, 0.14)
+	);
+}
+
+// fine print grain
+.bsb-cockpit__postcard-grain {
+	position: absolute;
+	inset: 0;
+	z-index: 2;
+	pointer-events: none;
+	mix-blend-mode: overlay;
+	opacity: 0.2;
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+	background-size: 160px 160px;
+}
+
+.bsb-cockpit__postcard-greet {
+	position: absolute;
+	z-index: 4;
+	top: 2.1rem;
+	left: 1.5rem;
+	margin: 0;
+	font-family: theme.$font-script;
+	font-size: 1.85rem;
+	line-height: 1.02;
+	letter-spacing: 0.01em;
+	color: #ffffff;
+	text-shadow:
+		0 2px 10px rgba(0, 0, 0, 0.5),
+		0 1px 0 rgba(0, 0, 0, 0.25);
+	transform: rotate(-7deg);
+	transform-origin: left center;
+
+	span {
+		display: block;
+		margin-top: 0.1em;
+		padding-left: 1.4em;
+		font-size: 0.62em;
+		opacity: 0.92;
+	}
+}
+
+// back: the written note
+.bsb-cockpit__postcard-note {
+	position: relative;
+	padding: 1.5rem 1.6rem;
+	color: var(--paper-ink);
+}
+
+.bsb-cockpit__postcard-heading {
+	margin: 0.2rem 0 0.1rem;
+	font-family: theme.$font-hand;
+	font-weight: 700;
+	font-size: 2.1rem;
+	line-height: 0.9;
+	color: var(--paper-ink);
+}
+
+.bsb-cockpit__postcard-subtitle {
+	margin: 0;
+	font-family: theme.$font-hand;
+	font-size: 1.15rem;
+	color: var(--paper-accent);
+}
+
+.bsb-cockpit__postcard-divide {
+	display: block;
+	height: 1px;
+	margin: 0.8rem 0 0.9rem;
+	background: repeating-linear-gradient(90deg, var(--paper-line) 0 8px, transparent 8px 14px);
+}
+
+.bsb-cockpit__postcard-steps {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+
+	li {
+		display: flex;
+		gap: 0.7rem;
+		align-items: flex-start;
+		margin: 0.55rem 0;
+	}
+}
+
+.bsb-cockpit__postcard-num {
+	flex: none;
+	width: 1.5rem;
+	height: 1.5rem;
+	display: grid;
+	place-items: center;
+	border-radius: 50%;
+	background: linear-gradient(150deg, #2f9bb3, #1f7d93);
+	color: #ffffff;
+	font-family: theme.$font-ui;
+	font-weight: 700;
+	font-size: 0.78rem;
+}
+
+.bsb-cockpit__postcard-step {
+	font-family: theme.$font-ui;
+	font-size: 0.82rem;
+	line-height: 1.4;
+	color: var(--paper-ink);
+
+	b {
+		display: block;
+	}
+}
+
+// a blank, light, hand-stuck postage stamp: just a perforated (scalloped) edge
+// cut by a four-way radial-gradient mask, with the interior knocked back to the
+// paper colour so only the outline shows.
+.bsb-cockpit__stamp {
+	position: absolute;
+	top: 1.1rem;
+	right: 1.1rem;
+	width: 56px;
+	height: 68px;
+	background: var(--stamp-edge);
+	mask:
+		radial-gradient(3.4px at 50% 0, #0000 96%, #000) repeat-x 50% 0 / 11px 100%,
+		radial-gradient(3.4px at 50% 100%, #0000 96%, #000) repeat-x 50% 100% / 11px 100%,
+		radial-gradient(3.4px at 0 50%, #0000 96%, #000) repeat-y 0 50% / 100% 11px,
+		radial-gradient(3.4px at 100% 50%, #0000 96%, #000) repeat-y 100% 50% / 100% 11px;
+	mask-composite: intersect;
+	-webkit-mask:
+		radial-gradient(3.4px at 50% 0, #0000 96%, #000) repeat-x 50% 0 / 11px 100%,
+		radial-gradient(3.4px at 50% 100%, #0000 96%, #000) repeat-x 50% 100% / 11px 100%,
+		radial-gradient(3.4px at 0 50%, #0000 96%, #000) repeat-y 0 50% / 100% 11px,
+		radial-gradient(3.4px at 100% 50%, #0000 96%, #000) repeat-y 100% 50% / 100% 11px;
+	-webkit-mask-composite: source-in, source-in, source-in;
+
+	&::before {
+		content: '';
+		position: absolute;
+		inset: 3px;
+		border: 1px solid var(--stamp-rule);
+		border-radius: 2px;
+		background: var(--paper);
+	}
+}
+
+// ── Compact top pill ─────────────────────────────────────────────────────────
+// While compact, the live readouts move to a horizontal pill at the top of the
+// stage — the SAME pill (gradient, type, waves) as the deck, just wide with the
+// info on one line. Only the middle readouts column wraps to extra rows when the
+// bar narrows; the surfing line (left) and the buttons (right) hold their place.
+.bsb-cockpit__topbar {
+	height: 0;
+	opacity: 0;
+	overflow: hidden;
+	transition: opacity calc(#{$compact-dur} * 0.7) $ease calc(#{$compact-dur} * 0.3);
+
+	.wp-block-bsb-cockpit.is-compact & {
+		height: auto;
+		opacity: 1;
+		overflow: visible;
+	}
+
+	// The pill, laid out as three columns. Flush and square at the top of the
+	// page — no margin or corner radius, so the page never peeks in behind it.
+	.bsb-deck__status {
+		flex-direction: row;
+		align-items: center;
+		gap: 1.2rem;
+		min-height: 5.5rem;
+		padding: 0.6rem 1.3rem;
+		border-radius: 0;
+	}
+
+	.bsb-deck__status-head {
+		flex: 0 0 auto;
+	}
+
+	// Middle column: centred as a group; the only part that wraps when squeezed.
+	// Top-aligned so every label shares one line despite the larger battery value.
+	.bsb-deck__readouts {
+		display: flex;
+		flex: 1 1 auto;
+		flex-wrap: wrap;
+		justify-content: center;
+		align-items: flex-start;
+		gap: 0.8rem 2.2rem;
+		min-width: 0;
+	}
+
+	.bsb-stat {
+		text-align: center;
+	}
+
+	.bsb-stat__value {
+		font-size: 1.05rem;
+	}
+
+	.bsb-stat__value--lg {
+		font-size: 1.5rem;
+	}
+}
+
+// Right column — the stop and expand (chevron-down) controls.
+.bsb-deck__readout-ctrl {
+	position: relative;
+	z-index: 1;
+	flex: 0 0 auto;
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.bsb-deck__readout-stop {
+	cursor: pointer;
+	border: 0;
+	border-radius: 9px;
+	padding: 0.5rem 1rem;
+	background: var(--stop-grad);
+	color: #fff;
+	font-family: theme.$font-display;
+	font-size: 0.82rem;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+
+	&:focus-visible {
+		@extend %focus-ring;
+	}
+}
+
+.bsb-deck__expand {
+	width: 2.1rem;
+	height: 2.1rem;
+	cursor: pointer;
+	border: 0;
+	border-radius: 8px;
+	background: rgba(255, 255, 255, 0.16);
+	display: grid;
+	place-items: center;
+
+	&::before {
+		content: '';
+		width: 1.15rem;
+		height: 1.15rem;
+		background: var(--status-ink);
+		mask-image: theme.$chevron-down;
+		mask-repeat: no-repeat;
+		mask-position: center;
+		mask-size: contain;
+		-webkit-mask-image: theme.$chevron-down;
+		-webkit-mask-repeat: no-repeat;
+		-webkit-mask-position: center;
+		-webkit-mask-size: contain;
+	}
+
+	&:focus-visible {
+		@extend %focus-ring;
+	}
+}
+
+// ── Motion ──────────────────────────────────────────────────────────────────
+@keyframes bsb-rise {
+	from {
+		opacity: 0;
+		transform: translateY(12px);
+	}
+
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+@keyframes bsb-wave {
+	from {
+		background-position-x: 0;
+	}
+
+	to {
+		background-position-x: -200px;
+	}
+}
+
+@keyframes bsb-pulse {
+	0%,
+	100% {
+		opacity: 1;
+		transform: scale(1);
+	}
+
+	50% {
+		opacity: 0.5;
+		transform: scale(0.82);
+	}
+}
+
+// Respect reduced-motion: hold everything still.
+@media (prefers-reduced-motion: reduce) {
+	.wp-block-bsb-cockpit *,
+	.wp-block-bsb-cockpit *::before,
+	.wp-block-bsb-cockpit *::after {
+		animation: none !important;
+		transition: none !important;
+	}
+}
+
+// ── Narrow viewports: stack deck over stage ─────────────────────────────────
+@media (max-width: 720px) {
+	.wp-block-bsb-cockpit {
+		grid-template-columns: 1fr;
+		grid-template-rows: auto 1fr;
+		height: 100vh;
+	}
+
+	.bsb-cockpit__deck {
+		overflow-y: auto;
+	}
+}

@@ -52,10 +52,38 @@ test.describe( 'Cockpit dashboard route', () => {
 			page.locator( '[data-wp-interactive="bsb/cockpit"]' )
 		).toBeAttached();
 
-		// Interactivity hydrates the iframe src from the bound course list.
+		// The control deck is rendered alongside the stage, with the run
+		// control wired to the store.
+		await expect( page.locator( '.bsb-cockpit__deck' ) ).toBeAttached();
+		await expect(
+			page.locator( '.bsb-run[data-wp-on--click="actions.toggleRun"]' )
+		).toBeAttached();
+
+		// Duration mode is the default, so the target-drop field ships hidden in
+		// the server markup — it must not flash in before hydration hides it.
+		await expect( page.locator( '.bsb-field--target' ) ).toBeHidden();
+
+		// Before a run the stage shows the idle postcard, not the iframe.
+		await expect( page.locator( '.bsb-cockpit__idle' ) ).toBeVisible();
+		await expect(
+			page.locator( '.bsb-cockpit__postcard-heading' )
+		).toHaveText( /how this run works/i );
+
+		// The viewport ships hidden and the benchmarked page is NOT fetched while
+		// idle — the iframe src stays empty until surfing starts.
+		await expect(
+			page.locator( '.bsb-cockpit__viewport-wrap' )
+		).toBeHidden();
 		await expect(
 			page.locator( 'iframe.bsb-cockpit__viewport' )
-		).toHaveAttribute( 'src', /bsbSessionPage=article-1/ );
+		).not.toHaveAttribute( 'src', /bsbSessionPage/ );
+
+		// The interaction shield and "view only" chip remain in the markup — they
+		// govern the viewport once a run starts; their behaviour is unit-covered.
+		await expect( page.locator( '.bsb-cockpit__shield' ) ).toBeAttached();
+		await expect(
+			page.locator( '.bsb-cockpit__shield-badge' )
+		).toBeAttached();
 
 		// Stripped dashboard: the cockpit's own stylesheet is the only one that
 		// survives — every theme or other-plugin stylesheet is dequeued, so no

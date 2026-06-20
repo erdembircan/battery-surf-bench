@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Run duration — odometer roll study</title>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Hanken+Grotesk:wght@400;600;700&family=Space+Mono:wght@700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --surface: #f1f7fa; --line: #e1edf2; --navy: #1f3a5f; --teal: #2f9bb3; --label: rgba(31,58,95,0.62);
+    --dur: 360ms; --ease: cubic-bezier(0.22, 1, 0.36, 1);
+    --cell: 2.6rem;   /* height of one digit row */
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; display: flex; flex-direction: column; align-items: center; gap: 1.6rem; padding: 3rem 1rem;
+    font-family: 'Hanken Grotesk', sans-serif; color: var(--navy);
+    background: radial-gradient(120% 70% at 50% -10%,#fff,#f3fafd 40%,transparent 70%), linear-gradient(180deg,#e7f6ff,#fff 60%); }
+  h1 { font-family: 'Anton'; font-weight: 400; font-size: 1.4rem; margin: 0; }
+  p.sub { margin: 0; color: #5b7488; font-size: 0.88rem; }
+
+  .controls { display: flex; flex-wrap: wrap; gap: 0.5rem 1.4rem; align-items: center; padding: 0.8rem 1.1rem; border-radius: 12px; background: #fff; box-shadow: 0 6px 18px rgba(31,58,95,0.08); font-size: 0.82rem; }
+  .controls label { display: inline-flex; align-items: center; gap: 0.4rem; }
+  .controls strong { font-size: 0.62rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--label); }
+
+  /* deck stepper */
+  .field { width: 280px; display: flex; flex-direction: column; gap: 0.5rem; }
+  .flabel { font-size: 0.62rem; font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase; color: var(--label); }
+  .stepper { display: flex; align-items: center; justify-content: space-between; padding: 0.5rem; border: 1px solid var(--line); border-radius: 13px; background: #fff; }
+  .btn { width: 2.6rem; height: 2.6rem; flex: 0 0 auto; border: 0; border-radius: 9px; background: #fff; color: var(--teal); font-size: 1.3rem; cursor: pointer; box-shadow: 0 2px 6px rgba(31,58,95,0.12); }
+  .btn:active { transform: translateY(1px); }
+
+  .readout { display: flex; align-items: baseline; gap: 0.45rem; font-family: 'Space Mono'; font-weight: 700; color: var(--navy); }
+  .odo { display: flex; }
+  .wheel {
+    width: 0.7em; height: var(--cell); overflow: hidden; font-size: 1.6rem; line-height: var(--cell);
+    transition: width var(--dur) var(--ease), opacity var(--dur) var(--ease);
+  }
+  .wheel.collapsed { width: 0; opacity: 0; }
+  .wheel__strip { display: flex; flex-direction: column; will-change: transform; }
+  .wheel__cell { height: var(--cell); display: flex; align-items: center; justify-content: center; font-variant-numeric: tabular-nums; }
+  .unit { font-size: 0.9rem; color: var(--teal); }
+
+  .hint { font-size: 0.75rem; color: #7c93a1; max-width: 380px; text-align: center; }
+</style>
+</head>
+<body>
+  <h1>Run duration — odometer roll</h1>
+  <p class="sub">Each digit rolls like an analog counter. + rolls up, − rolls down; 9⇄0 wraps seamlessly.</p>
+
+  <div class="controls">
+    <strong>Speed</strong>
+    <label><input type="range" id="dur" min="160" max="800" value="360" /> <span id="durv">360ms</span></label>
+    <strong>Easing</strong>
+    <label><select id="ease">
+      <option value="cubic-bezier(0.22,1,0.36,1)">soft settle</option>
+      <option value="cubic-bezier(0.34,1.56,0.64,1)">overshoot (mechanical)</option>
+      <option value="ease-in-out">ease-in-out</option>
+      <option value="linear">linear</option>
+    </select></label>
+  </div>
+
+  <div class="field">
+    <span class="flabel">Run duration</span>
+    <div class="stepper">
+      <button class="btn" id="dec" aria-label="Decrease">−</button>
+      <span class="readout">
+        <span class="odo" id="odo"></span>
+        <span class="unit">min</span>
+      </span>
+      <button class="btn" id="inc" aria-label="Increase">+</button>
+    </div>
+  </div>
+
+  <p class="hint">Try 25→30 (units wraps 5→0 rolling up), 95→100 (a third digit rolls in), and hold + to 240.</p>
+
+<script>
+  const MIN = 5, MAX = 240, STEP = 5;
+  const REPEAT = 60, BASE = 300;          // long repeated strip; pos starts mid so it never runs out
+  let value = 30;
+
+  const root = document.documentElement;
+  const odo = document.getElementById('odo');
+
+  // Build three wheels: [hundreds, tens, units].
+  const wheels = [ 0, 1, 2 ].map( () => {
+    const el = document.createElement( 'span' );
+    el.className = 'wheel';
+    const strip = document.createElement( 'div' );
+    strip.className = 'wheel__strip';
+    for ( let r = 0; r < REPEAT; r++ ) {
+      for ( let d = 0; d < 10; d++ ) {
+        const c = document.createElement( 'span' );
+        c.className = 'wheel__cell';
+        c.textContent = d;
+        strip.appendChild( c );
+      }
+    }
+    el.appendChild( strip );
+    odo.appendChild( el );
+    return { el, strip, pos: BASE };
+  } );
+
+  const cell = () => wheels[ 2 ].strip.children[ 0 ].getBoundingClientRect().height;
+  const digitsOf = ( v ) => [ Math.floor( v / 100 ) % 10, Math.floor( v / 10 ) % 10, v % 10 ];
+
+  function place( w, animate ) {
+    w.strip.style.transition = animate
+      ? `transform var(--dur) var(--ease)`
+      : 'none';
+    w.strip.style.transform = `translateY(${ -w.pos * cell() }px)`;
+  }
+
+  function visibility() {
+    wheels[ 0 ].el.classList.toggle( 'collapsed', value < 100 );
+    wheels[ 1 ].el.classList.toggle( 'collapsed', value < 10 );
+  }
+
+  function init() {
+    const d = digitsOf( value );
+    wheels.forEach( ( w, i ) => {
+      w.pos = BASE + d[ i ];
+      place( w, false );
+    } );
+    visibility();
+  }
+
+  function step( delta ) {
+    const next = Math.max( MIN, Math.min( MAX, value + delta ) );
+    if ( next === value ) {
+      return;
+    }
+    const dir = Math.sign( delta );
+    const od = digitsOf( value );
+    const nd = digitsOf( next );
+    value = next;
+
+    wheels.forEach( ( w, i ) => {
+      // Directional distance with wrap: up = climb toward the new digit,
+      // down = descend toward it. pos only ever moves in the press direction.
+      const dist =
+        dir > 0
+          ? ( nd[ i ] - od[ i ] + 10 ) % 10
+          : -( ( od[ i ] - nd[ i ] + 10 ) % 10 );
+      w.pos += dist;
+      place( w, true );
+    } );
+    visibility();
+  }
+
+  document.getElementById( 'inc' ).addEventListener( 'click', () => step( STEP ) );
+  document.getElementById( 'dec' ).addEventListener( 'click', () => step( -STEP ) );
+
+  const dur = document.getElementById( 'dur' ), durv = document.getElementById( 'durv' );
+  dur.addEventListener( 'input', () => { root.style.setProperty( '--dur', dur.value + 'ms' ); durv.textContent = dur.value + 'ms'; } );
+  document.getElementById( 'ease' ).addEventListener( 'change', ( e ) => root.style.setProperty( '--ease', e.target.value ) );
+
+  init();
+</script>
+</body>
+</html>

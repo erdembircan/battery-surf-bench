@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Target-drop — battery IS the slider (custom)</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@700&family=Hanken+Grotesk:wght@600;700&display=swap" rel="stylesheet" />
+<style>
+  .panel{
+    --surface:#f1f7fa; --surface-shadow:rgba(31,58,95,.08); --line:#e1edf2;
+    --text:#1f3a5f; --text-strong:#1f3a5f; --text-soft:#5b7488; --label:rgba(31,58,95,.62);
+    --bg:linear-gradient(180deg,#e7f6ff,#fff 60%); --focus:#ff7a5c;
+  }
+  .panel[data-theme=dark]{
+    --surface:rgba(3,22,32,.5); --surface-shadow:rgba(0,0,0,.4); --line:rgba(160,225,240,.16);
+    --text:#e6f7fb; --text-strong:#fff; --text-soft:rgba(230,247,251,.62); --label:rgba(230,247,251,.6);
+    --bg:linear-gradient(175deg,#0a3a4f,#062b3d 70%); --focus:#ffcf6b;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:#cfcabf;font-family:'Hanken Grotesk',sans-serif;display:flex;gap:20px;flex-wrap:wrap;padding:24px}
+  .panel{width:340px;padding:1.5rem;border-radius:16px;background:var(--bg);color:var(--text)}
+  .label{font-size:.66rem;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:var(--label);margin-bottom:.9rem;display:block}
+
+  .target{display:flex;align-items:center;gap:1.1rem}
+  /* the battery IS the slider */
+  .batt{display:inline-flex;align-items:center;gap:3px;flex:0 0 auto;cursor:ew-resize;touch-action:none;outline:none}
+  .batt__body{position:relative;width:128px;height:58px;border:3px solid var(--text-soft);border-radius:11px;background:var(--surface);box-shadow:inset 0 1px 3px var(--surface-shadow);overflow:hidden}
+  .batt__fill{position:absolute;left:0;top:0;bottom:0;transition:width .12s ease,background .12s ease}
+  .batt__body::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0,transparent 29px,rgba(127,127,127,.13) 29px,rgba(127,127,127,.13) 30px);pointer-events:none}
+  /* grip handle at the fill edge */
+  .batt__handle{position:absolute;top:50%;transform:translate(-50%,-50%);width:10px;height:38px;border-radius:5px;background:#fff;box-shadow:0 1px 5px rgba(0,0,0,.4);transition:left .12s ease}
+  .batt__cap{width:7px;height:24px;border-radius:0 3px 3px 0;background:var(--text-soft)}
+  .batt:focus-visible .batt__body{outline:2px solid var(--focus);outline-offset:2px}
+  .value{font-family:'Space Mono',monospace;font-size:1.9rem;font-weight:700;font-variant-numeric:tabular-nums;margin-left:auto}
+
+  h4{font:700 .7rem 'Hanken Grotesk';letter-spacing:.1em;text-transform:uppercase;color:#7a7468;width:100%;margin:6px 0 0}
+</style>
+</head>
+<body>
+<script>
+  const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
+  const hsl = p => `hsl(${Math.round(p/100*120)}, 72%, 45%)`;
+
+  function makeBattery(initial){
+    const wrap=document.createElement('div'); wrap.className='target';
+    wrap.innerHTML=`
+      <div class="batt" role="slider" tabindex="0" aria-valuemin="5" aria-valuemax="95" aria-valuenow="${initial}" aria-label="Stop at battery percentage">
+        <div class="batt__body"><div class="batt__fill"></div><div class="batt__handle"></div></div>
+        <div class="batt__cap"></div>
+      </div>
+      <span class="value"></span>`;
+    const batt=wrap.querySelector('.batt'), body=wrap.querySelector('.batt__body');
+    const fill=wrap.querySelector('.batt__fill'), handle=wrap.querySelector('.batt__handle'), val=wrap.querySelector('.value');
+    let p=initial;
+    const render=()=>{const c=hsl(p);fill.style.width=p+'%';fill.style.background=c;handle.style.left=p+'%';val.textContent=p+'%';val.style.color=c;batt.setAttribute('aria-valuenow',p);};
+    const setFromX=x=>{const r=body.getBoundingClientRect();p=clamp(Math.round(((x-r.left)/r.width*100)/5)*5,5,95);render();};
+    let drag=false;
+    batt.addEventListener('pointerdown',e=>{drag=true;batt.setPointerCapture(e.pointerId);setFromX(e.clientX);});
+    batt.addEventListener('pointermove',e=>{if(drag)setFromX(e.clientX);});
+    batt.addEventListener('pointerup',()=>drag=false);
+    batt.addEventListener('keydown',e=>{
+      const k=e.key;let n=p;
+      if(k==='ArrowLeft'||k==='ArrowDown')n=p-5;else if(k==='ArrowRight'||k==='ArrowUp')n=p+5;
+      else if(k==='Home')n=5;else if(k==='End')n=95;else return;
+      e.preventDefault();p=clamp(n,5,95);render();});
+    render();
+    return wrap;
+  }
+
+  for(const [t,init] of [['light',75],['dark',20]]){
+    const panel=document.createElement('div');panel.className='panel';panel.dataset.theme=t;
+    const l=document.createElement('span');l.className='label';l.textContent='Stop at battery';
+    panel.append(l,makeBattery(init));document.body.append(panel);
+  }
+  // static colour range
+  const rp=document.createElement('div');rp.className='panel';rp.dataset.theme='light';
+  rp.innerHTML='<h4>colour across range</h4>';
+  for(const p of [90,55,15]){const b=makeBattery(p);b.style.marginTop='14px';rp.append(b);}
+  document.body.append(rp);
+</script>
+</body>
+</html>

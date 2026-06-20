@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Cockpit — compact mode</title>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Hanken+Grotesk:wght@400;600;700&family=Space+Mono:wght@700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --surface: #f1f7fa; --line: #e1edf2; --navy: #1f3a5f; --teal: #2f9bb3; --teal-deep: #1c7e96;
+    --sun: #ffce5c; --status-grad: linear-gradient(150deg,#2f9bb3,#1c7e96); --status-ink: #eafaff;
+    --deck-w: 340px; --bar-h: 92px; --ease: cubic-bezier(0.22,1,0.36,1); --dur: 420ms;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: 'Hanken Grotesk', sans-serif; color: var(--navy); background: #dfe8ed; padding: 1.2rem; }
+  .demo { display: flex; align-items: center; gap: 0.7rem; margin-bottom: 1rem; padding: 0.7rem 1rem; border-radius: 12px; background: #fff; box-shadow: 0 4px 14px rgba(31,58,95,0.08); font-size: 0.8rem; color: rgba(31,58,95,0.7); }
+  .demo input { width: 320px; }
+  .wrap { width: var(--cw, 100%); transition: width 0.15s linear; }
+
+  .cockpit {
+    position: relative; height: 560px; border-radius: 20px; overflow: hidden;
+    display: grid; grid-template-columns: var(--deck-w) 1fr;
+    background: linear-gradient(180deg,#e7f6ff,#fff 60%);
+    box-shadow: 0 18px 50px rgba(31,58,95,0.18);
+    transition: grid-template-columns var(--dur) var(--ease);
+  }
+  .cockpit.compact { grid-template-columns: 0 1fr; }
+
+  /* min-width holds the deck at full width so its content never reflows; it slides out whole */
+  .deck { overflow: hidden; min-width: var(--deck-w); padding: 1.4rem; display: flex; flex-direction: column; gap: 1.1rem; background: var(--surface);
+    transition: transform var(--dur) var(--ease); }
+  .cockpit.compact .deck { transform: translateX(-100%); pointer-events: none; }
+  .dhead { display: flex; align-items: center; justify-content: space-between; }
+  .brand { font-family: 'Anton'; font-size: 1.3rem; line-height: 1; }
+  .brand small { display: block; font-family: 'Hanken Grotesk'; font-size: 0.6rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--teal); margin-top: 0.2rem; }
+  .chev { width: 2.1rem; height: 2.1rem; border: 1px solid var(--line); border-radius: 9px; background: rgba(47,155,179,0.08); display: grid; place-items: center; cursor: pointer; color: var(--navy); }
+  .chev svg { width: 1.2rem; height: 1.2rem; }
+
+  /* ── pill: one look, two layouts — identical colours / type / waves ── */
+  .pill { position: relative; overflow: hidden; border-radius: 16px; background: var(--status-grad); color: var(--status-ink);
+    box-shadow: 0 18px 36px -16px rgba(28,126,150,0.5); }
+  .phead { position: relative; z-index: 2; display: flex; align-items: center; gap: 0.5rem; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; white-space: nowrap; }
+  .dot { width: 0.55rem; height: 0.55rem; flex: 0 0 auto; border-radius: 50%; background: var(--sun); box-shadow: 0 0 12px var(--sun); }
+  .readouts { position: relative; z-index: 2; }
+  .stat .l { display: block; font-size: 0.56rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; opacity: 0.62; white-space: nowrap; }
+  .stat .v { display: block; margin-top: 0.15rem; font-family: 'Space Mono'; font-weight: 700; font-size: 1.45rem; line-height: 1.05; white-space: nowrap; }
+  .stat .v.lg { font-size: 1.9rem; }
+
+  .waves { position: absolute; inset-inline: 0; bottom: 0; height: 40px; overflow: hidden; z-index: 0; pointer-events: none; }
+  .wave { position: absolute; inset-inline: 0; bottom: 0; background-repeat: repeat-x; background-size: 200px 100%; }
+  .wave.b { height: 40px; opacity: 0.7; animation: drift 20s linear infinite; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='40' viewBox='0 0 200 40' preserveAspectRatio='none'%3E%3Cpath d='M0 20 q 50 -14 100 0 t 100 0 V40 H0 Z' fill='%23eafaff' fill-opacity='0.5'/%3E%3C/svg%3E"); }
+  .wave.m { height: 30px; animation: drift 13s linear infinite reverse; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='40' viewBox='0 0 200 40' preserveAspectRatio='none'%3E%3Cpath d='M0 20 q 50 -14 100 0 t 100 0 V40 H0 Z' fill='%23bfe9f5' fill-opacity='0.55'/%3E%3C/svg%3E"); }
+  .wave.f { height: 22px; animation: drift 8s linear infinite; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='40' viewBox='0 0 200 40' preserveAspectRatio='none'%3E%3Cpath d='M0 20 q 50 -14 100 0 t 100 0 V40 H0 Z' fill='%23ffffff' fill-opacity='0.6'/%3E%3C/svg%3E"); }
+  @keyframes drift { to { background-position-x: -200px; } }
+
+  .deck .pill { padding: 1rem 1.1rem 1.5rem; display: flex; flex-direction: column; gap: 0.9rem; }
+  .deck .readouts { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem 1rem; }
+  .stop { margin-top: auto; padding: 0.9rem; border: 0; border-radius: 13px; background: linear-gradient(160deg,#ff7a5c,#ef5a3a); color: #fff; font-family: 'Anton'; font-size: 1.05rem; letter-spacing: 0.07em; text-transform: uppercase; cursor: pointer; }
+
+  .stage { position: relative; min-width: 0; display: flex; flex-direction: column; }
+
+  /* compact: same pill, wide. THREE columns — only the middle wraps when narrow. */
+  .topbar { height: 0; opacity: 0; overflow: hidden; margin: 0;
+    transition: opacity calc(var(--dur)*0.7) var(--ease) calc(var(--dur)*0.3), margin var(--dur) var(--ease); }
+  .cockpit.compact .topbar { height: auto; opacity: 1; overflow: visible; }
+  /* flush + square at the top of the page — no margin/radius, so the page never peeks in behind it */
+  .topbar .pill { min-height: var(--bar-h); display: flex; align-items: center; gap: 1.2rem; padding: 0.6rem 1.3rem; border-radius: 0; }
+  .col-lead { flex: 0 0 auto; }                                  /* surfing + time — fixed */
+  .col-info { flex: 1 1 auto; min-width: 0; display: flex; flex-wrap: wrap;  /* middle — wraps */
+    justify-content: center; align-items: flex-start; gap: 0.8rem 2.2rem; }   /* top-align so all labels share one line */
+  .col-ctrl { flex: 0 0 auto; display: flex; align-items: center; gap: 0.5rem; }  /* buttons — fixed */
+  .topbar .stat { text-align: center; }   /* centre each label+value (deck pill stays left-aligned) */
+  .topbar .stat .v { font-size: 1.05rem; }
+  .topbar .stat .v.lg { font-size: 1.5rem; }
+  .tstop { padding: 0.5rem 1rem; border: 0; border-radius: 9px; background: linear-gradient(160deg,#ff7a5c,#ef5a3a); color: #fff; font-family: 'Anton'; font-size: 0.8rem; letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; }
+  .tchev { width: 2.1rem; height: 2.1rem; border: 0; border-radius: 8px; background: rgba(255,255,255,0.16); color: #fff; display: grid; place-items: center; cursor: pointer; position: relative; z-index: 2; }
+  .tchev svg { width: 1.2rem; height: 1.2rem; }
+
+  .viewport { flex: 1; margin: 0.7rem; border-radius: 12px; display: grid; place-items: center;
+    background: repeating-linear-gradient(45deg,#eef4f7,#eef4f7 12px,#e6eef2 12px,#e6eef2 24px);
+    color: #9fb6c2; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; font-size: 0.8rem; }
+  .hint { margin-top: 0.9rem; text-align: center; color: #5b7488; font-size: 0.78rem; }
+</style>
+</head>
+<body>
+  <div class="demo">
+    <strong>Screen width</strong>
+    <input type="range" id="w" min="520" max="1460" value="1460" />
+    <span id="wv">full</span>
+    <span>· compact, then drag narrow → the middle info wraps to rows; surfing &amp; buttons stay put.</span>
+  </div>
+
+  <div class="wrap" id="wrap">
+  <div class="cockpit" id="cockpit">
+    <aside class="deck">
+      <div class="dhead">
+        <span class="brand">Battery Surf Bench<small>Cockpit</small></span>
+        <button class="chev" id="compactBtn" aria-label="Compact the deck"></button>
+      </div>
+      <div class="pill">
+        <div class="phead"><span class="dot"></span><span>Surfing · 12:04 elapsed</span></div>
+        <div class="readouts">
+          <div class="stat"><span class="l">Battery</span><span class="v lg">84%</span></div>
+          <div class="stat"><span class="l">Time to empty</span><span class="v">6:18</span></div>
+          <div class="stat"><span class="l">Rate · 10 min</span><span class="v">7.2%/h</span></div>
+          <div class="stat"><span class="l">Rate · session</span><span class="v">6.8%/h</span></div>
+        </div>
+        <span class="waves"><span class="wave b"></span><span class="wave m"></span><span class="wave f"></span></span>
+      </div>
+      <button class="stop">Stop</button>
+    </aside>
+
+    <main class="stage">
+      <div class="topbar">
+        <div class="pill">
+          <div class="col-lead phead"><span class="dot"></span><span>Surfing · 12:04</span></div>
+          <div class="col-info readouts">
+            <div class="stat"><span class="l">Battery</span><span class="v lg">84%</span></div>
+            <div class="stat"><span class="l">Time to empty</span><span class="v">6:18</span></div>
+            <div class="stat"><span class="l">Rate · 10 min</span><span class="v">7.2%/h</span></div>
+            <div class="stat"><span class="l">Rate · session</span><span class="v">6.8%/h</span></div>
+          </div>
+          <div class="col-ctrl">
+            <button class="tstop">Stop</button>
+            <button class="tchev" id="expandBtn" aria-label="Expand to dashboard"></button>
+          </div>
+          <span class="waves"><span class="wave b"></span><span class="wave m"></span><span class="wave f"></span></span>
+        </div>
+      </div>
+      <div class="viewport">Viewport</div>
+    </main>
+  </div>
+  </div>
+
+  <p class="hint">Dashboard active → chevron-up compacts it. Compact active → chevron-down (in the pill) expands back. Drag the width slider while compact to watch only the middle column flow into rows.</p>
+
+<script>
+  const CHEV_UP = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>`;
+  const CHEV_DOWN = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>`;
+
+  const cockpit = document.getElementById('cockpit');
+  document.getElementById('compactBtn').innerHTML = CHEV_UP;
+  document.getElementById('expandBtn').innerHTML = CHEV_DOWN;
+  document.getElementById('compactBtn').addEventListener('click', () => cockpit.classList.add('compact'));
+  document.getElementById('expandBtn').addEventListener('click', () => cockpit.classList.remove('compact'));
+
+  const w = document.getElementById('w'), wv = document.getElementById('wv'), wrap = document.getElementById('wrap');
+  w.addEventListener('input', () => {
+    const full = w.value >= 1460;
+    wrap.style.setProperty('--cw', full ? '100%' : w.value + 'px');
+    wv.textContent = full ? 'full' : w.value + 'px';
+  });
+</script>
+</body>
+</html>

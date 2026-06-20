@@ -1,0 +1,280 @@
+// ── Battery Surf Bench theme ────────────────────────────────────────────────
+// Shared palette, typography and the light/dark token set behind the surf-deck
+// look. Reuse anywhere:
+//
+//   @use '../styles/theme' as theme;
+//
+//   .my-panel {
+//     @include theme.tokens;          // sets the --* custom properties (+ dark)
+//     font-family: theme.$font-ui;
+//     background: var(--surface);
+//     color: var(--text);
+//   }
+//
+// `theme.tokens` emits the light (Coastal Daybreak) tokens by default and a
+// `&[data-theme='dark']` block with the dark (Dusk Lineup) overrides, so any
+// element that includes it — and toggles its own `data-theme` — re-skins its
+// whole subtree. The tokens read from the named palette variables below, so
+// editing a colour here changes it everywhere the theme is used.
+
+// ── Typography ──────────────────────────────────────────────────────────────
+@font-face {
+	font-family: 'Anton';
+	font-style: normal;
+	font-weight: 400;
+	font-display: swap;
+	src: url('https://cdn.jsdelivr.net/fontsource/fonts/anton@latest/latin-400-normal.woff2')
+		format('woff2');
+}
+
+@font-face {
+	font-family: 'Hanken Grotesk';
+	font-style: normal;
+	font-weight: 400;
+	font-display: swap;
+	src: url('https://cdn.jsdelivr.net/fontsource/fonts/hanken-grotesk@latest/latin-400-normal.woff2')
+		format('woff2');
+}
+
+@font-face {
+	font-family: 'Hanken Grotesk';
+	font-style: normal;
+	font-weight: 600;
+	font-display: swap;
+	src: url('https://cdn.jsdelivr.net/fontsource/fonts/hanken-grotesk@latest/latin-600-normal.woff2')
+		format('woff2');
+}
+
+@font-face {
+	font-family: 'Hanken Grotesk';
+	font-style: normal;
+	font-weight: 700;
+	font-display: swap;
+	src: url('https://cdn.jsdelivr.net/fontsource/fonts/hanken-grotesk@latest/latin-700-normal.woff2')
+		format('woff2');
+}
+
+@font-face {
+	font-family: 'Space Mono';
+	font-style: normal;
+	font-weight: 700;
+	font-display: swap;
+	src: url('https://cdn.jsdelivr.net/fontsource/fonts/space-mono@latest/latin-700-normal.woff2')
+		format('woff2');
+}
+
+// Pacifico — the retro brush script for the idle postcard greeting.
+@font-face {
+	font-family: 'Pacifico';
+	font-style: normal;
+	font-weight: 400;
+	font-display: swap;
+	src: url('https://cdn.jsdelivr.net/fontsource/fonts/pacifico@latest/latin-400-normal.woff2')
+		format('woff2');
+}
+
+// Caveat — the handwritten note on the idle postcard "back".
+@font-face {
+	font-family: 'Caveat';
+	font-style: normal;
+	font-weight: 700;
+	font-display: swap;
+	src: url('https://cdn.jsdelivr.net/fontsource/fonts/caveat@latest/latin-700-normal.woff2')
+		format('woff2');
+}
+
+$font-display: 'Anton', 'Oswald', 'Arial Narrow', sans-serif;
+$font-ui: 'Hanken Grotesk', ui-sans-serif, system-ui, -apple-system, sans-serif;
+$font-mono: 'Space Mono', ui-monospace, 'SFMono-Regular', menlo, monospace;
+$font-script: 'Pacifico', ui-rounded, cursive;
+$font-hand: 'Caveat', ui-rounded, cursive;
+
+// ── Palette ─────────────────────────────────────────────────────────────────
+// Coastal Daybreak (light).
+$coastal-sky-0: #f3fafd;
+$coastal-sky-1: #e7f6ff;
+$coastal-aqua: #9ad9ea;
+$coastal-teal: #2f9bb3;
+$coastal-teal-deep: #1c7e96;
+$coastal-navy: #1f3a5f;
+$coastal-ink-soft: #5b7488;
+$coastal-coral: #ff7a5c;
+$coastal-coral-deep: #ef5a3a;
+$coastal-sun: #ffce5c;
+$coastal-surface: #f1f7fa;
+$coastal-line: #e1edf2;
+
+// Dusk Lineup (dark).
+$dusk-deep: #062b3d;
+$dusk-deep-2: #0a3a4f;
+$dusk-teal: #0f5e72;
+$dusk-amber: #ffb24a;
+$dusk-amber-2: #ff8a3d;
+$dusk-coral: #ff6a52;
+$dusk-coral-deep: #ef4f38;
+$dusk-aqua: #46d6c4;
+$dusk-sun: #ffcf6b;
+$dusk-foam: #e6f7fb;
+
+// ── Helpers used by the tokens ──────────────────────────────────────────────
+// A horizontally-tileable wave (one fill colour + opacity), used by the foam.
+@function wave($fill, $opacity) {
+	@return url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='40' viewBox='0 0 200 40' preserveAspectRatio='none'%3E%3Cpath d='M0 20 q 50 -14 100 0 t 100 0 V40 H0 Z' fill='#{$fill}' fill-opacity='#{$opacity}'/%3E%3C/svg%3E");
+}
+
+$moon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z'/%3E%3C/svg%3E");
+$sun-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='4' fill='black'/%3E%3Cpath d='M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5 19 19M19 5l-1.5 1.5M6.5 17.5 5 19'/%3E%3C/svg%3E");
+
+// A power-plug silhouette, used (as a mask) on the run control when a run is
+// blocked because the device is plugged in.
+$plug-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M9 2a1 1 0 0 1 1 1v4H8V3a1 1 0 0 1 1-1zm6 0a1 1 0 0 1 1 1v4h-2V3a1 1 0 0 1 1-1zM6 8h12v3a6 6 0 0 1-5 5.91V21a1 1 0 0 1-2 0v-4.09A6 6 0 0 1 6 11V8z'/%3E%3C/svg%3E");
+
+// A computer monitor, used (as a mask) on the theme control for the "system"
+// (follow-the-OS) preference.
+$monitor-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='13' rx='2'/%3E%3Cpath d='M8 21h8M12 17v4'/%3E%3C/svg%3E");
+
+// A downward chevron, masked onto the compact/expand controls (rotated for the
+// compact "up" toggle, used as-is for the expand "down" toggle).
+$chevron-down: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+
+// A closed padlock, masked onto the viewport "view only" chip while a run drives
+// the benchmarked page.
+$lock-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='5' y='11' width='14' height='9' rx='2'/%3E%3Cpath d='M8 11V8a4 4 0 0 1 8 0v3'/%3E%3C/svg%3E");
+
+// ── Reusable surface primitives ─────────────────────────────────────────────
+// Shared declaration sets driven by the theme tokens. `@extend` these (rather
+// than `@include`) so the declarations are emitted once and every extending
+// class is folded into a single selector list — smaller output, reusable from
+// any stylesheet that `@use`s this partial.
+%inset-surface {
+	border-radius: 13px;
+	background: var(--surface);
+	box-shadow: inset 0 1px 3px var(--surface-shadow);
+}
+
+%focus-ring {
+	outline: 2px solid var(--focus);
+	outline-offset: 2px;
+}
+
+// ── Token set ───────────────────────────────────────────────────────────────
+// Emits the light tokens on the including element plus a `[data-theme='dark']`
+// override on the same element.
+@mixin tokens {
+	--deck-bg:
+		radial-gradient(120% 70% at 50% -10%, #fff 0%, #{$coastal-sky-0} 40%, transparent 70%),
+		linear-gradient(180deg, #{$coastal-sky-1} 0%, #fff 60%);
+	--surface: #{$coastal-surface};
+	--surface-shadow: #{rgba($coastal-navy, 0.08)};
+	--line: #{$coastal-line};
+	--text: #{$coastal-navy};
+	--text-strong: #{$coastal-navy};
+	--text-soft: #{$coastal-ink-soft};
+	--label: #{rgba($coastal-navy, 0.62)};
+	--accent-grad: linear-gradient(150deg, #{$coastal-teal} 0%, #{$coastal-teal-deep} 100%);
+	--accent-ink: #ffffff;
+	--accent-shadow: #{rgba($coastal-teal, 0.4)};
+	--accent-soft: #{rgba($coastal-teal, 0.08)};
+	--stepper-btn-bg: #ffffff;
+	--stepper-btn-ink: #{$coastal-teal};
+	--stepper-btn-hover-bg: #{$coastal-teal};
+	--stepper-btn-hover-ink: #ffffff;
+	--stepper-btn-shadow: #{rgba($coastal-navy, 0.12)};
+	--readout-ink: #{$coastal-navy};
+	--unit-ink: #{$coastal-teal};
+	--toggle-track: #dce8ee;
+	--toggle-on: linear-gradient(150deg, #59d3a0 0%, #{$coastal-aqua} 100%);
+	--toggle-thumb: #ffffff;
+	--stop-grad: linear-gradient(160deg, #{$coastal-coral} 0%, #{$coastal-coral-deep} 100%);
+	--stop-shadow: #{rgba($coastal-coral-deep, 0.4)};
+	--stop-glyph: #ffffff;
+	--run-disabled-bg: #dbe6ec;
+	--run-disabled-ink: #{$coastal-ink-soft};
+	--status-grad: linear-gradient(150deg, #{$coastal-teal} 0%, #{$coastal-teal-deep} 100%);
+	--status-ink: #eafaff;
+	--status-dot: #{$coastal-sun};
+	--status-ring: #{rgba($coastal-teal, 0.0)};
+	--status-cast: #{rgba($coastal-teal-deep, 0.5)};
+	--wave-back: #{wave('%23eafaff', 0.5)};
+	--wave-mid: #{wave('%23bfe9f5', 0.55)};
+	--wave-front: #{wave('%23ffffff', 0.6)};
+	--title-ink: #{$coastal-navy};
+	--subtitle-ink: #{$coastal-teal};
+	--focus: #{$coastal-coral};
+	--stage-bg:
+		radial-gradient(140% 60% at 50% 0%, #{rgba(#fff, 0.8)} 0%, transparent 55%),
+		linear-gradient(180deg, #fbfdfe 0%, #eef5f8 100%);
+	--viewport-bg: #ffffff;
+	--shield-chip-bg: #{rgba(#fff, 0.86)};
+	--shield-chip-ink: #{$coastal-navy};
+	--shield-chip-line: #{$coastal-line};
+	--shield-chip-shadow: #{rgba($coastal-navy, 0.18)};
+	--idle-sky:
+		radial-gradient(120% 70% at 50% -10%, #{rgba($coastal-sun, 0.34)} 0%, #{rgba($coastal-sun, 0)} 55%),
+		linear-gradient(180deg, #eaf6fb 0%, #dcf0f6 60%, #cfe9f2 100%);
+	--paper: #f7fbfd;
+	--paper-ink: #2f4a5c;
+	--paper-line: #{$coastal-line};
+	--stamp-edge: #dfe4e8;
+	--stamp-rule: #{rgba(#7889a0, 0.42)};
+	--paper-accent: #{$coastal-teal};
+
+	&[data-theme='dark'] {
+		--deck-bg:
+			linear-gradient(180deg, #{rgba($dusk-amber-2, 0.16)} 0%, #{rgba($dusk-amber-2, 0)} 26%),
+			radial-gradient(140% 50% at 50% 30%, #{rgba($dusk-amber, 0.18)} 0%, transparent 55%),
+			linear-gradient(175deg, #{$dusk-deep-2} 0%, #{$dusk-deep} 70%);
+		--surface: #{rgba(#031620, 0.5)};
+		--surface-shadow: #{rgba(#000, 0.4)};
+		--line: #{rgba(#a0e1f0, 0.16)};
+		--text: #{$dusk-foam};
+		--text-strong: #ffffff;
+		--text-soft: #{rgba($dusk-foam, 0.62)};
+		--label: #{rgba($dusk-foam, 0.6)};
+		--accent-grad: linear-gradient(150deg, #{$dusk-sun} 0%, #{$dusk-amber-2} 100%);
+		--accent-ink: #{$dusk-deep};
+		--accent-shadow: #{rgba($dusk-amber-2, 0.4)};
+		--accent-soft: #{rgba($dusk-foam, 0.08)};
+		--stepper-btn-bg: #{rgba($dusk-foam, 0.1)};
+		--stepper-btn-ink: #{$dusk-foam};
+		--stepper-btn-hover-bg: #{$dusk-aqua};
+		--stepper-btn-hover-ink: #{$dusk-deep};
+		--stepper-btn-shadow: transparent;
+		--readout-ink: #ffffff;
+		--unit-ink: #{$dusk-sun};
+		--toggle-track: #{rgba(#031620, 0.6)};
+		--toggle-on: linear-gradient(150deg, #{$dusk-aqua} 0%, #2bbf9e 100%);
+		--toggle-thumb: #{$dusk-foam};
+		--stop-grad: linear-gradient(160deg, #{$dusk-coral} 0%, #{$dusk-coral-deep} 100%);
+		--stop-shadow: #{rgba($dusk-coral-deep, 0.42)};
+		--stop-glyph: #ffffff;
+		--run-disabled-bg: #{rgba($dusk-foam, 0.1)};
+		--run-disabled-ink: #{rgba($dusk-foam, 0.4)};
+		--status-grad: linear-gradient(160deg, #0e4150 0%, #06222f 100%);
+		--status-ink: #{$dusk-foam};
+		--status-dot: #{$dusk-sun};
+		--status-ring: #{rgba($dusk-aqua, 0.18)};
+		--status-cast: #{rgba(#000, 0.55)};
+		--wave-back: #{wave('%23e6f7fb', 0.08)};
+		--wave-mid: #{wave('%2346d6c4', 0.18)};
+		--wave-front: #{wave('%23e6f7fb', 0.26)};
+		--title-ink: #ffffff;
+		--subtitle-ink: #{$dusk-sun};
+		--focus: #{$dusk-sun};
+		--stage-bg: linear-gradient(180deg, #0a3447 0%, #062734 100%);
+		--viewport-bg: #ffffff;
+		--shield-chip-bg: #{rgba(#06222f, 0.82)};
+		--shield-chip-ink: #{$dusk-foam};
+		--shield-chip-line: #{rgba($dusk-aqua, 0.22)};
+		--shield-chip-shadow: #{rgba(#000, 0.45)};
+		--idle-sky:
+			radial-gradient(120% 70% at 50% -10%, #{rgba($dusk-amber, 0.26)} 0%, #{rgba($dusk-amber, 0)} 55%),
+			linear-gradient(180deg, #0c3e52 0%, #0a3447 55%, #062734 100%);
+		--paper: #0f3346;
+		--paper-ink: #dcebf2;
+		--paper-line: #{rgba($dusk-aqua, 0.18)};
+		--stamp-edge: #294656;
+		--stamp-rule: #{rgba(#8caab9, 0.22)};
+		--paper-accent: #{$dusk-aqua};
+	}
+}

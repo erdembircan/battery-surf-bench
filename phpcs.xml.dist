@@ -13,14 +13,23 @@
 	<file>tests/</file>
 
 	<!-- Belt-and-suspenders: keep generated/third-party trees out even if a
-	     source root above ever grows to include one. -->
-	<exclude-pattern>/vendor/</exclude-pattern>
-	<exclude-pattern>/node_modules/</exclude-pattern>
-	<exclude-pattern>/build/</exclude-pattern>
+	     source root above ever grows to include one. These are `type="relative"`
+	     and anchored with `^` so they match against the path *below the
+	     basepath* (the project root), not the full absolute path. A bare
+	     `<exclude-pattern>` defaults to `type="absolute"` (PHPCS Ruleset.php),
+	     which is matched anywhere in the absolute path — so `/.claude/` would
+	     wrongly exclude the entire checkout whenever the project itself lives
+	     under a `.claude/` directory, e.g. an agent worktree at
+	     `.../<project>/.claude/worktrees/<branch>/`. Anchoring to the root keeps
+	     each exclude meaning "the project's own vendor/.claude/etc.", never a
+	     directory name that merely appears in the absolute path. -->
+	<exclude-pattern type="relative">^vendor/</exclude-pattern>
+	<exclude-pattern type="relative">^node_modules/</exclude-pattern>
+	<exclude-pattern type="relative">^build/</exclude-pattern>
 	<!-- WordPress core downloaded for the local Playground; not our source. -->
-	<exclude-pattern>/wp-playground/</exclude-pattern>
+	<exclude-pattern type="relative">^wp-playground/</exclude-pattern>
 	<!-- Agent worktrees, each a full copy of the project; not our source. -->
-	<exclude-pattern>/.claude/</exclude-pattern>
+	<exclude-pattern type="relative">^\.claude/</exclude-pattern>
 
 	<arg name="extensions" value="php"/>
 	<arg name="basepath" value="."/>
