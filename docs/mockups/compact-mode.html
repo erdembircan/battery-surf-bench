@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Cockpit — compact mode study</title>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Hanken+Grotesk:wght@400;600;700&family=Space+Mono:wght@700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --surface: #f1f7fa; --line: #e1edf2; --navy: #1f3a5f; --label: rgba(31,58,95,0.62);
+    --teal: #2f9bb3; --teal-deep: #1c7e96; --sun: #ffce5c; --coral: #ef5a3a;
+    --status-grad: linear-gradient(150deg,#2f9bb3,#1c7e96); --status-ink: #eafaff;
+    --deck-w: 340px; --bar-h: 68px; --ease: cubic-bezier(0.22,1,0.36,1); --dur: 420ms;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: 'Hanken Grotesk', sans-serif; color: var(--navy); background: #dfe8ed; padding: 1.2rem; }
+  .controls { display: flex; flex-wrap: wrap; gap: 0.5rem 1.4rem; align-items: center; padding: 0.7rem 1rem; margin-bottom: 1rem; border-radius: 12px; background: #fff; box-shadow: 0 4px 14px rgba(31,58,95,0.08); font-size: 0.8rem; }
+  .controls strong { font-size: 0.6rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--label); }
+  .controls label { display: inline-flex; align-items: center; gap: 0.3rem; cursor: pointer; }
+
+  /* ── cockpit frame ──────────────────────────────────────────────────────── */
+  .cockpit {
+    position: relative; height: 560px; border-radius: 20px; overflow: hidden;
+    display: grid; grid-template-columns: var(--deck-w) 1fr;
+    background: linear-gradient(180deg,#e7f6ff,#fff 60%);
+    box-shadow: 0 18px 50px rgba(31,58,95,0.18);
+    transition: grid-template-columns var(--dur) var(--ease);
+  }
+  .cockpit.compact { grid-template-columns: 0 1fr; }
+
+  /* deck (left) */
+  .deck {
+    overflow: hidden; min-width: 0; padding: 1.4rem; display: flex; flex-direction: column; gap: 1.1rem;
+    background: var(--surface);
+    transition: transform var(--dur) var(--ease), opacity var(--dur) var(--ease), padding var(--dur) var(--ease);
+  }
+  .cockpit.compact .deck { transform: translateX(-24px); opacity: 0; padding-inline: 0; pointer-events: none; }
+  .dhead { display: flex; align-items: center; justify-content: space-between; }
+  .brand { font-family: 'Anton'; font-size: 1.3rem; line-height: 1; }
+  .brand small { display: block; font-family: 'Hanken Grotesk'; font-size: 0.6rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--teal); margin-top: 0.2rem; }
+  .iconbtn { width: 2.1rem; height: 2.1rem; border: 1px solid var(--line); border-radius: 9px; background: rgba(47,155,179,0.08); display: grid; place-items: center; cursor: pointer; color: var(--navy); }
+  .iconbtn svg { width: 1.15rem; height: 1.15rem; }
+
+  /* vertical running pill (normal mode) */
+  .pill { position: relative; overflow: hidden; border-radius: 16px; padding: 1rem 1.1rem 1.4rem; background: var(--status-grad); color: var(--status-ink);
+    box-shadow: 0 18px 36px -16px rgba(28,126,150,0.5); }
+  .phead { display: flex; align-items: center; gap: 0.5rem; font-size: 0.6rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; }
+  .dot { width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--sun); box-shadow: 0 0 10px var(--sun); }
+  .pgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.7rem 1rem; margin-top: 0.85rem; }
+  .stat .l { display: block; font-size: 0.54rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; opacity: 0.72; }
+  .stat .v { font-family: 'Space Mono'; font-weight: 700; font-size: 1rem; }
+  .stat .v.lg { font-size: 1.5rem; }
+  .stop { margin-top: auto; padding: 0.9rem; border: 0; border-radius: 13px; background: linear-gradient(160deg,#ff7a5c,#ef5a3a); color: #fff; font-family: 'Anton'; font-size: 1.05rem; letter-spacing: 0.07em; text-transform: uppercase; cursor: pointer; }
+
+  /* stage (right) */
+  .stage { position: relative; min-width: 0; display: flex; flex-direction: column; }
+
+  /* compact top pill */
+  .topbar {
+    display: flex; align-items: center; gap: 1rem; height: 0; opacity: 0; overflow: hidden;
+    margin: 0; padding: 0 1.1rem; color: var(--status-ink); background: var(--status-grad);
+    transition: height var(--dur) var(--ease), opacity calc(var(--dur) * 0.7) var(--ease) calc(var(--dur) * 0.3), margin var(--dur) var(--ease);
+  }
+  .cockpit.compact .topbar { height: var(--bar-h); opacity: 1; margin: 0.7rem 0.7rem 0; border-radius: 14px; box-shadow: 0 12px 26px -14px rgba(28,126,150,0.5); }
+
+  .tinfo { display: flex; align-items: center; gap: 1.4rem; min-width: 0; flex: 1; }
+  .cockpit[data-layout="spread"] .tinfo { justify-content: space-between; }
+  .titem { display: flex; flex-direction: column; line-height: 1.1; }
+  .titem .l { font-size: 0.5rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; opacity: 0.72; }
+  .titem .v { font-family: 'Space Mono'; font-weight: 700; font-size: 0.95rem; }
+  .titem.lead { flex-direction: row; align-items: center; gap: 0.5rem; font-size: 0.66rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; }
+  .tctrl { display: flex; align-items: center; gap: 0.5rem; flex: 0 0 auto; }
+  .tstop { padding: 0.5rem 1rem; border: 0; border-radius: 9px; background: linear-gradient(160deg,#ff7a5c,#ef5a3a); color: #fff; font-family: 'Anton'; font-size: 0.8rem; letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; }
+  .texpand { width: 2.1rem; height: 2.1rem; border: 0; border-radius: 8px; background: rgba(255,255,255,0.16); color: #fff; display: grid; place-items: center; cursor: pointer; }
+  .texpand svg { width: 1.15rem; height: 1.15rem; }
+
+  /* expand-back option B: a thin handle on the stage's left edge */
+  .edge { position: absolute; left: 0; top: 0; bottom: 0; width: 0; z-index: 5; cursor: pointer;
+    display: grid; place-items: center; color: #fff;
+    background: linear-gradient(90deg, rgba(28,126,150,0.9), rgba(28,126,150,0));
+    opacity: 0; transition: opacity var(--dur) var(--ease), width var(--dur) var(--ease); }
+  .cockpit.compact[data-expand="handle"] .edge { width: 22px; opacity: 1; }
+  .edge svg { width: 1rem; height: 1rem; }
+  .cockpit[data-expand="handle"] .texpand { display: none; }
+
+  .viewport { flex: 1; margin: 0.7rem; border-radius: 12px; background:
+    repeating-linear-gradient(45deg,#eef4f7,#eef4f7 12px,#e6eef2 12px,#e6eef2 24px);
+    display: grid; place-items: center; color: #9fb6c2; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; font-size: 0.8rem;
+    transition: margin var(--dur) var(--ease); }
+  .cockpit.compact .viewport { margin-top: 0.7rem; }
+  .hint { margin-top: 0.9rem; text-align: center; color: #5b7488; font-size: 0.78rem; }
+</style>
+</head>
+<body>
+  <div class="controls">
+    <strong>Compact icon</strong>
+    <label><input type="radio" name="ico" value="minimize" checked /> minimize</label>
+    <label><input type="radio" name="ico" value="sidebar" /> panel</label>
+    <label><input type="radio" name="ico" value="chevron" /> chevrons-up</label>
+    <strong>Top info</strong>
+    <label><input type="radio" name="lay" value="spread" checked /> spread</label>
+    <label><input type="radio" name="lay" value="stack" /> left-stacked</label>
+    <strong>Expand via</strong>
+    <label><input type="radio" name="exp" value="pill" checked /> pill icon</label>
+    <label><input type="radio" name="exp" value="handle" /> left handle</label>
+  </div>
+
+  <div class="cockpit" id="cockpit" data-layout="spread" data-expand="pill">
+    <aside class="deck">
+      <div class="dhead">
+        <span class="brand">Battery Surf Bench<small>Cockpit</small></span>
+        <button class="iconbtn" id="compactBtn" aria-label="Compact"></button>
+      </div>
+      <div class="pill">
+        <div class="phead"><span class="dot"></span><span>Surfing · 12:04 elapsed</span></div>
+        <div class="pgrid">
+          <div class="stat"><span class="l">Battery</span><span class="v lg">84%</span></div>
+          <div class="stat"><span class="l">Time to empty</span><span class="v">6:18</span></div>
+          <div class="stat"><span class="l">Rate · 10 min</span><span class="v">7.2%/h</span></div>
+          <div class="stat"><span class="l">Rate · session</span><span class="v">6.8%/h</span></div>
+        </div>
+      </div>
+      <button class="stop">Stop</button>
+    </aside>
+
+    <main class="stage">
+      <div class="edge" id="edge" aria-label="Expand"></div>
+      <div class="topbar">
+        <div class="tinfo">
+          <span class="titem lead"><span class="dot"></span> Surfing · 12:04</span>
+          <span class="titem"><span class="l">Battery</span><span class="v">84%</span></span>
+          <span class="titem"><span class="l">Time to empty</span><span class="v">6:18</span></span>
+          <span class="titem"><span class="l">Rate · 10 min</span><span class="v">7.2%/h</span></span>
+          <span class="titem"><span class="l">Rate · session</span><span class="v">6.8%/h</span></span>
+        </div>
+        <div class="tctrl">
+          <button class="tstop">Stop</button>
+          <button class="texpand" id="expandBtn" aria-label="Expand"></button>
+        </div>
+      </div>
+      <div class="viewport">Viewport</div>
+    </main>
+  </div>
+
+  <p class="hint">Click the icon in the deck header to compact; the deck slides out, the viewport goes full width, and the info drops in as a top pill. Expand with the button in the pill.</p>
+
+<script>
+  const ICONS = {
+    minimize: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/></svg>`,
+    sidebar: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="9" y1="4" x2="9" y2="20"/></svg>`,
+    chevron: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 11 12 6 7 11"/><polyline points="17 18 12 13 7 18"/></svg>`,
+  };
+  const EXPAND = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="15" y1="4" x2="15" y2="20"/></svg>`;
+  const CHEV_R = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>`;
+
+  const cockpit = document.getElementById('cockpit');
+  const compactBtn = document.getElementById('compactBtn');
+  document.getElementById('expandBtn').innerHTML = EXPAND;
+  document.getElementById('edge').innerHTML = CHEV_R;
+
+  let ico = 'minimize';
+  const renderIco = () => { compactBtn.innerHTML = ICONS[ ico ]; };
+  renderIco();
+
+  const expand = () => cockpit.classList.remove('compact');
+  compactBtn.addEventListener('click', () => cockpit.classList.add('compact'));
+  document.getElementById('expandBtn').addEventListener('click', expand);
+  document.getElementById('edge').addEventListener('click', expand);
+
+  document.querySelectorAll('input[name=ico]').forEach((r) =>
+    r.addEventListener('change', () => { ico = r.value; renderIco(); })
+  );
+  document.querySelectorAll('input[name=lay]').forEach((r) =>
+    r.addEventListener('change', () => { cockpit.dataset.layout = r.value; })
+  );
+  document.querySelectorAll('input[name=exp]').forEach((r) =>
+    r.addEventListener('change', () => { cockpit.dataset.expand = r.value; })
+  );
+</script>
+</body>
+</html>
