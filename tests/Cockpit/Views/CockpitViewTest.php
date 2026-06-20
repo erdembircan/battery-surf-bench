@@ -212,7 +212,7 @@ final class CockpitViewTest extends TestCase {
 	public function test_render_wires_compact_mode(): void {
 		$markup = $this->render();
 
-		$this->assertStringContainsString( 'class="bsb-deck__compact" data-wp-on--click="actions.toggleCompact" data-wp-bind--hidden="state.isIdle"', $markup );
+		$this->assertStringContainsString( 'class="bsb-deck__compact" data-wp-on--click="actions.toggleCompact" data-wp-class--is-hidden="state.isIdle"', $markup );
 		$this->assertStringContainsString( 'class="bsb-cockpit__topbar"', $markup );
 		$this->assertStringContainsString( 'class="bsb-deck__readout-stop" data-wp-on--click="actions.toggleRun"', $markup );
 		$this->assertStringContainsString( 'class="bsb-deck__expand" data-wp-on--click="actions.toggleCompact"', $markup );

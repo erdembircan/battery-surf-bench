@@ -225,24 +225,30 @@ body {
 }
 
 // ── Brand + theme toggle ─────────────────────────────────────────────────────
+// Two-row grid: [mark] [title] [actions] on row 1, the subtitle on row 2 under
+// the title. The mark shares the title's row, so it sizes to the TITLE height
+// only (not the subtitle) and tracks it when the title wraps.
 .bsb-deck__brand {
-	position: relative;
-	z-index: 1;
-	display: flex;
-	align-items: center;
-	gap: 0.85rem;
+	display: grid;
+	grid-template-columns: auto 1fr auto;
+	grid-template-rows: auto auto;
+	align-items: stretch;
+	column-gap: 1rem;
+	row-gap: 0.15rem;
 	padding-top: 0.5rem;
 	padding-bottom: 1.5rem;
 	margin-bottom: 1.4rem;
 	border-bottom: 1px solid var(--line);
 }
 
-// Brand mark — a small, solid surfer beside the wordmark, tinted to the brand
-// accent. No figure faded behind the title; the open space is the point.
+// Brand mark — a solid surfer tinted to the brand accent. It stretches to the
+// title row's height, and the square aspect-ratio sizes its width to match — so
+// it grows with the title (one line or two). No fixed dimensions to drift.
 .bsb-deck__mark {
-	flex: 0 0 auto;
-	width: 2.3rem;
-	height: 2.3rem;
+	grid-area: 1 / 1;
+	align-self: stretch;
+	aspect-ratio: 1;
+	min-height: 0;
 	background: var(--subtitle-ink);
 	mask-image: url('../../assets/images/menu-icon.svg');
 	mask-repeat: no-repeat;
@@ -254,19 +260,12 @@ body {
 	-webkit-mask-size: contain;
 }
 
-.bsb-deck__wordmark {
-	position: relative;
-	z-index: 1;
-	display: flex;
-	flex-direction: column;
-	gap: 0.15rem;
-	min-width: 0;
-	margin-right: auto;
-}
-
 .bsb-deck__title {
+	grid-area: 1 / 2;
+	min-width: 0;
+	align-self: center;
 	font-family: theme.$font-display;
-	font-size: 1.36rem;
+	font-size: 1.5rem;
 	letter-spacing: 0.01em;
 	line-height: 0.98;
 	text-transform: uppercase;
@@ -274,6 +273,7 @@ body {
 }
 
 .bsb-deck__subtitle {
+	grid-area: 2 / 2;
 	font-size: 0.62rem;
 	font-weight: 700;
 	letter-spacing: 0.42em;
@@ -283,6 +283,8 @@ body {
 
 // Deck header actions — the compact and theme toggles, grouped on the right.
 .bsb-deck__actions {
+	grid-area: 1 / 3;
+	align-self: center;
 	display: flex;
 	align-items: center;
 	gap: 0.5rem;
@@ -333,8 +335,13 @@ body {
 
 // Compact toggle — a chevron pointing up (send the readouts to the top pill).
 .bsb-deck__compact {
-	&[hidden] {
-		display: none;
+	transition: opacity 0.2s ease;
+
+	// Hidden while idle, but keep its slot in the header so starting a run reveals
+	// it in place instead of popping in and reflowing the brand row.
+	&.is-hidden {
+		visibility: hidden;
+		opacity: 0;
 	}
 
 	&::before {

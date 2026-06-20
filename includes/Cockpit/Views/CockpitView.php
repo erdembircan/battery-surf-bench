@@ -149,12 +149,10 @@ INNER;
 	<aside class="bsb-cockpit__deck">
 		<header class="bsb-deck__brand">
 			<span class="bsb-deck__mark" aria-hidden="true"></span>
-			<span class="bsb-deck__wordmark">
-				<span class="bsb-deck__title">{$brand_title}</span>
-				<span class="bsb-deck__subtitle">{$brand_subtitle}</span>
-			</span>
+			<span class="bsb-deck__title">{$brand_title}</span>
+			<span class="bsb-deck__subtitle">{$brand_subtitle}</span>
 			<span class="bsb-deck__actions">
-				<button type="button" class="bsb-deck__compact" data-wp-on--click="actions.toggleCompact" data-wp-bind--hidden="state.isIdle" aria-label="{$compact_label}"></button>
+				<button type="button" class="bsb-deck__compact" data-wp-on--click="actions.toggleCompact" data-wp-class--is-hidden="state.isIdle" aria-label="{$compact_label}"></button>
 				<button type="button" class="bsb-deck__theme" data-pref="system" data-wp-bind--data-pref="context.themePref" data-wp-on--click="actions.toggleTheme" aria-label="{$theme_label}"></button>
 			</span>
 		</header>
