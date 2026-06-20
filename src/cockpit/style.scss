@@ -51,6 +51,10 @@ body {
 // ── Control deck (left) ──────────────────────────────────────────────────────
 .bsb-cockpit__deck {
 	position: relative;
+	// Lift the deck above the stage so its right-edge shadow falls onto the
+	// viewport/idle screen, keeping the sidebar visually separate from a light
+	// page being benchmarked (which would otherwise blend into the light deck).
+	z-index: 2;
 	display: flex;
 	flex-direction: column;
 	min-height: 0;
@@ -62,6 +66,7 @@ body {
 	overflow: hidden;
 	color: var(--text);
 	background: var(--deck-bg);
+	box-shadow: 2px 0 8px -5px rgba(0, 20, 40, 0.14);
 	transition: transform $compact-dur $ease;
 
 	// Compact: slide fully out to the left, in step with the column collapse. The
