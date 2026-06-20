@@ -37,6 +37,7 @@ interface CockpitContext {
 	baseline: boolean;
 	speed: number;
 	running: boolean;
+	compact: boolean;
 	elapsed: number;
 	theme: ThemeName;
 	themePref: ThemePref;
@@ -263,6 +264,16 @@ store( 'bsb/cockpit', {
 		},
 
 		/**
+		 * Whether the deck is collapsed to give the viewport full width. Only
+		 * meaningful mid-run, when the readouts move into the top pill.
+		 */
+		get isCompact(): boolean {
+			const { running, compact } = getContext< CockpitContext >();
+
+			return running && compact;
+		},
+
+		/**
 		 * Whether a run is blocked from starting because the device is plugged in.
 		 * A benchmark must drain the battery, so the run control is disabled while
 		 * charging and idle.
@@ -450,6 +461,7 @@ store( 'bsb/cockpit', {
 
 			if ( context.running ) {
 				context.running = false;
+				context.compact = false;
 				return;
 			}
 
@@ -459,6 +471,15 @@ store( 'bsb/cockpit', {
 
 			context.elapsed = 0;
 			context.running = true;
+		},
+
+		/**
+		 * Collapses the deck to give the viewport full width (or restores it),
+		 * moving the readouts into the top pill. Only used while a run is live.
+		 */
+		toggleCompact(): void {
+			const context = getContext< CockpitContext >();
+			context.compact = ! context.compact;
 		},
 
 		/**

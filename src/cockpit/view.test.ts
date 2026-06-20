@@ -25,6 +25,7 @@ interface CockpitContext {
 	baseline: boolean;
 	speed: number;
 	running: boolean;
+	compact: boolean;
 	elapsed: number;
 	theme: 'light' | 'dark';
 	themePref: 'light' | 'dark' | 'system';
@@ -54,6 +55,7 @@ interface CockpitConfig {
 		isCharging: boolean;
 		isIdle: boolean;
 		isRunning: boolean;
+		isCompact: boolean;
 		isStartBlocked: boolean;
 		rate10Display: string;
 		rateSessionDisplay: string;
@@ -69,6 +71,7 @@ interface CockpitConfig {
 		toggleBaseline: () => void;
 		selectSpeed: () => void;
 		toggleRun: () => void;
+		toggleCompact: () => void;
 		toggleTheme: () => void;
 	};
 	callbacks: {
@@ -96,6 +99,7 @@ const baseContext = (): CockpitContext => ( {
 	baseline: false,
 	speed: 1,
 	running: false,
+	compact: false,
 	elapsed: 0,
 	theme: 'light',
 	themePref: 'system',
@@ -432,10 +436,28 @@ describe( 'bsb/cockpit view store', () => {
 
 		it( 'stops a live run back to the idle state', () => {
 			mocks.context.running = true;
+			mocks.context.compact = true;
 
 			mocks.config?.actions.toggleRun();
 
 			expect( mocks.context.running ).toBe( false );
+			// Leaving a run also drops the compact view.
+			expect( mocks.context.compact ).toBe( false );
+		} );
+
+		it( 'toggles the compact view, but only counts while running', () => {
+			expect( mocks.config?.state.isCompact ).toBe( false );
+
+			mocks.config?.actions.toggleCompact();
+			expect( mocks.context.compact ).toBe( true );
+			// Compact only resolves true mid-run.
+			expect( mocks.config?.state.isCompact ).toBe( false );
+
+			mocks.context.running = true;
+			expect( mocks.config?.state.isCompact ).toBe( true );
+
+			mocks.config?.actions.toggleCompact();
+			expect( mocks.config?.state.isCompact ).toBe( false );
 		} );
 
 		it( 'blocks starting while the device is plugged in', () => {

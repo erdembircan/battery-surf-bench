@@ -13,6 +13,8 @@
 @use '../styles/theme' as theme;
 
 $deck-width: clamp(300px, 28vw, 372px);
+$ease: cubic-bezier(0.22, 1, 0.36, 1);
+$compact-dur: 0.42s;
 
 html,
 body {
@@ -32,6 +34,12 @@ body {
 	font-family: theme.$font-ui;
 	color: var(--text);
 	-webkit-font-smoothing: antialiased;
+	transition: grid-template-columns $compact-dur $ease;
+
+	// Compact: the deck collapses to nothing so the stage fills the width.
+	&.is-compact {
+		grid-template-columns: 0 1fr;
+	}
 
 	*,
 	*::before,
@@ -50,6 +58,18 @@ body {
 	overflow: hidden;
 	color: var(--text);
 	background: var(--deck-bg);
+	transition:
+		transform $compact-dur $ease,
+		opacity $compact-dur $ease,
+		padding $compact-dur $ease;
+
+	// Compact: slide and fade out as the grid column collapses to zero.
+	.wp-block-bsb-cockpit.is-compact & {
+		padding-inline: 0;
+		opacity: 0;
+		transform: translateX(-24px);
+		pointer-events: none;
+	}
 }
 
 // ── Readouts pill — the deck's live "it's working" panel (shown while running) ─
@@ -262,7 +282,15 @@ body {
 	color: var(--subtitle-ink);
 }
 
-.bsb-deck__theme {
+// Deck header actions — the compact and theme toggles, grouped on the right.
+.bsb-deck__actions {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.bsb-deck__theme,
+.bsb-deck__compact {
 	position: relative;
 	z-index: 1;
 	flex: 0 0 auto;
@@ -290,8 +318,6 @@ body {
 		@extend %focus-ring;
 	}
 
-	// The icon reflects the current preference: sun (light), moon (dark), or a
-	// monitor (system / follow-the-OS), masked from the shared theme icons.
 	&::before {
 		content: '';
 		width: 1.05rem;
@@ -304,6 +330,24 @@ body {
 		-webkit-mask-position: center;
 		-webkit-mask-size: contain;
 	}
+}
+
+// Compact toggle — a chevron pointing up (send the readouts to the top pill).
+.bsb-deck__compact {
+	&[hidden] {
+		display: none;
+	}
+
+	&::before {
+		mask-image: theme.$chevron-down;
+		-webkit-mask-image: theme.$chevron-down;
+		transform: rotate(180deg);
+	}
+}
+
+// The theme icon reflects the current preference: sun (light), moon (dark), or
+// a monitor (system / follow-the-OS), masked from the shared theme icons.
+.bsb-deck__theme {
 
 	&[data-pref='light']::before {
 		mask-image: theme.$sun-icon;
@@ -864,6 +908,120 @@ body {
 	min-height: 0;
 	border: 0;
 	background: var(--viewport-bg);
+}
+
+// ── Compact top pill ─────────────────────────────────────────────────────────
+// While compact, the live readouts move to a horizontal pill at the top of the
+// stage — the SAME pill (gradient, type, waves) as the deck, just wide with the
+// info on one line. Only the middle readouts column wraps to extra rows when the
+// bar narrows; the surfing line (left) and the buttons (right) hold their place.
+.bsb-cockpit__topbar {
+	height: 0;
+	opacity: 0;
+	overflow: hidden;
+	transition: opacity calc(#{$compact-dur} * 0.7) $ease calc(#{$compact-dur} * 0.3);
+
+	.wp-block-bsb-cockpit.is-compact & {
+		height: auto;
+		opacity: 1;
+		overflow: visible;
+	}
+
+	// The pill, laid out as three columns. Flush and square at the top of the
+	// page — no margin or corner radius, so the page never peeks in behind it.
+	.bsb-deck__status {
+		flex-direction: row;
+		align-items: center;
+		gap: 1.2rem;
+		min-height: 5.5rem;
+		padding: 0.6rem 1.3rem;
+		border-radius: 0;
+	}
+
+	.bsb-deck__status-head {
+		flex: 0 0 auto;
+	}
+
+	// Middle column: centred as a group; the only part that wraps when squeezed.
+	// Top-aligned so every label shares one line despite the larger battery value.
+	.bsb-deck__readouts {
+		display: flex;
+		flex: 1 1 auto;
+		flex-wrap: wrap;
+		justify-content: center;
+		align-items: flex-start;
+		gap: 0.8rem 2.2rem;
+		min-width: 0;
+	}
+
+	.bsb-stat {
+		text-align: center;
+	}
+
+	.bsb-stat__value {
+		font-size: 1.05rem;
+	}
+
+	.bsb-stat__value--lg {
+		font-size: 1.5rem;
+	}
+}
+
+// Right column — the stop and expand (chevron-down) controls.
+.bsb-deck__readout-ctrl {
+	position: relative;
+	z-index: 1;
+	flex: 0 0 auto;
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.bsb-deck__readout-stop {
+	cursor: pointer;
+	border: 0;
+	border-radius: 9px;
+	padding: 0.5rem 1rem;
+	background: var(--stop-grad);
+	color: #fff;
+	font-family: theme.$font-display;
+	font-size: 0.82rem;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+
+	&:focus-visible {
+		@extend %focus-ring;
+	}
+}
+
+.bsb-deck__expand {
+	width: 2.1rem;
+	height: 2.1rem;
+	cursor: pointer;
+	border: 0;
+	border-radius: 8px;
+	background: rgba(255, 255, 255, 0.16);
+	display: grid;
+	place-items: center;
+
+	&::before {
+		content: '';
+		width: 1.15rem;
+		height: 1.15rem;
+		background: var(--status-ink);
+		mask-image: theme.$chevron-down;
+		mask-repeat: no-repeat;
+		mask-position: center;
+		mask-size: contain;
+		-webkit-mask-image: theme.$chevron-down;
+		-webkit-mask-repeat: no-repeat;
+		-webkit-mask-position: center;
+		-webkit-mask-size: contain;
+	}
+
+	&:focus-visible {
+		@extend %focus-ring;
+	}
 }
 
 // ── Motion ──────────────────────────────────────────────────────────────────

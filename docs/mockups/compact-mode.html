@@ -61,8 +61,9 @@
   /* compact: same pill, wide. THREE columns — only the middle wraps when narrow. */
   .topbar { height: 0; opacity: 0; overflow: hidden; margin: 0;
     transition: opacity calc(var(--dur)*0.7) var(--ease) calc(var(--dur)*0.3), margin var(--dur) var(--ease); }
-  .cockpit.compact .topbar { height: auto; opacity: 1; margin: 0.7rem 0.7rem 0; overflow: visible; }
-  .topbar .pill { min-height: var(--bar-h); display: flex; align-items: center; gap: 1.2rem; padding: 0.6rem 1.3rem; }
+  .cockpit.compact .topbar { height: auto; opacity: 1; overflow: visible; }
+  /* flush + square at the top of the page — no margin/radius, so the page never peeks in behind it */
+  .topbar .pill { min-height: var(--bar-h); display: flex; align-items: center; gap: 1.2rem; padding: 0.6rem 1.3rem; border-radius: 0; }
   .col-lead { flex: 0 0 auto; }                                  /* surfing + time — fixed */
   .col-info { flex: 1 1 auto; min-width: 0; display: flex; flex-wrap: wrap;  /* middle — wraps */
     justify-content: center; align-items: flex-start; gap: 0.8rem 2.2rem; }   /* top-align so all labels share one line */

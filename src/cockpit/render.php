@@ -44,6 +44,7 @@ $bsb_context = array(
 	'baseline'        => false,
 	'speed'           => 1,
 	'running'         => false,
+	'compact'         => false,
 	'elapsed'         => 0,
 	'theme'           => 'light',
 	'themePref'       => 'system',
@@ -89,6 +90,8 @@ $bsb_markup = ( new CockpitView() )->render(
 		'start_label'        => esc_html__( 'Start', 'battery-surf-bench' ),
 		'stop_label'         => esc_html__( 'Stop', 'battery-surf-bench' ),
 		'plugged_label'      => esc_html__( 'Plugged in', 'battery-surf-bench' ),
+		'compact_label'      => esc_attr__( 'Compact the dashboard', 'battery-surf-bench' ),
+		'expand_label'       => esc_attr__( 'Expand the dashboard', 'battery-surf-bench' ),
 		'viewport_title'     => esc_attr__( 'Surf viewport', 'battery-surf-bench' ),
 	)
 );

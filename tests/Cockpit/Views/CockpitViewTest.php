@@ -39,7 +39,9 @@ final class CockpitViewTest extends TestCase {
 		$this->assertStringContainsString( 'data-wp-interactive="bsb/cockpit"', $markup );
 		$this->assertStringContainsString( 'data-wp-init="callbacks.initTheme"', $markup );
 		$this->assertStringContainsString( 'data-wp-init---battery="callbacks.initBattery"', $markup );
+		$this->assertStringContainsString( 'data-wp-init---clock="callbacks.tick"', $markup );
 		$this->assertStringContainsString( 'data-wp-bind--data-theme="context.theme"', $markup );
+		$this->assertStringContainsString( 'data-wp-class--is-compact="state.isCompact"', $markup );
 		$this->assertStringContainsString( 'class="wp-block-bsb-cockpit"', $markup );
 		$this->assertStringContainsString( 'data-wp-context=\'{"activeIndex":0}\'', $markup );
 		$this->assertStringContainsString( 'data-wp-bind--src="state.currentSrc"', $markup );
@@ -200,6 +202,24 @@ final class CockpitViewTest extends TestCase {
 	}
 
 	/**
+	 * Compact mode: a chevron in the deck toggles it (shown only mid-run), and a
+	 * second readouts pill sits in the stage as the top bar with its own stop and
+	 * expand controls. Both pills bind to the same store readings.
+	 */
+	public function test_render_wires_compact_mode(): void {
+		$markup = $this->render();
+
+		$this->assertStringContainsString( 'class="bsb-deck__compact" data-wp-on--click="actions.toggleCompact" data-wp-bind--hidden="state.isIdle"', $markup );
+		$this->assertStringContainsString( 'class="bsb-cockpit__topbar"', $markup );
+		$this->assertStringContainsString( 'class="bsb-deck__readout-stop" data-wp-on--click="actions.toggleRun"', $markup );
+		$this->assertStringContainsString( 'class="bsb-deck__expand" data-wp-on--click="actions.toggleCompact"', $markup );
+
+		// The readouts pill is rendered in both the deck and the top bar — its
+		// charging-bolt binding therefore appears twice.
+		$this->assertSame( 2, substr_count( $markup, 'data-wp-class--is-charging="state.isCharging"' ) );
+	}
+
+	/**
 	 * Renders the view with a full set of escaped values, as the render template
 	 * supplies them.
 	 *
@@ -233,6 +253,8 @@ final class CockpitViewTest extends TestCase {
 				'start_label'        => 'Start',
 				'stop_label'         => 'Stop',
 				'plugged_label'      => 'Plugged in',
+				'compact_label'      => 'Compact the dashboard',
+				'expand_label'       => 'Expand the dashboard',
 				'viewport_title'     => 'Surf viewport',
 			)
 		);
