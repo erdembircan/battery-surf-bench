@@ -38,3 +38,4 @@ The shipped deck draws from **Coastal Daybreak** (light) and **Dusk Lineup**
 | `brand-lockup.html`    | Brand mark auto-sized to the title via grid, checked across the real deck-width clamp (300–372px). Serve from the **repo root** for the icon |
 | `pill-dark.html`       | Readouts-pill dark-mode colour options (isolated cards on the dusk deck bg): current teal vs deep slate / aqua values / warm amber / glass / deep teal-green |
 | `pill-dark-deck.html`  | The same dark-mode pill options shown **in the full dark deck** (brand + pill + stop), switchable. Serve from the **repo root** for the icon |
+| `viewport-shield.html` | How to signal the viewport iframe is **view-only** during a run — cursor-only / foam wash / corner chip / hover hint / behind-glass vignette / wash+chip combo, over a faux page in light + dark. Self-contained (no asset) |
