@@ -4,6 +4,12 @@ on:
   pull_request:
     branches: [master]
 
+# One in-flight run per PR: a new push cancels the previous run instead of
+# letting it burn CI minutes validating a now-stale commit.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   php-lint:
     runs-on: ubuntu-latest

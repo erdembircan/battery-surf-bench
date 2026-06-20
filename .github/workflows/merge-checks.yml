@@ -4,6 +4,12 @@ on:
   push:
     branches: [master]
 
+# Serialize master runs without cancelling: every merged commit still gets
+# validated (cancel-in-progress: false), they just don't overlap.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   php-lint:
     runs-on: ubuntu-latest
