@@ -16,6 +16,7 @@
       linear-gradient(180deg,#eaf6fb 0%,#dcf0f6 60%,#cfe9f2 100%);
     --card:#ffffff; --card-line:#e7eef2; --on-stage:#234055; --on-stage-soft:#5b7488;
     --paper:#fffaf0; --paper-ink:#3a4a57; --paper-line:#e7ddc7;
+    --stamp-edge:#dfe4e8; --stamp-rule:rgba(120,138,150,.3);
   }
   body.dark {
     --foam:#0a3a4f; --surface:#062b3d; --line:rgba(160,225,240,.16); --navy:#ffffff; --ink-soft:rgba(230,247,251,.6);
@@ -29,6 +30,7 @@
       linear-gradient(180deg,#0c3e52 0%,#0a3447 55%,#062734 100%);
     --card:rgba(8,42,56,.66); --card-line:rgba(160,225,240,.16); --on-stage:#e6f7fb; --on-stage-soft:rgba(230,247,251,.62);
     --paper:#0f3346; --paper-ink:#dcebf2; --paper-line:rgba(160,225,240,.18);
+    --stamp-edge:#294656; --stamp-rule:rgba(140,170,185,.22);
   }
   * { box-sizing:border-box; }
   body { margin:0; padding:1.2rem; font-family:'Hanken Grotesk',sans-serif; color:var(--navy); background:var(--surface); transition:background .25s; }
@@ -126,7 +128,7 @@
      four-way radial-gradient mask, plus the thin inner rule. No picture. */
   .stamp { position:absolute; top:1.1rem; right:1.1rem; width:56px; height:68px;
     transform:rotate(5.5deg); transform-origin:center;
-    background:#dfe4e8;
+    background:var(--stamp-edge);
     --r:3.4px; --sp:11px;
     -webkit-mask:
       radial-gradient(var(--r) at 50% 0,#0000 96%,#000) repeat-x 50% 0/var(--sp) 100%,
@@ -142,7 +144,7 @@
     mask-composite:intersect; }
   /* knock out the interior with the paper colour so only the perforated edge ring
      (and a faint inner rule) shows — an outline, no fill. */
-  .stamp::before { content:''; position:absolute; inset:3px; background:var(--paper); border:1px solid rgba(120,138,150,.3); border-radius:2px; }
+  .stamp::before { content:''; position:absolute; inset:3px; background:var(--paper); border:1px solid var(--stamp-rule); border-radius:2px; }
   .msg h3 { font-family:'Caveat'; font-weight:700; font-size:2.1rem; line-height:.9; color:var(--paper-ink); margin:.2rem 0 .1rem; }
   .msg .sig { font-family:'Caveat'; font-size:1.15rem; color:var(--teal); }
   .divide { height:1px; background:repeating-linear-gradient(90deg,var(--paper-line) 0 8px, transparent 8px 14px); margin:.8rem 0 .9rem; }
@@ -178,6 +180,11 @@
   .scene .stepHint { margin-top:2.2rem; align-self:flex-start; }
 
   .hide { display:none !important; }
+
+  /* bare mode (?bare=1): just the cockpit, full-bleed — for clean screenshots */
+  body.bare { padding:0; }
+  body.bare h1.pt, body.bare p.sub, body.bare .ctl, body.bare .note { display:none; }
+  body.bare .cockpit { height:100vh; border-radius:0; box-shadow:none; }
 </style>
 </head>
 <body>
@@ -275,12 +282,11 @@
           <div class="msg">
             <div class="stamp"></div>
             <h3>How this run works</h3>
-            <div class="sig">— so any two laptops face the same swell.</div>
+            <div class="sig">— every machine runs the exact same route.</div>
             <div class="divide"></div>
-            <div class="howline"><span class="n">1</span><span class="tx"><b>Set the session</b>Pick a duration or a target battery %.</span></div>
-            <div class="howline"><span class="n">2</span><span class="tx"><b>Drop in</b>Hit Start — the cord unplugs, the route loads, readouts wake.</span></div>
-            <div class="howline"><span class="n">3</span><span class="tx"><b>Watch the slope</b>It surfs on its own; you watch the charge fall.</span></div>
-            <div class="pcFoot"><span class="startHint">${arrowL} Press Start to send it out</span></div>
+            <div class="howline"><span class="n">1</span><span class="tx"><b>Set the session</b>Pick a run length, or a battery % to stop at.</span></div>
+            <div class="howline"><span class="n">2</span><span class="tx"><b>Drop in</b>Hit Start — the charger unplugs and the run begins on its own.</span></div>
+            <div class="howline"><span class="n">3</span><span class="tx"><b>Watch the slope</b>It runs hands-free while the battery drains; you just watch the numbers.</span></div>
           </div>
         </div>
       </div>`,
@@ -288,11 +294,11 @@
     route: () => `${decor}
       <div class="scene">
         <h1 class="bigTitle">Three stops to <em>the swell</em>.</h1>
-        <p class="lede">The bench surfs a fixed reading route on its own and watches how fast the battery drains. Here's the ride.</p>
+        <p class="lede">The bench runs a fixed reading route on its own and tracks how fast the battery drains.</p>
         <div class="route">
-          <div class="stop"><div class="buoy">${iGear}</div><h4>Set the session</h4><p>Pick a duration, or a target battery % to drop to.</p></div>
-          <div class="stop"><div class="buoy">${iPlay}</div><h4>Drop in</h4><p>Start unplugs the cord, loads the route and wakes the readouts.</p></div>
-          <div class="stop"><div class="buoy">${iWave}</div><h4>Watch the slope</h4><p>It surfs every page; you just watch the charge curve settle.</p></div>
+          <div class="stop"><div class="buoy">${iGear}</div><h4>Set the session</h4><p>Pick a run length, or a battery % to stop at.</p></div>
+          <div class="stop"><div class="buoy">${iPlay}</div><h4>Drop in</h4><p>Start unplugs the charger and the run begins on its own.</p></div>
+          <div class="stop"><div class="buoy">${iWave}</div><h4>Watch the slope</h4><p>It runs hands-free; you just watch the numbers.</p></div>
         </div>
         <span class="startHint stepHint">${arrowL} Ready when you are — press Start</span>
       </div>`,
@@ -315,6 +321,15 @@
   document.querySelectorAll('input[name=img]').forEach(r => r.addEventListener('change', () => { if(r.checked){ PC_IMG = r.value === 'logo' ? 'logo' : PHOTOS[+r.value]; paint(); } }));
   document.querySelectorAll('input[name=fx]').forEach(r => r.addEventListener('change', () => { if(r.checked){ PC_FX = r.value; paint(); } }));
   document.getElementById('dark').addEventListener('change', e => document.body.classList.toggle('dark', e.target.checked));
+
+  // Deep-link a state via URL params (used for clean headless screenshots):
+  // ?concept=postcard|route &img=0..4|logo &fx=raw|faded|pop|paper|bleach &dark=1 &bare=1
+  const q = new URLSearchParams(location.search);
+  if (q.has('concept')) { const r = document.querySelector(`input[name=c][value="${q.get('concept')}"]`); if (r) r.checked = true; }
+  if (q.has('img')) { const v = q.get('img'); const r = document.querySelector(`input[name=img][value="${v}"]`); if (r) { r.checked = true; PC_IMG = v === 'logo' ? 'logo' : PHOTOS[+v]; } }
+  if (q.has('fx')) { const v = q.get('fx'); const r = document.querySelector(`input[name=fx][value="${v}"]`); if (r) { r.checked = true; PC_FX = v; } }
+  if (q.get('dark') === '1') { document.body.classList.add('dark'); document.getElementById('dark').checked = true; }
+  if (q.get('bare') === '1') document.body.classList.add('bare');
   paint();
 </script>
 </body>
