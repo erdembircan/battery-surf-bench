@@ -122,11 +122,11 @@
   .greet small { display:block; font-size:.62em; opacity:.92; margin-top:.1em; padding-left:1.4em; }
   /* right: the written back */
   .msg { padding:1.5rem 1.6rem 1.5rem; position:relative; }
-  /* a real postage stamp: a sunset face with a perforated (scalloped) edge cut
-     by a four-way radial-gradient mask, plus the thin inner rule stamps carry. */
+  /* a blank gray postage stamp: just the perforated (scalloped) edge cut by a
+     four-way radial-gradient mask, plus the thin inner rule. No picture. */
   .stamp { position:absolute; top:1rem; right:1rem; width:56px; height:68px;
-    background:linear-gradient(180deg,#ffc06a 0%,#ff8e5c 44%,#46b6c4 100%);
-    filter:drop-shadow(0 1px 2px rgba(0,0,0,.28));
+    background:#c7ced4;
+    filter:drop-shadow(0 1px 2px rgba(0,0,0,.2));
     --r:3.4px; --sp:11px;
     -webkit-mask:
       radial-gradient(var(--r) at 50% 0,#0000 96%,#000) repeat-x 50% 0/var(--sp) 100%,
@@ -140,10 +140,7 @@
       radial-gradient(var(--r) at 0 50%,#0000 96%,#000) repeat-y 0 50%/100% var(--sp),
       radial-gradient(var(--r) at 100% 50%,#0000 96%,#000) repeat-y 100% 50%/100% var(--sp);
     mask-composite:intersect; }
-  .stamp::before { content:''; position:absolute; inset:5px; border:1px solid rgba(255,255,255,.75); border-radius:2px; }
-  .stampSun { position:absolute; top:13px; left:50%; transform:translateX(-50%); width:13px; height:13px; border-radius:50%; background:#fff3c4; box-shadow:0 0 7px #ffe39a; }
-  .stampWave { position:absolute; left:7px; right:7px; bottom:10px; height:9px;
-    background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='9' viewBox='0 0 40 9' preserveAspectRatio='none'%3E%3Cpath d='M0 5 q 5 -4 10 0 t 10 0 10 0 10 0' fill='none' stroke='%23ffffff' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E") center/contain repeat-x; opacity:.85; }
+  .stamp::before { content:''; position:absolute; inset:5px; border:1px solid rgba(70,90,105,.45); border-radius:2px; }
   .msg h3 { font-family:'Caveat'; font-weight:700; font-size:2.1rem; line-height:.9; color:var(--paper-ink); margin:.2rem 0 .1rem; }
   .msg .sig { font-family:'Caveat'; font-size:1.15rem; color:var(--teal); }
   .divide { height:1px; background:repeating-linear-gradient(90deg,var(--paper-line) 0 8px, transparent 8px 14px); margin:.8rem 0 .9rem; }
@@ -274,7 +271,7 @@
             <div class="greet">Greetings from<small>Battery Surf Bench</small></div>
           </div>
           <div class="msg">
-            <div class="stamp"><span class="stampSun"></span><span class="stampWave"></span></div>
+            <div class="stamp"></div>
             <h3>How this run works</h3>
             <div class="sig">— so any two laptops face the same swell.</div>
             <div class="divide"></div>
