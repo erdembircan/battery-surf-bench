@@ -76,6 +76,7 @@ interface CockpitConfig {
 		tick: () => () => void;
 		initTheme: () => void;
 		initBattery: () => () => void;
+		rollDuration: () => void;
 	};
 }
 
@@ -260,6 +261,48 @@ describe( 'bsb/cockpit view store', () => {
 			trigger( { step: '5' } );
 			mocks.config?.actions.stepDuration();
 			expect( mocks.context.durationMinutes ).toBe( 240 );
+		} );
+
+		it( 'rolls the odometer and collapses leading-zero wheels', () => {
+			const strips = [ 0, 1, 2 ].map( () => ( {
+				style: { transition: '', transform: '' },
+			} ) );
+			const wheels = [ 0, 1, 2 ].map( () => ( {
+				classList: { toggle: vi.fn() },
+			} ) );
+			mocks.element = {
+				querySelectorAll: ( sel: string ) =>
+					sel.includes( 'strip' ) ? strips : wheels,
+			} as unknown as MockElement;
+
+			// Two digits: hundreds collapsed, tens shown, and a transform seated.
+			mocks.context.durationMinutes = 30;
+			mocks.config?.callbacks.rollDuration();
+			expect( strips[ 2 ].style.transform ).toContain( 'translateY' );
+			expect( wheels[ 0 ].classList.toggle ).toHaveBeenCalledWith(
+				'is-collapsed',
+				true
+			);
+			expect( wheels[ 1 ].classList.toggle ).toHaveBeenCalledWith(
+				'is-collapsed',
+				false
+			);
+
+			// A single digit collapses the tens wheel too.
+			mocks.context.durationMinutes = 5;
+			mocks.config?.callbacks.rollDuration();
+			expect( wheels[ 1 ].classList.toggle ).toHaveBeenLastCalledWith(
+				'is-collapsed',
+				true
+			);
+
+			// Three digits reveal every wheel.
+			mocks.context.durationMinutes = 100;
+			mocks.config?.callbacks.rollDuration();
+			expect( wheels[ 0 ].classList.toggle ).toHaveBeenLastCalledWith(
+				'is-collapsed',
+				false
+			);
 		} );
 	} );
 

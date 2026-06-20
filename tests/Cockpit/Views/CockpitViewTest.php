@@ -66,8 +66,9 @@ final class CockpitViewTest extends TestCase {
 	}
 
 	/**
-	 * The duration field is hidden unless duration mode is active, and its
-	 * stepper steps the duration and reads it back from the store.
+	 * The duration field is hidden unless duration mode is active; its stepper
+	 * steps the duration, the value reads back to assistive tech, and the visual
+	 * odometer is wired to the store's roll watch.
 	 */
 	public function test_render_wires_the_duration_control(): void {
 		$markup = $this->render();
@@ -77,6 +78,8 @@ final class CockpitViewTest extends TestCase {
 		$this->assertStringContainsString( 'data-step="5"', $markup );
 		$this->assertStringContainsString( 'data-wp-on--click="actions.stepDuration"', $markup );
 		$this->assertStringContainsString( 'data-wp-text="state.durationDisplay"', $markup );
+		$this->assertStringContainsString( 'class="bsb-odometer" data-wp-watch="callbacks.rollDuration"', $markup );
+		$this->assertStringContainsString( 'class="bsb-odometer__cell"', $markup );
 	}
 
 	/**

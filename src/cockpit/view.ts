@@ -91,6 +91,34 @@ const targetFromPointer = ( clientX: number, el: HTMLElement ): number => {
 /** localStorage key the chosen theme is remembered under across visits. */
 const THEME_KEY = 'bsb-cockpit-theme';
 
+/** Per-odometer roll state: the last duration shown and each wheel's position. */
+interface OdometerState {
+	value: number;
+	positions: number[];
+}
+
+/** Tracks each cockpit's duration odometer by its element, so the wheels roll. */
+const odometers = new WeakMap< HTMLElement, OdometerState >();
+
+/**
+ * The transform that rests a wheel strip on a given logical position. The strip
+ * repeats 0–9 three times; the middle set (offset 10 cells) is the rest band, so
+ * a position can stay small while still rolling through a wrap.
+ * @param position
+ */
+const wheelTransform = ( position: number ): string =>
+	`translateY(calc(var(--bsb-od-cell) * ${ -( position + 10 ) }))`;
+
+/**
+ * The hundreds, tens and units digits of a duration.
+ * @param minutes
+ */
+const durationDigits = ( minutes: number ): number[] => [
+	Math.floor( minutes / 100 ) % 10,
+	Math.floor( minutes / 10 ) % 10,
+	minutes % 10,
+];
+
 store( 'bsb/cockpit', {
 	state: {
 		/** URL of the active course page, bound onto the viewport iframe. */
@@ -488,6 +516,84 @@ store( 'bsb/cockpit', {
 			}, 1000 );
 
 			return () => clearInterval( timer );
+		},
+
+		/**
+		 * Rolls the run-duration odometer when the duration changes: each digit
+		 * wheel slides to its new value in the press direction (increase rolls up,
+		 * decrease rolls down), wrapping 9⇄0 seamlessly, and leading-zero wheels
+		 * collapse. Driven by `data-wp-watch`, so it re-runs on every change.
+		 */
+		rollDuration(): void {
+			const element = getElement().ref as HTMLElement | null;
+
+			if ( ! element ) {
+				return;
+			}
+
+			const { durationMinutes } = getContext< CockpitContext >();
+			const strips = element.querySelectorAll< HTMLElement >(
+				'.bsb-odometer__strip'
+			);
+			const wheels = element.querySelectorAll< HTMLElement >(
+				'.bsb-odometer__wheel'
+			);
+			const digits = durationDigits( durationMinutes );
+
+			// Collapse leading wheels so there are no leading zeros.
+			wheels[ 0 ]?.classList.toggle(
+				'is-collapsed',
+				durationMinutes < 100
+			);
+			wheels[ 1 ]?.classList.toggle(
+				'is-collapsed',
+				durationMinutes < 10
+			);
+
+			const state = odometers.get( element );
+
+			// First run: seat each wheel on its digit without animating.
+			if ( ! state ) {
+				odometers.set( element, {
+					value: durationMinutes,
+					positions: [ ...digits ],
+				} );
+				strips.forEach( ( strip, i ) => {
+					strip.style.transition = 'none';
+					strip.style.transform = wheelTransform( digits[ i ] );
+				} );
+				requestAnimationFrame( () =>
+					strips.forEach( ( strip ) => {
+						strip.style.transition = '';
+					} )
+				);
+
+				return;
+			}
+
+			const direction = Math.sign( durationMinutes - state.value ) || 1;
+			const previous = durationDigits( state.value );
+
+			strips.forEach( ( strip, i ) => {
+				// Rebase to the previous digit without animating (an invisible jump
+				// — same glyph, different repeat) to keep the position bounded,
+				// then roll from there toward the new digit in the press direction.
+				strip.style.transition = 'none';
+				strip.style.transform = wheelTransform( previous[ i ] );
+				void strip.offsetHeight;
+
+				const distance =
+					direction > 0
+						? ( digits[ i ] - previous[ i ] + 10 ) % 10
+						: -( ( previous[ i ] - digits[ i ] + 10 ) % 10 );
+				const target = previous[ i ] + distance;
+
+				strip.style.transition = '';
+				strip.style.transform = wheelTransform( target );
+				state.positions[ i ] = target;
+			} );
+
+			state.value = durationMinutes;
 		},
 	},
 } );

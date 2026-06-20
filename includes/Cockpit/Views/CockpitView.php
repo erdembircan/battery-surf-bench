@@ -91,6 +91,14 @@ class CockpitView implements View {
 		$next_label         = isset( $data['next_label'] ) ? (string) $data['next_label'] : '';
 		$viewport_title     = isset( $data['viewport_title'] ) ? (string) $data['viewport_title'] : '';
 
+		// Each duration-odometer wheel is a strip of 0–9 repeated three times; the
+		// client store (rollDuration) slides it to roll the digit. Built here so
+		// the wheel markup stays a single repeated unit owned by the view.
+		$bsb_digit_cells = <<<'CELLS'
+<span class="bsb-odometer__cell">0</span><span class="bsb-odometer__cell">1</span><span class="bsb-odometer__cell">2</span><span class="bsb-odometer__cell">3</span><span class="bsb-odometer__cell">4</span><span class="bsb-odometer__cell">5</span><span class="bsb-odometer__cell">6</span><span class="bsb-odometer__cell">7</span><span class="bsb-odometer__cell">8</span><span class="bsb-odometer__cell">9</span>
+CELLS;
+		$odometer_cells  = str_repeat( $bsb_digit_cells, 3 );
+
 		return <<<HTML
 <div {$wrapper} data-wp-interactive="bsb/cockpit" {$context} data-wp-init="callbacks.initTheme" data-wp-init---battery="callbacks.initBattery" data-wp-bind--data-theme="context.theme">
 	<aside class="bsb-cockpit__deck">
@@ -118,7 +126,12 @@ class CockpitView implements View {
 				<div class="bsb-stepper">
 					<button type="button" class="bsb-stepper__btn" data-step="-5" data-wp-on--click="actions.stepDuration" aria-label="{$decrease_label}">&minus;</button>
 					<span class="bsb-stepper__readout">
-						<span class="bsb-stepper__value" data-wp-text="state.durationDisplay"></span>
+						<span class="bsb-odometer" data-wp-watch="callbacks.rollDuration" aria-hidden="true">
+							<span class="bsb-odometer__wheel bsb-odometer__wheel--lead is-collapsed"><span class="bsb-odometer__strip">{$odometer_cells}</span></span>
+							<span class="bsb-odometer__wheel bsb-odometer__wheel--lead is-collapsed"><span class="bsb-odometer__strip">{$odometer_cells}</span></span>
+							<span class="bsb-odometer__wheel"><span class="bsb-odometer__strip">{$odometer_cells}</span></span>
+						</span>
+						<span class="bsb-stepper__sr" data-wp-text="state.durationDisplay"></span>
 						<span class="bsb-stepper__unit">{$minutes_label}</span>
 					</span>
 					<button type="button" class="bsb-stepper__btn" data-step="5" data-wp-on--click="actions.stepDuration" aria-label="{$increase_label}">+</button>
