@@ -256,6 +256,14 @@ CI runs after every push to a pull request and after every merge. Before treatin
 - **Never act on a partial or pending result.** Do not merge, report success, or walk away while any check is still running, queued, or yet to be triggered. "Green" means every check that will run has run and passed.
 - **If any check ends red, stop and fix it before proceeding.** Never leave a branch — or the default branch — in a failing state.
 
+### Squash-Merging — Always Supply Your Own Commit Message
+
+When squash-merging a PR into `master`, **always provide an explicit commit subject and body** — never accept GitHub's auto-generated squash message.
+
+- **Why this matters.** GitHub's default squash message concatenates the message of *every* squashed commit into the body. If any of those commits carries a CI directive such as `[skip ci]` (common on docs/mockup commits), it lands in the merge commit message, and GitHub then **skips every workflow for that push to `master`** — merge checks, e2e, the i18n `.pot` regeneration, all of it — silently. The merge looks done, but nothing was validated and generated artifacts go stale.
+- **How.** Pass the message explicitly: `gh pr merge <n> --squash -t "[TYPE]: <description>" -b "<concise human summary>"` (or edit the squash message in the GitHub web UI before confirming). The subject follows the Conventional Commits format below; the body is a short hand-written summary, never the raw list of squashed commits.
+- **Never** let `[skip ci]` (or any other skip directive) reach a commit that will be squashed into `master`.
+
 ## File Reads & Writes
 
 **Never use raw PHP filesystem functions; always go through the WordPress filesystem API.** No `file_get_contents`/`file_put_contents`/`fopen`/`fwrite`/`unlink`/`mkdir`/etc. for reading or writing files — use the `WP_Filesystem` abstraction (request credentials for the target first, then `$wp_filesystem->exists()`/`get_contents()`/`put_contents()`). The lone exception is `require`/`include` of a bundled PHP file (e.g. a build manifest), which is code inclusion, not file I/O.
