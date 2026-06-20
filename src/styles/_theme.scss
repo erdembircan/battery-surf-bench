@@ -212,9 +212,9 @@ $lock-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' vi
 	--idle-sky:
 		radial-gradient(120% 70% at 50% -10%, #{rgba($coastal-sun, 0.34)} 0%, #{rgba($coastal-sun, 0)} 55%),
 		linear-gradient(180deg, #eaf6fb 0%, #dcf0f6 60%, #cfe9f2 100%);
-	--paper: #fffaf0;
-	--paper-ink: #3a4a57;
-	--paper-line: #e7ddc7;
+	--paper: #f7fbfd;
+	--paper-ink: #2f4a5c;
+	--paper-line: #{$coastal-line};
 	--stamp-edge: #dfe4e8;
 	--stamp-rule: #{rgba(#7889a0, 0.42)};
 	--paper-accent: #{$coastal-teal};
