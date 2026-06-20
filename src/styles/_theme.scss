@@ -103,6 +103,10 @@ $dusk-foam: #e6f7fb;
 $moon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z'/%3E%3C/svg%3E");
 $sun-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='4' fill='black'/%3E%3Cpath d='M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5 19 19M19 5l-1.5 1.5M6.5 17.5 5 19'/%3E%3C/svg%3E");
 
+// A power-plug silhouette, used (as a mask) on the run control when a run is
+// blocked because the device is plugged in.
+$plug-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M9 2a1 1 0 0 1 1 1v4H8V3a1 1 0 0 1 1-1zm6 0a1 1 0 0 1 1 1v4h-2V3a1 1 0 0 1 1-1zM6 8h12v3a6 6 0 0 1-5 5.91V21a1 1 0 0 1-2 0v-4.09A6 6 0 0 1 6 11V8z'/%3E%3C/svg%3E");
+
 // ── Reusable surface primitives ─────────────────────────────────────────────
 // Shared declaration sets driven by the theme tokens. `@extend` these (rather
 // than `@include`) so the declarations are emitted once and every extending
@@ -150,6 +154,8 @@ $sun-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' vie
 	--stop-grad: linear-gradient(160deg, #{$coastal-coral} 0%, #{$coastal-coral-deep} 100%);
 	--stop-shadow: #{rgba($coastal-coral-deep, 0.4)};
 	--stop-glyph: #ffffff;
+	--run-disabled-bg: #dbe6ec;
+	--run-disabled-ink: #{$coastal-ink-soft};
 	--status-grad: linear-gradient(150deg, #{$coastal-teal} 0%, #{$coastal-teal-deep} 100%);
 	--status-ink: #eafaff;
 	--status-dot: #{$coastal-sun};
@@ -203,6 +209,8 @@ $sun-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' vie
 		--stop-grad: linear-gradient(160deg, #{$dusk-coral} 0%, #{$dusk-coral-deep} 100%);
 		--stop-shadow: #{rgba($dusk-coral-deep, 0.42)};
 		--stop-glyph: #ffffff;
+		--run-disabled-bg: #{rgba($dusk-foam, 0.1)};
+		--run-disabled-ink: #{rgba($dusk-foam, 0.4)};
 		--status-grad: linear-gradient(150deg, #{$dusk-teal} 0%, #063a4b 100%);
 		--status-ink: #{$dusk-foam};
 		--status-dot: #{$dusk-sun};

@@ -194,6 +194,17 @@ store( 'bsb/cockpit', {
 			return getContext< CockpitContext >().running;
 		},
 
+		/**
+		 * Whether a run is blocked from starting because the device is plugged in.
+		 * A benchmark must drain the battery, so the run control is disabled while
+		 * charging and idle.
+		 */
+		get isStartBlocked(): boolean {
+			const { running, batteryCharging } = getContext< CockpitContext >();
+
+			return ! running && batteryCharging;
+		},
+
 		/** Drain rate over the last 10 minutes, or an em dash until known. */
 		get rate10Display(): string {
 			const { rate10 } = getContext< CockpitContext >();
@@ -368,13 +379,18 @@ store( 'bsb/cockpit', {
 		/**
 		 * Starts or stops the run. Starting resets the elapsed clock, reveals the
 		 * readouts pill and hides the configuration controls; stopping returns the
-		 * cockpit to its idle, ready state with the controls back.
+		 * cockpit to its idle, ready state with the controls back. Starting is
+		 * refused while the device is plugged in — a benchmark must run on battery.
 		 */
 		toggleRun(): void {
 			const context = getContext< CockpitContext >();
 
 			if ( context.running ) {
 				context.running = false;
+				return;
+			}
+
+			if ( context.batteryCharging ) {
 				return;
 			}
 
@@ -400,7 +416,8 @@ store( 'bsb/cockpit', {
 		 * Feeds the battery readouts from the Battery Status API: syncs the level
 		 * and charging state on mount and whenever they change, returning a
 		 * cleanup that detaches the listeners. A no-op where the API is absent,
-		 * leaving the readouts at their em-dash idle state.
+		 * leaving the readouts at their em-dash idle state. Plugging in mid-run
+		 * stops the run, since a benchmark must drain the battery.
 		 */
 		initBattery(): () => void {
 			const provider = (
@@ -416,9 +433,15 @@ store( 'bsb/cockpit', {
 			const context = getContext< CockpitContext >();
 			let manager: BatteryLike | undefined;
 			const sync = (): void => {
-				if ( manager ) {
-					context.batteryLevel = Math.round( manager.level * 100 );
-					context.batteryCharging = manager.charging;
+				if ( ! manager ) {
+					return;
+				}
+
+				context.batteryLevel = Math.round( manager.level * 100 );
+				context.batteryCharging = manager.charging;
+
+				if ( context.batteryCharging && context.running ) {
+					context.running = false;
 				}
 			};
 

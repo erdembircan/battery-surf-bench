@@ -54,6 +54,7 @@ interface CockpitConfig {
 		isCharging: boolean;
 		isIdle: boolean;
 		isRunning: boolean;
+		isStartBlocked: boolean;
 		rate10Display: string;
 		rateSessionDisplay: string;
 		timeToEmptyDisplay: string;
@@ -386,6 +387,31 @@ describe( 'bsb/cockpit view store', () => {
 
 			expect( mocks.context.running ).toBe( false );
 		} );
+
+		it( 'blocks starting while the device is plugged in', () => {
+			mocks.context.batteryCharging = true;
+
+			expect( mocks.config?.state.isStartBlocked ).toBe( true );
+
+			mocks.config?.actions.toggleRun();
+
+			expect( mocks.context.running ).toBe( false );
+		} );
+
+		it( 'is not start-blocked once a run is already live', () => {
+			mocks.context.batteryCharging = true;
+			mocks.context.running = true;
+
+			// Charging only blocks *starting*, not a run that is already going
+			// (that case is handled by the auto-stop on plug-in).
+			expect( mocks.config?.state.isStartBlocked ).toBe( false );
+		} );
+
+		it( 'is not start-blocked on battery power', () => {
+			mocks.context.batteryCharging = false;
+
+			expect( mocks.config?.state.isStartBlocked ).toBe( false );
+		} );
 	} );
 
 	describe( 'surfing indicator', () => {
@@ -501,6 +527,36 @@ describe( 'bsb/cockpit view store', () => {
 			expect( mockBattery.removeEventListener ).toHaveBeenCalledTimes(
 				2
 			);
+		} );
+
+		it( 'stops a live run when the device is plugged in mid-session', async () => {
+			const mockBattery = {
+				level: 0.5,
+				charging: false,
+				addEventListener: vi.fn(),
+				removeEventListener: vi.fn(),
+			};
+			( navigator as { getBattery?: unknown } ).getBattery = () =>
+				Promise.resolve( mockBattery );
+
+			mocks.context.running = true;
+			const cleanup = mocks.config!.callbacks.initBattery();
+
+			await vi.waitFor( () =>
+				expect( mockBattery.addEventListener ).toHaveBeenCalled()
+			);
+
+			// The charger goes in: the manager flips and notifies.
+			const onChange = mockBattery.addEventListener.mock.calls.find(
+				( call ) => call[ 0 ] === 'chargingchange'
+			)?.[ 1 ] as () => void;
+			mockBattery.charging = true;
+			onChange();
+
+			expect( mocks.context.batteryCharging ).toBe( true );
+			expect( mocks.context.running ).toBe( false );
+
+			cleanup();
 		} );
 
 		it( 'no-ops where the Battery Status API is unavailable', () => {

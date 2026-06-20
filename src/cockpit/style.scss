@@ -665,8 +665,10 @@ body {
 	border-top: 1px solid var(--line);
 }
 
-// Run control: a green "Start" go-button when idle that becomes the coral
-// "Stop" button (`.is-running`) once a run is live.
+// Run control. Three states, selected by store-bound classes:
+//   (default)     idle & on battery → green "Start" go-button (play glyph)
+//   .is-running   a run is live      → coral "Stop" button (pulsing square)
+//   .is-blocked   plugged in & idle  → disabled "Plugged in" (plug glyph)
 .bsb-run {
 	display: flex;
 	align-items: center;
@@ -691,7 +693,7 @@ body {
 		box-shadow 0.2s ease,
 		filter 0.2s ease;
 
-	&:hover {
+	&:not(.is-blocked):hover {
 		transform: translateY(-2px);
 		filter: saturate(1.1);
 	}
@@ -713,13 +715,27 @@ body {
 			0 8px 20px var(--stop-shadow),
 			inset 0 1px 0 rgba(255, 255, 255, 0.3);
 	}
+
+	&.is-blocked {
+		background: var(--run-disabled-bg);
+		color: var(--run-disabled-ink);
+		box-shadow: none;
+		cursor: not-allowed;
+	}
 }
 
-.bsb-run__text[hidden] {
+// One label per state; the active class decides which shows.
+.bsb-run__text {
 	display: none;
 }
 
-// Idle: a "play" triangle. Running: the pulsing stop square.
+.bsb-run:not(.is-running):not(.is-blocked) .bsb-run__text--start,
+.bsb-run.is-running .bsb-run__text--stop,
+.bsb-run.is-blocked .bsb-run__text--blocked {
+	display: inline;
+}
+
+// Idle: a "play" triangle. Running: the pulsing stop square. Blocked: a plug.
 .bsb-run__glyph {
 	width: 0.9rem;
 	height: 0.9rem;
@@ -731,6 +747,20 @@ body {
 		border-radius: 3px;
 		box-shadow: 0 0 12px rgba(255, 255, 255, 0.65);
 		animation: bsb-pulse 1.8s ease-in-out infinite;
+	}
+
+	.bsb-run.is-blocked & {
+		width: 1rem;
+		height: 1rem;
+		clip-path: none;
+		mask-image: theme.$plug-icon;
+		mask-repeat: no-repeat;
+		mask-position: center;
+		mask-size: contain;
+		-webkit-mask-image: theme.$plug-icon;
+		-webkit-mask-repeat: no-repeat;
+		-webkit-mask-position: center;
+		-webkit-mask-size: contain;
 	}
 }
 

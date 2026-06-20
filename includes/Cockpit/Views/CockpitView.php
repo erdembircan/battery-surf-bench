@@ -56,6 +56,7 @@ class CockpitView implements View {
 	 *     @type string $elapsed_label     Translated, escaped "elapsed" word for the running indicator.
 	 *     @type string $start_label       Translated, escaped label for the run control when idle.
 	 *     @type string $stop_label        Translated, escaped label for the run control when running.
+	 *     @type string $plugged_label     Translated, escaped run-control label when blocked by charging.
 	 *     @type string $next_label        Translated, escaped label for the next-page control.
 	 *     @type string $viewport_title    Translated, escaped title for the viewport iframe.
 	 * }
@@ -86,11 +87,12 @@ class CockpitView implements View {
 		$elapsed_label      = isset( $data['elapsed_label'] ) ? (string) $data['elapsed_label'] : '';
 		$start_label        = isset( $data['start_label'] ) ? (string) $data['start_label'] : '';
 		$stop_label         = isset( $data['stop_label'] ) ? (string) $data['stop_label'] : '';
+		$plugged_label      = isset( $data['plugged_label'] ) ? (string) $data['plugged_label'] : '';
 		$next_label         = isset( $data['next_label'] ) ? (string) $data['next_label'] : '';
 		$viewport_title     = isset( $data['viewport_title'] ) ? (string) $data['viewport_title'] : '';
 
 		return <<<HTML
-<div {$wrapper} data-wp-interactive="bsb/cockpit" {$context} data-wp-init="callbacks.initTheme" data-wp-bind--data-theme="context.theme">
+<div {$wrapper} data-wp-interactive="bsb/cockpit" {$context} data-wp-init="callbacks.initTheme" data-wp-init---battery="callbacks.initBattery" data-wp-bind--data-theme="context.theme">
 	<aside class="bsb-cockpit__deck">
 		<header class="bsb-deck__brand">
 			<span class="bsb-deck__wordmark">
@@ -155,7 +157,7 @@ class CockpitView implements View {
 			</section>
 			</div>
 
-			<div class="bsb-deck__status" data-wp-init---clock="callbacks.tick" data-wp-init---battery="callbacks.initBattery">
+			<div class="bsb-deck__status" data-wp-init---clock="callbacks.tick">
 				<div class="bsb-deck__status-head">
 					<span class="bsb-deck__status-dot" aria-hidden="true"></span>
 					<span class="bsb-deck__status-text">{$surfing_label} &middot; <span class="bsb-deck__clock" data-wp-text="state.elapsedClock"></span> {$elapsed_label}</span>
@@ -190,10 +192,11 @@ class CockpitView implements View {
 		</div>
 
 		<footer class="bsb-deck__foot">
-			<button type="button" class="bsb-run" data-wp-on--click="actions.toggleRun" data-wp-class--is-running="state.isRunning">
+			<button type="button" class="bsb-run" data-wp-on--click="actions.toggleRun" data-wp-class--is-running="state.isRunning" data-wp-class--is-blocked="state.isStartBlocked" data-wp-bind--disabled="state.isStartBlocked">
 				<span class="bsb-run__glyph" aria-hidden="true"></span>
-				<span class="bsb-run__text" data-wp-bind--hidden="state.isRunning">{$start_label}</span>
-				<span class="bsb-run__text" data-wp-bind--hidden="state.isIdle">{$stop_label}</span>
+				<span class="bsb-run__text bsb-run__text--start">{$start_label}</span>
+				<span class="bsb-run__text bsb-run__text--stop">{$stop_label}</span>
+				<span class="bsb-run__text bsb-run__text--blocked">{$plugged_label}</span>
 			</button>
 		</footer>
 	</aside>

@@ -38,6 +38,7 @@ final class CockpitViewTest extends TestCase {
 
 		$this->assertStringContainsString( 'data-wp-interactive="bsb/cockpit"', $markup );
 		$this->assertStringContainsString( 'data-wp-init="callbacks.initTheme"', $markup );
+		$this->assertStringContainsString( 'data-wp-init---battery="callbacks.initBattery"', $markup );
 		$this->assertStringContainsString( 'data-wp-bind--data-theme="context.theme"', $markup );
 		$this->assertStringContainsString( 'class="wp-block-bsb-cockpit"', $markup );
 		$this->assertStringContainsString( 'data-wp-context=\'{"activeIndex":0}\'', $markup );
@@ -124,14 +125,13 @@ final class CockpitViewTest extends TestCase {
 	}
 
 	/**
-	 * The readouts pill starts the battery feed and binds the battery level,
-	 * colour, charging bolt and metrics to the store; its waves scale their
-	 * scroll rate by the run's demo speed.
+	 * The readouts pill binds the battery level, colour, charging bolt and
+	 * metrics to the store; its waves scale their scroll rate by the run's demo
+	 * speed.
 	 */
 	public function test_render_wires_the_readouts(): void {
 		$markup = $this->render();
 
-		$this->assertStringContainsString( 'data-wp-init---battery="callbacks.initBattery"', $markup );
 		$this->assertStringContainsString( 'data-wp-text="state.batteryDisplay"', $markup );
 		$this->assertStringContainsString( 'data-wp-class--is-charging="state.isCharging"', $markup );
 		$this->assertStringContainsString( 'class="bsb-stat__bolt"', $markup );
@@ -140,16 +140,20 @@ final class CockpitViewTest extends TestCase {
 	}
 
 	/**
-	 * The run control toggles the run, reflects the running state for its
-	 * Start/Stop swap, and carries both translated labels.
+	 * The run control toggles the run, reflects the running and charge-blocked
+	 * states for its Start/Stop/Plugged-in swap, disables itself while blocked,
+	 * and carries all three translated labels.
 	 */
 	public function test_render_wires_the_run_control(): void {
 		$markup = $this->render();
 
 		$this->assertStringContainsString( 'data-wp-on--click="actions.toggleRun"', $markup );
 		$this->assertStringContainsString( 'data-wp-class--is-running="state.isRunning"', $markup );
+		$this->assertStringContainsString( 'data-wp-class--is-blocked="state.isStartBlocked"', $markup );
+		$this->assertStringContainsString( 'data-wp-bind--disabled="state.isStartBlocked"', $markup );
 		$this->assertStringContainsString( '>Start</span>', $markup );
 		$this->assertStringContainsString( '>Stop</span>', $markup );
+		$this->assertStringContainsString( '>Plugged in</span>', $markup );
 	}
 
 	/**
@@ -223,6 +227,7 @@ final class CockpitViewTest extends TestCase {
 				'elapsed_label'      => 'elapsed',
 				'start_label'        => 'Start',
 				'stop_label'         => 'Stop',
+				'plugged_label'      => 'Plugged in',
 				'next_label'         => 'Next page',
 				'viewport_title'     => 'Surf viewport',
 			)
