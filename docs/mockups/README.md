@@ -31,3 +31,4 @@ The shipped deck draws from **Coastal Daybreak** (light) and **Dusk Lineup**
 | `pill-shadow.html`     | Info-pill drop-shadow study — six treatments compared |
 | `pill-shadow-clip.html`| Before/after for the pill shadow being clipped by the deck's scroll overflow (the fix: padded scroll viewport + contained shadow) |
 | `plugged-in-warning.html` | "Unplug to start" config-section warning study — banner / **disabled-button** (shipped) / chip, for when the device is charging |
+| `duration-odometer.html` | Run-duration stepper analog-counter roll: each digit rolls (+ up / − down), seamless 9⇄0 wrap, up to 3 digits (5–240); speed + easing levers |
