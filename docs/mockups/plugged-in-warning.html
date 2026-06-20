@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Deck — "unplug to start" warning study</title>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Hanken+Grotesk:wght@400;600;700&family=Space+Mono:wght@700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --surface: #f1f7fa; --line: #e1edf2; --navy: #1f3a5f; --label: rgba(31,58,95,0.62);
+    --teal: #2f9bb3; --teal-deep: #1c7e96; --accent-grad: linear-gradient(150deg,#2f9bb3,#1c7e96);
+    --sun: #ffce5c; --amber: #ffb24a; --amber-deep: #e8902a; --coral: #ef5a3a;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 2.2rem; font-family: 'Hanken Grotesk', sans-serif; color: var(--navy);
+    background: radial-gradient(120% 70% at 50% -10%,#fff,#f3fafd 40%,transparent 70%), linear-gradient(180deg,#e7f6ff,#fff 60%); }
+  h1 { font-family: 'Anton'; font-weight: 400; font-size: 1.4rem; margin: 0 0 0.2rem; }
+  p.sub { margin: 0 0 1.8rem; color: #5b7488; font-size: 0.88rem; }
+  .row { display: flex; gap: 2.2rem; flex-wrap: wrap; align-items: flex-start; }
+  .col { width: 320px; }
+  .col > h2 { font-size: 0.66rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--teal); margin: 0 0 0.7rem; }
+  .col > .note { font-size: 0.78rem; color: #5b7488; margin: 0 0 0.9rem; min-height: 2.4em; }
+
+  .deck { padding: 1.4rem; border-radius: 20px; background: var(--surface); box-shadow: 0 16px 40px rgba(31,58,95,0.12); display: flex; flex-direction: column; gap: 1.2rem; }
+  .brand { font-family: 'Anton'; font-size: 1.3rem; line-height: 1; }
+  .brand small { display: block; font-family: 'Hanken Grotesk'; font-size: 0.62rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--teal); margin-top: 0.2rem; }
+
+  .field { display: flex; flex-direction: column; gap: 0.5rem; }
+  .flabel { font-size: 0.62rem; font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase; color: var(--label); }
+  .seg { display: flex; gap: 0.4rem; }
+  .seg button { flex: 1; padding: 0.5rem; border: 1px solid var(--line); border-radius: 9px; background: #fff; font: inherit; font-weight: 700; font-size: 0.85rem; color: var(--navy); }
+  .seg button.on { background: var(--accent-grad); color: #fff; border-color: transparent; }
+  .stepper { display: flex; align-items: center; justify-content: space-between; padding: 0.4rem; border: 1px solid var(--line); border-radius: 11px; background: #fff; }
+  .stepper b { font-family: 'Space Mono'; font-size: 1.15rem; }
+  .stepper span { width: 1.8rem; height: 1.8rem; display: grid; place-items: center; border-radius: 7px; background: #fff; color: var(--teal); box-shadow: 0 2px 6px rgba(31,58,95,0.12); }
+
+  /* run button + disabled state */
+  .foot { border-top: 1px solid var(--line); padding-top: 1rem; display: flex; flex-direction: column; gap: 0.6rem; }
+  .run { display: flex; align-items: center; justify-content: center; gap: 0.6rem; width: 100%; padding: 0.9rem; border: 0; border-radius: 13px; background: var(--accent-grad); color: #fff; font-family: 'Anton'; font-size: 1.05rem; letter-spacing: 0.07em; text-transform: uppercase; box-shadow: 0 8px 18px rgba(47,155,179,0.38); }
+  .run .tri { width: 0.8rem; height: 0.8rem; background: currentColor; clip-path: polygon(12% 0,100% 50%,12% 100%); }
+  .run[disabled] { background: #d7e3e9; color: #8fa6b2; box-shadow: none; cursor: not-allowed; }
+  .run[disabled] .tri { clip-path: polygon(0 0,100% 0,100% 100%,0 100%); border-radius: 2px; }
+
+  .plug { width: 1rem; height: 1rem; flex: 0 0 auto; }
+
+  /* A — amber banner above the button */
+  .banner { display: flex; align-items: center; gap: 0.6rem; padding: 0.7rem 0.85rem; border-radius: 11px;
+    background: linear-gradient(150deg, #fff5e0, #ffe9c2); border: 1px solid #f6d79a; color: #8a5a14; }
+  .banner .plug { color: var(--amber-deep); }
+  .banner .txt b { display: block; font-size: 0.78rem; }
+  .banner .txt small { font-size: 0.68rem; opacity: 0.85; }
+
+  /* B — caption under a disabled "Plugged in" button */
+  .cap { display: flex; align-items: center; gap: 0.4rem; font-size: 0.72rem; color: #8a5a14; justify-content: center; }
+  .cap .plug { width: 0.85rem; height: 0.85rem; color: var(--amber-deep); }
+
+  /* C — amber chip near the top */
+  .chip { display: inline-flex; align-items: center; gap: 0.4rem; align-self: flex-start; padding: 0.35rem 0.7rem; border-radius: 999px;
+    background: #ffe9c2; color: #8a5a14; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.04em; }
+  .chip .plug { width: 0.8rem; height: 0.8rem; color: var(--amber-deep); }
+  .pulse { animation: pulse 1.8s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.55} }
+</style>
+</head>
+<body>
+  <h1>"Unplug to start" — config-section warning study</h1>
+  <p class="sub">Battery plugged in ⇒ Start disabled. Three ways to surface why. (A benchmark needs the battery discharging.)</p>
+
+  <div class="row" id="row"></div>
+
+<script>
+  const plugSvg = `<svg class="plug" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2v5M15 2v5M7 7h10v4a5 5 0 0 1-10 0z"/><path d="M12 16v6"/></svg>`;
+  const config = `
+    <div class="brand">Battery Surf Bench<small>Cockpit</small></div>
+    {CHIP}
+    <div class="field"><span class="flabel">Mode</span><div class="seg"><button class="on">Duration</button><button>Target drop</button></div></div>
+    <div class="field"><span class="flabel">Run duration</span><div class="stepper"><span>−</span><b>30 min</b><span>+</span></div></div>
+    <div class="field"><span class="flabel">Speed</span><div class="seg"><button class="on">1×</button><button>4×</button><button>10×</button></div></div>`;
+
+  const variants = [
+    { name: 'A · Banner above button', note: 'Amber notice sits right above the action, with a one-line reason. Hard to miss; closest to the button.',
+      chip: '',
+      foot: `<div class="banner">${plugSvg}<span class="txt"><b>Plugged in — unplug to start</b><small>The benchmark needs the battery discharging.</small></span></div>
+             <button class="run" disabled><span class="tri"></span> Start</button>` },
+    { name: 'B · Disabled button only', note: 'Button itself reads the blocked state — no caption. Most minimal.',
+      chip: '',
+      foot: `<button class="run" disabled>${plugSvg} Plugged in</button>` },
+    { name: 'C · Chip at top + disabled Start', note: 'A small status chip near the brand flags charging globally; Start stays a plain disabled button.',
+      chip: `<span class="chip pulse">${plugSvg} Charging — unplug to start</span>`,
+      foot: `<button class="run" disabled><span class="tri"></span> Start</button>` },
+  ];
+
+  document.getElementById('row').innerHTML = variants.map(v => `
+    <div class="col">
+      <h2>${v.name}</h2>
+      <p class="note">${v.note}</p>
+      <div class="deck">
+        ${config.replace('{CHIP}', v.chip)}
+        <div class="foot">${v.foot}</div>
+      </div>
+    </div>`).join('');
+</script>
+</body>
+</html>

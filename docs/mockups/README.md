@@ -28,3 +28,6 @@ The shipped deck draws from **Coastal Daybreak** (light) and **Dusk Lineup**
 | `cable-animate.html`   | Charging cable slide-in / slide-out animation for the readout battery |
 | `info-pill.html`       | Final readouts layout: folded into the taller wave pill (no battery gauge), charging shown by a bolt; shown only while a run is live |
 | `config-pill-transition.html` | Config ⇄ pill swap motion study: crossfade / **slide swap** (shipped) / sequential, with a speed slider; also the softened, less-blocky pill shadow |
+| `pill-shadow.html`     | Info-pill drop-shadow study — six treatments compared |
+| `pill-shadow-clip.html`| Before/after for the pill shadow being clipped by the deck's scroll overflow (the fix: padded scroll viewport + contained shadow) |
+| `plugged-in-warning.html` | "Unplug to start" config-section warning study — banner / **disabled-button** (shipped) / chip, for when the device is charging |
