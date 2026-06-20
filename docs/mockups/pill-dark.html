@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Readouts pill — dark-mode options</title>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Hanken+Grotesk:wght@400;600;700&family=Space+Mono:wght@700&display=swap" rel="stylesheet" />
+<style>
+  /* Dusk Lineup palette */
+  :root {
+    --dusk-deep:#062b3d; --dusk-deep-2:#0a3a4f; --dusk-teal:#0f5e72; --dusk-amber:#ffb24a;
+    --dusk-amber-2:#ff8a3d; --dusk-aqua:#46d6c4; --dusk-sun:#ffcf6b; --dusk-foam:#e6f7fb;
+    /* the real dark deck background */
+    --deck-bg:
+      linear-gradient(180deg, rgba(255,138,61,0.16) 0%, rgba(255,138,61,0) 26%),
+      radial-gradient(140% 50% at 50% 30%, rgba(255,178,74,0.18) 0%, transparent 55%),
+      linear-gradient(175deg, #0a3a4f 0%, #062b3d 70%);
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; padding:2rem; font-family:'Hanken Grotesk',sans-serif; color:var(--dusk-foam); background:#04222f; }
+  h1 { font-family:'Anton'; font-weight:400; font-size:1.3rem; margin:0 0 0.2rem; }
+  p.sub { margin:0 0 1.8rem; color:rgba(230,247,251,0.6); font-size:0.85rem; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(320px,1fr)); gap:1.8rem; max-width:1200px; }
+  .cell > h2 { font-size:0.62rem; letter-spacing:0.14em; text-transform:uppercase; color:var(--dusk-sun); margin:0 0 0.5rem; }
+  .cell > .note { font-size:0.74rem; color:rgba(230,247,251,0.55); margin:0 0 0.8rem; min-height:2.4em; }
+
+  /* a slice of the dark deck */
+  .deck { padding:1.5rem; border-radius:18px; background:var(--deck-bg); box-shadow:0 14px 40px rgba(0,0,0,0.4); }
+
+  /* base pill — variants override the custom props below */
+  .pill { position:relative; overflow:hidden; border-radius:16px; padding:1rem 1.1rem 1.5rem;
+    color:var(--p-ink, var(--dusk-foam)); background:var(--p-bg); border:var(--p-border, 0);
+    box-shadow:var(--p-shadow, 0 18px 36px -16px rgba(0,0,0,0.6)); backdrop-filter:var(--p-blur, none); }
+  .phead { position:relative; z-index:2; display:flex; align-items:center; gap:0.5rem; font-size:0.7rem; font-weight:700; letter-spacing:0.14em; text-transform:uppercase; }
+  .dot { width:0.55rem; height:0.55rem; border-radius:50%; background:var(--p-dot, var(--dusk-sun)); box-shadow:0 0 12px var(--p-dot, var(--dusk-sun)); }
+  .readouts { position:relative; z-index:2; display:grid; grid-template-columns:1fr 1fr; gap:0.5rem 1rem; margin-top:0.9rem; }
+  .l { display:block; font-size:0.56rem; font-weight:700; letter-spacing:0.14em; text-transform:uppercase; opacity:0.6; }
+  .v { display:block; margin-top:0.15rem; font-family:'Space Mono'; font-weight:700; font-size:1.45rem; line-height:1.05; color:var(--p-val, inherit); }
+  .v.lg { font-size:1.9rem; }
+  .u { font-size:0.72rem; opacity:0.7; }
+  .waves { position:absolute; inset-inline:0; bottom:0; height:40px; z-index:1; }
+  .waves i { position:absolute; inset-inline:0; bottom:0; height:40px; background-repeat:repeat-x; background-size:200px 100%; }
+  .waves i:nth-child(1){ opacity:.5; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='40' viewBox='0 0 200 40' preserveAspectRatio='none'%3E%3Cpath d='M0 20 q 50 -14 100 0 t 100 0 V40 H0 Z' fill='%23e6f7fb' fill-opacity='0.08'/%3E%3C/svg%3E"); }
+  .waves i:nth-child(2){ background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='40' viewBox='0 0 200 40' preserveAspectRatio='none'%3E%3Cpath d='M0 20 q 50 -14 100 0 t 100 0 V40 H0 Z' fill='%2346d6c4' fill-opacity='0.18'/%3E%3C/svg%3E"); }
+  .waves i:nth-child(3){ background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='40' viewBox='0 0 200 40' preserveAspectRatio='none'%3E%3Cpath d='M0 20 q 50 -14 100 0 t 100 0 V40 H0 Z' fill='%23e6f7fb' fill-opacity='0.26'/%3E%3C/svg%3E"); }
+
+  /* ── variants ── */
+  .a .pill { --p-bg: linear-gradient(150deg, var(--dusk-teal), #063a4b); }            /* current */
+  .b .pill { --p-bg: linear-gradient(160deg, #0e4150 0%, #06222f 100%);
+             --p-border: 1px solid rgba(70,214,196,0.18); }                            /* deep slate panel */
+  .c .pill { --p-bg: linear-gradient(150deg, var(--dusk-teal), #0a3a4f); --p-val: var(--dusk-aqua); } /* aqua values */
+  .d .pill { --p-bg: linear-gradient(150deg, #123f4d 0%, #0a2c3a 100%);
+             --p-shadow: 0 18px 40px -14px rgba(255,178,74,0.22), 0 8px 16px -10px rgba(0,0,0,0.6);
+             --p-dot: var(--dusk-amber); }                                             /* warm amber glow */
+  .e .pill { --p-bg: rgba(6,30,42,0.55); --p-border:1px solid rgba(70,214,196,0.28); --p-blur: blur(8px);
+             --p-shadow: 0 18px 36px -16px rgba(0,0,0,0.55); }                          /* glass */
+  .f .pill { --p-bg: linear-gradient(150deg, #0b4a4a 0%, #07303a 100%); --p-dot: var(--dusk-aqua); }  /* teal-green */
+</style>
+</head>
+<body>
+  <h1>Readouts pill — dark-mode options</h1>
+  <p class="sub">On the real Dusk deck background. (A) is the current teal that feels out of place; the rest sit deeper / pick up the dark theme's aqua &amp; amber accents.</p>
+
+  <div class="grid" id="grid"></div>
+
+<script>
+  const inner = `
+    <div class="phead"><span class="dot"></span><span>Surfing · 12:04 elapsed</span></div>
+    <div class="readouts">
+      <div><span class="l">Battery</span><span class="v lg">84%</span></div>
+      <div><span class="l">Time to empty</span><span class="v">6:18</span></div>
+      <div><span class="l">Rate · 10 min</span><span class="v">7.2<span class="u">%/h</span></span></div>
+      <div><span class="l">Rate · session</span><span class="v">6.8<span class="u">%/h</span></span></div>
+    </div>
+    <span class="waves"><i></i><i></i><i></i></span>`;
+  const opts = [
+    ['a','A · Current teal','The shipped dark gradient — the one that reads out of place on the dusk deck.'],
+    ['b','B · Deep slate panel','A darker, desaturated panel with a faint aqua edge — reads as a raised card in the dark scene.'],
+    ['c','C · Aqua values','Teal base, but the numbers pop in the dusk aqua (#46d6c4) for life.'],
+    ['d','D · Warm amber glow','Dark teal base with an amber-tinted lift + amber status dot — echoes the warm glow at the top of the deck.'],
+    ['e','E · Glass','Translucent dark surface, thin aqua border, backdrop blur — floats over the deck.'],
+    ['f','F · Deep teal-green','A greener, deeper aqua base with an aqua dot — coolest of the set.'],
+  ];
+  document.getElementById('grid').innerHTML = opts.map(([c,name,note])=>`
+    <div class="cell ${c}">
+      <h2>${name}</h2><p class="note">${note}</p>
+      <div class="deck"><div class="pill">${inner}</div></div>
+    </div>`).join('');
+</script>
+</body>
+</html>
