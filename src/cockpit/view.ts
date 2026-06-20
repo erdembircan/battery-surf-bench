@@ -67,25 +67,48 @@ const TARGET_STEP = 5;
 let draggingTarget = false;
 
 /**
- * Clamps a percentage to the slider's stepped, supported range.
- * @param value
+ * The highest stop-at level the slider allows: you cannot target a drop above
+ * the battery you currently have, so the cap is the current level snapped to the
+ * step (or the nominal max until the level is known).
+ * @param batteryLevel
  */
-const clampTarget = ( value: number ): number =>
+const targetCap = ( batteryLevel: number | null ): number => {
+	if ( batteryLevel === null ) {
+		return TARGET_MAX;
+	}
+
+	return Math.max(
+		TARGET_MIN,
+		Math.floor( batteryLevel / TARGET_STEP ) * TARGET_STEP
+	);
+};
+
+/**
+ * Clamps a percentage to the slider's stepped range, bounded above by `max`.
+ * @param value
+ * @param max
+ */
+const clampTarget = ( value: number, max: number = TARGET_MAX ): number =>
 	Math.min(
-		TARGET_MAX,
+		max,
 		Math.max( TARGET_MIN, Math.round( value / TARGET_STEP ) * TARGET_STEP )
 	);
 
 /**
- * Maps a pointer x within the battery element to a stepped percentage.
+ * Maps a pointer x within the battery element to a stepped percentage, capped.
  * @param clientX
  * @param el
+ * @param max
  */
-const targetFromPointer = ( clientX: number, el: HTMLElement ): number => {
+const targetFromPointer = (
+	clientX: number,
+	el: HTMLElement,
+	max: number
+): number => {
 	const rect = el.getBoundingClientRect();
 	const ratio = rect.width ? ( clientX - rect.left ) / rect.width : 0;
 
-	return clampTarget( ratio * 100 );
+	return clampTarget( ratio * 100, max );
 };
 
 /** localStorage key the chosen theme is remembered under across visits. */
@@ -159,6 +182,11 @@ store( 'bsb/cockpit', {
 		/** Target stop-at battery level, as a `NN%` string for the readout/fill. */
 		get targetDisplay(): string {
 			return `${ getContext< CockpitContext >().targetPercent }%`;
+		},
+
+		/** Highest target the slider allows — the current battery level (capped). */
+		get targetCap(): number {
+			return targetCap( getContext< CockpitContext >().batteryLevel );
 		},
 
 		/**
@@ -326,11 +354,13 @@ store( 'bsb/cockpit', {
 		 */
 		targetPointerDown( event: PointerEvent ): void {
 			const el = getElement().ref as HTMLElement;
+			const context = getContext< CockpitContext >();
 			el.setPointerCapture?.( event.pointerId );
 			draggingTarget = true;
-			getContext< CockpitContext >().targetPercent = targetFromPointer(
+			context.targetPercent = targetFromPointer(
 				event.clientX,
-				el
+				el,
+				targetCap( context.batteryLevel )
 			);
 		},
 
@@ -343,9 +373,11 @@ store( 'bsb/cockpit', {
 				return;
 			}
 
-			getContext< CockpitContext >().targetPercent = targetFromPointer(
+			const context = getContext< CockpitContext >();
+			context.targetPercent = targetFromPointer(
 				event.clientX,
-				getElement().ref as HTMLElement
+				getElement().ref as HTMLElement,
+				targetCap( context.batteryLevel )
 			);
 		},
 
@@ -375,14 +407,17 @@ store( 'bsb/cockpit', {
 					next = TARGET_MIN;
 					break;
 				case 'End':
-					next = TARGET_MAX;
+					next = targetCap( context.batteryLevel );
 					break;
 				default:
 					return;
 			}
 
 			event.preventDefault();
-			context.targetPercent = clampTarget( next );
+			context.targetPercent = clampTarget(
+				next,
+				targetCap( context.batteryLevel )
+			);
 		},
 
 		/** Toggles whether a baseline calibration precedes the run. */
@@ -471,6 +506,15 @@ store( 'bsb/cockpit', {
 				if ( context.batteryCharging && context.running ) {
 					context.running = false;
 				}
+
+				// The stop-at target can't sit above the battery you have. The
+				// context seeds it high, so the first reading caps it down to the
+				// current level (the startup default); later it only follows the
+				// level down, never re-raising a target the user lowered.
+				const cap = targetCap( context.batteryLevel );
+				if ( context.targetPercent > cap ) {
+					context.targetPercent = cap;
+				}
 			};
 
 			provider().then( ( battery ) => {
@@ -540,6 +584,22 @@ store( 'bsb/cockpit', {
 			);
 			const digits = durationDigits( durationMinutes );
 
+			const state = odometers.get( element );
+			const initial = ! state;
+
+			// On the very first run, freeze every transition so the startup seat —
+			// both the strip positions and the leading-wheel collapse — lands
+			// instantly instead of animating from the default. Transitions are
+			// restored next frame so presses animate.
+			if ( initial ) {
+				strips.forEach( ( strip ) => {
+					strip.style.transition = 'none';
+				} );
+				wheels.forEach( ( wheel ) => {
+					wheel.style.transition = 'none';
+				} );
+			}
+
 			// Collapse leading wheels so there are no leading zeros.
 			wheels[ 0 ]?.classList.toggle(
 				'is-collapsed',
@@ -550,23 +610,24 @@ store( 'bsb/cockpit', {
 				durationMinutes < 10
 			);
 
-			const state = odometers.get( element );
-
 			// First run: seat each wheel on its digit without animating.
-			if ( ! state ) {
+			if ( initial ) {
 				odometers.set( element, {
 					value: durationMinutes,
 					positions: [ ...digits ],
 				} );
 				strips.forEach( ( strip, i ) => {
-					strip.style.transition = 'none';
 					strip.style.transform = wheelTransform( digits[ i ] );
 				} );
-				requestAnimationFrame( () =>
+				void element.offsetHeight;
+				requestAnimationFrame( () => {
 					strips.forEach( ( strip ) => {
 						strip.style.transition = '';
-					} )
-				);
+					} );
+					wheels.forEach( ( wheel ) => {
+						wheel.style.transition = '';
+					} );
+				} );
 
 				return;
 			}

@@ -93,6 +93,7 @@ final class CockpitViewTest extends TestCase {
 		$this->assertStringContainsString( 'class="bsb-field bsb-field--target" data-wp-bind--hidden="state.isModeDuration"', $markup );
 		$this->assertStringContainsString( 'role="slider"', $markup );
 		$this->assertStringContainsString( 'data-wp-bind--aria-valuenow="context.targetPercent"', $markup );
+		$this->assertStringContainsString( 'data-wp-bind--aria-valuemax="state.targetCap"', $markup );
 		$this->assertStringContainsString( 'data-wp-on--pointerdown="actions.targetPointerDown"', $markup );
 		$this->assertStringContainsString( 'data-wp-on--keydown="actions.targetKeyDown"', $markup );
 		$this->assertStringContainsString( 'data-wp-style--width="state.targetDisplay"', $markup );

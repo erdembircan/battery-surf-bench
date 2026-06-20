@@ -44,6 +44,7 @@ interface CockpitConfig {
 		isModeTargetDrop: boolean;
 		durationDisplay: string;
 		targetDisplay: string;
+		targetCap: number;
 		targetColor: string;
 		isSpeed1: boolean;
 		isSpeed4: boolean;
@@ -269,6 +270,7 @@ describe( 'bsb/cockpit view store', () => {
 			} ) );
 			const wheels = [ 0, 1, 2 ].map( () => ( {
 				classList: { toggle: vi.fn() },
+				style: { transition: '' },
 			} ) );
 			mocks.element = {
 				querySelectorAll: ( sel: string ) =>
@@ -365,6 +367,23 @@ describe( 'bsb/cockpit view store', () => {
 
 			mocks.config?.actions.targetKeyDown( key( 'End' ) );
 			expect( mocks.context.targetPercent ).toBe( 95 );
+		} );
+
+		it( 'caps the target at the current battery level', () => {
+			// 84% battery → cap snapped down to the step grid (80).
+			mocks.context.batteryLevel = 84;
+			expect( mocks.config?.state.targetCap ).toBe( 80 );
+
+			// Dragging to the very top stops at the cap, not the nominal max.
+			battery();
+			mocks.config?.actions.targetPointerDown( pointer( 100 ) );
+			expect( mocks.context.targetPercent ).toBe( 80 );
+			mocks.config?.actions.targetPointerUp();
+
+			// End jumps to the cap too.
+			mocks.context.targetPercent = 40;
+			mocks.config?.actions.targetKeyDown( key( 'End' ) );
+			expect( mocks.context.targetPercent ).toBe( 80 );
 		} );
 	} );
 
@@ -570,6 +589,29 @@ describe( 'bsb/cockpit view store', () => {
 			expect( mockBattery.removeEventListener ).toHaveBeenCalledTimes(
 				2
 			);
+		} );
+
+		it( 'caps the seeded target down to the current battery level on read', async () => {
+			const mockBattery = {
+				level: 0.84,
+				charging: false,
+				addEventListener: vi.fn(),
+				removeEventListener: vi.fn(),
+			};
+			( navigator as { getBattery?: unknown } ).getBattery = () =>
+				Promise.resolve( mockBattery );
+
+			// Seeded at the nominal max, as the render template does.
+			mocks.context.targetPercent = 95;
+			const cleanup = mocks.config!.callbacks.initBattery();
+
+			await vi.waitFor( () =>
+				expect( mocks.context.batteryLevel ).toBe( 84 )
+			);
+			// Defaulted to the current level, snapped to the step (80).
+			expect( mocks.context.targetPercent ).toBe( 80 );
+
+			cleanup();
 		} );
 
 		it( 'stops a live run when the device is plugged in mid-session', async () => {

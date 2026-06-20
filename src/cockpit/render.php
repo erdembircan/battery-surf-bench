@@ -46,7 +46,9 @@ $bsb_context = array(
 	'running'         => false,
 	'elapsed'         => 0,
 	'theme'           => 'light',
-	'targetPercent'   => 20,
+	// Seeded at the nominal max; the client caps it down to the current battery
+	// level on the first reading, so the slider defaults to "as much as you have".
+	'targetPercent'   => 95,
 	'batteryLevel'    => null,
 	'batteryCharging' => false,
 	'rate10'          => null,
