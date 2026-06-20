@@ -64,13 +64,13 @@ body {
 	border-radius: 16px;
 	color: var(--status-ink);
 	background: var(--status-grad);
+	// A soft, lifted glow rather than a tight blocky drop. Negative spread keeps
+	// the lateral reach (~20px) inside the deck's available padding so it fades
+	// out smoothly instead of being clipped flush at the edge.
 	box-shadow:
-		0 8px 20px rgba(0, 0, 0, 0.2),
+		0 18px 36px -16px var(--status-cast),
+		0 6px 14px -8px rgba(0, 0, 0, 0.2),
 		inset 0 0 0 1px var(--status-ring);
-
-	&[hidden] {
-		display: none;
-	}
 }
 
 .bsb-deck__status-head {
@@ -160,7 +160,9 @@ body {
 }
 
 // ── Parallax waves inside the surfing indicator ─────────────────────────────
-// Three layers scroll at different speeds, heights and opacities for depth.
+// Three layers scroll at different speeds, heights and opacities for depth. The
+// scroll rate is divided by `--bsb-wave-speed` (the run's demo-speed multiplier,
+// bound from the store), so a 4×/10× run visibly churns the water faster.
 .bsb-deck__waves {
 	position: absolute;
 	inset-inline: 0;
@@ -184,20 +186,20 @@ body {
 .bsb-deck__wave--back {
 	height: 44px;
 	opacity: 0.7;
-	animation-duration: 20s;
+	animation-duration: calc(20s / var(--bsb-wave-speed, 1));
 	background-image: var(--wave-back);
 }
 
 .bsb-deck__wave--mid {
 	height: 34px;
-	animation-duration: 13s;
+	animation-duration: calc(13s / var(--bsb-wave-speed, 1));
 	animation-direction: reverse;
 	background-image: var(--wave-mid);
 }
 
 .bsb-deck__wave--front {
 	height: 24px;
-	animation-duration: 8s;
+	animation-duration: calc(8s / var(--bsb-wave-speed, 1));
 	background-image: var(--wave-front);
 }
 
@@ -306,19 +308,61 @@ body {
 	gap: 1.55rem;
 	flex: 1 1 auto;
 	min-height: 0;
+	// Vertical scroll forces `overflow-x` to compute to `auto`, which would clip
+	// the pill's soft side shadows flush at the body edge (the "blocky" look).
+	// Pad the scroll viewport and pull it back out with a matching negative
+	// margin so the shadow has lateral room while the content stays put. The
+	// inset stays within the deck's 1.5rem padding so the deck doesn't re-clip.
+	padding-inline: 20px;
+	margin-inline: -20px;
 	overflow-y: auto;
 }
 
-// The run-configuration controls. Swapped out for the live readouts pill while
-// a run is active (each toggles its own `hidden` on the run state).
+// The config controls and the readouts pill share one grid cell, stacked, and
+// slide past each other on run start/stop: config exits left as the pill enters
+// from the right (and the reverse on stop). Both stay mounted; `visibility`
+// keeps the off-screen one out of the tab and accessibility trees. Sizing to the
+// taller panel (config) keeps the run button from jumping between states.
+.bsb-deck__swap {
+	display: grid;
+	// Top-align so the shorter pill keeps its own height instead of stretching
+	// to fill the cell (which the taller config panel sizes).
+	align-items: start;
+
+	> .bsb-deck__config,
+	> .bsb-deck__status {
+		grid-area: 1 / 1;
+		transition:
+			opacity 0.34s cubic-bezier(0.22, 1, 0.36, 1),
+			transform 0.34s cubic-bezier(0.22, 1, 0.36, 1),
+			visibility 0.34s;
+	}
+
+	// Idle: config in place, pill parked off to the right.
+	> .bsb-deck__status {
+		opacity: 0;
+		visibility: hidden;
+		transform: translateX(34px);
+	}
+
+	// Running: config slides out left, pill slides in.
+	&.is-running > .bsb-deck__config {
+		opacity: 0;
+		visibility: hidden;
+		transform: translateX(-34px);
+	}
+
+	&.is-running > .bsb-deck__status {
+		opacity: 1;
+		visibility: visible;
+		transform: none;
+	}
+}
+
 .bsb-deck__config {
 	display: flex;
 	flex-direction: column;
 	gap: 1.55rem;
-
-	&[hidden] {
-		display: none;
-	}
 }
 
 // Staggered rise of each control as the deck hydrates.

@@ -124,18 +124,19 @@ final class CockpitViewTest extends TestCase {
 	}
 
 	/**
-	 * The readouts pill is hidden until a run is live, starts the battery feed,
-	 * and binds the battery level, colour, charging bolt and metrics to the store.
+	 * The readouts pill starts the battery feed and binds the battery level,
+	 * colour, charging bolt and metrics to the store; its waves scale their
+	 * scroll rate by the run's demo speed.
 	 */
 	public function test_render_wires_the_readouts(): void {
 		$markup = $this->render();
 
-		$this->assertStringContainsString( 'data-wp-bind--hidden="state.isIdle"', $markup );
 		$this->assertStringContainsString( 'data-wp-init---battery="callbacks.initBattery"', $markup );
 		$this->assertStringContainsString( 'data-wp-text="state.batteryDisplay"', $markup );
 		$this->assertStringContainsString( 'data-wp-class--is-charging="state.isCharging"', $markup );
 		$this->assertStringContainsString( 'class="bsb-stat__bolt"', $markup );
 		$this->assertStringContainsString( 'data-wp-text="state.timeToEmptyDisplay"', $markup );
+		$this->assertStringContainsString( 'data-wp-style----bsb-wave-speed="context.speed"', $markup );
 	}
 
 	/**
@@ -152,13 +153,15 @@ final class CockpitViewTest extends TestCase {
 	}
 
 	/**
-	 * The configuration controls are grouped so they give way to the readouts
-	 * pill while a run is live.
+	 * The config controls and the readouts pill are wrapped in one swap group
+	 * that reflects the running state, so they can slide past each other when a
+	 * run starts or stops.
 	 */
-	public function test_render_hides_the_config_while_running(): void {
+	public function test_render_groups_config_and_pill_for_the_swap(): void {
 		$markup = $this->render();
 
-		$this->assertStringContainsString( 'class="bsb-deck__config" data-wp-bind--hidden="state.isRunning"', $markup );
+		$this->assertStringContainsString( 'class="bsb-deck__swap" data-wp-class--is-running="state.isRunning"', $markup );
+		$this->assertStringContainsString( 'class="bsb-deck__config"', $markup );
 	}
 
 	/**

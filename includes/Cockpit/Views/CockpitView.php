@@ -101,7 +101,8 @@ class CockpitView implements View {
 		</header>
 
 		<div class="bsb-deck__body">
-			<div class="bsb-deck__config" data-wp-bind--hidden="state.isRunning">
+			<div class="bsb-deck__swap" data-wp-class--is-running="state.isRunning">
+			<div class="bsb-deck__config">
 			<section class="bsb-field">
 				<span class="bsb-field__label">{$mode_label}</span>
 				<div class="bsb-seg" role="group" aria-label="{$mode_label}">
@@ -154,7 +155,7 @@ class CockpitView implements View {
 			</section>
 			</div>
 
-			<div class="bsb-deck__status" data-wp-init---clock="callbacks.tick" data-wp-init---battery="callbacks.initBattery" data-wp-bind--hidden="state.isIdle">
+			<div class="bsb-deck__status" data-wp-init---clock="callbacks.tick" data-wp-init---battery="callbacks.initBattery">
 				<div class="bsb-deck__status-head">
 					<span class="bsb-deck__status-dot" aria-hidden="true"></span>
 					<span class="bsb-deck__status-text">{$surfing_label} &middot; <span class="bsb-deck__clock" data-wp-text="state.elapsedClock"></span> {$elapsed_label}</span>
@@ -179,11 +180,12 @@ class CockpitView implements View {
 					</div>
 				</div>
 
-				<span class="bsb-deck__waves" aria-hidden="true">
+				<span class="bsb-deck__waves" aria-hidden="true" data-wp-style----bsb-wave-speed="context.speed">
 					<span class="bsb-deck__wave bsb-deck__wave--back"></span>
 					<span class="bsb-deck__wave bsb-deck__wave--mid"></span>
 					<span class="bsb-deck__wave bsb-deck__wave--front"></span>
 				</span>
+			</div>
 			</div>
 		</div>
 
