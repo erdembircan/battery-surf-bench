@@ -59,6 +59,10 @@ test.describe( 'Cockpit dashboard route', () => {
 			page.locator( '.bsb-run[data-wp-on--click="actions.toggleRun"]' )
 		).toBeAttached();
 
+		// Duration mode is the default, so the target-drop field ships hidden in
+		// the server markup — it must not flash in before hydration hides it.
+		await expect( page.locator( '.bsb-field--target' ) ).toBeHidden();
+
 		// Interactivity hydrates the iframe src from the bound course list.
 		await expect(
 			page.locator( 'iframe.bsb-cockpit__viewport' )

@@ -90,7 +90,9 @@ final class CockpitViewTest extends TestCase {
 	public function test_render_wires_the_target_control(): void {
 		$markup = $this->render();
 
-		$this->assertStringContainsString( 'class="bsb-field bsb-field--target" data-wp-bind--hidden="state.isModeDuration"', $markup );
+		// Hidden in the server markup (default duration mode) so it doesn't flash
+		// before hydration, then bound to the store for live mode switches.
+		$this->assertStringContainsString( 'class="bsb-field bsb-field--target" hidden data-wp-bind--hidden="state.isModeDuration"', $markup );
 		$this->assertStringContainsString( 'role="slider"', $markup );
 		$this->assertStringContainsString( 'data-wp-bind--aria-valuenow="context.targetPercent"', $markup );
 		$this->assertStringContainsString( 'data-wp-bind--aria-valuemax="state.targetCap"', $markup );

@@ -138,7 +138,7 @@ CELLS;
 				</div>
 			</section>
 
-			<section class="bsb-field bsb-field--target" data-wp-bind--hidden="state.isModeDuration">
+			<section class="bsb-field bsb-field--target" hidden data-wp-bind--hidden="state.isModeDuration">
 				<span class="bsb-field__label">{$target_label}</span>
 				<div class="bsb-target">
 					<span class="bsb-target__gauge">
