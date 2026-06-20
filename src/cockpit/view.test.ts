@@ -2,8 +2,7 @@
  * Tests for the cockpit Interactivity store.
  *
  * The store's consumer is the block markup: the viewport iframe binds its `src`
- * to `state.currentSrc`, a label binds to `state.currentLabel`, the cycle button
- * calls `actions.next`, and the control deck binds its mode, duration, baseline,
+ * to `state.currentSrc`, and the control deck binds its mode, duration, baseline,
  * speed and run controls to the rest of the store. These tests stub the
  * Interactivity runtime, capture the store definition the module registers, and
  * assert what those derive from (and do to) the per-instance context and the
@@ -40,7 +39,6 @@ interface CockpitContext {
 interface CockpitConfig {
 	state: {
 		currentSrc: string;
-		currentLabel: string;
 		isModeDuration: boolean;
 		isModeTargetDrop: boolean;
 		durationDisplay: string;
@@ -62,7 +60,6 @@ interface CockpitConfig {
 		timeToEmptyDisplay: string;
 	};
 	actions: {
-		next: () => void;
 		selectMode: () => void;
 		stepDuration: () => void;
 		targetPointerDown: ( event: PointerEvent ) => void;
@@ -193,24 +190,13 @@ describe( 'bsb/cockpit view store', () => {
 			expect( mocks.config?.state.currentSrc ).toBe( '' );
 		} );
 
-		it( 'labels the active page with its position and title', () => {
+		it( 'tracks the active page index for the src', () => {
 			mocks.context.pages = [ page( 'article-1' ), page( 'gallery' ) ];
 			mocks.context.activeIndex = 1;
 
-			expect( mocks.config?.state.currentLabel ).toBe( '2/2 — GALLERY' );
-		} );
-
-		it( 'cycles to the next page and wraps around', () => {
-			mocks.context.pages = [ page( 'article-1' ), page( 'gallery' ) ];
-
-			mocks.config?.actions.next();
-			expect( mocks.context.activeIndex ).toBe( 1 );
 			expect( mocks.config?.state.currentSrc ).toBe(
 				'https://example.test/gallery'
 			);
-
-			mocks.config?.actions.next();
-			expect( mocks.context.activeIndex ).toBe( 0 );
 		} );
 	} );
 

@@ -176,19 +176,6 @@ store( 'bsb/cockpit', {
 			return pages[ activeIndex ]?.url ?? '';
 		},
 
-		/** Human-readable "n/total — Title" label for the active page. */
-		get currentLabel(): string {
-			const { pages, activeIndex } = getContext< CockpitContext >();
-
-			if ( pages.length === 0 ) {
-				return '';
-			}
-
-			return `${ activeIndex + 1 }/${ pages.length } — ${
-				pages[ activeIndex ]?.title ?? ''
-			}`;
-		},
-
 		/** Whether the run is bounded by a fixed duration. */
 		get isModeDuration(): boolean {
 			return getContext< CockpitContext >().mode === 'duration';
@@ -330,18 +317,6 @@ store( 'bsb/cockpit', {
 		},
 	},
 	actions: {
-		/** Advances the viewport to the next course page, wrapping around. */
-		next(): void {
-			const context = getContext< CockpitContext >();
-
-			if ( context.pages.length === 0 ) {
-				return;
-			}
-
-			context.activeIndex =
-				( context.activeIndex + 1 ) % context.pages.length;
-		},
-
 		/** Selects the run mode named by the triggering control's `data-mode`. */
 		selectMode(): void {
 			const { ref } = getElement();

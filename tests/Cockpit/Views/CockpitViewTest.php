@@ -42,9 +42,6 @@ final class CockpitViewTest extends TestCase {
 		$this->assertStringContainsString( 'data-wp-bind--data-theme="context.theme"', $markup );
 		$this->assertStringContainsString( 'class="wp-block-bsb-cockpit"', $markup );
 		$this->assertStringContainsString( 'data-wp-context=\'{"activeIndex":0}\'', $markup );
-		$this->assertStringContainsString( 'data-wp-on--click="actions.next"', $markup );
-		$this->assertStringContainsString( '>Next page<', $markup );
-		$this->assertStringContainsString( 'data-wp-text="state.currentLabel"', $markup );
 		$this->assertStringContainsString( 'data-wp-bind--src="state.currentSrc"', $markup );
 		$this->assertStringContainsString( 'title="Surf viewport"', $markup );
 	}
@@ -236,7 +233,6 @@ final class CockpitViewTest extends TestCase {
 				'start_label'        => 'Start',
 				'stop_label'         => 'Stop',
 				'plugged_label'      => 'Plugged in',
-				'next_label'         => 'Next page',
 				'viewport_title'     => 'Surf viewport',
 			)
 		);

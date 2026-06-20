@@ -174,13 +174,6 @@ $monitor-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'
 	--stage-bg:
 		radial-gradient(140% 60% at 50% 0%, #{rgba(#fff, 0.8)} 0%, transparent 55%),
 		linear-gradient(180deg, #fbfdfe 0%, #eef5f8 100%);
-	--stage-bar: #{rgba(#fff, 0.7)};
-	--stage-line: #e3edf1;
-	--stage-text: #{$coastal-navy};
-	--stage-text-soft: #9fb6c2;
-	--cycle-bg: #{$coastal-teal};
-	--cycle-ink: #ffffff;
-	--cycle-hover: #{$coastal-teal-deep};
 	--viewport-bg: #ffffff;
 
 	&[data-theme='dark'] {
@@ -226,13 +219,6 @@ $monitor-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'
 		--subtitle-ink: #{$dusk-sun};
 		--focus: #{$dusk-sun};
 		--stage-bg: linear-gradient(180deg, #0a3447 0%, #062734 100%);
-		--stage-bar: #{rgba(#fff, 0.05)};
-		--stage-line: #{rgba(#a0e1f0, 0.16)};
-		--stage-text: #{$dusk-foam};
-		--stage-text-soft: #{rgba($dusk-foam, 0.4)};
-		--cycle-bg: #{$dusk-sun};
-		--cycle-ink: #{$dusk-deep};
-		--cycle-hover: #{$dusk-amber};
 		--viewport-bg: #ffffff;
 	}
 }

@@ -17,8 +17,7 @@ defined( 'ABSPATH' ) || exit;
  * controls — mode, duration, baseline calibration, speed and a start/stop
  * control — each wired to the client store ({@see src/cockpit/view.ts}). While a
  * run is live the configuration controls give way to the live readouts pill; the
- * stage carries the page
- * label, the cycle control and the viewport iframe. The block's server render
+ * stage carries the viewport iframe. The block's server render
  * template ({@see src/cockpit/render.php}) prepares the dynamic, already-escaped
  * values — wrapper attributes, the per-instance `data-wp-context`, and the
  * translated labels — and hands them here; this view owns the structure, held
@@ -57,7 +56,6 @@ class CockpitView implements View {
 	 *     @type string $start_label       Translated, escaped label for the run control when idle.
 	 *     @type string $stop_label        Translated, escaped label for the run control when running.
 	 *     @type string $plugged_label     Translated, escaped run-control label when blocked by charging.
-	 *     @type string $next_label        Translated, escaped label for the next-page control.
 	 *     @type string $viewport_title    Translated, escaped title for the viewport iframe.
 	 * }
 	 * @return string The block's HTML.
@@ -88,7 +86,6 @@ class CockpitView implements View {
 		$start_label        = isset( $data['start_label'] ) ? (string) $data['start_label'] : '';
 		$stop_label         = isset( $data['stop_label'] ) ? (string) $data['stop_label'] : '';
 		$plugged_label      = isset( $data['plugged_label'] ) ? (string) $data['plugged_label'] : '';
-		$next_label         = isset( $data['next_label'] ) ? (string) $data['next_label'] : '';
 		$viewport_title     = isset( $data['viewport_title'] ) ? (string) $data['viewport_title'] : '';
 
 		// Each duration-odometer wheel is a strip of 0–9 repeated three times; the
@@ -215,10 +212,6 @@ CELLS;
 	</aside>
 
 	<div class="bsb-cockpit__stage">
-		<div class="bsb-stage__bar">
-			<span class="bsb-stage__label" data-wp-text="state.currentLabel"></span>
-			<button type="button" class="bsb-stage__cycle" data-wp-on--click="actions.next">{$next_label}</button>
-		</div>
 		<iframe class="bsb-cockpit__viewport" title="{$viewport_title}" data-wp-bind--src="state.currentSrc"></iframe>
 	</div>
 </div>
