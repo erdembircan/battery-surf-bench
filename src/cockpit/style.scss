@@ -225,11 +225,11 @@ body {
 }
 
 // ── Brand + theme toggle ─────────────────────────────────────────────────────
-// A grid so the mark cell can size itself to the wordmark: [mark] [text] [actions].
 .bsb-deck__brand {
-	display: grid;
-	grid-template-columns: auto 1fr auto;
-	align-items: stretch;
+	position: relative;
+	z-index: 1;
+	display: flex;
+	align-items: center;
 	gap: 0.85rem;
 	padding-top: 0.5rem;
 	padding-bottom: 1.5rem;
@@ -237,13 +237,12 @@ body {
 	border-bottom: 1px solid var(--line);
 }
 
-// Brand mark — a solid surfer beside the wordmark, tinted to the brand accent.
-// `align-items: stretch` makes its cell as tall as the wordmark, and the square
-// aspect-ratio sizes its width to match — so it grows automatically when the
-// title wraps to two lines in the narrow deck. No fixed dimensions to drift.
+// Brand mark — a small, solid surfer beside the wordmark, tinted to the brand
+// accent. No figure faded behind the title; the open space is the point.
 .bsb-deck__mark {
-	aspect-ratio: 1;
-	min-height: 0;
+	flex: 0 0 auto;
+	width: 2.3rem;
+	height: 2.3rem;
 	background: var(--subtitle-ink);
 	mask-image: url('../../assets/images/menu-icon.svg');
 	mask-repeat: no-repeat;
@@ -256,16 +255,18 @@ body {
 }
 
 .bsb-deck__wordmark {
-	align-self: center;
+	position: relative;
+	z-index: 1;
 	display: flex;
 	flex-direction: column;
 	gap: 0.15rem;
 	min-width: 0;
+	margin-right: auto;
 }
 
 .bsb-deck__title {
 	font-family: theme.$font-display;
-	font-size: 1.5rem;
+	font-size: 1.36rem;
 	letter-spacing: 0.01em;
 	line-height: 0.98;
 	text-transform: uppercase;
@@ -282,7 +283,6 @@ body {
 
 // Deck header actions — the compact and theme toggles, grouped on the right.
 .bsb-deck__actions {
-	align-self: center;
 	display: flex;
 	align-items: center;
 	gap: 0.5rem;
