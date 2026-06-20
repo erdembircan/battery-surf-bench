@@ -98,6 +98,10 @@
      "sun-faded" filter hits the photo only, never the greeting text. */
   .pic { position:relative; min-height:360px; overflow:hidden; background-color:#0c3346; }
   .picPhoto { position:absolute; inset:0; z-index:0; background-size:cover; background-position:center; background-repeat:no-repeat; filter:var(--pc-filter, none); }
+  /* "our logo" option: the expanded surfer mark (icon.svg) tinted over a summer
+     gradient — an illustrated postcard, no photo licence needed. */
+  .picMark { position:absolute; inset:0; z-index:0; background:#fff6e6;
+    -webkit-mask:url('/assets/images/icon.svg') center/74% no-repeat; mask:url('/assets/images/icon.svg') center/74% no-repeat; }
   /* warm wash — the "left in the sun" cast (blend-mode tints the photo) */
   .picWash { position:absolute; inset:0; z-index:1; pointer-events:none; background:var(--pc-wash, transparent); mix-blend-mode:var(--pc-wash-blend, normal); }
   /* fine grain — paper/print texture */
@@ -174,7 +178,8 @@
     <label><input type="radio" name="img" value="2" /> 3 surfer · sunset</label>
     <label><input type="radio" name="img" value="3" /> 4 carrying boards</label>
     <label><input type="radio" name="img" value="4" /> 5 wave</label>
-    <span style="flex:1; font-size:.72rem; color:var(--ink-soft)">Unsplash (free license) · hotlinked for the mock</span>
+    <label><input type="radio" name="img" value="logo" /> ★ our logo</label>
+    <span style="flex:1; font-size:.72rem; color:var(--ink-soft)">photos: Unsplash (free) · logo: our own asset</span>
   </div>
   <div class="ctl" id="fxCtl">
     <strong>Sun-faded look</strong>
@@ -240,7 +245,9 @@
       <div class="pcWrap">
         <div class="card">
           <div class="pic" style="${FX[PC_FX].css}">
-            <div class="picPhoto" style="background-image:url('${PC_IMG}')"></div>
+            ${PC_IMG === 'logo'
+              ? `<div class="picPhoto" style="background:linear-gradient(180deg,#ff9e5e 0%,#ffc857 40%,#7fd9d2 72%,#2f9bb3 100%)"></div><div class="picMark"></div>`
+              : `<div class="picPhoto" style="background-image:url('${PC_IMG}')"></div>`}
             <div class="picWash"></div>
             <div class="picGrain"></div>
             <div class="greet">Greetings from<small>Battery Surf Bench</small></div>
@@ -285,7 +292,7 @@
     fxCtl.style.display = isPc ? '' : 'none';
   }
   document.querySelectorAll('input[name=c]').forEach(r => r.addEventListener('change', paint));
-  document.querySelectorAll('input[name=img]').forEach(r => r.addEventListener('change', () => { if(r.checked){ PC_IMG = PHOTOS[+r.value]; paint(); } }));
+  document.querySelectorAll('input[name=img]').forEach(r => r.addEventListener('change', () => { if(r.checked){ PC_IMG = r.value === 'logo' ? 'logo' : PHOTOS[+r.value]; paint(); } }));
   document.querySelectorAll('input[name=fx]').forEach(r => r.addEventListener('change', () => { if(r.checked){ PC_FX = r.value; paint(); } }));
   document.getElementById('dark').addEventListener('change', e => document.body.classList.toggle('dark', e.target.checked));
   paint();
