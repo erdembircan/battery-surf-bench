@@ -16,6 +16,7 @@ use ErdemBircan\BatterySurfBench\Cockpit\Views\CockpitDashboard;
 use ErdemBircan\BatterySurfBench\Support\Manager;
 use ErdemBircan\BatterySurfBench\Tests\TestCase;
 use Mockery;
+use WP_Scripts;
 use WP_Styles;
 
 use function has_action;
@@ -155,6 +156,64 @@ final class CockpitTest extends TestCase {
 		$cockpit = $this->cockpit( $assets );
 		$cockpit->enqueue_style();
 		$cockpit->dequeue_all_assets();
+
+		unset( $GLOBALS['wp_styles'], $GLOBALS['wp_scripts'] );
+
+		// The Mockery expectations above are the assertions; acknowledge them so
+		// PHPUnit does not flag the test as risky.
+		$this->addToAssertionCount( 3 );
+	}
+
+	/**
+	 * By default the asset strip dequeues every classic script, so no theme or
+	 * plugin JS reaches the standalone dashboard.
+	 */
+	public function test_dequeue_all_assets_dequeues_every_script_by_default(): void {
+		$wp_scripts        = new WP_Scripts();
+		$wp_scripts->queue = array( 'theme-script', 'another-plugin' );
+
+		$GLOBALS['wp_styles']  = null;
+		$GLOBALS['wp_scripts'] = $wp_scripts;
+
+		Functions\expect( 'apply_filters' )
+			->once()
+			->with( 'battery_surf_bench_cockpit_spared_script_handles', array() )
+			->andReturn( array() );
+
+		Functions\expect( 'wp_dequeue_script' )->once()->with( 'theme-script' );
+		Functions\expect( 'wp_dequeue_script' )->once()->with( 'another-plugin' );
+
+		$this->cockpit()->dequeue_all_assets();
+
+		unset( $GLOBALS['wp_styles'], $GLOBALS['wp_scripts'] );
+
+		// The Mockery expectations above are the assertions; acknowledge them so
+		// PHPUnit does not flag the test as risky.
+		$this->addToAssertionCount( 3 );
+	}
+
+	/**
+	 * Script handles returned through the `battery_surf_bench_cockpit_spared_script_handles`
+	 * filter survive the strip. Dev tooling (the Playground LiveReload client)
+	 * relies on this so file changes still reload the cockpit in place.
+	 */
+	public function test_dequeue_all_assets_spares_filtered_script_handles(): void {
+		$wp_scripts        = new WP_Scripts();
+		$wp_scripts->queue = array( 'theme-script', 'bsb-live-reload', 'another-plugin' );
+
+		$GLOBALS['wp_styles']  = null;
+		$GLOBALS['wp_scripts'] = $wp_scripts;
+
+		Functions\expect( 'apply_filters' )
+			->once()
+			->with( 'battery_surf_bench_cockpit_spared_script_handles', array() )
+			->andReturn( array( 'bsb-live-reload' ) );
+
+		Functions\expect( 'wp_dequeue_script' )->once()->with( 'theme-script' );
+		Functions\expect( 'wp_dequeue_script' )->once()->with( 'another-plugin' );
+		Functions\expect( 'wp_dequeue_script' )->never()->with( 'bsb-live-reload' );
+
+		$this->cockpit()->dequeue_all_assets();
 
 		unset( $GLOBALS['wp_styles'], $GLOBALS['wp_scripts'] );
 

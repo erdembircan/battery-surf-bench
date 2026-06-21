@@ -52,7 +52,10 @@ const activatePluginStep: BlueprintV1Declaration[ 'steps' ] = [
 /**
  * Source for a dev-only must-use plugin that enqueues the LiveReload client on
  * the front end and in the admin. Kept out of the shipped plugin so live-reload
- * tooling never leaks into production.
+ * tooling never leaks into production. The cockpit dashboard strips every
+ * classic front-end script, so the client also opts into the cockpit's
+ * `battery_surf_bench_cockpit_spared_script_handles` filter to survive that strip and keep
+ * reloading the cockpit in place.
  */
 const liveReloadMuPlugin = `<?php
 /**
@@ -64,6 +67,14 @@ add_action( 'wp_enqueue_scripts', 'bsb_dev_live_reload' );
 add_action( 'admin_enqueue_scripts', 'bsb_dev_live_reload' );
 function bsb_dev_live_reload() {
 	wp_enqueue_script( 'bsb-live-reload', '${ LIVERELOAD_CLIENT_URL }', array(), null, true );
+}
+
+// The cockpit dashboard strips every classic front-end script; spare the
+// LiveReload client so editing files still reloads the cockpit in place.
+add_filter( 'battery_surf_bench_cockpit_spared_script_handles', 'bsb_dev_live_reload_spare' );
+function bsb_dev_live_reload_spare( $handles ) {
+	$handles[] = 'bsb-live-reload';
+	return $handles;
 }
 `;
 
