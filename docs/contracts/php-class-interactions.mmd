@@ -93,6 +93,10 @@ classDiagram
         +render() void
     }
 
+    class SessionsScreenView {
+        +render(array data) string
+    }
+
     class CoursePage {
         +__construct(string slug, string title, string content)
         +slug() string
@@ -168,6 +172,8 @@ classDiagram
     SessionsScreen ..|> Manager : implements
     SessionsScreen --> SessionSchema : uses
     SessionsScreen --> Assets : uses
+    SessionsScreen ..> SessionsScreenView : renders via
+    SessionsScreenView ..|> View : implements
     CourseLibrary --> CourseCatalog : uses
     CourseRouter ..|> Manager : implements
     CourseRouter --> CourseCatalog : uses
