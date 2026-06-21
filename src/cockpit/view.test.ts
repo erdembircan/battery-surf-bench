@@ -787,10 +787,10 @@ describe( 'bsb/cockpit view store', () => {
 			mockBattery.level = 0.79;
 			onChange();
 
-			// 1% over 10 min → 6 %/h; from 79% to empty at 6 %/h → 47,400 s.
+			// 1% over 10 min → 6 %/h; full-charge runtime 100% at 6 %/h → 60,000 s.
 			expect( mocks.context.rateSession ).toBe( 6 );
 			expect( mocks.context.rate10 ).toBe( 6 );
-			expect( mocks.context.secondsToEmpty ).toBe( 47_400 );
+			expect( mocks.context.secondsToEmpty ).toBe( 60_000 );
 
 			cleanup();
 		} );

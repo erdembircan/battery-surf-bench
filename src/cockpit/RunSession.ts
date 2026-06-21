@@ -24,7 +24,7 @@ export interface Readouts {
 	rate10: number | null;
 	/** Drain rate over the whole run (%/h), or null until known. */
 	rateSession: number | null;
-	/** Projected seconds until the battery empties, or null until known. */
+	/** Projected full-charge runtime in seconds (100% to empty at the whole-run rate), or null until known. */
 	secondsToEmpty: number | null;
 }
 
@@ -85,9 +85,10 @@ export class RunSession {
 
 	/**
 	 * The current derived readouts: the ten-minute and whole-run drain rates
-	 * (rounded to a tenth of a percent per hour) and the projected time to empty
-	 * from the latest level at the whole-run rate. Values are null until enough
-	 * has been observed to compute them.
+	 * (rounded to a tenth of a percent per hour) and the projected full-charge
+	 * runtime — how long a full battery (100%) would last at the whole-run rate,
+	 * a device-level figure that does not depend on the charge the run started
+	 * from. Values are null until enough has been observed to compute them.
 	 */
 	readouts(): Readouts {
 		const latest = this.log.latest();
@@ -99,7 +100,10 @@ export class RunSession {
 		const samples = this.log.all();
 		const session: DrainRateResult = drainRate( samples );
 		const window: DrainRateResult = windowDrainRate( samples );
-		const minutes = minutesToLevel( latest.level, 0, session.pctPerHour );
+		// Full-charge runtime: project from a full battery (100%) to empty, so the
+		// figure is comparable across runs and devices rather than tied to the
+		// charge this run happened to start at.
+		const minutes = minutesToLevel( 1, 0, session.pctPerHour );
 
 		return {
 			rate10: roundRate( window.pctPerHour ),

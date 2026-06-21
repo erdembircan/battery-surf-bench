@@ -50,8 +50,9 @@ describe( 'RunSession', () => {
 		const readouts = session.readouts();
 		expect( readouts.rateSession ).toBe( 6 );
 		expect( readouts.rate10 ).toBe( 6 );
-		// From 79% to empty at 6 %/h → 790 minutes → 47,400 seconds.
-		expect( readouts.secondsToEmpty ).toBe( 47_400 );
+		// Full-charge runtime: 100% at 6 %/h → 1000 minutes → 60,000 seconds,
+		// independent of the level the run is currently at.
+		expect( readouts.secondsToEmpty ).toBe( 60_000 );
 	} );
 
 	it( 'rounds the rate to a tenth of a percent per hour', () => {
