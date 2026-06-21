@@ -31,33 +31,6 @@ function metaValue(
 }
 
 /**
- * Formats a drain rate in percent per hour to two decimals.
- *
- * @param value The raw meta value.
- * @return The formatted rate, or an em dash when absent.
- */
-function asRate( value: unknown ): string {
-	const rate = Number( value );
-	return Number.isFinite( rate ) ? rate.toFixed( 2 ) : '—';
-}
-
-/**
- * Formats a count of minutes as a compact hours-and-minutes duration.
- *
- * @param value The raw meta value.
- * @return The formatted duration, or an em dash when absent.
- */
-function asMinutes( value: unknown ): string {
-	const minutes = Number( value );
-	if ( ! Number.isFinite( minutes ) || minutes <= 0 ) {
-		return '—';
-	}
-	const hours = Math.floor( minutes / 60 );
-	const rest = Math.round( minutes % 60 );
-	return hours > 0 ? `${ hours }h ${ rest }m` : `${ rest }m`;
-}
-
-/**
  * Formats a stored datetime string for display in the viewer's locale.
  *
  * @param value The raw meta value.
@@ -210,29 +183,6 @@ function toField( descriptor: SessionFieldDescriptor ): Field< SessionRecord > {
 				render: ( { item } ) => (
 					<LevelBar value={ metaValue( item, descriptor ) } />
 				),
-			};
-		case 'rate':
-			return {
-				...base,
-				render: ( { item } ) => (
-					<>{ asRate( metaValue( item, descriptor ) ) }</>
-				),
-			};
-		case 'minutes':
-			return {
-				...base,
-				type: 'integer',
-				render: ( { item } ) => (
-					<>{ asMinutes( metaValue( item, descriptor ) ) }</>
-				),
-			};
-		case 'integer':
-			return { ...base, type: 'integer' };
-		case 'object':
-			return {
-				...base,
-				enableSorting: false,
-				render: () => <>—</>,
 			};
 		default:
 			if ( descriptor.elements ) {

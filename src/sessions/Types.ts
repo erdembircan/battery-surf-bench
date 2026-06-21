@@ -6,15 +6,7 @@
  * How a session field should be rendered in the listing. The PHP schema picks
  * the format; the field builder maps it to a DataViews type and renderer.
  */
-export type SessionFieldFormat =
-	| 'text'
-	| 'status'
-	| 'datetime'
-	| 'percent'
-	| 'rate'
-	| 'minutes'
-	| 'integer'
-	| 'object';
+export type SessionFieldFormat = 'text' | 'status' | 'datetime' | 'percent';
 
 /**
  * A single selectable value for an enumerated session field, as DataViews

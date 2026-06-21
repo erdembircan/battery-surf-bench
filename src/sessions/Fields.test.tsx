@@ -77,7 +77,7 @@ describe( 'buildFields', () => {
 	it( 'leads with a title field ahead of the descriptor fields', () => {
 		const fields = buildFields( [
 			descriptor( 'text', { key: 'a', label: 'A' } ),
-			descriptor( 'integer', { key: 'b', label: 'B' } ),
+			descriptor( 'datetime', { key: 'b', label: 'B' } ),
 		] );
 
 		expect( fields.map( ( f ) => f.id ) ).toEqual( [
@@ -210,44 +210,6 @@ describe( 'percent format', () => {
 	} );
 } );
 
-describe( 'rate format', () => {
-	const rate = descriptor( 'rate', { key: 'bsb_rate' } );
-
-	it( 'formats a drain rate to two decimals', () => {
-		const { container } = renderCell( rate, { bsb_rate: 12.3456 } );
-		expect( container ).toHaveTextContent( '12.35' );
-	} );
-
-	it( 'shows an em dash when the rate is absent', () => {
-		const { container } = renderCell( rate, {} );
-		expect( container ).toHaveTextContent( EM_DASH );
-	} );
-} );
-
-describe( 'minutes format', () => {
-	const minutes = descriptor( 'minutes', { key: 'bsb_minutes' } );
-
-	it( 'formats over an hour as hours and minutes', () => {
-		const { container } = renderCell( minutes, { bsb_minutes: 135 } );
-		expect( container ).toHaveTextContent( '2h 15m' );
-	} );
-
-	it( 'formats under an hour as minutes only', () => {
-		const { container } = renderCell( minutes, { bsb_minutes: 45 } );
-		expect( container ).toHaveTextContent( '45m' );
-	} );
-
-	it( 'shows an em dash for non-positive or absent durations', () => {
-		expect(
-			renderCell( minutes, { bsb_minutes: 0 } ).container
-		).toHaveTextContent( EM_DASH );
-		cleanup();
-		expect( renderCell( minutes, {} ).container ).toHaveTextContent(
-			EM_DASH
-		);
-	} );
-} );
-
 describe( 'datetime format', () => {
 	const datetime = descriptor( 'datetime', { key: 'bsb_started_at' } );
 
@@ -270,26 +232,6 @@ describe( 'datetime format', () => {
 
 	it( 'shows an em dash when the timestamp is absent', () => {
 		const { container } = renderCell( datetime, {} );
-		expect( container ).toHaveTextContent( EM_DASH );
-	} );
-} );
-
-describe( 'integer format', () => {
-	it( 'types the field as integer for numeric sorting without a renderer', () => {
-		const field = fieldFor( descriptor( 'integer' ) );
-		expect( field.type ).toBe( 'integer' );
-		expect( field.render ).toBeUndefined();
-	} );
-} );
-
-describe( 'object format', () => {
-	it( 'is unsortable and renders an em-dash placeholder', () => {
-		const field = fieldFor( descriptor( 'object' ) );
-		expect( field.enableSorting ).toBe( false );
-		const { container } = renderFieldCell( field, {
-			id: 1,
-			meta: { value: { nested: true } },
-		} as SessionRecord );
 		expect( container ).toHaveTextContent( EM_DASH );
 	} );
 } );
