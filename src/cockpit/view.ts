@@ -127,6 +127,20 @@ const applyReadouts = (
 	context.secondsToEmpty = readouts.secondsToEmpty;
 };
 
+/**
+ * Ends a live run, returning the cockpit to its idle, ready state: the run
+ * stops, the deck (the left dashboard) comes back, the top compact pill closes,
+ * and the calculation session is wound up. The single place a run is torn down,
+ * whether by the stop control, by plugging in, or by the duration elapsing.
+ * @param context
+ * @param instance
+ */
+const stopRun = ( context: CockpitContext, instance: InstanceState ): void => {
+	context.running = false;
+	context.compact = false;
+	instance.session.stop();
+};
+
 /** Whether a pointer drag on the battery slider is in progress. */
 let draggingTarget = false;
 
@@ -438,9 +452,7 @@ store( 'bsb/cockpit', {
 			const instance = instanceFor( context );
 
 			if ( context.running ) {
-				context.running = false;
-				context.compact = false;
-				instance.session.stop();
+				stopRun( context, instance );
 				return;
 			}
 
@@ -545,9 +557,7 @@ store( 'bsb/cockpit', {
 					// A benchmark must drain the battery: plugging in mid-run ends
 					// the run rather than recording charging samples.
 					if ( reading.charging && context.running ) {
-						context.running = false;
-						context.compact = false;
-						instance.session.stop();
+						stopRun( context, instance );
 					}
 
 					// The stop-at target can't sit above the battery you have.
@@ -601,13 +611,25 @@ store( 'bsb/cockpit', {
 		 * Advances the surfing indicator's elapsed clock once a second while a run
 		 * is live, returning a cleanup that stops the timer. Wired through
 		 * `data-wp-init` on the always-mounted pill, so the timer only counts while
-		 * `running` — it stays at rest (and `toggleRun` resets it) between runs.
+		 * `running` — it stays at rest (and `toggleRun` resets it) between runs. In
+		 * duration mode the run ends itself once the elapsed clock reaches the
+		 * (normalized) duration, stopping the run and restoring the deck.
 		 */
 		tick(): () => void {
 			const context = getContext< CockpitContext >();
 			const timer = setInterval( () => {
-				if ( context.running ) {
-					context.elapsed += 1;
+				if ( ! context.running ) {
+					return;
+				}
+
+				context.elapsed += 1;
+
+				if (
+					context.mode === 'duration' &&
+					context.elapsed >=
+						normalizeDuration( context.durationMinutes ) * 60
+				) {
+					stopRun( context, instanceFor( context ) );
 				}
 			}, 1000 );
 

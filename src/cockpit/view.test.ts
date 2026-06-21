@@ -541,6 +541,49 @@ describe( 'bsb/cockpit view store', () => {
 			vi.useRealTimers();
 		} );
 
+		it( 'stops the run and restores the deck when the duration elapses', () => {
+			vi.useFakeTimers();
+			mocks.context.mode = 'duration';
+			mocks.context.durationMinutes = 5;
+			mocks.context.running = true;
+			mocks.context.compact = true;
+			// One second short of the five-minute duration.
+			mocks.context.elapsed = 299;
+
+			const cleanup = mocks.config!.callbacks.tick();
+			vi.advanceTimersByTime( 1000 );
+
+			// The countdown hit zero: the run ends, the compact pill closes, and
+			// the deck (left dashboard) comes back.
+			expect( mocks.context.running ).toBe( false );
+			expect( mocks.context.compact ).toBe( false );
+
+			// Once stopped, the clock no longer advances.
+			vi.advanceTimersByTime( 5000 );
+			expect( mocks.context.elapsed ).toBe( 300 );
+
+			cleanup();
+			vi.useRealTimers();
+		} );
+
+		it( 'keeps running past the clock in target-drop mode', () => {
+			vi.useFakeTimers();
+			mocks.context.mode = 'targetDrop';
+			mocks.context.durationMinutes = 5;
+			mocks.context.running = true;
+			mocks.context.elapsed = 299;
+
+			const cleanup = mocks.config!.callbacks.tick();
+			vi.advanceTimersByTime( 2000 );
+
+			// Target-drop has no fixed length, so the clock keeps climbing.
+			expect( mocks.context.running ).toBe( true );
+			expect( mocks.context.elapsed ).toBe( 301 );
+
+			cleanup();
+			vi.useRealTimers();
+		} );
+
 		it( 'holds the clock while idle so it stays at rest between runs', () => {
 			vi.useFakeTimers();
 			mocks.context.running = false;
