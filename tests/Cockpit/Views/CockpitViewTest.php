@@ -286,7 +286,7 @@ final class CockpitViewTest extends TestCase {
 				'battery_label'      => 'Battery',
 				'rate10_label'       => 'Rate · 10 min',
 				'rate_session_label' => 'Rate · session',
-				'tte_label'          => 'Time to empty',
+				'tte_label'          => '100% → 0%',
 				'target_short_label' => 'Target',
 				'surfing_label'      => 'Surfing',
 				'elapsed_label'      => 'elapsed',
