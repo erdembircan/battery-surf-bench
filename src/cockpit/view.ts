@@ -4,13 +4,51 @@
  * The block's PHP render seeds a per-instance context with the surfable course
  * pages, the active page index, and the run configuration the control deck
  * edits — benchmark mode, the duration to run for, whether to calibrate a
- * baseline first, the surf speed, and whether a run is live. This store derives
- * the viewport URL and the deck's reactive readouts from that context and
- * exposes the actions the deck's controls call, so the whole cockpit — viewport
- * and controls alike — is driven from one place as it grows.
+ * baseline first, the surf speed, and whether a run is live. This module is a
+ * thin wiring layer: it derives the viewport URL and the deck's reactive
+ * readouts from that context and delegates the real work to focused, separately
+ * tested domains — theme resolution ({@link ./Theme}), the target-drop slider
+ * ({@link ./TargetControl}), config normalization ({@link ./RunConfig}), display
+ * formatting ({@link ./Format}), battery acquisition ({@link ./BatteryMonitor}),
+ * and the drain-rate calculations ({@link ./RunSession}). Keeping the store thin
+ * is deliberate: the Interactivity API makes it easy to pile everything into one
+ * file, and the calculations especially must live where they can be unit-tested
+ * in isolation.
  */
 
 import { store, getContext, getElement } from '@wordpress/interactivity';
+import {
+	type RunMode,
+	type Speed,
+	SPEEDS,
+	normalizeDuration,
+	normalizeMode,
+	normalizeSpeed,
+} from './RunConfig';
+import {
+	TARGET_MIN,
+	TARGET_STEP,
+	targetCap,
+	clampTarget,
+	targetFromPointer,
+	targetColor,
+} from './TargetControl';
+import {
+	type ThemeName,
+	type ThemePref,
+	resolveTheme,
+	nextThemePref,
+	readStoredPref,
+	writeStoredPref,
+} from './Theme';
+import {
+	formatClock,
+	formatTimeToEmpty,
+	formatRate,
+	durationDigits,
+} from './Format';
+import { BatteryMonitor, type BatteryReading } from './BatteryMonitor';
+import { RunSession } from './RunSession';
 
 /** One surfable course page, as supplied by the `bsb/course-pages` binding. */
 interface CoursePage {
@@ -18,15 +56,6 @@ interface CoursePage {
 	title: string;
 	url: string;
 }
-
-/** Which quantity a benchmark run is bounded by. */
-type RunMode = 'duration' | 'targetDrop';
-
-/** The deck's resolved colour theme — Coastal Daybreak or Dusk Lineup. */
-type ThemeName = 'light' | 'dark';
-
-/** The visitor's theme preference: a fixed theme, or follow the OS. */
-type ThemePref = 'light' | 'dark' | 'system';
 
 /** Per-instance context the cockpit's PHP render seeds onto the block. */
 interface CockpitContext {
@@ -49,96 +78,57 @@ interface CockpitContext {
 	secondsToEmpty: number | null;
 }
 
-/** The slice of the Battery Status API the readouts read. */
-interface BatteryLike {
-	level: number;
-	charging: boolean;
-	addEventListener: ( type: string, listener: () => void ) => void;
-	removeEventListener: ( type: string, listener: () => void ) => void;
+/** Per-instance calculation state, kept off the reactive context and keyed by it. */
+interface InstanceState {
+	/** The run's sample log and drain-rate derivations. */
+	session: RunSession;
+	/** The last battery reading seen, so a run can seed its first sample on start. */
+	lastReading: BatteryReading | null;
 }
 
-/** Smallest and largest run duration the stepper will set, in minutes. */
-const DURATION_MIN = 5;
-const DURATION_MAX = 240;
+/**
+ * Per-instance state, keyed by the block's context object. Holds the run's
+ * calculation model so it survives across the store's actions and callbacks
+ * without polluting the reactive context with non-serializable objects, and so
+ * multiple cockpits on a page stay independent.
+ */
+const instances = new WeakMap< CockpitContext, InstanceState >();
 
-/** Smallest and largest battery percentage the target-drop slider allows. */
-const TARGET_MIN = 5;
-const TARGET_MAX = 95;
+/**
+ * The calculation state for a context, created on first access.
+ * @param context
+ */
+const instanceFor = ( context: CockpitContext ): InstanceState => {
+	let state = instances.get( context );
 
-/** Step the battery slider snaps to, in percent. */
-const TARGET_STEP = 5;
+	if ( ! state ) {
+		state = { session: new RunSession(), lastReading: null };
+		instances.set( context, state );
+	}
+
+	return state;
+};
+
+/** The monotonic clock the run session stamps samples against. */
+const now = (): number => performance.now();
+
+/**
+ * Mirrors the session's derived readouts onto the reactive context.
+ * @param context
+ * @param session
+ */
+const applyReadouts = (
+	context: CockpitContext,
+	session: RunSession
+): void => {
+	const readouts = session.readouts();
+	context.rate10 = readouts.rate10;
+	context.rateSession = readouts.rateSession;
+	context.secondsToEmpty = readouts.secondsToEmpty;
+};
 
 /** Whether a pointer drag on the battery slider is in progress. */
 let draggingTarget = false;
-
-/**
- * The highest stop-at level the slider allows: you cannot target a drop above
- * the battery you currently have, so the cap is the current level snapped to the
- * step (or the nominal max until the level is known).
- * @param batteryLevel
- */
-const targetCap = ( batteryLevel: number | null ): number => {
-	if ( batteryLevel === null ) {
-		return TARGET_MAX;
-	}
-
-	return Math.max(
-		TARGET_MIN,
-		Math.floor( batteryLevel / TARGET_STEP ) * TARGET_STEP
-	);
-};
-
-/**
- * Clamps a percentage to the slider's stepped range, bounded above by `max`.
- * @param value
- * @param max
- */
-const clampTarget = ( value: number, max: number = TARGET_MAX ): number =>
-	Math.min(
-		max,
-		Math.max( TARGET_MIN, Math.round( value / TARGET_STEP ) * TARGET_STEP )
-	);
-
-/**
- * Maps a pointer x within the battery element to a stepped percentage, capped.
- * @param clientX
- * @param el
- * @param max
- */
-const targetFromPointer = (
-	clientX: number,
-	el: HTMLElement,
-	max: number
-): number => {
-	const rect = el.getBoundingClientRect();
-	const ratio = rect.width ? ( clientX - rect.left ) / rect.width : 0;
-
-	return clampTarget( ratio * 100, max );
-};
-
-/** localStorage key the theme preference is remembered under across visits. */
-const THEME_KEY = 'bsb-cockpit-theme';
-
-/** The order the theme control cycles through on each press. */
-const THEME_ORDER: ThemePref[] = [ 'system', 'light', 'dark' ];
-
-/** Whether the operating system currently prefers a dark colour scheme. */
-const osPrefersDark = (): boolean =>
-	typeof window.matchMedia === 'function' &&
-	window.matchMedia( '(prefers-color-scheme: dark)' ).matches;
-
-/**
- * Resolves a preference to the theme actually applied: a fixed choice as-is, or
- * the operating system's current scheme when following the system.
- * @param pref
- */
-const resolveTheme = ( pref: ThemePref ): ThemeName => {
-	if ( pref !== 'system' ) {
-		return pref;
-	}
-
-	return osPrefersDark() ? 'dark' : 'light';
-};
 
 /** Per-odometer roll state: the last duration shown and each wheel's position. */
 interface OdometerState {
@@ -157,27 +147,6 @@ const odometers = new WeakMap< HTMLElement, OdometerState >();
  */
 const wheelTransform = ( position: number ): string =>
 	`translateY(calc(var(--bsb-od-cell) * ${ -( position + 10 ) }))`;
-
-/**
- * The hundreds, tens and units digits of a duration.
- * @param minutes
- */
-const durationDigits = ( minutes: number ): number[] => [
-	Math.floor( minutes / 100 ) % 10,
-	Math.floor( minutes / 10 ) % 10,
-	minutes % 10,
-];
-
-/**
- * Formats a number of seconds as a `MM:SS` clock, clamped at zero.
- * @param totalSeconds
- */
-const formatClock = ( totalSeconds: number ): string => {
-	const safe = Math.max( 0, totalSeconds );
-	const pad = ( value: number ): string => String( value ).padStart( 2, '0' );
-
-	return `${ pad( Math.floor( safe / 60 ) ) }:${ pad( safe % 60 ) }`;
-};
 
 store( 'bsb/cockpit', {
 	state: {
@@ -227,10 +196,7 @@ store( 'bsb/cockpit', {
 		 * at low ones, so a deeper drain target reads hotter.
 		 */
 		get targetColor(): string {
-			const { targetPercent } = getContext< CockpitContext >();
-			const hue = Math.round( ( targetPercent / 100 ) * 120 );
-
-			return `hsl(${ hue }, 72%, 45%)`;
+			return targetColor( getContext< CockpitContext >().targetPercent );
 		},
 
 		/** Whether the 1× surf speed is selected. */
@@ -306,47 +272,35 @@ store( 'bsb/cockpit', {
 
 		/** Drain rate over the last 10 minutes, or an em dash until known. */
 		get rate10Display(): string {
-			const { rate10 } = getContext< CockpitContext >();
-
-			return rate10 === null ? '—' : String( rate10 );
+			return formatRate( getContext< CockpitContext >().rate10 );
 		},
 
 		/** Drain rate over the whole session, or an em dash until known. */
 		get rateSessionDisplay(): string {
-			const { rateSession } = getContext< CockpitContext >();
-
-			return rateSession === null ? '—' : String( rateSession );
+			return formatRate( getContext< CockpitContext >().rateSession );
 		},
 
 		/** Projected time to empty as `H:MM`, or an em dash until known. */
 		get timeToEmptyDisplay(): string {
-			const { secondsToEmpty } = getContext< CockpitContext >();
-
-			if (
-				secondsToEmpty === null ||
-				! Number.isFinite( secondsToEmpty ) ||
-				secondsToEmpty <= 0
-			) {
-				return '—';
-			}
-
-			const hours = Math.floor( secondsToEmpty / 3600 );
-			const minutes = Math.floor( ( secondsToEmpty % 3600 ) / 60 );
-
-			return `${ hours }:${ String( minutes ).padStart( 2, '0' ) }`;
+			return formatTimeToEmpty(
+				getContext< CockpitContext >().secondsToEmpty
+			);
 		},
 
 		/**
 		 * The run clock as a `MM:SS` string: a countdown from the chosen duration
 		 * in duration mode, or elapsed time in target-drop mode (which has no fixed
-		 * length).
+		 * length). The duration is normalized so a tampered context cannot stretch
+		 * the countdown past the supported ceiling.
 		 */
 		get runClock(): string {
 			const { mode, durationMinutes, elapsed } =
 				getContext< CockpitContext >();
 
 			return mode === 'duration'
-				? formatClock( durationMinutes * 60 - elapsed )
+				? formatClock(
+						normalizeDuration( durationMinutes ) * 60 - elapsed
+				  )
 				: formatClock( elapsed );
 		},
 	},
@@ -363,7 +317,7 @@ store( 'bsb/cockpit', {
 
 		/**
 		 * Nudges the run duration by the triggering control's `data-step`
-		 * minutes, clamped to the supported range.
+		 * minutes, normalized to the supported range and step.
 		 */
 		stepDuration(): void {
 			const { ref } = getElement();
@@ -374,11 +328,8 @@ store( 'bsb/cockpit', {
 			}
 
 			const context = getContext< CockpitContext >();
-			const next = context.durationMinutes + step;
-
-			context.durationMinutes = Math.min(
-				DURATION_MAX,
-				Math.max( DURATION_MIN, next )
+			context.durationMinutes = normalizeDuration(
+				context.durationMinutes + step
 			);
 		},
 
@@ -468,23 +419,28 @@ store( 'bsb/cockpit', {
 			const { ref } = getElement();
 			const speed = Number( ref?.dataset.speed );
 
-			if ( speed === 1 || speed === 4 || speed === 10 ) {
-				getContext< CockpitContext >().speed = speed;
+			if ( ( SPEEDS as readonly number[] ).includes( speed ) ) {
+				getContext< CockpitContext >().speed = speed as Speed;
 			}
 		},
 
 		/**
-		 * Starts or stops the run. Starting resets the elapsed clock, reveals the
-		 * readouts pill and hides the configuration controls; stopping returns the
-		 * cockpit to its idle, ready state with the controls back. Starting is
-		 * refused while the device is plugged in — a benchmark must run on battery.
+		 * Starts or stops the run. Starting normalizes the (client-seeded, so
+		 * untrusted) run configuration, resets the elapsed clock and readouts,
+		 * begins a fresh calculation session seeded with the latest battery
+		 * reading, reveals the readouts pill and hides the configuration controls;
+		 * stopping returns the cockpit to its idle, ready state with the controls
+		 * back. Starting is refused while the device is plugged in — a benchmark
+		 * must run on battery.
 		 */
 		toggleRun(): void {
 			const context = getContext< CockpitContext >();
+			const instance = instanceFor( context );
 
 			if ( context.running ) {
 				context.running = false;
 				context.compact = false;
+				instance.session.stop();
 				return;
 			}
 
@@ -492,8 +448,33 @@ store( 'bsb/cockpit', {
 				return;
 			}
 
+			// Treat the seeded config as untrusted: clamp/snap every value that
+			// bounds the run before it drives the clock or the calculations.
+			context.mode = normalizeMode( context.mode );
+			context.durationMinutes = normalizeDuration(
+				context.durationMinutes
+			);
+			context.speed = normalizeSpeed( context.speed );
+			context.targetPercent = clampTarget(
+				context.targetPercent,
+				targetCap( context.batteryLevel )
+			);
+
 			context.elapsed = 0;
+			context.rate10 = null;
+			context.rateSession = null;
+			context.secondsToEmpty = null;
 			context.running = true;
+
+			instance.session.start( now() );
+			if ( instance.lastReading ) {
+				instance.session.record(
+					now(),
+					instance.lastReading.level,
+					instance.lastReading.charging
+				);
+				applyReadouts( context, instance.session );
+			}
 		},
 
 		/**
@@ -512,34 +493,38 @@ store( 'bsb/cockpit', {
 		 */
 		toggleTheme(): void {
 			const context = getContext< CockpitContext >();
-			const next =
-				THEME_ORDER[
-					( THEME_ORDER.indexOf( context.themePref ) + 1 ) %
-						THEME_ORDER.length
-				];
+			const next = nextThemePref( context.themePref );
 			context.themePref = next;
 			context.theme = resolveTheme( next );
-
-			try {
-				window.localStorage.setItem( THEME_KEY, next );
-			} catch {
-				// Storage unavailable (private mode); the choice still applies
-				// for this session.
-			}
+			writeStoredPref( next );
 		},
 	},
 	callbacks: {
 		/**
-		 * Feeds the battery readouts from the Battery Status API: syncs the level
-		 * and charging state on mount and whenever they change, returning a
-		 * cleanup that detaches the listeners. A no-op where the API is absent,
-		 * leaving the readouts at their em-dash idle state. Plugging in mid-run
-		 * stops the run, since a benchmark must drain the battery.
+		 * Feeds the battery readouts and the drain-rate calculations from the
+		 * Battery Status API. On every reading — whether from a change event or the
+		 * backup heartbeat — it syncs the level and charging state, caps the target
+		 * to the battery on hand, and, while a run is live, records the sample and
+		 * refreshes the derived rates and projection. Plugging in mid-run stops the
+		 * run (a benchmark must drain the battery). A no-op where the API is absent,
+		 * leaving the readouts at their em-dash idle state. Returns a cleanup that
+		 * detaches the listeners and stops the heartbeat.
 		 */
 		initBattery(): () => void {
 			const provider = (
 				navigator as Navigator & {
-					getBattery?: () => Promise< BatteryLike >;
+					getBattery?: () => Promise<
+						BatteryReading & {
+							addEventListener: (
+								t: string,
+								l: () => void
+							) => void;
+							removeEventListener: (
+								t: string,
+								l: () => void
+							) => void;
+						}
+					>;
 				}
 			 ).getBattery?.bind( navigator );
 
@@ -548,40 +533,43 @@ store( 'bsb/cockpit', {
 			}
 
 			const context = getContext< CockpitContext >();
-			let manager: BatteryLike | undefined;
-			const sync = (): void => {
-				if ( ! manager ) {
-					return;
-				}
+			const instance = instanceFor( context );
 
-				context.batteryLevel = Math.round( manager.level * 100 );
-				context.batteryCharging = manager.charging;
+			const monitor = new BatteryMonitor( {
+				getBattery: provider,
+				onReading: ( reading ) => {
+					instance.lastReading = reading;
+					context.batteryLevel = Math.round( reading.level * 100 );
+					context.batteryCharging = reading.charging;
 
-				if ( context.batteryCharging && context.running ) {
-					context.running = false;
-				}
+					// A benchmark must drain the battery: plugging in mid-run ends
+					// the run rather than recording charging samples.
+					if ( reading.charging && context.running ) {
+						context.running = false;
+						context.compact = false;
+						instance.session.stop();
+					}
 
-				// The stop-at target can't sit above the battery you have. The
-				// context seeds it high, so the first reading caps it down to the
-				// current level (the startup default); later it only follows the
-				// level down, never re-raising a target the user lowered.
-				const cap = targetCap( context.batteryLevel );
-				if ( context.targetPercent > cap ) {
-					context.targetPercent = cap;
-				}
-			};
+					// The stop-at target can't sit above the battery you have.
+					const cap = targetCap( context.batteryLevel );
+					if ( context.targetPercent > cap ) {
+						context.targetPercent = cap;
+					}
 
-			provider().then( ( battery ) => {
-				manager = battery;
-				sync();
-				battery.addEventListener( 'levelchange', sync );
-				battery.addEventListener( 'chargingchange', sync );
+					if ( instance.session.active ) {
+						instance.session.record(
+							now(),
+							reading.level,
+							reading.charging
+						);
+						applyReadouts( context, instance.session );
+					}
+				},
 			} );
 
-			return () => {
-				manager?.removeEventListener( 'levelchange', sync );
-				manager?.removeEventListener( 'chargingchange', sync );
-			};
+			monitor.start();
+
+			return () => monitor.stop();
 		},
 
 		/**
@@ -598,20 +586,7 @@ store( 'bsb/cockpit', {
 					: null;
 
 			const apply = (): void => {
-				let pref: ThemePref = 'system';
-				try {
-					const stored = window.localStorage.getItem( THEME_KEY );
-					if (
-						stored === 'light' ||
-						stored === 'dark' ||
-						stored === 'system'
-					) {
-						pref = stored;
-					}
-				} catch {
-					// Storage unavailable; fall back to following the system.
-				}
-
+				const pref = readStoredPref();
 				context.themePref = pref;
 				context.theme = resolveTheme( pref );
 			};
@@ -694,7 +669,7 @@ store( 'bsb/cockpit', {
 					positions: [ ...digits ],
 				} );
 				strips.forEach( ( strip, i ) => {
-					strip.style.transform = wheelTransform( digits[ i ] );
+					strip.style.transform = wheelTransform( digits[ i ]! );
 				} );
 				void element.offsetHeight;
 				requestAnimationFrame( () => {
@@ -717,14 +692,14 @@ store( 'bsb/cockpit', {
 				// — same glyph, different repeat) to keep the position bounded,
 				// then roll from there toward the new digit in the press direction.
 				strip.style.transition = 'none';
-				strip.style.transform = wheelTransform( previous[ i ] );
+				strip.style.transform = wheelTransform( previous[ i ]! );
 				void strip.offsetHeight;
 
 				const distance =
 					direction > 0
-						? ( digits[ i ] - previous[ i ] + 10 ) % 10
-						: -( ( previous[ i ] - digits[ i ] + 10 ) % 10 );
-				const target = previous[ i ] + distance;
+						? ( digits[ i ]! - previous[ i ]! + 10 ) % 10
+						: -( ( previous[ i ]! - digits[ i ]! + 10 ) % 10 );
+				const target = previous[ i ]! + distance;
 
 				strip.style.transition = '';
 				strip.style.transform = wheelTransform( target );

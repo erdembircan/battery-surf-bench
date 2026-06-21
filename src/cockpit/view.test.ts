@@ -690,6 +690,118 @@ describe( 'bsb/cockpit view store', () => {
 		} );
 	} );
 
+	describe( 'drain-rate calculations', () => {
+		afterEach( () => {
+			delete ( navigator as { getBattery?: unknown } ).getBattery;
+			vi.restoreAllMocks();
+		} );
+
+		/**
+		 * Stubs `performance.now` to return the queued timestamps in order, so a
+		 * run's samples land at known elapsed times.
+		 * @param times
+		 */
+		const mockClock = ( times: number[] ): void => {
+			const queue = [ ...times ];
+			vi.spyOn( performance, 'now' ).mockImplementation(
+				() => queue.shift() ?? times[ times.length - 1 ] ?? 0
+			);
+		};
+
+		it( 'derives the rates and projection from samples taken during a run', async () => {
+			// start → first reading → stepped reading, ten minutes apart.
+			mockClock( [ 0, 0, 600_000 ] );
+			const mockBattery = {
+				level: 0.8,
+				charging: false,
+				addEventListener: vi.fn(),
+				removeEventListener: vi.fn(),
+			};
+			( navigator as { getBattery?: unknown } ).getBattery = () =>
+				Promise.resolve( mockBattery );
+
+			mocks.config!.actions.toggleRun();
+			expect( mocks.context.running ).toBe( true );
+
+			const cleanup = mocks.config!.callbacks.initBattery();
+			await vi.waitFor( () =>
+				expect( mockBattery.addEventListener ).toHaveBeenCalled()
+			);
+
+			// The battery steps down 1% over the ten minutes since start.
+			const onChange = mockBattery.addEventListener.mock.calls.find(
+				( call ) => call[ 0 ] === 'levelchange'
+			)?.[ 1 ] as () => void;
+			mockBattery.level = 0.79;
+			onChange();
+
+			// 1% over 10 min → 6 %/h; from 79% to empty at 6 %/h → 47,400 s.
+			expect( mocks.context.rateSession ).toBe( 6 );
+			expect( mocks.context.rate10 ).toBe( 6 );
+			expect( mocks.context.secondsToEmpty ).toBe( 47_400 );
+
+			cleanup();
+		} );
+
+		it( 'clears stale readouts when a fresh run starts', () => {
+			mockClock( [ 0 ] );
+			mocks.context.rate10 = 9;
+			mocks.context.rateSession = 9;
+			mocks.context.secondsToEmpty = 1_000;
+
+			mocks.config!.actions.toggleRun();
+
+			expect( mocks.context.rate10 ).toBeNull();
+			expect( mocks.context.rateSession ).toBeNull();
+			expect( mocks.context.secondsToEmpty ).toBeNull();
+		} );
+
+		it( 'normalizes a tampered duration when a run starts', () => {
+			mockClock( [ 0 ] );
+			// A crafted context tries to stretch the run past the ceiling.
+			mocks.context.durationMinutes = 300;
+
+			mocks.config!.actions.toggleRun();
+
+			expect( mocks.context.durationMinutes ).toBe( 240 );
+		} );
+
+		it( 'stops sampling once the device is plugged in mid-run', async () => {
+			mockClock( [ 0, 0, 300_000, 600_000 ] );
+			const mockBattery = {
+				level: 0.8,
+				charging: false,
+				addEventListener: vi.fn(),
+				removeEventListener: vi.fn(),
+			};
+			( navigator as { getBattery?: unknown } ).getBattery = () =>
+				Promise.resolve( mockBattery );
+
+			mocks.config!.actions.toggleRun();
+			const cleanup = mocks.config!.callbacks.initBattery();
+			await vi.waitFor( () =>
+				expect( mockBattery.addEventListener ).toHaveBeenCalled()
+			);
+
+			const handlers = ( type: string ): ( () => void ) =>
+				mockBattery.addEventListener.mock.calls.find(
+					( call ) => call[ 0 ] === type
+				)?.[ 1 ] as () => void;
+
+			// The charger goes in: the run ends and sampling stops.
+			mockBattery.charging = true;
+			handlers( 'chargingchange' )();
+			expect( mocks.context.running ).toBe( false );
+
+			// A later reading while plugged in does not resume the calculations.
+			mockBattery.level = 0.5;
+			handlers( 'levelchange' )();
+			expect( mocks.context.rateSession ).toBeNull();
+
+			cleanup();
+		} );
+	} );
+
 	describe( 'theme', () => {
 		beforeEach( () => {
 			window.localStorage.clear();

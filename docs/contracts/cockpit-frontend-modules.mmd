@@ -1,0 +1,91 @@
+%% Cockpit front-end modules — contract chart.
+%% The client side of the `bsb/cockpit` block: the Interactivity store and the
+%% focused domains it delegates to. Function-only modules are marked
+%% <<module>>; the rest are classes. Only the public (exported) surface is shown.
+classDiagram
+    direction LR
+
+    class CockpitStore {
+        <<module>>
+        state: derived readouts
+        actions: deck controls
+        callbacks: initBattery, initTheme, tick, rollDuration
+    }
+
+    class RunConfig {
+        <<module>>
+        +normalizeDuration(number) number
+        +normalizeSpeed(number) Speed
+        +normalizeMode(unknown) RunMode
+        +DURATION_MIN, DURATION_MAX, DURATION_STEP
+        +SPEEDS
+    }
+
+    class TargetControl {
+        <<module>>
+        +targetCap(number|null) number
+        +clampTarget(number, number) number
+        +targetFromPointer(number, HTMLElement, number) number
+        +targetColor(number) string
+        +TARGET_MIN, TARGET_MAX, TARGET_STEP
+    }
+
+    class Theme {
+        <<module>>
+        +resolveTheme(ThemePref) ThemeName
+        +nextThemePref(ThemePref) ThemePref
+        +readStoredPref() ThemePref
+        +writeStoredPref(ThemePref) void
+        +osPrefersDark() bool
+    }
+
+    class Format {
+        <<module>>
+        +formatClock(number) string
+        +formatTimeToEmpty(number|null) string
+        +formatRate(number|null) string
+        +durationDigits(number) number[]
+    }
+
+    class DrainRate {
+        <<module>>
+        +drainRate(Sample[]) DrainRateResult
+        +windowDrainRate(Sample[], number) DrainRateResult
+        +minutesToLevel(number, number, number|null) number|null
+        +distinctLevelCount(Sample[]) number
+        +WINDOW_MS
+    }
+
+    class SampleLog {
+        +record(number, number, bool) void
+        +all() RleSample[]
+        +latest() RleSample|null
+        +size: number
+        +clear() void
+    }
+
+    class RunSession {
+        +start(number) void
+        +active: bool
+        +record(number, number, bool) void
+        +readouts() Readouts
+        +stop() void
+    }
+
+    class BatteryMonitor {
+        +__construct(BatteryMonitorOptions)
+        +start() void
+        +stop() void
+        +HEARTBEAT_MS
+    }
+
+    CockpitStore --> RunConfig : normalizes config
+    CockpitStore --> TargetControl : maps slider input
+    CockpitStore --> Theme : resolves & persists theme
+    CockpitStore --> Format : formats readouts
+    CockpitStore --> BatteryMonitor : creates & owns (composition)
+    CockpitStore --> RunSession : creates & owns (composition)
+    BatteryMonitor ..> CockpitStore : reports BatteryReading
+    RunSession --> SampleLog : creates & owns (composition)
+    RunSession --> DrainRate : fits & projects
+    SampleLog ..> DrainRate : RleSample extends Sample
