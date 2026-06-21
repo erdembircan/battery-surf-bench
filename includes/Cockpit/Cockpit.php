@@ -15,6 +15,7 @@ use function __;
 use function add_action;
 use function add_filter;
 use function add_query_arg;
+use function apply_filters;
 use function current_user_can;
 use function do_blocks;
 use function esc_html__;
@@ -22,6 +23,7 @@ use function esc_url;
 use function generate_block_asset_handle;
 use function get_query_var;
 use function home_url;
+use function in_array;
 use function nocache_headers;
 use function register_block_type;
 use function remove_all_actions;
@@ -227,8 +229,10 @@ class Cockpit implements Manager {
 	/**
 	 * Dequeues every classic style and script after the theme has enqueued, so
 	 * none print on the dashboard — except the cockpit's own stylesheet, the one
-	 * style the dashboard is meant to keep. Script modules are a separate
-	 * registry and are left untouched.
+	 * style the dashboard is meant to keep, and any script handles opted out
+	 * through the `battery_surf_bench_cockpit_spared_script_handles` filter (empty by default;
+	 * dev tooling such as the Playground LiveReload client uses it to survive the
+	 * strip). Script modules are a separate registry and are left untouched.
 	 *
 	 * @return void
 	 */
@@ -246,7 +250,22 @@ class Cockpit implements Manager {
 		}
 
 		if ( $wp_scripts instanceof \WP_Scripts ) {
+			/**
+			 * Filters the classic script handles the cockpit dashboard keeps when
+			 * it strips the front end. Empty by default — the standalone dashboard
+			 * wants no classic JS — but dev tooling (e.g. the Playground LiveReload
+			 * client) hooks this so the script survives the strip and file changes
+			 * still reload the cockpit in place.
+			 *
+			 * @param array<int, string> $handles Script handles to spare from the strip.
+			 */
+			$spared = apply_filters( 'battery_surf_bench_cockpit_spared_script_handles', array() );
+
 			foreach ( (array) $wp_scripts->queue as $handle ) {
+				if ( in_array( $handle, $spared, true ) ) {
+					continue;
+				}
+
 				wp_dequeue_script( $handle );
 			}
 		}
