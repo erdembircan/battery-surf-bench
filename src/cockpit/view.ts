@@ -572,10 +572,27 @@ store( 'bsb/cockpit', {
 						stopRun( context, instance );
 					}
 
-					// The stop-at target can't sit above the battery you have.
-					const cap = targetCap( context.batteryLevel );
-					if ( context.targetPercent > cap ) {
-						context.targetPercent = cap;
+					// Target-drop run: stop the moment the battery has fallen to
+					// the chosen stop-at level — at the target (75 stops at 75),
+					// not a step past it.
+					if (
+						context.running &&
+						context.mode === 'targetDrop' &&
+						context.batteryLevel !== null &&
+						context.batteryLevel <= context.targetPercent
+					) {
+						stopRun( context, instance );
+					}
+
+					// While idle the stop-at target follows the battery down — it
+					// can't sit above the battery you have. During a run it stays
+					// fixed, so the run has a stable target to reach rather than one
+					// that chases the draining level.
+					if ( ! context.running ) {
+						const cap = targetCap( context.batteryLevel );
+						if ( context.targetPercent > cap ) {
+							context.targetPercent = cap;
+						}
 					}
 
 					if ( instance.session.active ) {

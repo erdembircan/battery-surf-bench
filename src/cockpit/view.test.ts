@@ -852,6 +852,75 @@ describe( 'bsb/cockpit view store', () => {
 			cleanup();
 		} );
 
+		it( 'stops a target-drop run when the battery reaches the target', async () => {
+			const mockBattery = {
+				level: 0.8,
+				charging: false,
+				addEventListener: vi.fn(),
+				removeEventListener: vi.fn(),
+			};
+			( navigator as { getBattery?: unknown } ).getBattery = () =>
+				Promise.resolve( mockBattery );
+
+			mocks.context.mode = 'targetDrop';
+			mocks.context.targetPercent = 75;
+			mocks.config!.actions.toggleRun();
+			const cleanup = mocks.config!.callbacks.initBattery();
+			await vi.waitFor( () =>
+				expect( mockBattery.addEventListener ).toHaveBeenCalled()
+			);
+
+			const onChange = mockBattery.addEventListener.mock.calls.find(
+				( call ) => call[ 0 ] === 'levelchange'
+			)?.[ 1 ] as () => void;
+
+			// One step above the target: the target holds (not dragged down) and
+			// the run keeps going.
+			mockBattery.level = 0.76;
+			onChange();
+			expect( mocks.context.batteryLevel ).toBe( 76 );
+			expect( mocks.context.targetPercent ).toBe( 75 );
+			expect( mocks.context.running ).toBe( true );
+
+			// Reaches the target exactly: the run stops at 75, not a step later.
+			mockBattery.level = 0.75;
+			onChange();
+			expect( mocks.context.running ).toBe( false );
+
+			cleanup();
+		} );
+
+		it( 'does not stop a duration run on the battery level', async () => {
+			const mockBattery = {
+				level: 0.8,
+				charging: false,
+				addEventListener: vi.fn(),
+				removeEventListener: vi.fn(),
+			};
+			( navigator as { getBattery?: unknown } ).getBattery = () =>
+				Promise.resolve( mockBattery );
+
+			mocks.context.mode = 'duration';
+			mocks.context.targetPercent = 75;
+			mocks.config!.actions.toggleRun();
+			const cleanup = mocks.config!.callbacks.initBattery();
+			await vi.waitFor( () =>
+				expect( mockBattery.addEventListener ).toHaveBeenCalled()
+			);
+
+			const onChange = mockBattery.addEventListener.mock.calls.find(
+				( call ) => call[ 0 ] === 'levelchange'
+			)?.[ 1 ] as () => void;
+
+			// Well past the target value, but duration mode ignores the level.
+			mockBattery.level = 0.7;
+			onChange();
+			expect( mocks.context.batteryLevel ).toBe( 70 );
+			expect( mocks.context.running ).toBe( true );
+
+			cleanup();
+		} );
+
 		it( 'runs the battery heartbeat poll only while a run is live', async () => {
 			const setSpy = vi.spyOn( window, 'setInterval' );
 			const clearSpy = vi.spyOn( window, 'clearInterval' );
