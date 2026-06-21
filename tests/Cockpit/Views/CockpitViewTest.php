@@ -39,8 +39,7 @@ final class CockpitViewTest extends TestCase {
 		$this->assertStringContainsString( 'data-wp-interactive="bsb/cockpit"', $markup );
 		$this->assertStringContainsString( 'data-wp-init="callbacks.initTheme"', $markup );
 		$this->assertStringContainsString( 'data-wp-init---battery="callbacks.initBattery"', $markup );
-		$this->assertStringContainsString( 'data-wp-init---clock="callbacks.tick"', $markup );
-		$this->assertStringContainsString( 'data-wp-watch---run-polling="callbacks.syncRunPolling"', $markup );
+		$this->assertStringContainsString( 'data-wp-watch---run-activity="callbacks.syncRunActivity"', $markup );
 		$this->assertStringContainsString( 'data-wp-bind--data-theme="context.theme"', $markup );
 		$this->assertStringContainsString( 'data-wp-class--is-compact="state.isCompact"', $markup );
 		$this->assertStringContainsString( 'class="wp-block-bsb-cockpit"', $markup );

@@ -75,10 +75,9 @@ interface CockpitConfig {
 		toggleTheme: () => void;
 	};
 	callbacks: {
-		tick: () => () => void;
 		initTheme: () => () => void;
 		initBattery: () => () => void;
-		syncRunPolling: () => void;
+		syncRunActivity: () => void;
 		rollDuration: () => void;
 	};
 }
@@ -437,13 +436,16 @@ describe( 'bsb/cockpit view store', () => {
 			expect( mocks.config?.state.isIdle ).toBe( false );
 		} );
 
-		it( 'starts a run, resetting the elapsed clock', () => {
+		it( 'starts a run, resetting the run-scoped state', () => {
 			mocks.context.elapsed = 999;
+			// A leftover compact view from a prior run is reset on start.
+			mocks.context.compact = true;
 
 			mocks.config?.actions.toggleRun();
 
 			expect( mocks.context.running ).toBe( true );
 			expect( mocks.context.elapsed ).toBe( 0 );
+			expect( mocks.context.compact ).toBe( false );
 		} );
 
 		it( 'stops a live run back to the idle state', () => {
@@ -453,8 +455,9 @@ describe( 'bsb/cockpit view store', () => {
 			mocks.config?.actions.toggleRun();
 
 			expect( mocks.context.running ).toBe( false );
-			// Leaving a run also drops the compact view.
-			expect( mocks.context.compact ).toBe( false );
+			// Leaving a run drops the compact view: isCompact derives false once
+			// the run is no longer live.
+			expect( mocks.config?.state.isCompact ).toBe( false );
 		} );
 
 		it( 'toggles the compact view, but only counts while running', () => {
@@ -527,15 +530,18 @@ describe( 'bsb/cockpit view store', () => {
 			expect( mocks.config?.state.runClock ).toBe( '10:05' );
 		} );
 
-		it( 'ticks the clock once a second while running, until cleaned up', () => {
+		it( 'runs the clock once a second while a run is live, and stops with it', () => {
 			vi.useFakeTimers();
 			mocks.context.running = true;
 
-			const cleanup = mocks.config!.callbacks.tick();
+			// The watch starts the clock when the run goes live.
+			mocks.config!.callbacks.syncRunActivity();
 			vi.advanceTimersByTime( 3000 );
 			expect( mocks.context.elapsed ).toBe( 3 );
 
-			cleanup();
+			// The run ends; the watch reacts to `running` and stops the clock.
+			mocks.context.running = false;
+			mocks.config!.callbacks.syncRunActivity();
 			vi.advanceTimersByTime( 5000 );
 			expect( mocks.context.elapsed ).toBe( 3 );
 
@@ -551,19 +557,19 @@ describe( 'bsb/cockpit view store', () => {
 			// One second short of the five-minute duration.
 			mocks.context.elapsed = 299;
 
-			const cleanup = mocks.config!.callbacks.tick();
+			mocks.config!.callbacks.syncRunActivity();
 			vi.advanceTimersByTime( 1000 );
 
-			// The countdown hit zero: the run ends, the compact pill closes, and
-			// the deck (left dashboard) comes back.
+			// The countdown hit zero: the run ends and the deck comes back — the
+			// compact pill closes because `isCompact` derives false once stopped.
 			expect( mocks.context.running ).toBe( false );
-			expect( mocks.context.compact ).toBe( false );
+			expect( mocks.config?.state.isCompact ).toBe( false );
 
-			// Once stopped, the clock no longer advances.
+			// The watch reacts to the run ending and stops the clock.
+			mocks.config!.callbacks.syncRunActivity();
 			vi.advanceTimersByTime( 5000 );
 			expect( mocks.context.elapsed ).toBe( 300 );
 
-			cleanup();
 			vi.useRealTimers();
 		} );
 
@@ -574,14 +580,15 @@ describe( 'bsb/cockpit view store', () => {
 			mocks.context.running = true;
 			mocks.context.elapsed = 299;
 
-			const cleanup = mocks.config!.callbacks.tick();
+			mocks.config!.callbacks.syncRunActivity();
 			vi.advanceTimersByTime( 2000 );
 
 			// Target-drop has no fixed length, so the clock keeps climbing.
 			expect( mocks.context.running ).toBe( true );
 			expect( mocks.context.elapsed ).toBe( 301 );
 
-			cleanup();
+			mocks.context.running = false;
+			mocks.config!.callbacks.syncRunActivity();
 			vi.useRealTimers();
 		} );
 
@@ -589,11 +596,11 @@ describe( 'bsb/cockpit view store', () => {
 			vi.useFakeTimers();
 			mocks.context.running = false;
 
-			const cleanup = mocks.config!.callbacks.tick();
+			// Idle: the watch never starts a clock.
+			mocks.config!.callbacks.syncRunActivity();
 			vi.advanceTimersByTime( 4000 );
 			expect( mocks.context.elapsed ).toBe( 0 );
 
-			cleanup();
 			vi.useRealTimers();
 		} );
 	} );
@@ -868,12 +875,12 @@ describe( 'bsb/cockpit view store', () => {
 
 			// Idle: the watch keeps the poll at rest.
 			mocks.context.running = false;
-			mocks.config!.callbacks.syncRunPolling();
+			mocks.config!.callbacks.syncRunActivity();
 			expect( heartbeats() ).toHaveLength( 0 );
 
 			// Run live: the watch starts the poll at the 30s cadence.
 			mocks.context.running = true;
-			mocks.config!.callbacks.syncRunPolling();
+			mocks.config!.callbacks.syncRunActivity();
 			expect( heartbeats() ).toHaveLength( 1 );
 			const beatIndex = setSpy.mock.calls.findIndex(
 				( call ) => call[ 1 ] === 30_000
@@ -881,12 +888,12 @@ describe( 'bsb/cockpit view store', () => {
 			const beatId = setSpy.mock.results[ beatIndex ]!.value;
 
 			// The poll is idempotent while the run continues (no second timer).
-			mocks.config!.callbacks.syncRunPolling();
+			mocks.config!.callbacks.syncRunActivity();
 			expect( heartbeats() ).toHaveLength( 1 );
 
 			// Run ends — by any cause that flips `running` — and the poll stops.
 			mocks.context.running = false;
-			mocks.config!.callbacks.syncRunPolling();
+			mocks.config!.callbacks.syncRunActivity();
 			expect( clearSpy ).toHaveBeenCalledWith( beatId );
 
 			cleanup();

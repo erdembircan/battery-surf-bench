@@ -86,6 +86,8 @@ interface InstanceState {
 	lastReading: BatteryReading | null;
 	/** The battery monitor, so a run can gate its heartbeat poll to its lifecycle. */
 	monitor: BatteryMonitor | null;
+	/** The run clock interval id while a run is live, or null when at rest. */
+	clock: number | null;
 }
 
 /**
@@ -108,6 +110,7 @@ const instanceFor = ( context: CockpitContext ): InstanceState => {
 			session: new RunSession(),
 			lastReading: null,
 			monitor: null,
+			clock: null,
 		};
 		instances.set( context, state );
 	}
@@ -135,17 +138,17 @@ const applyReadouts = (
 
 /**
  * Ends a live run, returning the cockpit to its idle, ready state: the run
- * stops, the deck (the left dashboard) comes back, the top compact pill closes,
- * and the calculation session is wound up. The single place a run is torn down,
- * whether by the stop control, by plugging in, or by the duration elapsing. The
- * battery heartbeat poll is not touched here — it reacts to `running` going false
- * through the run-polling watch, so its lifecycle stays bound to its one cause.
+ * stops and the calculation session is wound up. The single place a run is torn
+ * down, whether by the stop control, by plugging in, or by the duration
+ * elapsing. It only flips `running`; everything bound to a run reacts to that —
+ * the deck returns and the compact pill closes (`isCompact` derives false once
+ * `running` is false), and the run clock and battery heartbeat poll stop through
+ * the run-activity watch — so each run-scoped effect stays bound to its one cause.
  * @param context
  * @param instance
  */
 const stopRun = ( context: CockpitContext, instance: InstanceState ): void => {
 	context.running = false;
-	context.compact = false;
 	instance.session.stop();
 };
 
@@ -481,6 +484,7 @@ store( 'bsb/cockpit', {
 			);
 
 			context.elapsed = 0;
+			context.compact = false;
 			context.rate10 = null;
 			context.rateSession = null;
 			context.secondsToEmpty = null;
@@ -622,50 +626,45 @@ store( 'bsb/cockpit', {
 		},
 
 		/**
-		 * Advances the surfing indicator's elapsed clock once a second while a run
-		 * is live, returning a cleanup that stops the timer. Wired through
-		 * `data-wp-init` on the always-mounted pill, so the timer only counts while
-		 * `running` — it stays at rest (and `toggleRun` resets it) between runs. In
-		 * duration mode the run ends itself once the elapsed clock reaches the
-		 * (normalized) duration, stopping the run and restoring the deck.
+		 * Binds every run-scoped timer to the run, reacting to `running` rather
+		 * than being toggled at each place a run starts or stops. While a run is
+		 * live it runs the elapsed clock (one tick a second, ending the run when a
+		 * duration run reaches its normalized length) and the battery heartbeat
+		 * poll; when the run ends — whatever the cause (the stop control, plugging
+		 * in, the duration elapsing) — both stop. Driven by `data-wp-watch`, so it
+		 * re-runs whenever `running` changes. The passive battery change listeners
+		 * stay attached throughout, so the charger guard keeps working at rest.
 		 */
-		tick(): () => void {
-			const context = getContext< CockpitContext >();
-			const timer = setInterval( () => {
-				if ( ! context.running ) {
-					return;
-				}
-
-				context.elapsed += 1;
-
-				if (
-					context.mode === 'duration' &&
-					context.elapsed >=
-						normalizeDuration( context.durationMinutes ) * 60
-				) {
-					stopRun( context, instanceFor( context ) );
-				}
-			}, 1000 );
-
-			return () => clearInterval( timer );
-		},
-
-		/**
-		 * Binds the battery heartbeat poll to the run: it polls while a run is
-		 * live and rests when it is not, reacting to `running` rather than being
-		 * toggled at each place a run starts or stops. Driven by `data-wp-watch`,
-		 * so it re-runs whenever `running` changes — whatever the cause (the stop
-		 * control, plugging in, the duration elapsing). The passive change
-		 * listeners stay attached throughout, so the charger guard keeps working.
-		 */
-		syncRunPolling(): void {
+		syncRunActivity(): void {
 			const context = getContext< CockpitContext >();
 			const instance = instanceFor( context );
 
 			if ( context.running ) {
 				instance.monitor?.startHeartbeat();
-			} else {
-				instance.monitor?.stopHeartbeat();
+
+				if ( instance.clock === null ) {
+					instance.clock = setInterval( () => {
+						context.elapsed += 1;
+
+						if (
+							context.mode === 'duration' &&
+							context.elapsed >=
+								normalizeDuration( context.durationMinutes ) *
+									60
+						) {
+							stopRun( context, instance );
+						}
+					}, 1000 ) as unknown as number;
+				}
+
+				return;
+			}
+
+			instance.monitor?.stopHeartbeat();
+
+			if ( instance.clock !== null ) {
+				clearInterval( instance.clock );
+				instance.clock = null;
 			}
 		},
 
