@@ -84,6 +84,8 @@ interface InstanceState {
 	session: RunSession;
 	/** The last battery reading seen, so a run can seed its first sample on start. */
 	lastReading: BatteryReading | null;
+	/** The battery monitor, so a run can gate its heartbeat poll to its lifecycle. */
+	monitor: BatteryMonitor | null;
 }
 
 /**
@@ -102,7 +104,11 @@ const instanceFor = ( context: CockpitContext ): InstanceState => {
 	let state = instances.get( context );
 
 	if ( ! state ) {
-		state = { session: new RunSession(), lastReading: null };
+		state = {
+			session: new RunSession(),
+			lastReading: null,
+			monitor: null,
+		};
 		instances.set( context, state );
 	}
 
@@ -131,7 +137,9 @@ const applyReadouts = (
  * Ends a live run, returning the cockpit to its idle, ready state: the run
  * stops, the deck (the left dashboard) comes back, the top compact pill closes,
  * and the calculation session is wound up. The single place a run is torn down,
- * whether by the stop control, by plugging in, or by the duration elapsing.
+ * whether by the stop control, by plugging in, or by the duration elapsing. The
+ * battery heartbeat poll is not touched here — it reacts to `running` going false
+ * through the run-polling watch, so its lifecycle stays bound to its one cause.
  * @param context
  * @param instance
  */
@@ -577,9 +585,15 @@ store( 'bsb/cockpit', {
 				},
 			} );
 
+			instance.monitor = monitor;
+			// Acquire passively (live readout + charger guard); the heartbeat poll
+			// is driven by the run-polling watch, which reacts to `running`.
 			monitor.start();
 
-			return () => monitor.stop();
+			return () => {
+				monitor.stop();
+				instance.monitor = null;
+			};
 		},
 
 		/**
@@ -634,6 +648,25 @@ store( 'bsb/cockpit', {
 			}, 1000 );
 
 			return () => clearInterval( timer );
+		},
+
+		/**
+		 * Binds the battery heartbeat poll to the run: it polls while a run is
+		 * live and rests when it is not, reacting to `running` rather than being
+		 * toggled at each place a run starts or stops. Driven by `data-wp-watch`,
+		 * so it re-runs whenever `running` changes — whatever the cause (the stop
+		 * control, plugging in, the duration elapsing). The passive change
+		 * listeners stay attached throughout, so the charger guard keeps working.
+		 */
+		syncRunPolling(): void {
+			const context = getContext< CockpitContext >();
+			const instance = instanceFor( context );
+
+			if ( context.running ) {
+				instance.monitor?.startHeartbeat();
+			} else {
+				instance.monitor?.stopHeartbeat();
+			}
 		},
 
 		/**

@@ -67,9 +67,11 @@ export class BatteryMonitor {
 	}
 
 	/**
-	 * Acquires the manager, takes an immediate reading, attaches the change
-	 * listeners and starts the backup heartbeat. Safe to call once; later calls
-	 * are ignored.
+	 * Acquires the manager, takes an immediate reading and attaches the change
+	 * listeners — the passive, always-on source that keeps the live battery
+	 * readout and the charger guard current. The backup heartbeat poll is started
+	 * separately via `startHeartbeat`, so it can be tied to a run rather than poll
+	 * continuously. Safe to call once; later calls are ignored.
 	 */
 	start(): void {
 		if ( this.manager || this.stopped ) {
@@ -87,10 +89,6 @@ export class BatteryMonitor {
 				this.emit();
 				manager.addEventListener( 'levelchange', this.emit );
 				manager.addEventListener( 'chargingchange', this.emit );
-				this.heartbeat = this.options.setTimer(
-					this.emit,
-					this.options.heartbeatMs
-				);
 			} )
 			.catch( () => {
 				// API present but acquisition failed; stay at the idle state.
@@ -98,17 +96,40 @@ export class BatteryMonitor {
 	}
 
 	/**
-	 * Detaches the listeners and stops the heartbeat. After stopping, a pending
-	 * acquisition will not attach anything.
+	 * Starts the backup heartbeat poll — re-reading the battery on a fixed
+	 * cadence so a run keeps sampling even when the change events fire lazily.
+	 * Idempotent, and a no-op once stopped. Reads emitted before the manager is
+	 * acquired are skipped.
 	 */
-	stop(): void {
-		this.stopped = true;
+	startHeartbeat(): void {
+		if ( this.stopped || this.heartbeat !== undefined ) {
+			return;
+		}
 
+		this.heartbeat = this.options.setTimer(
+			this.emit,
+			this.options.heartbeatMs
+		);
+	}
+
+	/**
+	 * Stops the backup heartbeat poll, leaving the passive change listeners in
+	 * place so the charger guard still sees a plug/unplug.
+	 */
+	stopHeartbeat(): void {
 		if ( this.heartbeat !== undefined ) {
 			this.options.clearTimer( this.heartbeat );
 			this.heartbeat = undefined;
 		}
+	}
 
+	/**
+	 * Tears the monitor down entirely: stops the heartbeat and detaches the
+	 * listeners. After stopping, a pending acquisition will not attach anything.
+	 */
+	stop(): void {
+		this.stopped = true;
+		this.stopHeartbeat();
 		this.manager?.removeEventListener( 'levelchange', this.emit );
 		this.manager?.removeEventListener( 'chargingchange', this.emit );
 		this.manager = undefined;

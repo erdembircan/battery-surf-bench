@@ -78,6 +78,7 @@ interface CockpitConfig {
 		tick: () => () => void;
 		initTheme: () => () => void;
 		initBattery: () => () => void;
+		syncRunPolling: () => void;
 		rollDuration: () => void;
 	};
 }
@@ -840,6 +841,53 @@ describe( 'bsb/cockpit view store', () => {
 			mockBattery.level = 0.5;
 			handlers( 'levelchange' )();
 			expect( mocks.context.rateSession ).toBeNull();
+
+			cleanup();
+		} );
+
+		it( 'runs the battery heartbeat poll only while a run is live', async () => {
+			const setSpy = vi.spyOn( window, 'setInterval' );
+			const clearSpy = vi.spyOn( window, 'clearInterval' );
+			const mockBattery = {
+				level: 0.8,
+				charging: false,
+				addEventListener: vi.fn(),
+				removeEventListener: vi.fn(),
+			};
+			( navigator as { getBattery?: unknown } ).getBattery = () =>
+				Promise.resolve( mockBattery );
+
+			const cleanup = mocks.config!.callbacks.initBattery();
+			await vi.waitFor( () =>
+				expect( mockBattery.addEventListener ).toHaveBeenCalled()
+			);
+
+			// Only the 30s heartbeat poll, isolated from any other interval.
+			const heartbeats = (): unknown[] =>
+				setSpy.mock.calls.filter( ( call ) => call[ 1 ] === 30_000 );
+
+			// Idle: the watch keeps the poll at rest.
+			mocks.context.running = false;
+			mocks.config!.callbacks.syncRunPolling();
+			expect( heartbeats() ).toHaveLength( 0 );
+
+			// Run live: the watch starts the poll at the 30s cadence.
+			mocks.context.running = true;
+			mocks.config!.callbacks.syncRunPolling();
+			expect( heartbeats() ).toHaveLength( 1 );
+			const beatIndex = setSpy.mock.calls.findIndex(
+				( call ) => call[ 1 ] === 30_000
+			);
+			const beatId = setSpy.mock.results[ beatIndex ]!.value;
+
+			// The poll is idempotent while the run continues (no second timer).
+			mocks.config!.callbacks.syncRunPolling();
+			expect( heartbeats() ).toHaveLength( 1 );
+
+			// Run ends — by any cause that flips `running` — and the poll stops.
+			mocks.context.running = false;
+			mocks.config!.callbacks.syncRunPolling();
+			expect( clearSpy ).toHaveBeenCalledWith( beatId );
 
 			cleanup();
 		} );

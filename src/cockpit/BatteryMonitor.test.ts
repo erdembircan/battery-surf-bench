@@ -99,7 +99,7 @@ describe( 'BatteryMonitor', () => {
 		} );
 	} );
 
-	it( 'emits from the backup heartbeat at the configured cadence', async () => {
+	it( 'does not poll until the heartbeat is started', async () => {
 		const onReading = vi.fn< ( reading: BatteryReading ) => void >();
 		const manager = fakeManager( 0.8, false );
 		const timers = fakeTimers();
@@ -110,7 +110,30 @@ describe( 'BatteryMonitor', () => {
 			...timers,
 		} ).start();
 
-		await vi.waitFor( () => expect( timers.setTimer ).toHaveBeenCalled() );
+		// Acquisition attaches the passive listeners but schedules no poll.
+		await vi.waitFor( () =>
+			expect( manager.addEventListener ).toHaveBeenCalled()
+		);
+		expect( timers.setTimer ).not.toHaveBeenCalled();
+		expect( timers.active() ).toBe( 0 );
+	} );
+
+	it( 'emits from the backup heartbeat once started, at the configured cadence', async () => {
+		const onReading = vi.fn< ( reading: BatteryReading ) => void >();
+		const manager = fakeManager( 0.8, false );
+		const timers = fakeTimers();
+
+		const monitor = new BatteryMonitor( {
+			getBattery: () => Promise.resolve( manager ),
+			onReading,
+			...timers,
+		} );
+		monitor.start();
+		await vi.waitFor( () =>
+			expect( manager.addEventListener ).toHaveBeenCalled()
+		);
+
+		monitor.startHeartbeat();
 		// The heartbeat is scheduled at the 30-second default.
 		expect( timers.setTimer ).toHaveBeenCalledWith(
 			expect.any( Function ),
@@ -128,6 +151,38 @@ describe( 'BatteryMonitor', () => {
 		} );
 	} );
 
+	it( 'stops the heartbeat but keeps the change listeners on stopHeartbeat', async () => {
+		const onReading = vi.fn< ( reading: BatteryReading ) => void >();
+		const manager = fakeManager( 0.8, false );
+		const timers = fakeTimers();
+
+		const monitor = new BatteryMonitor( {
+			getBattery: () => Promise.resolve( manager ),
+			onReading,
+			...timers,
+		} );
+		monitor.start();
+		await vi.waitFor( () =>
+			expect( manager.addEventListener ).toHaveBeenCalled()
+		);
+
+		monitor.startHeartbeat();
+		expect( timers.active() ).toBe( 1 );
+
+		monitor.stopHeartbeat();
+		expect( timers.active() ).toBe( 0 );
+		// The passive listeners stay attached, so the charger guard still sees
+		// readings — a plug/unplug after a run still updates state.
+		expect( manager.removeEventListener ).not.toHaveBeenCalled();
+		onReading.mockClear();
+		manager.charging = true;
+		manager.fire( 'chargingchange' );
+		expect( onReading ).toHaveBeenCalledWith( {
+			level: 0.8,
+			charging: true,
+		} );
+	} );
+
 	it( 'detaches listeners and stops the heartbeat on stop', async () => {
 		const onReading = vi.fn< ( reading: BatteryReading ) => void >();
 		const manager = fakeManager();
@@ -139,8 +194,11 @@ describe( 'BatteryMonitor', () => {
 			...timers,
 		} );
 		monitor.start();
-
-		await vi.waitFor( () => expect( timers.active() ).toBe( 1 ) );
+		await vi.waitFor( () =>
+			expect( manager.addEventListener ).toHaveBeenCalled()
+		);
+		monitor.startHeartbeat();
+		expect( timers.active() ).toBe( 1 );
 
 		monitor.stop();
 
