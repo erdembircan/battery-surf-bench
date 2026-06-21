@@ -7,10 +7,6 @@
 
 namespace ErdemBircan\BatterySurfBench\Content;
 
-use function absint;
-use function sanitize_key;
-use function sanitize_text_field;
-
 defined( 'ABSPATH' ) || exit;
 
 /**
@@ -23,9 +19,11 @@ defined( 'ABSPATH' ) || exit;
  * from drifting apart, and means a new datum is added in exactly one place.
  *
  * The shape mirrors the session record the cockpit produces while benchmarking:
- * the run mode and lifecycle status, its battery levels, and the derived drain
- * statistics. Each datum is a single scalar so it can be sorted and filtered as
- * its own column; the free-form run configuration is the lone object field.
+ * the run mode and lifecycle status, its battery levels, and the user agent the
+ * run was captured on. Each datum is a single scalar so it can be sorted and
+ * filtered as its own column. Derived statistics and the run configuration are
+ * deliberately excluded here; they are added back as the features that produce
+ * them land.
  */
 class SessionSchema {
 
@@ -154,23 +152,14 @@ class SessionSchema {
 	}
 
 	/**
-	 * Derives a meta field's REST exposure from its definition: a closed schema
-	 * for object fields, an enum schema for enumerations, otherwise a bare
-	 * `true` so WordPress infers it from the registered type.
+	 * Derives a meta field's REST exposure from its definition: an enum schema
+	 * for enumerations, otherwise a bare `true` so WordPress infers it from the
+	 * registered type.
 	 *
 	 * @param array<string, mixed> $field A single field definition.
 	 * @return array<string, mixed>|bool The `show_in_rest` value for the field.
 	 */
 	private function rest_schema( array $field ) {
-		if ( 'object' === $field['rest_type'] ) {
-			return array(
-				'schema' => array(
-					'type'                 => 'object',
-					'additionalProperties' => true,
-				),
-			);
-		}
-
 		if ( array() !== $field['elements'] ) {
 			return array(
 				'schema' => array(
@@ -283,112 +272,12 @@ class SessionSchema {
 				'default_column' => true,
 			),
 			array(
-				'key'            => 'rate_session',
-				'rest_type'      => 'number',
-				'label'          => 'Drain rate (%/h)',
-				'format'         => 'rate',
-				'default'        => 0.0,
-				'sanitize'       => array( self::class, 'sanitize_rate' ),
-				'elements'       => array(),
-				'default_column' => true,
-			),
-			array(
-				'key'            => 'rate_window',
-				'rest_type'      => 'number',
-				'label'          => 'Window rate (%/h)',
-				'format'         => 'rate',
-				'default'        => 0.0,
-				'sanitize'       => array( self::class, 'sanitize_rate' ),
-				'elements'       => array(),
-				'default_column' => false,
-			),
-			array(
-				'key'            => 'projection_min',
-				'rest_type'      => 'integer',
-				'label'          => 'Projection (min)',
-				'format'         => 'minutes',
-				'default'        => 0,
-				'sanitize'       => 'absint',
-				'elements'       => array(),
-				'default_column' => true,
-			),
-			array(
-				'key'            => 'baseline_rate',
-				'rest_type'      => 'number',
-				'label'          => 'Baseline rate (%/h)',
-				'format'         => 'rate',
-				'default'        => 0.0,
-				'sanitize'       => array( self::class, 'sanitize_rate' ),
-				'elements'       => array(),
-				'default_column' => false,
-			),
-			array(
-				'key'            => 'delta_rate',
-				'rest_type'      => 'number',
-				'label'          => 'Delta rate (%/h)',
-				'format'         => 'rate',
-				'default'        => 0.0,
-				'sanitize'       => array( self::class, 'sanitize_rate' ),
-				'elements'       => array(),
-				'default_column' => false,
-			),
-			array(
-				'key'            => 'pages',
-				'rest_type'      => 'integer',
-				'label'          => 'Pages',
-				'format'         => 'integer',
-				'default'        => 0,
-				'sanitize'       => 'absint',
-				'elements'       => array(),
-				'default_column' => false,
-			),
-			array(
-				'key'            => 'loops',
-				'rest_type'      => 'integer',
-				'label'          => 'Loops',
-				'format'         => 'integer',
-				'default'        => 0,
-				'sanitize'       => 'absint',
-				'elements'       => array(),
-				'default_column' => false,
-			),
-			array(
-				'key'            => 'clicks',
-				'rest_type'      => 'integer',
-				'label'          => 'Clicks',
-				'format'         => 'integer',
-				'default'        => 0,
-				'sanitize'       => 'absint',
-				'elements'       => array(),
-				'default_column' => false,
-			),
-			array(
-				'key'            => 'video_s',
-				'rest_type'      => 'integer',
-				'label'          => 'Video (s)',
-				'format'         => 'integer',
-				'default'        => 0,
-				'sanitize'       => 'absint',
-				'elements'       => array(),
-				'default_column' => false,
-			),
-			array(
 				'key'            => 'ua',
 				'rest_type'      => 'string',
 				'label'          => 'User agent',
 				'format'         => 'text',
 				'default'        => '',
 				'sanitize'       => 'sanitize_text_field',
-				'elements'       => array(),
-				'default_column' => false,
-			),
-			array(
-				'key'            => 'config',
-				'rest_type'      => 'object',
-				'label'          => 'Configuration',
-				'format'         => 'object',
-				'default'        => array(),
-				'sanitize'       => array( self::class, 'sanitize_config' ),
 				'elements'       => array(),
 				'default_column' => false,
 			),
@@ -406,49 +295,5 @@ class SessionSchema {
 		$level = max( 0.0, min( 1.0, (float) $value ) );
 
 		return round( $level, 4 );
-	}
-
-	/**
-	 * Coerces a raw drain-rate meta value to a non-negative number rounded to
-	 * four decimals.
-	 *
-	 * @param mixed $value Raw meta value.
-	 * @return float The sanitized drain rate in percent per hour.
-	 */
-	public static function sanitize_rate( $value ): float {
-		return round( max( 0.0, (float) $value ), 4 );
-	}
-
-	/**
-	 * Sanitizes the free-form run configuration: keeps only an associative
-	 * array and scrubs every string leaf, discarding anything else.
-	 *
-	 * @param mixed $value Raw meta value.
-	 * @return array<string, mixed> The sanitized configuration map.
-	 */
-	public static function sanitize_config( $value ): array {
-		if ( ! is_array( $value ) ) {
-			return array();
-		}
-
-		$clean = array();
-
-		foreach ( $value as $key => $entry ) {
-			$name = sanitize_key( (string) $key );
-
-			if ( is_array( $entry ) ) {
-				$clean[ $name ] = self::sanitize_config( $entry );
-			} elseif ( is_string( $entry ) ) {
-				$clean[ $name ] = sanitize_text_field( $entry );
-			} elseif ( is_bool( $entry ) ) {
-				$clean[ $name ] = $entry;
-			} elseif ( is_int( $entry ) ) {
-				$clean[ $name ] = absint( $entry );
-			} elseif ( is_float( $entry ) ) {
-				$clean[ $name ] = (float) $entry;
-			}
-		}
-
-		return $clean;
 	}
 }

@@ -9,7 +9,6 @@ declare( strict_types=1 );
 
 namespace ErdemBircan\BatterySurfBench\Tests\Content;
 
-use Brain\Monkey\Functions;
 use ErdemBircan\BatterySurfBench\Content\SessionSchema;
 use ErdemBircan\BatterySurfBench\Tests\TestCase;
 
@@ -167,40 +166,6 @@ final class SessionSchemaTest extends TestCase {
 		$this->assertSame( 1.0, SessionSchema::sanitize_level( 2 ) );
 		$this->assertSame( 0.0, SessionSchema::sanitize_level( -0.5 ) );
 		$this->assertSame( 0.5, SessionSchema::sanitize_level( 0.5 ) );
-	}
-
-	/**
-	 * Drain rates are coerced to non-negative numbers.
-	 */
-	public function test_sanitize_rate_rejects_negatives(): void {
-		$this->assertSame( 0.0, SessionSchema::sanitize_rate( -5 ) );
-		$this->assertSame( 12.5, SessionSchema::sanitize_rate( 12.5 ) );
-	}
-
-	/**
-	 * The free-form configuration is only ever stored as an associative array;
-	 * anything else is discarded.
-	 */
-	public function test_sanitize_config_rejects_non_arrays(): void {
-		$this->assertSame( array(), SessionSchema::sanitize_config( 'not-an-array' ) );
-	}
-
-	/**
-	 * String leaves of the configuration are scrubbed and their keys normalized.
-	 */
-	public function test_sanitize_config_scrubs_string_leaves(): void {
-		Functions\when( 'sanitize_key' )->returnArg();
-		Functions\when( 'sanitize_text_field' )->alias( static fn( $value ) => trim( (string) $value ) );
-
-		$clean = SessionSchema::sanitize_config(
-			array(
-				'videoId' => '  abc123  ',
-				'plugged' => true,
-			)
-		);
-
-		$this->assertSame( 'abc123', $clean['videoId'] );
-		$this->assertTrue( $clean['plugged'] );
 	}
 
 	/**
