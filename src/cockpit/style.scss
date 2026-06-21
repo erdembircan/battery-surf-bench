@@ -1191,6 +1191,24 @@ body {
 	}
 }
 
+// A quiet heads-up under the steps: the run keeps the screen on, but the OS can
+// still sleep the machine, so the user should leave the lid open.
+.bsb-cockpit__postcard-notice {
+	margin-top: 0.85rem;
+	padding-top: 0.7rem;
+	border-top: 1px dashed color-mix(in srgb, var(--paper-ink) 28%, transparent);
+	font-family: theme.$font-ui;
+	font-size: 0.72rem;
+	line-height: 1.45;
+	color: var(--paper-ink);
+	opacity: 0.78;
+
+	b {
+		display: block;
+		font-weight: 700;
+	}
+}
+
 // a blank, light, hand-stuck postage stamp: just a perforated (scalloped) edge
 // cut by a four-way radial-gradient mask, with the interior knocked back to the
 // paper colour so only the outline shows.

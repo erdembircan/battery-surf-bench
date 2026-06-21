@@ -79,6 +79,9 @@ final class CockpitViewTest extends TestCase {
 		$this->assertStringContainsString( 'How this run works', $markup );
 		$this->assertStringContainsString( 'Greetings from', $markup );
 		$this->assertStringContainsString( 'Set the session', $markup );
+		// The keep-the-screen-awake notice rides on the postcard.
+		$this->assertStringContainsString( 'class="bsb-cockpit__postcard-notice"', $markup );
+		$this->assertStringContainsString( 'Keep the laptop open', $markup );
 	}
 
 	/**
@@ -304,6 +307,8 @@ final class CockpitViewTest extends TestCase {
 				'idle_step2_text'    => 'Hit Start. The charger unplugs and the run begins on its own.',
 				'idle_step3_title'   => 'Watch the slope',
 				'idle_step3_text'    => 'It runs hands-free while the battery drains; you just watch the numbers.',
+				'idle_notice_title'  => 'Keep the laptop open',
+				'idle_notice_text'   => 'The wake lock keeps the screen on; do not close the lid.',
 			)
 		);
 	}

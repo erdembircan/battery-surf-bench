@@ -105,6 +105,8 @@ $bsb_markup = ( new CockpitView() )->render(
 		'idle_step2_text'    => esc_html__( 'Hit Start. The charger unplugs and the run begins on its own.', 'battery-surf-bench' ),
 		'idle_step3_title'   => esc_html__( 'Watch the slope', 'battery-surf-bench' ),
 		'idle_step3_text'    => esc_html__( 'It runs hands-free while the battery drains; you just watch the numbers.', 'battery-surf-bench' ),
+		'idle_notice_title'  => esc_html__( 'Keep the laptop open', 'battery-surf-bench' ),
+		'idle_notice_text'   => esc_html__( 'A run holds a screen wake lock, so the display stays on while this tab is visible — like a playing video. Closing the lid, low-power mode, or a system sleep can still interrupt a run, so leave the laptop open and the tab in front for the whole session.', 'battery-surf-bench' ),
 	)
 );
 

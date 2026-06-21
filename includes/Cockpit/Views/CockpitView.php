@@ -71,6 +71,8 @@ class CockpitView implements View {
 	 *     @type string $idle_step2_text   Translated, escaped body of idle step 2.
 	 *     @type string $idle_step3_title  Translated, escaped title of idle step 3.
 	 *     @type string $idle_step3_text   Translated, escaped body of idle step 3.
+	 *     @type string $idle_notice_title Translated, escaped title of the keep-awake notice.
+	 *     @type string $idle_notice_text  Translated, escaped body of the keep-awake notice.
 	 * }
 	 * @return string The block's HTML.
 	 */
@@ -115,6 +117,8 @@ class CockpitView implements View {
 		$idle_step2_text    = isset( $data['idle_step2_text'] ) ? (string) $data['idle_step2_text'] : '';
 		$idle_step3_title   = isset( $data['idle_step3_title'] ) ? (string) $data['idle_step3_title'] : '';
 		$idle_step3_text    = isset( $data['idle_step3_text'] ) ? (string) $data['idle_step3_text'] : '';
+		$idle_notice_title  = isset( $data['idle_notice_title'] ) ? (string) $data['idle_notice_title'] : '';
+		$idle_notice_text   = isset( $data['idle_notice_text'] ) ? (string) $data['idle_notice_text'] : '';
 
 		// Each duration-odometer wheel is a strip of 0–9 repeated three times; the
 		// client store (rollDuration) slides it to roll the digit. Built here so
@@ -281,6 +285,7 @@ INNER;
 						<li><span class="bsb-cockpit__postcard-num">2</span><span class="bsb-cockpit__postcard-step"><b>{$idle_step2_title}</b>{$idle_step2_text}</span></li>
 						<li><span class="bsb-cockpit__postcard-num">3</span><span class="bsb-cockpit__postcard-step"><b>{$idle_step3_title}</b>{$idle_step3_text}</span></li>
 					</ol>
+					<p class="bsb-cockpit__postcard-notice"><b>{$idle_notice_title}</b>{$idle_notice_text}</p>
 				</div>
 			</div>
 		</div>
