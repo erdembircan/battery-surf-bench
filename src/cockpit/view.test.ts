@@ -77,6 +77,7 @@ interface CockpitConfig {
 	callbacks: {
 		initTheme: () => () => void;
 		initBattery: () => () => void;
+		initWakeLock: () => () => void;
 		syncRunActivity: () => void;
 		rollDuration: () => void;
 	};
@@ -965,6 +966,117 @@ describe( 'bsb/cockpit view store', () => {
 			mocks.config!.callbacks.syncRunActivity();
 			expect( clearSpy ).toHaveBeenCalledWith( beatId );
 
+			cleanup();
+		} );
+	} );
+
+	describe( 'screen wake lock', () => {
+		afterEach( () => {
+			delete ( navigator as { wakeLock?: unknown } ).wakeLock;
+		} );
+
+		/** A fake wake-lock sentinel whose `release` event can be fired. */
+		const fakeSentinel = () => {
+			const listeners: Record< string, () => void > = {};
+			const sentinel = {
+				released: false,
+				release: vi.fn( () => {
+					sentinel.released = true;
+					return Promise.resolve();
+				} ),
+				addEventListener: ( type: string, listener: () => void ) => {
+					listeners[ type ] = listener;
+				},
+				removeEventListener: ( type: string ) => {
+					delete listeners[ type ];
+				},
+				fire: ( type: string ) => listeners[ type ]?.(),
+			};
+
+			return sentinel;
+		};
+
+		it( 'holds the lock while a run is live and drops it on stop', async () => {
+			const sentinel = fakeSentinel();
+			const request = vi.fn( () => Promise.resolve( sentinel ) );
+			( navigator as { wakeLock?: unknown } ).wakeLock = { request };
+
+			const cleanup = mocks.config!.callbacks.initWakeLock();
+
+			// The watch takes the lock when the run goes live.
+			mocks.context.running = true;
+			mocks.config!.callbacks.syncRunActivity();
+			await vi.waitFor( () =>
+				expect( request ).toHaveBeenCalledTimes( 1 )
+			);
+
+			// And drops it when the run ends.
+			mocks.context.running = false;
+			mocks.config!.callbacks.syncRunActivity();
+			await vi.waitFor( () =>
+				expect( sentinel.release ).toHaveBeenCalled()
+			);
+
+			cleanup();
+		} );
+
+		it( 're-acquires the lock when the page becomes visible during a run', async () => {
+			const first = fakeSentinel();
+			const second = fakeSentinel();
+			const request = vi
+				.fn()
+				.mockResolvedValueOnce( first )
+				.mockResolvedValueOnce( second );
+			( navigator as { wakeLock?: unknown } ).wakeLock = { request };
+
+			const cleanup = mocks.config!.callbacks.initWakeLock();
+			mocks.context.running = true;
+			mocks.config!.callbacks.syncRunActivity();
+			await vi.waitFor( () =>
+				expect( request ).toHaveBeenCalledTimes( 1 )
+			);
+
+			// The browser drops the lock when the tab hides.
+			first.released = true;
+			first.fire( 'release' );
+
+			// Visible again while still running: the lock is re-acquired.
+			document.dispatchEvent( new Event( 'visibilitychange' ) );
+			await vi.waitFor( () =>
+				expect( request ).toHaveBeenCalledTimes( 2 )
+			);
+
+			mocks.context.running = false;
+			mocks.config!.callbacks.syncRunActivity();
+			cleanup();
+		} );
+
+		it( 'does not re-acquire on visibility when no run is live', async () => {
+			const sentinel = fakeSentinel();
+			const request = vi.fn( () => Promise.resolve( sentinel ) );
+			( navigator as { wakeLock?: unknown } ).wakeLock = { request };
+
+			const cleanup = mocks.config!.callbacks.initWakeLock();
+
+			// Idle: a visibility change must not grab a lock.
+			mocks.context.running = false;
+			document.dispatchEvent( new Event( 'visibilitychange' ) );
+			await Promise.resolve();
+			expect( request ).not.toHaveBeenCalled();
+
+			cleanup();
+		} );
+
+		it( 'runs without a lock where the Wake Lock API is unavailable', () => {
+			const cleanup = mocks.config!.callbacks.initWakeLock();
+
+			mocks.context.running = true;
+			expect( () =>
+				mocks.config!.callbacks.syncRunActivity()
+			).not.toThrow();
+
+			mocks.context.running = false;
+			mocks.config!.callbacks.syncRunActivity();
 			cleanup();
 		} );
 	} );

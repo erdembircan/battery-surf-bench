@@ -9,7 +9,7 @@ classDiagram
         <<module>>
         state: derived readouts
         actions: deck controls
-        callbacks: initBattery, initTheme, syncRunActivity, rollDuration
+        callbacks: initBattery, initWakeLock, initTheme, syncRunActivity, rollDuration
     }
 
     class RunConfig {
@@ -79,11 +79,19 @@ classDiagram
         +HEARTBEAT_MS
     }
 
+    class ScreenWakeLock {
+        +__construct(ScreenWakeLockOptions)
+        +acquire() Promise
+        +release() Promise
+        +held: bool
+    }
+
     CockpitStore --> RunConfig : normalizes config
     CockpitStore --> TargetControl : maps slider input
     CockpitStore --> Theme : resolves & persists theme
     CockpitStore --> Format : formats readouts
     CockpitStore --> BatteryMonitor : creates & owns (composition)
+    CockpitStore --> ScreenWakeLock : creates & owns (composition)
     CockpitStore --> RunSession : creates & owns (composition)
     BatteryMonitor ..> CockpitStore : reports BatteryReading
     RunSession --> SampleLog : creates & owns (composition)

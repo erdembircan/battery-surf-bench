@@ -48,6 +48,7 @@ import {
 	durationDigits,
 } from './Format';
 import { BatteryMonitor, type BatteryReading } from './BatteryMonitor';
+import { ScreenWakeLock, type WakeLockSentinelLike } from './WakeLock';
 import { RunSession } from './RunSession';
 
 /** One surfable course page, as supplied by the `bsb/course-pages` binding. */
@@ -86,6 +87,8 @@ interface InstanceState {
 	lastReading: BatteryReading | null;
 	/** The battery monitor, so a run can gate its heartbeat poll to its lifecycle. */
 	monitor: BatteryMonitor | null;
+	/** The screen wake lock, held while a run is live so the display stays awake. */
+	wakeLock: ScreenWakeLock | null;
 	/** The run clock interval id while a run is live, or null when at rest. */
 	clock: number | null;
 }
@@ -110,6 +113,7 @@ const instanceFor = ( context: CockpitContext ): InstanceState => {
 			session: new RunSession(),
 			lastReading: null,
 			monitor: null,
+			wakeLock: null,
 			clock: null,
 		};
 		instances.set( context, state );
@@ -618,6 +622,56 @@ store( 'bsb/cockpit', {
 		},
 
 		/**
+		 * Wires the screen wake lock that keeps the display awake during a run.
+		 * The lock is taken and dropped by the run-activity watch as `running`
+		 * changes; this builds the requester and recovers the lock when the page
+		 * becomes visible again — the browser releases it automatically whenever
+		 * the tab is hidden, and never re-acquires on its own. Returns a cleanup
+		 * that drops the lock and detaches the listener. A no-op where the API is
+		 * absent, leaving runs without a lock rather than erroring.
+		 */
+		initWakeLock(): () => void {
+			const api = (
+				navigator as unknown as {
+					wakeLock?: {
+						request: (
+							type: 'screen'
+						) => Promise< WakeLockSentinelLike >;
+					};
+				}
+			 ).wakeLock;
+
+			if ( ! api ) {
+				return () => undefined;
+			}
+
+			const context = getContext< CockpitContext >();
+			const instance = instanceFor( context );
+			instance.wakeLock = new ScreenWakeLock( {
+				request: () => api.request( 'screen' ),
+			} );
+
+			const onVisibility = (): void => {
+				if (
+					document.visibilityState === 'visible' &&
+					context.running
+				) {
+					void instance.wakeLock?.acquire();
+				}
+			};
+			document.addEventListener( 'visibilitychange', onVisibility );
+
+			return () => {
+				document.removeEventListener(
+					'visibilitychange',
+					onVisibility
+				);
+				void instance.wakeLock?.release();
+				instance.wakeLock = null;
+			};
+		},
+
+		/**
 		 * Restores the remembered theme preference on mount and keeps the resolved
 		 * theme in sync: a fixed light/dark choice applies as-is, while "system"
 		 * (the default) follows the OS and re-applies when its scheme changes.
@@ -646,11 +700,12 @@ store( 'bsb/cockpit', {
 		 * Binds every run-scoped timer to the run, reacting to `running` rather
 		 * than being toggled at each place a run starts or stops. While a run is
 		 * live it runs the elapsed clock (one tick a second, ending the run when a
-		 * duration run reaches its normalized length) and the battery heartbeat
-		 * poll; when the run ends — whatever the cause (the stop control, plugging
-		 * in, the duration elapsing) — both stop. Driven by `data-wp-watch`, so it
-		 * re-runs whenever `running` changes. The passive battery change listeners
-		 * stay attached throughout, so the charger guard keeps working at rest.
+		 * duration run reaches its normalized length), the battery heartbeat poll,
+		 * and the screen wake lock; when the run ends — whatever the cause (the
+		 * stop control, plugging in, the duration elapsing) — all three stop.
+		 * Driven by `data-wp-watch`, so it re-runs whenever `running` changes. The
+		 * passive battery change listeners stay attached throughout, so the charger
+		 * guard keeps working at rest.
 		 */
 		syncRunActivity(): void {
 			const context = getContext< CockpitContext >();
@@ -658,6 +713,7 @@ store( 'bsb/cockpit', {
 
 			if ( context.running ) {
 				instance.monitor?.startHeartbeat();
+				void instance.wakeLock?.acquire();
 
 				if ( instance.clock === null ) {
 					instance.clock = setInterval( () => {
@@ -678,6 +734,7 @@ store( 'bsb/cockpit', {
 			}
 
 			instance.monitor?.stopHeartbeat();
+			void instance.wakeLock?.release();
 
 			if ( instance.clock !== null ) {
 				clearInterval( instance.clock );
