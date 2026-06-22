@@ -72,8 +72,12 @@
   .howline .tx { font-size:.82rem; line-height:1.4; color:var(--paper-ink); }
   .howline .tx b { display:block; }
 
-  /* ── the blank postage stamp (perforated edge), top-right of the back ── */
-  .stamp { position:absolute; z-index:6; top:1.1rem; right:1.3rem; width:54px; height:66px; background:#dfe4e8; --r:3.4px; --sp:11px;
+  /* ── Franked stamp component (summary only): the postage stamp is the
+     positioned box; the cancellation is an absolute child, sized by tokens and
+     knocked askew so it overhangs. No per-element eyeballing. ── */
+  .stamp { position:absolute; z-index:6; top:1.2rem; right:1.4rem;
+    --stamp-w:54px; --stamp-h:66px; --cancel-d:96px;
+    width:var(--stamp-w); height:var(--stamp-h); background:#dfe4e8; --r:3.4px; --sp:11px;
     -webkit-mask:
       radial-gradient(var(--r) at 50% 0,#0000 96%,#000) repeat-x 50% 0/var(--sp) 100%,
       radial-gradient(var(--r) at 50% 100%,#0000 96%,#000) repeat-x 50% 100%/var(--sp) 100%,
@@ -88,9 +92,16 @@
     mask-composite:intersect; }
   .stamp::before { content:''; position:absolute; inset:3px; background:var(--paper); border:1px solid rgba(120,138,150,.3); border-radius:2px; }
 
-  /* ── the cancellation postmark, stamped ON TOP of the postage stamp ── */
-  .pmHolder { position:absolute; z-index:7; top:.4rem; right:.2rem; --pm-ink:#15303d; }
-  .pm { display:block; overflow:visible; transform:rotate(-8deg); }
+  /* the cancellation: a token-sized box centred on the stamp, then knocked askew
+     (different top/left offsets) so it overhangs and reads as naturally stamped.
+     Grey, slightly translucent ink like a real rubber-stamp cancellation. */
+  .cancel { position:absolute; z-index:1;
+    --pm-ink:rgba(96,110,120,.72);
+    width:var(--cancel-d); height:var(--cancel-d);
+    top:calc((var(--stamp-h) - var(--cancel-d)) / 2 - 12px);
+    left:calc((var(--stamp-w) - var(--cancel-d)) / 2 + 9px);
+    transform:rotate(-11deg); }
+  .pm { width:100%; height:100%; display:block; overflow:visible; }
   .pm text { font-family:'Space Mono',monospace; font-weight:700; fill:var(--pm-ink); }
   .pm .ring { fill:none; stroke:var(--pm-ink); }
   .pm .arc { font-size:8px; letter-spacing:.4px; }
@@ -136,8 +147,7 @@
             <div class="greet">Greetings from<small>Battery Surf Bench</small></div>
           </div>
           <div class="msg" id="msg"></div>
-          <div class="stamp"></div>
-          <div id="pm"></div>
+          <div class="stamp"><div class="cancel" id="pm"></div></div>
         </div>
       </div>
     </main>
@@ -146,25 +156,25 @@
 <script>
   // the cancellation postmark — round date-stamp (curved brand top, label bottom,
   // a wave glyph centre) with wavy cancellation bars sweeping out to the left.
+  // circle-centred SVG (origin at the ring centre) so the holder, centred on the
+  // stamp, lands the ring exactly on it. Cancellation bars sweep out to the left.
   function postmark(){
-    const W=210, cx=150, Ro=47, Ri=34, Rm=(Ro+Ri)/2;
-    const bars=[44,54,64,74].map(y=>`<path class="bar" d="M6 ${y} q 22 -6 44 0 t 44 0"/>`).join('');
-    const wave=`<path class="glyph" transform="translate(${cx-13},54)" d="M0 6 q 6.5 -6 13 0 t 13 0 M0 12 q 6.5 -6 13 0 t 13 0"/>`;
-    return `<div class="pmHolder">
-      <svg class="pm" width="160" height="96" viewBox="0 0 ${W} 120">
-        <defs>
-          <path id="aT" d="M${cx-Rm} 60 A${Rm} ${Rm} 0 0 1 ${cx+Rm} 60"/>
-          <path id="aB" d="M${cx+Rm} 60 A${Rm} ${Rm} 0 0 1 ${cx-Rm} 60"/>
-        </defs>
-        ${bars}
-        <circle class="ring" cx="${cx}" cy="60" r="${Ro}" stroke-width="2.2"/>
-        <circle class="ring" cx="${cx}" cy="60" r="${Ri}" stroke-width="1"/>
-        <text class="arc" text-anchor="middle" dominant-baseline="central"><textPath href="#aT" startOffset="50%">BATTERY · SURF · BENCH</textPath></text>
-        <text class="arc" text-anchor="middle" dominant-baseline="central"><textPath href="#aB" startOffset="50%">· READY TO SURF ·</textPath></text>
-        ${wave}
-        <text class="lab" x="${cx}" y="74" text-anchor="middle" dominant-baseline="central">ON BATTERY</text>
-      </svg>
-    </div>`;
+    const Ro=47, Ri=34, Rm=(Ro+Ri)/2;
+    const bars=[-15,-5,5,15].map(y=>`<path class="bar" d="M-58 ${y} q 13 -5 26 0 t 26 0"/>`).join('');
+    const wave=`<path class="glyph" transform="translate(-13,-14)" d="M0 6 q 6.5 -6 13 0 t 13 0 M0 12 q 6.5 -6 13 0 t 13 0"/>`;
+    return `<svg class="pm" width="100%" height="100%" viewBox="-60 -60 120 120">
+      <defs>
+        <path id="aT" d="M${-Rm} 0 A${Rm} ${Rm} 0 0 1 ${Rm} 0"/>
+        <path id="aB" d="M${Rm} 0 A${Rm} ${Rm} 0 0 1 ${-Rm} 0"/>
+      </defs>
+      ${bars}
+      <circle class="ring" cx="0" cy="0" r="${Ro}" stroke-width="2.2"/>
+      <circle class="ring" cx="0" cy="0" r="${Ri}" stroke-width="1"/>
+      <text class="arc" text-anchor="middle" dominant-baseline="central"><textPath href="#aT" startOffset="50%">BATTERY · SURF · BENCH</textPath></text>
+      <text class="arc" text-anchor="middle" dominant-baseline="central"><textPath href="#aB" startOffset="50%">· READY TO SURF ·</textPath></text>
+      ${wave}
+      <text class="lab" x="0" y="13" text-anchor="middle" dominant-baseline="central">ON BATTERY</text>
+    </svg>`;
   }
 
   document.getElementById('pm').innerHTML = postmark();
