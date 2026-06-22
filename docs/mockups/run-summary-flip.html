@@ -60,6 +60,9 @@
     text-shadow:0 1px 4px rgba(0,0,0,.4); box-shadow:0 4px 14px rgba(0,0,0,.18); }
   .flipBadge svg { width:.95rem; height:.95rem; animation:wig 3s ease-in-out infinite; }
   @keyframes wig { 0%,86%,100%{ transform:rotate(0);} 93%{ transform:rotate(-32deg);} }
+  /* same badge on the paper back: ink-toned instead of glassy-on-photo */
+  .flipBadge.onPaper { color:var(--paper-ink); text-shadow:none; backdrop-filter:none; -webkit-backdrop-filter:none; box-shadow:none;
+    background:color-mix(in srgb,var(--paper-ink) 8%,transparent); border-color:color-mix(in srgb,var(--paper-ink) 22%,transparent); }
 
   /* back = the report */
   .back .inner { position:absolute; inset:0; padding:1.4rem 1.6rem 1.3rem; display:flex; flex-direction:column; }
@@ -77,9 +80,8 @@
   .stat .v small { font-family:'Space Mono',monospace; font-size:.58rem; font-weight:700; color:var(--teal); margin-left:.16rem; }
   .stat .v.drop { color:var(--coral); }
   .actions { display:flex; gap:.6rem; margin-top:auto; padding-top:.8rem; }
-  .btn { flex:1; padding:.65rem; border:0; border-radius:11px; font-family:'Anton'; font-size:.92rem; letter-spacing:.05em; text-transform:uppercase; cursor:pointer; }
+  .btn { padding:.65rem 1.7rem; border:0; border-radius:11px; font-family:'Anton'; font-size:.92rem; letter-spacing:.05em; text-transform:uppercase; cursor:pointer; }
   .btn.primary { background:linear-gradient(160deg,var(--teal),var(--teal-deep)); color:#fff; box-shadow:0 10px 22px color-mix(in srgb,var(--teal-deep) 40%,transparent); }
-  .btn.ghost { background:color-mix(in srgb,var(--paper-ink) 9%,transparent); color:var(--paper-ink); }
 
   /* franked stamp (postage stamp + askew grey cancellation), summary back corner */
   .frank { position:absolute; z-index:3; top:1.2rem; right:1.4rem; overflow:visible; --stamp-w:50px; --stamp-h:60px; --cancel-d:72px; }
@@ -198,8 +200,9 @@
           <div class="divide"></div>
           <div class="graph">${graphSVG()}<div class="legend"><span><i></i>battery (measured)</span><span class="pj"><i></i>drain fit</span></div></div>
           <div class="stats">${stats}</div>
-          <div class="actions"><button class="btn primary" data-act="new">New run</button><button class="btn ghost" data-act="flip">Flip back</button></div>
+          <div class="actions"><button class="btn primary" data-act="new">New run</button></div>
         </div>
+        <div class="flipBadge onPaper">${flipIcon} Flip</div>
       </div>`;
     if (wasFlipped) card.classList.add('flipped');
   }
