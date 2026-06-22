@@ -56,6 +56,11 @@ $bsb_context = array(
 	'rate10'          => null,
 	'rateSession'     => null,
 	'secondsToEmpty'  => null,
+	// The run-summary state machine: a run has not ended yet, with no reason and
+	// the card on its picture front. Set when a run stops (whatever the cause).
+	'ended'           => false,
+	'endReason'       => '',
+	'flipped'         => false,
 );
 
 // The viewport's `src` is owned by the Interactivity API: `data-wp-bind--src`

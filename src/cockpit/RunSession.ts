@@ -35,6 +35,16 @@ const EMPTY_READOUTS: Readouts = {
 	secondsToEmpty: null,
 };
 
+/** The frozen end-of-run figures the summary report shows. */
+export interface RunSummary extends Readouts {
+	/** Battery level (0..1) at the first recorded sample. */
+	startLevel: number;
+	/** Battery level (0..1) at the last recorded sample. */
+	endLevel: number;
+	/** Percentage points the battery fell over the run. */
+	droppedPct: number;
+}
+
 /**
  * Rounds a drain rate to one decimal place, preserving null.
  * @param rate
@@ -110,6 +120,29 @@ export class RunSession {
 			rateSession: roundRate( session.pctPerHour ),
 			secondsToEmpty:
 				minutes === null ? null : Math.round( minutes * 60 ),
+		};
+	}
+
+	/**
+	 * The frozen end-of-run figures for the summary: the start and end battery
+	 * levels, how far it fell, and the drain readouts. Null until at least one
+	 * sample has been recorded. Readable after the run stops, since the samples
+	 * are kept until the next run starts.
+	 */
+	summary(): RunSummary | null {
+		const samples = this.log.all();
+		const first = samples[ 0 ];
+		const last = this.log.latest();
+
+		if ( ! first || ! last ) {
+			return null;
+		}
+
+		return {
+			...this.readouts(),
+			startLevel: first.level,
+			endLevel: last.level,
+			droppedPct: ( first.level - last.level ) * 100,
 		};
 	}
 

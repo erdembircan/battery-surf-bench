@@ -85,4 +85,34 @@ describe( 'RunSession', () => {
 		session.start( 0 );
 		expect( session.readouts().rateSession ).toBeNull();
 	} );
+
+	it( 'has no summary before any sample is recorded', () => {
+		const session = new RunSession();
+		session.start( 0 );
+		expect( session.summary() ).toBeNull();
+	} );
+
+	it( 'summarizes the start, end, drop and readouts of a run', () => {
+		const session = new RunSession();
+		session.start( 0 );
+		session.record( 0, 0.82, false );
+		session.record( 600_000, 0.75, false );
+
+		const summary = session.summary();
+		expect( summary ).not.toBeNull();
+		expect( summary!.startLevel ).toBe( 0.82 );
+		expect( summary!.endLevel ).toBe( 0.75 );
+		expect( summary!.droppedPct ).toBeCloseTo( 7, 6 );
+		expect( summary!.rateSession ).not.toBeNull();
+	} );
+
+	it( 'keeps the summary readable after the run stops', () => {
+		const session = new RunSession();
+		session.start( 0 );
+		session.record( 0, 0.82, false );
+		session.record( 600_000, 0.75, false );
+		session.stop();
+
+		expect( session.summary()?.droppedPct ).toBeCloseTo( 7, 6 );
+	} );
 } );

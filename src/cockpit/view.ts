@@ -77,7 +77,13 @@ interface CockpitContext {
 	rate10: number | null;
 	rateSession: number | null;
 	secondsToEmpty: number | null;
+	ended: boolean;
+	endReason: RunEndReason;
+	flipped: boolean;
 }
+
+/** Why a run ended — drives the summary's verdict; empty before any run ends. */
+type RunEndReason = '' | 'duration' | 'targetDrop' | 'stopped' | 'plugged';
 
 /** Per-instance calculation state, kept off the reactive context and keyed by it. */
 interface InstanceState {
@@ -148,11 +154,25 @@ const applyReadouts = (
  * the deck returns and the compact pill closes (`isCompact` derives false once
  * `running` is false), and the run clock and battery heartbeat poll stop through
  * the run-activity watch — so each run-scoped effect stays bound to its one cause.
+ *
+ * Ending also raises the summary: the final readouts are frozen, the run is
+ * marked ended with the reason it ended, and the summary card is reset to its
+ * picture front. The summary's visibility derives from `ended`, so it appears
+ * whatever ended the run.
  * @param context
  * @param instance
+ * @param reason   Why the run ended, recorded for the summary's verdict.
  */
-const stopRun = ( context: CockpitContext, instance: InstanceState ): void => {
+const stopRun = (
+	context: CockpitContext,
+	instance: InstanceState,
+	reason: RunEndReason
+): void => {
+	applyReadouts( context, instance.session );
 	context.running = false;
+	context.ended = true;
+	context.endReason = reason;
+	context.flipped = false;
 	instance.session.stop();
 };
 
@@ -332,6 +352,77 @@ store( 'bsb/cockpit', {
 				  )
 				: formatClock( elapsed );
 		},
+
+		/** Whether a run has finished, so the summary card is shown. */
+		get isEnded(): boolean {
+			return getContext< CockpitContext >().ended;
+		},
+
+		/** Whether the summary card is turned to its report back. */
+		get isFlipped(): boolean {
+			return getContext< CockpitContext >().flipped;
+		},
+
+		/** Whether the finished run ran its full duration. */
+		get isReasonDuration(): boolean {
+			return getContext< CockpitContext >().endReason === 'duration';
+		},
+
+		/** Whether the finished run reached its target drop. */
+		get isReasonTargetDrop(): boolean {
+			return getContext< CockpitContext >().endReason === 'targetDrop';
+		},
+
+		/** Whether the finished run was stopped by hand. */
+		get isReasonStopped(): boolean {
+			return getContext< CockpitContext >().endReason === 'stopped';
+		},
+
+		/** Whether the finished run was cut short by plugging in. */
+		get isReasonPlugged(): boolean {
+			return getContext< CockpitContext >().endReason === 'plugged';
+		},
+
+		/** Elapsed run time as `MM:SS`, counting up — the summary's run length. */
+		get summaryElapsed(): string {
+			return formatClock( getContext< CockpitContext >().elapsed );
+		},
+
+		/** Battery start→end for the summary (e.g. `82→75`), em dash until known. */
+		get summaryBattery(): string {
+			const summary = instanceFor(
+				getContext< CockpitContext >()
+			).session.summary();
+
+			if ( ! summary ) {
+				return '—';
+			}
+
+			return `${ Math.round( summary.startLevel * 100 ) }→${ Math.round(
+				summary.endLevel * 100
+			) }`;
+		},
+
+		/** Percentage points the battery dropped over the run, em dash until known. */
+		get summaryDropped(): string {
+			const summary = instanceFor(
+				getContext< CockpitContext >()
+			).session.summary();
+
+			return summary ? String( Math.round( summary.droppedPct ) ) : '—';
+		},
+
+		/**
+		 * The postmark's centre value: the stop-at percentage for a target run,
+		 * otherwise the elapsed run clock.
+		 */
+		get summaryPostmarkValue(): string {
+			const context = getContext< CockpitContext >();
+
+			return context.endReason === 'targetDrop'
+				? `${ context.targetPercent }%`
+				: formatClock( context.elapsed );
+		},
 	},
 	actions: {
 		/** Selects the run mode named by the triggering control's `data-mode`. */
@@ -467,7 +558,7 @@ store( 'bsb/cockpit', {
 			const instance = instanceFor( context );
 
 			if ( context.running ) {
-				stopRun( context, instance );
+				stopRun( context, instance, 'stopped' );
 				return;
 			}
 
@@ -492,6 +583,9 @@ store( 'bsb/cockpit', {
 			context.rate10 = null;
 			context.rateSession = null;
 			context.secondsToEmpty = null;
+			context.ended = false;
+			context.endReason = '';
+			context.flipped = false;
 			context.running = true;
 
 			instance.session.start( now() );
@@ -512,6 +606,12 @@ store( 'bsb/cockpit', {
 		toggleCompact(): void {
 			const context = getContext< CockpitContext >();
 			context.compact = ! context.compact;
+		},
+
+		/** Turns the summary card between its picture front and its report back. */
+		toggleFlip(): void {
+			const context = getContext< CockpitContext >();
+			context.flipped = ! context.flipped;
 		},
 
 		/**
@@ -573,7 +673,7 @@ store( 'bsb/cockpit', {
 					// A benchmark must drain the battery: plugging in mid-run ends
 					// the run rather than recording charging samples.
 					if ( reading.charging && context.running ) {
-						stopRun( context, instance );
+						stopRun( context, instance, 'plugged' );
 					}
 
 					// Target-drop run: stop the moment the battery has fallen to
@@ -585,7 +685,7 @@ store( 'bsb/cockpit', {
 						context.batteryLevel !== null &&
 						context.batteryLevel <= context.targetPercent
 					) {
-						stopRun( context, instance );
+						stopRun( context, instance, 'targetDrop' );
 					}
 
 					// While idle the stop-at target follows the battery down — it
@@ -725,7 +825,7 @@ store( 'bsb/cockpit', {
 								normalizeDuration( context.durationMinutes ) *
 									60
 						) {
-							stopRun( context, instance );
+							stopRun( context, instance, 'duration' );
 						}
 					}, 1000 ) as unknown as number;
 				}

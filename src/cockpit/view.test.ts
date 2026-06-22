@@ -35,6 +35,9 @@ interface CockpitContext {
 	rate10: number | null;
 	rateSession: number | null;
 	secondsToEmpty: number | null;
+	ended: boolean;
+	endReason: '' | 'duration' | 'targetDrop' | 'stopped' | 'plugged';
+	flipped: boolean;
 }
 
 interface CockpitConfig {
@@ -60,6 +63,16 @@ interface CockpitConfig {
 		rate10Display: string;
 		rateSessionDisplay: string;
 		timeToEmptyDisplay: string;
+		isEnded: boolean;
+		isFlipped: boolean;
+		isReasonDuration: boolean;
+		isReasonTargetDrop: boolean;
+		isReasonStopped: boolean;
+		isReasonPlugged: boolean;
+		summaryElapsed: string;
+		summaryBattery: string;
+		summaryDropped: string;
+		summaryPostmarkValue: string;
 	};
 	actions: {
 		selectMode: () => void;
@@ -72,6 +85,7 @@ interface CockpitConfig {
 		selectSpeed: () => void;
 		toggleRun: () => void;
 		toggleCompact: () => void;
+		toggleFlip: () => void;
 		toggleTheme: () => void;
 	};
 	callbacks: {
@@ -110,6 +124,9 @@ const baseContext = (): CockpitContext => ( {
 	rate10: null,
 	rateSession: null,
 	secondsToEmpty: null,
+	ended: false,
+	endReason: '',
+	flipped: false,
 } );
 
 const mocks = vi.hoisted( () => ( {
@@ -565,6 +582,7 @@ describe( 'bsb/cockpit view store', () => {
 			// compact pill closes because `isCompact` derives false once stopped.
 			expect( mocks.context.running ).toBe( false );
 			expect( mocks.config?.state.isCompact ).toBe( false );
+			expect( mocks.context.endReason ).toBe( 'duration' );
 
 			// The watch reacts to the run ending and stops the clock.
 			mocks.config!.callbacks.syncRunActivity();
@@ -844,6 +862,7 @@ describe( 'bsb/cockpit view store', () => {
 			mockBattery.charging = true;
 			handlers( 'chargingchange' )();
 			expect( mocks.context.running ).toBe( false );
+			expect( mocks.context.endReason ).toBe( 'plugged' );
 
 			// A later reading while plugged in does not resume the calculations.
 			mockBattery.level = 0.5;
@@ -887,6 +906,7 @@ describe( 'bsb/cockpit view store', () => {
 			mockBattery.level = 0.75;
 			onChange();
 			expect( mocks.context.running ).toBe( false );
+			expect( mocks.context.endReason ).toBe( 'targetDrop' );
 
 			cleanup();
 		} );
@@ -1078,6 +1098,61 @@ describe( 'bsb/cockpit view store', () => {
 			mocks.context.running = false;
 			mocks.config!.callbacks.syncRunActivity();
 			cleanup();
+		} );
+	} );
+
+	describe( 'run summary', () => {
+		it( 'ends the run with a reason when stopped by hand', () => {
+			mocks.context.running = true;
+
+			mocks.config?.actions.toggleRun();
+
+			expect( mocks.context.ended ).toBe( true );
+			expect( mocks.context.endReason ).toBe( 'stopped' );
+			expect( mocks.context.flipped ).toBe( false );
+			expect( mocks.config?.state.isEnded ).toBe( true );
+			expect( mocks.config?.state.isReasonStopped ).toBe( true );
+		} );
+
+		it( 'clears the ended summary when a fresh run starts', () => {
+			mocks.context.ended = true;
+			mocks.context.endReason = 'stopped';
+			mocks.context.flipped = true;
+
+			mocks.config?.actions.toggleRun();
+
+			expect( mocks.context.running ).toBe( true );
+			expect( mocks.context.ended ).toBe( false );
+			expect( mocks.context.endReason ).toBe( '' );
+			expect( mocks.context.flipped ).toBe( false );
+		} );
+
+		it( 'turns the summary card between front and back', () => {
+			expect( mocks.config?.state.isFlipped ).toBe( false );
+
+			mocks.config?.actions.toggleFlip();
+			expect( mocks.context.flipped ).toBe( true );
+			expect( mocks.config?.state.isFlipped ).toBe( true );
+
+			mocks.config?.actions.toggleFlip();
+			expect( mocks.config?.state.isFlipped ).toBe( false );
+		} );
+
+		it( 'formats the summary readouts, with em dashes until sampled', () => {
+			mocks.context.elapsed = 75;
+			expect( mocks.config?.state.summaryElapsed ).toBe( '01:15' );
+			expect( mocks.config?.state.summaryBattery ).toBe( '—' );
+			expect( mocks.config?.state.summaryDropped ).toBe( '—' );
+		} );
+
+		it( 'uses the target percent or the elapsed clock as the postmark value', () => {
+			mocks.context.endReason = 'targetDrop';
+			mocks.context.targetPercent = 75;
+			expect( mocks.config?.state.summaryPostmarkValue ).toBe( '75%' );
+
+			mocks.context.endReason = 'stopped';
+			mocks.context.elapsed = 75;
+			expect( mocks.config?.state.summaryPostmarkValue ).toBe( '01:15' );
 		} );
 	} );
 
