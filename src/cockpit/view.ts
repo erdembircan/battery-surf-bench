@@ -4,13 +4,54 @@
  * The block's PHP render seeds a per-instance context with the surfable course
  * pages, the active page index, and the run configuration the control deck
  * edits — benchmark mode, the duration to run for, whether to calibrate a
- * baseline first, the surf speed, and whether a run is live. This store derives
- * the viewport URL and the deck's reactive readouts from that context and
- * exposes the actions the deck's controls call, so the whole cockpit — viewport
- * and controls alike — is driven from one place as it grows.
+ * baseline first, the surf speed, and whether a run is live. This module is a
+ * thin wiring layer: it derives the viewport URL and the deck's reactive
+ * readouts from that context and delegates the real work to focused, separately
+ * tested domains — theme resolution ({@link ./Theme}), the target-drop slider
+ * ({@link ./TargetControl}), config normalization ({@link ./RunConfig}), display
+ * formatting ({@link ./Format}), battery acquisition ({@link ./BatteryMonitor}),
+ * and the drain-rate calculations ({@link ./RunSession}). Keeping the store thin
+ * is deliberate: the Interactivity API makes it easy to pile everything into one
+ * file, and the calculations especially must live where they can be unit-tested
+ * in isolation.
  */
 
 import { store, getContext, getElement } from '@wordpress/interactivity';
+import {
+	type RunMode,
+	type Speed,
+	SPEEDS,
+	normalizeDuration,
+	normalizeMode,
+	normalizeSpeed,
+} from './RunConfig';
+import {
+	TARGET_MIN,
+	TARGET_STEP,
+	targetCap,
+	clampTarget,
+	targetFromPointer,
+	targetColor,
+} from './TargetControl';
+import {
+	type ThemeName,
+	type ThemePref,
+	resolveTheme,
+	nextThemePref,
+	readStoredPref,
+	writeStoredPref,
+} from './Theme';
+import {
+	formatClock,
+	formatTimeToEmpty,
+	formatRate,
+	durationDigits,
+} from './Format';
+import { BatteryMonitor, type BatteryReading } from './BatteryMonitor';
+import { ScreenWakeLock, type WakeLockSentinelLike } from './WakeLock';
+import { RunSession } from './RunSession';
+import { buildGraph, type GraphViewport, type GraphModel } from './DrainGraph';
+import { paintGraph } from './GraphSvg';
 
 /** One surfable course page, as supplied by the `bsb/course-pages` binding. */
 interface CoursePage {
@@ -18,15 +59,6 @@ interface CoursePage {
 	title: string;
 	url: string;
 }
-
-/** Which quantity a benchmark run is bounded by. */
-type RunMode = 'duration' | 'targetDrop';
-
-/** The deck's resolved colour theme — Coastal Daybreak or Dusk Lineup. */
-type ThemeName = 'light' | 'dark';
-
-/** The visitor's theme preference: a fixed theme, or follow the OS. */
-type ThemePref = 'light' | 'dark' | 'system';
 
 /** Per-instance context the cockpit's PHP render seeds onto the block. */
 interface CockpitContext {
@@ -47,98 +79,181 @@ interface CockpitContext {
 	rate10: number | null;
 	rateSession: number | null;
 	secondsToEmpty: number | null;
+	ended: boolean;
+	endReason: RunEndReason;
+	flipped: boolean;
+	reasonText: Record< string, ReasonText >;
+	// Frozen summary readouts, stored on the context (reactive) at run end so the
+	// summary re-renders — the session log they derive from is not a signal.
+	summaryBatteryStart: string;
+	summaryBatteryEnd: string;
+	summaryDropped: string;
+	hasGraph: boolean;
+	// The drain-graph draw model, serialised so it lands in reactive context; the
+	// summary painter parses it back to redraw the chart.
+	graphJson: string;
 }
 
-/** The slice of the Battery Status API the readouts read. */
-interface BatteryLike {
-	level: number;
-	charging: boolean;
-	addEventListener: ( type: string, listener: () => void ) => void;
-	removeEventListener: ( type: string, listener: () => void ) => void;
+/** Why a run ended — drives the summary's verdict; empty before any run ends. */
+type RunEndReason = '' | 'duration' | 'targetDrop' | 'stopped' | 'plugged';
+
+/** The translated wording shown on the summary for a given end reason. */
+interface ReasonText {
+	/** Handwritten verdict heading, e.g. "The run is in.". */
+	head: string;
+	/** One-line signature under the heading, e.g. "Ran the full 30 minutes.". */
+	sig: string;
+	/** The postmark's lower curved label, e.g. "· COMPLETED ·". */
+	arc: string;
+	/** The postmark's centre unit label, e.g. "MIN RUN" / "REACHED" / "ELAPSED". */
+	unit: string;
 }
 
-/** Smallest and largest run duration the stepper will set, in minutes. */
-const DURATION_MIN = 5;
-const DURATION_MAX = 240;
+/** Per-instance calculation state, kept off the reactive context and keyed by it. */
+interface InstanceState {
+	/** The run's sample log and drain-rate derivations. */
+	session: RunSession;
+	/** The last battery reading seen, so a run can seed its first sample on start. */
+	lastReading: BatteryReading | null;
+	/** The battery monitor, so a run can gate its heartbeat poll to its lifecycle. */
+	monitor: BatteryMonitor | null;
+	/** The screen wake lock, held while a run is live so the display stays awake. */
+	wakeLock: ScreenWakeLock | null;
+	/** The run clock interval id while a run is live, or null when at rest. */
+	clock: number | null;
+}
 
-/** Smallest and largest battery percentage the target-drop slider allows. */
-const TARGET_MIN = 5;
-const TARGET_MAX = 95;
+/**
+ * The cockpit's run calculation state. A single module instance: the dashboard
+ * renders exactly one cockpit, and every element scope must reach the same
+ * session — neither a WeakMap keyed by the context proxy nor a runtime-added
+ * context property reaches all scopes, because `getContext()` returns a distinct
+ * proxy per scope and only the seeded context keys propagate across them.
+ */
+const runInstance: InstanceState = {
+	session: new RunSession(),
+	lastReading: null,
+	monitor: null,
+	wakeLock: null,
+	clock: null,
+};
 
-/** Step the battery slider snaps to, in percent. */
-const TARGET_STEP = 5;
+/** The cockpit's run calculation state. */
+const instanceFor = (): InstanceState => runInstance;
+
+/** Resets the run state between tests. Not used by the running cockpit. */
+export const __resetInstance = (): void => {
+	runInstance.session = new RunSession();
+	runInstance.lastReading = null;
+	runInstance.monitor = null;
+	runInstance.wakeLock = null;
+	runInstance.clock = null;
+};
+
+/** The monotonic clock the run session stamps samples against. */
+const now = (): number => performance.now();
+
+/**
+ * The summary drain graph's drawing viewport (SVG user units). A wide, short
+ * aspect so the chart fills the card's width yet stays short enough to leave room
+ * for the stat tiles below it within the card's fixed aspect ratio.
+ */
+const GRAPH_VIEWPORT: GraphViewport = {
+	width: 480,
+	height: 90,
+	padLeft: 30,
+	padRight: 10,
+	padTop: 8,
+	padBottom: 18,
+};
+
+/** The summary chart geometry for the run, or null when nothing to plot. */
+const graphFor = (): GraphModel | null => {
+	const session = instanceFor().session;
+	return buildGraph(
+		session.samples(),
+		session.readouts().secondsToEmpty,
+		GRAPH_VIEWPORT
+	);
+};
+
+/**
+ * Mirrors the session's derived readouts onto the reactive context.
+ * @param context
+ * @param session
+ */
+const applyReadouts = (
+	context: CockpitContext,
+	session: RunSession
+): void => {
+	const readouts = session.readouts();
+	context.rate10 = readouts.rate10;
+	context.rateSession = readouts.rateSession;
+	context.secondsToEmpty = readouts.secondsToEmpty;
+};
+
+/**
+ * Freezes the run's summary onto the context: the rate readouts, the start and
+ * end battery and drop, and the drain-graph draw model. All land in reactive
+ * context (not read live off the non-reactive session log) so the summary
+ * renders and re-renders correctly.
+ * @param context
+ * @param instance
+ */
+const freezeSummary = (
+	context: CockpitContext,
+	instance: InstanceState
+): void => {
+	applyReadouts( context, instance.session );
+
+	const summary = instance.session.summary();
+	context.summaryBatteryStart = summary
+		? String( Math.round( summary.startLevel * 100 ) )
+		: '—';
+	context.summaryBatteryEnd = summary
+		? String( Math.round( summary.endLevel * 100 ) )
+		: '—';
+	context.summaryDropped = summary
+		? String( Math.round( summary.droppedPct ) )
+		: '—';
+
+	const graph = graphFor();
+	context.hasGraph = graph !== null;
+	context.graphJson = graph ? JSON.stringify( graph ) : '';
+};
+
+/**
+ * Ends a live run, returning the cockpit to its idle, ready state: the run
+ * stops and the calculation session is wound up. The single place a run is torn
+ * down, whether by the stop control, by plugging in, or by the duration
+ * elapsing. It only flips `running`; everything bound to a run reacts to that —
+ * the deck returns and the compact pill closes (`isCompact` derives false once
+ * `running` is false), and the run clock and battery heartbeat poll stop through
+ * the run-activity watch — so each run-scoped effect stays bound to its one cause.
+ *
+ * Ending also raises the summary: the final readouts are frozen, the run is
+ * marked ended with the reason it ended, and the summary card is reset to its
+ * picture front. The summary's visibility derives from `ended`, so it appears
+ * whatever ended the run.
+ * @param context
+ * @param instance
+ * @param reason   Why the run ended, recorded for the summary's verdict.
+ */
+const stopRun = (
+	context: CockpitContext,
+	instance: InstanceState,
+	reason: RunEndReason
+): void => {
+	freezeSummary( context, instance );
+	context.running = false;
+	context.ended = true;
+	context.endReason = reason;
+	context.flipped = false;
+	instance.session.stop();
+};
 
 /** Whether a pointer drag on the battery slider is in progress. */
 let draggingTarget = false;
-
-/**
- * The highest stop-at level the slider allows: you cannot target a drop above
- * the battery you currently have, so the cap is the current level snapped to the
- * step (or the nominal max until the level is known).
- * @param batteryLevel
- */
-const targetCap = ( batteryLevel: number | null ): number => {
-	if ( batteryLevel === null ) {
-		return TARGET_MAX;
-	}
-
-	return Math.max(
-		TARGET_MIN,
-		Math.floor( batteryLevel / TARGET_STEP ) * TARGET_STEP
-	);
-};
-
-/**
- * Clamps a percentage to the slider's stepped range, bounded above by `max`.
- * @param value
- * @param max
- */
-const clampTarget = ( value: number, max: number = TARGET_MAX ): number =>
-	Math.min(
-		max,
-		Math.max( TARGET_MIN, Math.round( value / TARGET_STEP ) * TARGET_STEP )
-	);
-
-/**
- * Maps a pointer x within the battery element to a stepped percentage, capped.
- * @param clientX
- * @param el
- * @param max
- */
-const targetFromPointer = (
-	clientX: number,
-	el: HTMLElement,
-	max: number
-): number => {
-	const rect = el.getBoundingClientRect();
-	const ratio = rect.width ? ( clientX - rect.left ) / rect.width : 0;
-
-	return clampTarget( ratio * 100, max );
-};
-
-/** localStorage key the theme preference is remembered under across visits. */
-const THEME_KEY = 'bsb-cockpit-theme';
-
-/** The order the theme control cycles through on each press. */
-const THEME_ORDER: ThemePref[] = [ 'system', 'light', 'dark' ];
-
-/** Whether the operating system currently prefers a dark colour scheme. */
-const osPrefersDark = (): boolean =>
-	typeof window.matchMedia === 'function' &&
-	window.matchMedia( '(prefers-color-scheme: dark)' ).matches;
-
-/**
- * Resolves a preference to the theme actually applied: a fixed choice as-is, or
- * the operating system's current scheme when following the system.
- * @param pref
- */
-const resolveTheme = ( pref: ThemePref ): ThemeName => {
-	if ( pref !== 'system' ) {
-		return pref;
-	}
-
-	return osPrefersDark() ? 'dark' : 'light';
-};
 
 /** Per-odometer roll state: the last duration shown and each wheel's position. */
 interface OdometerState {
@@ -157,27 +272,6 @@ const odometers = new WeakMap< HTMLElement, OdometerState >();
  */
 const wheelTransform = ( position: number ): string =>
 	`translateY(calc(var(--bsb-od-cell) * ${ -( position + 10 ) }))`;
-
-/**
- * The hundreds, tens and units digits of a duration.
- * @param minutes
- */
-const durationDigits = ( minutes: number ): number[] => [
-	Math.floor( minutes / 100 ) % 10,
-	Math.floor( minutes / 10 ) % 10,
-	minutes % 10,
-];
-
-/**
- * Formats a number of seconds as a `MM:SS` clock, clamped at zero.
- * @param totalSeconds
- */
-const formatClock = ( totalSeconds: number ): string => {
-	const safe = Math.max( 0, totalSeconds );
-	const pad = ( value: number ): string => String( value ).padStart( 2, '0' );
-
-	return `${ pad( Math.floor( safe / 60 ) ) }:${ pad( safe % 60 ) }`;
-};
 
 store( 'bsb/cockpit', {
 	state: {
@@ -227,10 +321,7 @@ store( 'bsb/cockpit', {
 		 * at low ones, so a deeper drain target reads hotter.
 		 */
 		get targetColor(): string {
-			const { targetPercent } = getContext< CockpitContext >();
-			const hue = Math.round( ( targetPercent / 100 ) * 120 );
-
-			return `hsl(${ hue }, 72%, 45%)`;
+			return targetColor( getContext< CockpitContext >().targetPercent );
 		},
 
 		/** Whether the 1× surf speed is selected. */
@@ -306,48 +397,83 @@ store( 'bsb/cockpit', {
 
 		/** Drain rate over the last 10 minutes, or an em dash until known. */
 		get rate10Display(): string {
-			const { rate10 } = getContext< CockpitContext >();
-
-			return rate10 === null ? '—' : String( rate10 );
+			return formatRate( getContext< CockpitContext >().rate10 );
 		},
 
 		/** Drain rate over the whole session, or an em dash until known. */
 		get rateSessionDisplay(): string {
-			const { rateSession } = getContext< CockpitContext >();
-
-			return rateSession === null ? '—' : String( rateSession );
+			return formatRate( getContext< CockpitContext >().rateSession );
 		},
 
 		/** Projected time to empty as `H:MM`, or an em dash until known. */
 		get timeToEmptyDisplay(): string {
-			const { secondsToEmpty } = getContext< CockpitContext >();
-
-			if (
-				secondsToEmpty === null ||
-				! Number.isFinite( secondsToEmpty ) ||
-				secondsToEmpty <= 0
-			) {
-				return '—';
-			}
-
-			const hours = Math.floor( secondsToEmpty / 3600 );
-			const minutes = Math.floor( ( secondsToEmpty % 3600 ) / 60 );
-
-			return `${ hours }:${ String( minutes ).padStart( 2, '0' ) }`;
+			return formatTimeToEmpty(
+				getContext< CockpitContext >().secondsToEmpty
+			);
 		},
 
 		/**
 		 * The run clock as a `MM:SS` string: a countdown from the chosen duration
 		 * in duration mode, or elapsed time in target-drop mode (which has no fixed
-		 * length).
+		 * length). The duration is normalized so a tampered context cannot stretch
+		 * the countdown past the supported ceiling.
 		 */
 		get runClock(): string {
 			const { mode, durationMinutes, elapsed } =
 				getContext< CockpitContext >();
 
 			return mode === 'duration'
-				? formatClock( durationMinutes * 60 - elapsed )
+				? formatClock(
+						normalizeDuration( durationMinutes ) * 60 - elapsed
+				  )
 				: formatClock( elapsed );
+		},
+
+		/** Whether a run has finished, so the summary card is shown. */
+		get isEnded(): boolean {
+			return getContext< CockpitContext >().ended;
+		},
+
+		/** Whether the summary card is turned to its report back. */
+		get isFlipped(): boolean {
+			return getContext< CockpitContext >().flipped;
+		},
+
+		/** Whether the finished run ran its full duration. */
+		get isReasonDuration(): boolean {
+			return getContext< CockpitContext >().endReason === 'duration';
+		},
+
+		/** Whether the finished run reached its target drop. */
+		get isReasonTargetDrop(): boolean {
+			return getContext< CockpitContext >().endReason === 'targetDrop';
+		},
+
+		/** Whether the finished run was stopped by hand. */
+		get isReasonStopped(): boolean {
+			return getContext< CockpitContext >().endReason === 'stopped';
+		},
+
+		/** Whether the finished run was cut short by plugging in. */
+		get isReasonPlugged(): boolean {
+			return getContext< CockpitContext >().endReason === 'plugged';
+		},
+
+		/** Elapsed run time as `MM:SS`, counting up — the summary's run length. */
+		get summaryElapsed(): string {
+			return formatClock( getContext< CockpitContext >().elapsed );
+		},
+
+		/** The summary's handwritten verdict heading for the end reason. */
+		get summaryHeading(): string {
+			const context = getContext< CockpitContext >();
+			return context.reasonText?.[ context.endReason ]?.head ?? '';
+		},
+
+		/** The summary's one-line signature for the end reason. */
+		get summarySig(): string {
+			const context = getContext< CockpitContext >();
+			return context.reasonText?.[ context.endReason ]?.sig ?? '';
 		},
 	},
 	actions: {
@@ -363,7 +489,7 @@ store( 'bsb/cockpit', {
 
 		/**
 		 * Nudges the run duration by the triggering control's `data-step`
-		 * minutes, clamped to the supported range.
+		 * minutes, normalized to the supported range and step.
 		 */
 		stepDuration(): void {
 			const { ref } = getElement();
@@ -374,11 +500,8 @@ store( 'bsb/cockpit', {
 			}
 
 			const context = getContext< CockpitContext >();
-			const next = context.durationMinutes + step;
-
-			context.durationMinutes = Math.min(
-				DURATION_MAX,
-				Math.max( DURATION_MIN, next )
+			context.durationMinutes = normalizeDuration(
+				context.durationMinutes + step
 			);
 		},
 
@@ -468,23 +591,26 @@ store( 'bsb/cockpit', {
 			const { ref } = getElement();
 			const speed = Number( ref?.dataset.speed );
 
-			if ( speed === 1 || speed === 4 || speed === 10 ) {
-				getContext< CockpitContext >().speed = speed;
+			if ( ( SPEEDS as readonly number[] ).includes( speed ) ) {
+				getContext< CockpitContext >().speed = speed as Speed;
 			}
 		},
 
 		/**
-		 * Starts or stops the run. Starting resets the elapsed clock, reveals the
-		 * readouts pill and hides the configuration controls; stopping returns the
-		 * cockpit to its idle, ready state with the controls back. Starting is
-		 * refused while the device is plugged in — a benchmark must run on battery.
+		 * Starts or stops the run. Starting normalizes the (client-seeded, so
+		 * untrusted) run configuration, resets the elapsed clock and readouts,
+		 * begins a fresh calculation session seeded with the latest battery
+		 * reading, reveals the readouts pill and hides the configuration controls;
+		 * stopping returns the cockpit to its idle, ready state with the controls
+		 * back. Starting is refused while the device is plugged in — a benchmark
+		 * must run on battery.
 		 */
 		toggleRun(): void {
 			const context = getContext< CockpitContext >();
+			const instance = instanceFor();
 
 			if ( context.running ) {
-				context.running = false;
-				context.compact = false;
+				stopRun( context, instance, 'stopped' );
 				return;
 			}
 
@@ -492,8 +618,37 @@ store( 'bsb/cockpit', {
 				return;
 			}
 
+			// Treat the seeded config as untrusted: clamp/snap every value that
+			// bounds the run before it drives the clock or the calculations.
+			context.mode = normalizeMode( context.mode );
+			context.durationMinutes = normalizeDuration(
+				context.durationMinutes
+			);
+			context.speed = normalizeSpeed( context.speed );
+			context.targetPercent = clampTarget(
+				context.targetPercent,
+				targetCap( context.batteryLevel )
+			);
+
 			context.elapsed = 0;
+			context.compact = false;
+			context.rate10 = null;
+			context.rateSession = null;
+			context.secondsToEmpty = null;
+			context.ended = false;
+			context.endReason = '';
+			context.flipped = false;
 			context.running = true;
+
+			instance.session.start( now() );
+			if ( instance.lastReading ) {
+				instance.session.record(
+					now(),
+					instance.lastReading.level,
+					instance.lastReading.charging
+				);
+				applyReadouts( context, instance.session );
+			}
 		},
 
 		/**
@@ -505,6 +660,24 @@ store( 'bsb/cockpit', {
 			context.compact = ! context.compact;
 		},
 
+		/** Turns the summary card between its picture front and its report back. */
+		toggleFlip(): void {
+			const context = getContext< CockpitContext >();
+			context.flipped = ! context.flipped;
+		},
+
+		/**
+		 * Dismisses the summary back to the idle startup screen — the deck and the
+		 * startup postcard — without beginning a run. Clears the ended state; a run
+		 * only starts later when the user presses Start.
+		 */
+		newRun(): void {
+			const context = getContext< CockpitContext >();
+			context.ended = false;
+			context.endReason = '';
+			context.flipped = false;
+		},
+
 		/**
 		 * Cycles the theme preference (system → light → dark → system) and
 		 * remembers it. "System" follows the OS, so it is a sticky choice in its
@@ -512,34 +685,38 @@ store( 'bsb/cockpit', {
 		 */
 		toggleTheme(): void {
 			const context = getContext< CockpitContext >();
-			const next =
-				THEME_ORDER[
-					( THEME_ORDER.indexOf( context.themePref ) + 1 ) %
-						THEME_ORDER.length
-				];
+			const next = nextThemePref( context.themePref );
 			context.themePref = next;
 			context.theme = resolveTheme( next );
-
-			try {
-				window.localStorage.setItem( THEME_KEY, next );
-			} catch {
-				// Storage unavailable (private mode); the choice still applies
-				// for this session.
-			}
+			writeStoredPref( next );
 		},
 	},
 	callbacks: {
 		/**
-		 * Feeds the battery readouts from the Battery Status API: syncs the level
-		 * and charging state on mount and whenever they change, returning a
-		 * cleanup that detaches the listeners. A no-op where the API is absent,
-		 * leaving the readouts at their em-dash idle state. Plugging in mid-run
-		 * stops the run, since a benchmark must drain the battery.
+		 * Feeds the battery readouts and the drain-rate calculations from the
+		 * Battery Status API. On every reading — whether from a change event or the
+		 * backup heartbeat — it syncs the level and charging state, caps the target
+		 * to the battery on hand, and, while a run is live, records the sample and
+		 * refreshes the derived rates and projection. Plugging in mid-run stops the
+		 * run (a benchmark must drain the battery). A no-op where the API is absent,
+		 * leaving the readouts at their em-dash idle state. Returns a cleanup that
+		 * detaches the listeners and stops the heartbeat.
 		 */
 		initBattery(): () => void {
 			const provider = (
 				navigator as Navigator & {
-					getBattery?: () => Promise< BatteryLike >;
+					getBattery?: () => Promise<
+						BatteryReading & {
+							addEventListener: (
+								t: string,
+								l: () => void
+							) => void;
+							removeEventListener: (
+								t: string,
+								l: () => void
+							) => void;
+						}
+					>;
 				}
 			 ).getBattery?.bind( navigator );
 
@@ -548,39 +725,113 @@ store( 'bsb/cockpit', {
 			}
 
 			const context = getContext< CockpitContext >();
-			let manager: BatteryLike | undefined;
-			const sync = (): void => {
-				if ( ! manager ) {
-					return;
-				}
+			const instance = instanceFor();
 
-				context.batteryLevel = Math.round( manager.level * 100 );
-				context.batteryCharging = manager.charging;
+			const monitor = new BatteryMonitor( {
+				getBattery: provider,
+				onReading: ( reading ) => {
+					instance.lastReading = reading;
+					context.batteryLevel = Math.round( reading.level * 100 );
+					context.batteryCharging = reading.charging;
 
-				if ( context.batteryCharging && context.running ) {
-					context.running = false;
-				}
+					// A benchmark must drain the battery: plugging in mid-run ends
+					// the run rather than recording charging samples.
+					if ( reading.charging && context.running ) {
+						stopRun( context, instance, 'plugged' );
+					}
 
-				// The stop-at target can't sit above the battery you have. The
-				// context seeds it high, so the first reading caps it down to the
-				// current level (the startup default); later it only follows the
-				// level down, never re-raising a target the user lowered.
-				const cap = targetCap( context.batteryLevel );
-				if ( context.targetPercent > cap ) {
-					context.targetPercent = cap;
-				}
-			};
+					// Target-drop run: stop the moment the battery has fallen to
+					// the chosen stop-at level — at the target (75 stops at 75),
+					// not a step past it.
+					if (
+						context.running &&
+						context.mode === 'targetDrop' &&
+						context.batteryLevel !== null &&
+						context.batteryLevel <= context.targetPercent
+					) {
+						stopRun( context, instance, 'targetDrop' );
+					}
 
-			provider().then( ( battery ) => {
-				manager = battery;
-				sync();
-				battery.addEventListener( 'levelchange', sync );
-				battery.addEventListener( 'chargingchange', sync );
+					// While idle the stop-at target follows the battery down — it
+					// can't sit above the battery you have. During a run it stays
+					// fixed, so the run has a stable target to reach rather than one
+					// that chases the draining level.
+					if ( ! context.running ) {
+						const cap = targetCap( context.batteryLevel );
+						if ( context.targetPercent > cap ) {
+							context.targetPercent = cap;
+						}
+					}
+
+					if ( instance.session.active ) {
+						instance.session.record(
+							now(),
+							reading.level,
+							reading.charging
+						);
+						applyReadouts( context, instance.session );
+					}
+				},
 			} );
 
+			instance.monitor = monitor;
+			// Acquire passively (live readout + charger guard); the heartbeat poll
+			// is driven by the run-polling watch, which reacts to `running`.
+			monitor.start();
+
 			return () => {
-				manager?.removeEventListener( 'levelchange', sync );
-				manager?.removeEventListener( 'chargingchange', sync );
+				monitor.stop();
+				instance.monitor = null;
+			};
+		},
+
+		/**
+		 * Wires the screen wake lock that keeps the display awake during a run.
+		 * The lock is taken and dropped by the run-activity watch as `running`
+		 * changes; this builds the requester and recovers the lock when the page
+		 * becomes visible again — the browser releases it automatically whenever
+		 * the tab is hidden, and never re-acquires on its own. Returns a cleanup
+		 * that drops the lock and detaches the listener. A no-op where the API is
+		 * absent, leaving runs without a lock rather than erroring.
+		 */
+		initWakeLock(): () => void {
+			const api = (
+				navigator as unknown as {
+					wakeLock?: {
+						request: (
+							type: 'screen'
+						) => Promise< WakeLockSentinelLike >;
+					};
+				}
+			 ).wakeLock;
+
+			if ( ! api ) {
+				return () => undefined;
+			}
+
+			const context = getContext< CockpitContext >();
+			const instance = instanceFor();
+			instance.wakeLock = new ScreenWakeLock( {
+				request: () => api.request( 'screen' ),
+			} );
+
+			const onVisibility = (): void => {
+				if (
+					document.visibilityState === 'visible' &&
+					context.running
+				) {
+					void instance.wakeLock?.acquire();
+				}
+			};
+			document.addEventListener( 'visibilitychange', onVisibility );
+
+			return () => {
+				document.removeEventListener(
+					'visibilitychange',
+					onVisibility
+				);
+				void instance.wakeLock?.release();
+				instance.wakeLock = null;
 			};
 		},
 
@@ -598,20 +849,7 @@ store( 'bsb/cockpit', {
 					: null;
 
 			const apply = (): void => {
-				let pref: ThemePref = 'system';
-				try {
-					const stored = window.localStorage.getItem( THEME_KEY );
-					if (
-						stored === 'light' ||
-						stored === 'dark' ||
-						stored === 'system'
-					) {
-						pref = stored;
-					}
-				} catch {
-					// Storage unavailable; fall back to following the system.
-				}
-
+				const pref = readStoredPref();
 				context.themePref = pref;
 				context.theme = resolveTheme( pref );
 			};
@@ -623,20 +861,49 @@ store( 'bsb/cockpit', {
 		},
 
 		/**
-		 * Advances the surfing indicator's elapsed clock once a second while a run
-		 * is live, returning a cleanup that stops the timer. Wired through
-		 * `data-wp-init` on the always-mounted pill, so the timer only counts while
-		 * `running` — it stays at rest (and `toggleRun` resets it) between runs.
+		 * Binds every run-scoped timer to the run, reacting to `running` rather
+		 * than being toggled at each place a run starts or stops. While a run is
+		 * live it runs the elapsed clock (one tick a second, ending the run when a
+		 * duration run reaches its normalized length), the battery heartbeat poll,
+		 * and the screen wake lock; when the run ends — whatever the cause (the
+		 * stop control, plugging in, the duration elapsing) — all three stop.
+		 * Driven by `data-wp-watch`, so it re-runs whenever `running` changes. The
+		 * passive battery change listeners stay attached throughout, so the charger
+		 * guard keeps working at rest.
 		 */
-		tick(): () => void {
+		syncRunActivity(): void {
 			const context = getContext< CockpitContext >();
-			const timer = setInterval( () => {
-				if ( context.running ) {
-					context.elapsed += 1;
-				}
-			}, 1000 );
+			const instance = instanceFor();
 
-			return () => clearInterval( timer );
+			if ( context.running ) {
+				instance.monitor?.startHeartbeat();
+				void instance.wakeLock?.acquire();
+
+				if ( instance.clock === null ) {
+					instance.clock = setInterval( () => {
+						context.elapsed += 1;
+
+						if (
+							context.mode === 'duration' &&
+							context.elapsed >=
+								normalizeDuration( context.durationMinutes ) *
+									60
+						) {
+							stopRun( context, instance, 'duration' );
+						}
+					}, 1000 ) as unknown as number;
+				}
+
+				return;
+			}
+
+			instance.monitor?.stopHeartbeat();
+			void instance.wakeLock?.release();
+
+			if ( instance.clock !== null ) {
+				clearInterval( instance.clock );
+				instance.clock = null;
+			}
 		},
 
 		/**
@@ -694,7 +961,7 @@ store( 'bsb/cockpit', {
 					positions: [ ...digits ],
 				} );
 				strips.forEach( ( strip, i ) => {
-					strip.style.transform = wheelTransform( digits[ i ] );
+					strip.style.transform = wheelTransform( digits[ i ]! );
 				} );
 				void element.offsetHeight;
 				requestAnimationFrame( () => {
@@ -717,14 +984,14 @@ store( 'bsb/cockpit', {
 				// — same glyph, different repeat) to keep the position bounded,
 				// then roll from there toward the new digit in the press direction.
 				strip.style.transition = 'none';
-				strip.style.transform = wheelTransform( previous[ i ] );
+				strip.style.transform = wheelTransform( previous[ i ]! );
 				void strip.offsetHeight;
 
 				const distance =
 					direction > 0
-						? ( digits[ i ] - previous[ i ] + 10 ) % 10
-						: -( ( previous[ i ] - digits[ i ] + 10 ) % 10 );
-				const target = previous[ i ] + distance;
+						? ( digits[ i ]! - previous[ i ]! + 10 ) % 10
+						: -( ( previous[ i ]! - digits[ i ]! + 10 ) % 10 );
+				const target = previous[ i ]! + distance;
 
 				strip.style.transition = '';
 				strip.style.transform = wheelTransform( target );
@@ -732,6 +999,48 @@ store( 'bsb/cockpit', {
 			} );
 
 			state.value = durationMinutes;
+		},
+
+		/**
+		 * Paints the summary's SVG from the frozen run — the drain-graph paths and
+		 * the postmark's verdict text. Done imperatively (rather than with bound
+		 * directives) because the Interactivity runtime cannot process directives
+		 * inside SVG during server render; driven by `data-wp-watch`, it re-runs
+		 * when the run ends or its reason changes.
+		 */
+		renderSummary(): void {
+			const root = getElement().ref as HTMLElement | null;
+
+			if ( ! root ) {
+				return;
+			}
+
+			const context = getContext< CockpitContext >();
+
+			// Repaint the drain chart from the frozen draw model on context
+			// (reactive), so this watch re-runs when the summary is raised.
+			const svg = root.querySelector( '.bsb-summary__chart' );
+			if ( svg ) {
+				const model: GraphModel | null = context.graphJson
+					? ( JSON.parse( context.graphJson ) as GraphModel )
+					: null;
+				paintGraph( svg as SVGElement, model );
+			}
+
+			const reason = context.reasonText?.[ context.endReason ];
+			const value =
+				context.endReason === 'targetDrop'
+					? `${ context.targetPercent }%`
+					: formatClock( context.elapsed );
+			const setText = ( selector: string, text: string ): void => {
+				const el = root.querySelector( selector );
+				if ( el ) {
+					el.textContent = text;
+				}
+			};
+			setText( '.bsb-frank__arc-text', reason?.arc ?? '' );
+			setText( '.bsb-frank__val', value );
+			setText( '.bsb-frank__unit', reason?.unit ?? '' );
 		},
 	},
 } );

@@ -31,6 +31,7 @@ body {
 	grid-template-columns: $deck-width 1fr;
 	height: 100vh;
 	overflow: hidden;
+	position: relative;
 	font-family: theme.$font-ui;
 	color: var(--text);
 	-webkit-font-smoothing: antialiased;
@@ -1022,7 +1023,7 @@ body {
 }
 
 // front: the illustrated picture side
-.bsb-cockpit__postcard-pic {
+.bsb-photo {
 	position: relative;
 	min-height: 360px;
 	overflow: hidden;
@@ -1055,7 +1056,7 @@ body {
 }
 
 // the surfer mark, tinted ocean-blue, lifted above the sun-faded wash
-.bsb-cockpit__postcard-mark {
+.bsb-photo__mark {
 	position: absolute;
 	inset: 0;
 	z-index: 3;
@@ -1072,7 +1073,7 @@ body {
 }
 
 // the warm "left in the sun" wash over the gradient
-.bsb-cockpit__postcard-wash {
+.bsb-photo__wash {
 	position: absolute;
 	inset: 0;
 	z-index: 1;
@@ -1086,7 +1087,7 @@ body {
 }
 
 // fine print grain
-.bsb-cockpit__postcard-grain {
+.bsb-photo__grain {
 	position: absolute;
 	inset: 0;
 	z-index: 2;
@@ -1097,7 +1098,7 @@ body {
 	background-size: 160px 160px;
 }
 
-.bsb-cockpit__postcard-greet {
+.bsb-photo__greet {
 	position: absolute;
 	z-index: 4;
 	top: 2.1rem;
@@ -1191,15 +1192,31 @@ body {
 	}
 }
 
+// A quiet heads-up under the steps: the run keeps the screen on, but the OS can
+// still sleep the machine, so the user should leave the lid open.
+.bsb-cockpit__postcard-notice {
+	margin-top: 0.85rem;
+	padding-top: 0.7rem;
+	border-top: 1px dashed color-mix(in srgb, var(--paper-ink) 28%, transparent);
+	font-family: theme.$font-ui;
+	font-size: 0.72rem;
+	line-height: 1.45;
+	color: var(--paper-ink);
+	opacity: 0.78;
+
+	b {
+		display: block;
+		font-weight: 700;
+	}
+}
+
 // a blank, light, hand-stuck postage stamp: just a perforated (scalloped) edge
 // cut by a four-way radial-gradient mask, with the interior knocked back to the
 // paper colour so only the outline shows.
-.bsb-cockpit__stamp {
-	position: absolute;
-	top: 1.1rem;
-	right: 1.1rem;
-	width: 56px;
-	height: 68px;
+// A perforated postage stamp: the scalloped edge cut by a four-way radial mask,
+// with a paper interior and a thin inner rule. Shared by the idle postcard stamp
+// and the run-summary franked stamp so the cut never drifts between them.
+%postage-stamp {
 	background: var(--stamp-edge);
 	mask:
 		radial-gradient(3.4px at 50% 0, #0000 96%, #000) repeat-x 50% 0 / 11px 100%,
@@ -1222,6 +1239,16 @@ body {
 		border-radius: 2px;
 		background: var(--paper);
 	}
+}
+
+.bsb-cockpit__stamp {
+	@extend %postage-stamp;
+
+	position: absolute;
+	top: 1.1rem;
+	right: 1.1rem;
+	width: 56px;
+	height: 68px;
 }
 
 // ── Compact top pill ─────────────────────────────────────────────────────────
@@ -1395,4 +1422,417 @@ body {
 	.bsb-cockpit__deck {
 		overflow-y: auto;
 	}
+}
+
+// ── Run summary — the flip-card report shown when a run ends ──────────────────
+// Overlays the whole cockpit (deck + stage) once `ended` is set. The card flips
+// in 3D between its picture front and its written report back. Built on the same
+// foundations as the stamp/cancellation: a 3D context with two backface-hidden
+// faces, and a franked stamp whose cancellation is centred on the stamp by a
+// shared anchor.
+.bsb-summary {
+	position: absolute;
+	inset: 0;
+	z-index: 30;
+	display: grid;
+	place-items: center;
+	padding: 2.4rem;
+	// Same sunlit sky as the idle screen (no waves — those live on the info pill).
+	background: var(--idle-sky);
+	// The 3D perspective belongs on the parent of the rotating card, not the card
+	// itself, so the flip actually reads as a turn.
+	perspective: 1800px;
+
+	&[hidden] {
+		display: none;
+	}
+}
+
+.bsb-summary__card {
+	position: relative;
+	width: min(680px, 94%);
+	aspect-ratio: 1.62 / 1;
+	transform: rotate(-1.4deg);
+	transform-style: preserve-3d;
+	transition: transform 0.75s cubic-bezier(0.2, 0.7, 0.2, 1);
+
+	&.is-flipped {
+		transform: rotate(-1.4deg) rotateY(180deg);
+	}
+}
+
+.bsb-summary__face {
+	position: absolute;
+	inset: 0;
+	overflow: hidden;
+	border-radius: 14px;
+	border: 1px solid var(--paper-line);
+	background: var(--paper);
+	box-shadow: 0 26px 60px rgba(0, 0, 0, 0.32);
+	backface-visibility: hidden;
+	-webkit-backface-visibility: hidden;
+
+	&--back {
+		transform: rotateY(180deg);
+	}
+}
+
+// Only the face turned toward the viewer is interactive — the away-facing face
+// is invisible (backface-hidden) but would otherwise sit over the visible one
+// and swallow clicks meant for its buttons.
+.bsb-summary__card:not(.is-flipped) .bsb-summary__face--back,
+.bsb-summary__card.is-flipped .bsb-summary__face--front {
+	pointer-events: none;
+}
+
+// The photo fills a summary face (the idle usage sizes itself as a grid cell).
+.bsb-photo--fill {
+	position: absolute;
+	inset: 0;
+	min-height: 0;
+}
+
+// the discreet flip indicator, on both faces in the same corner
+.bsb-summary__flip {
+	position: absolute;
+	right: 1rem;
+	bottom: 1rem;
+	z-index: 4;
+	display: inline-flex;
+	align-items: center;
+	gap: 0.4rem;
+	padding: 0.38rem 0.7rem;
+	border: 1px solid rgba(255, 255, 255, 0.32);
+	border-radius: 999px;
+	background: rgba(255, 255, 255, 0.15);
+	backdrop-filter: blur(5px);
+	-webkit-backdrop-filter: blur(5px);
+	color: #fff;
+	font:
+		700 0.7rem/1 theme.$font-ui;
+	letter-spacing: 0.04em;
+	text-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+	cursor: pointer;
+
+	// on the paper back, ink-toned instead of glassy-on-photo
+	&--paper {
+		color: var(--paper-ink);
+		background: color-mix(in srgb, var(--paper-ink) 8%, transparent);
+		border-color: color-mix(in srgb, var(--paper-ink) 22%, transparent);
+		backdrop-filter: none;
+		-webkit-backdrop-filter: none;
+		text-shadow: none;
+	}
+}
+
+.bsb-summary__flip-icon {
+	$flip-glyph: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M12 6V3L8 7l4 4V8a4 4 0 1 1-4 4H6a6 6 0 1 0 6-6z'/%3E%3C/svg%3E");
+
+	width: 0.95rem;
+	height: 0.95rem;
+	background: currentColor;
+	mask: $flip-glyph center / contain no-repeat;
+	-webkit-mask: $flip-glyph center / contain no-repeat;
+	animation: bsb-summary-nudge 3s ease-in-out infinite;
+}
+
+@keyframes bsb-summary-nudge {
+	0%,
+	86%,
+	100% {
+		transform: rotate(0);
+	}
+	93% {
+		transform: rotate(-32deg);
+	}
+}
+
+// the report back
+.bsb-summary__report {
+	position: absolute;
+	inset: 0;
+	padding: 1.4rem 1.6rem 1.3rem;
+	display: flex;
+	flex-direction: column;
+}
+
+.bsb-summary__head {
+	margin: 0.1rem 0 0.1rem;
+	max-width: 64%;
+	font:
+		700 1.95rem/0.9 theme.$font-hand;
+	color: var(--paper-ink);
+}
+
+.bsb-summary__sig {
+	margin: 0;
+	font:
+		400 1.12rem/1.1 theme.$font-hand;
+	color: var(--paper-accent);
+}
+
+.bsb-summary__divide {
+	height: 1px;
+	margin: 0.7rem 0;
+	background: repeating-linear-gradient(
+		90deg,
+		var(--paper-line) 0 8px,
+		transparent 8px 14px
+	);
+}
+
+// the drain graph
+.bsb-summary__graph {
+	margin-bottom: 0.2rem;
+
+	&[hidden] {
+		display: none;
+	}
+}
+
+// The chart scales uniformly (its viewBox aspect is honoured) and strokes stay
+// crisp at any size via non-scaling-stroke — no preserveAspectRatio stretching.
+.bsb-summary__chart {
+	display: block;
+	width: 100%;
+	height: auto;
+}
+
+.bsb-summary__chart-grid {
+	stroke: var(--paper-line);
+	stroke-width: 1;
+	vector-effect: non-scaling-stroke;
+}
+
+.bsb-summary__chart-base {
+	stroke: color-mix(in srgb, var(--paper-ink) 38%, transparent);
+	stroke-width: 1.2;
+	vector-effect: non-scaling-stroke;
+}
+
+.bsb-summary__chart-label {
+	fill: var(--text-soft);
+	font-family: theme.$font-mono;
+	font-size: 9px;
+
+	&--y {
+		text-anchor: end;
+	}
+
+	&--x {
+		text-anchor: middle;
+	}
+}
+
+.bsb-summary__chart-area {
+	fill: color-mix(in srgb, var(--paper-accent) 16%, transparent);
+	stroke: none;
+}
+
+.bsb-summary__chart-fit {
+	fill: none;
+	stroke: var(--coral, #ef8f3c);
+	stroke-width: 1.6;
+	stroke-dasharray: 5 5;
+	vector-effect: non-scaling-stroke;
+}
+
+.bsb-summary__chart-line {
+	fill: none;
+	stroke: var(--paper-accent);
+	stroke-width: 2.4;
+	stroke-linejoin: round;
+	stroke-linecap: round;
+	vector-effect: non-scaling-stroke;
+}
+
+.bsb-summary__chart-dot {
+	fill: var(--paper-accent);
+}
+
+.bsb-summary__legend {
+	display: flex;
+	gap: 1.1rem;
+	margin-top: 0.35rem;
+	font-family: theme.$font-mono;
+	font-size: 0.56rem;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: var(--text-soft);
+}
+
+.bsb-summary__legend-item {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.35rem;
+}
+
+.bsb-summary__legend-swatch {
+	width: 16px;
+	border-top: 2.4px solid var(--paper-accent);
+
+	&--fit {
+		border-top: 1.6px dashed var(--coral, #ef8f3c);
+	}
+}
+
+// the stat tiles
+.bsb-summary__stats {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: 1rem 0.5rem;
+	margin-top: 0.7rem;
+
+	// Cells: contents centred horizontally, anchored to the top so a taller
+	// neighbour does not drag the rest of the row down.
+	.bsb-stat {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: flex-start;
+		text-align: center;
+		gap: 0.18rem;
+	}
+
+	.bsb-stat__label {
+		font-size: 0.54rem;
+		letter-spacing: 0.13em;
+		color: var(--text-soft);
+	}
+
+	.bsb-stat__value {
+		font:
+			400 1.4rem/1 theme.$font-display;
+		color: var(--paper-ink);
+	}
+
+	.bsb-stat__unit {
+		margin-left: 0.16rem;
+		font:
+			700 0.58rem/1 theme.$font-mono;
+		color: var(--paper-accent);
+	}
+}
+
+// The battery start→end value: a masked SVG arrow glyph (currentColor), flex-
+// centred between the two numbers, instead of a unicode → that renders
+// misshapen and baseline-off in the display font.
+.bsb-stat__value--arrow {
+	display: inline-flex;
+	align-items: center;
+}
+
+.bsb-stat__arrow {
+	$arrow-glyph: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M4 11h12.2l-4.6-4.6L13 5l7 7-7 7-1.4-1.4 4.6-4.6H4z'/%3E%3C/svg%3E");
+
+	width: 0.72em;
+	height: 0.72em;
+	margin: 0 0.12em;
+	background: var(--paper-accent);
+	mask: $arrow-glyph center / contain no-repeat;
+	-webkit-mask: $arrow-glyph center / contain no-repeat;
+}
+
+.bsb-summary__actions {
+	display: flex;
+	margin-top: auto;
+	padding-top: 0.8rem;
+}
+
+.bsb-summary__new {
+	padding: 0.65rem 1.7rem;
+	border: 0;
+	border-radius: 11px;
+	background: var(--accent-grad);
+	color: var(--accent-ink);
+	font:
+		400 0.92rem/1 theme.$font-display;
+	letter-spacing: 0.05em;
+	text-transform: uppercase;
+	cursor: pointer;
+	box-shadow: 0 10px 22px var(--accent-shadow);
+}
+
+// ── Franked stamp — a postage stamp with an askew grey cancellation over it ───
+// A reusable component: absolutely positioned (it never pushes its host), with
+// the cancellation sized by tokens and offset askew so it overhangs naturally.
+.bsb-frank {
+	--stamp-w: 50px;
+	--stamp-h: 60px;
+	--cancel-d: 72px;
+	--cancel-ink: rgba(96, 110, 120, 0.72);
+
+	position: absolute;
+	top: 1.2rem;
+	right: 1.4rem;
+	z-index: 3;
+	width: var(--stamp-w);
+	height: var(--stamp-h);
+}
+
+.bsb-frank__stamp {
+	@extend %postage-stamp;
+
+	position: relative;
+	display: block;
+	width: 100%;
+	height: 100%;
+}
+
+.bsb-frank__cancel {
+	position: absolute;
+	top: calc((var(--stamp-h) - var(--cancel-d)) / 2 - 8px);
+	left: calc((var(--stamp-w) - var(--cancel-d)) / 2 + 7px);
+	width: var(--cancel-d);
+	height: var(--cancel-d);
+	transform: rotate(-12deg);
+}
+
+.bsb-frank__pm {
+	display: block;
+	width: 100%;
+	height: 100%;
+	overflow: visible;
+
+	text {
+		fill: var(--cancel-ink);
+		font-family: theme.$font-mono;
+		font-weight: 700;
+	}
+}
+
+.bsb-frank__ring {
+	fill: none;
+	stroke: var(--cancel-ink);
+
+	&:first-of-type {
+		stroke-width: 2.2;
+	}
+	&:last-of-type {
+		stroke-width: 1;
+	}
+}
+
+.bsb-frank__bar {
+	fill: none;
+	stroke: var(--cancel-ink);
+	stroke-width: 2.2;
+	stroke-linecap: round;
+	opacity: 0.85;
+}
+
+.bsb-frank__arc {
+	font-size: 8px;
+	letter-spacing: 0.4px;
+}
+
+.bsb-frank__val {
+	font-family: theme.$font-display;
+	font-weight: 400;
+	font-size: 17px;
+}
+
+.bsb-frank__unit {
+	font-size: 6.4px;
+	letter-spacing: 2px;
 }

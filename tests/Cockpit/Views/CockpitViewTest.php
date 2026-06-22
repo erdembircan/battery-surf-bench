@@ -14,10 +14,10 @@ use ErdemBircan\BatterySurfBench\Support\View;
 use ErdemBircan\BatterySurfBench\Tests\TestCase;
 
 /**
- * The block view renders the cockpit's front-end markup from the already-escaped
- * values the render template hands it. Its contract: emit the Interactivity
- * region with the supplied wrapper attributes and context, and wire the
- * controls and viewport to the store directives the client view binds to.
+ * The block view renders the cockpit's front-end markup from the raw values the
+ * render template hands it, escaping each into its slot. Its contract: emit the
+ * Interactivity region with the supplied wrapper attributes and context, and wire
+ * the controls and viewport to the store directives the client view binds to.
  */
 final class CockpitViewTest extends TestCase {
 
@@ -39,7 +39,8 @@ final class CockpitViewTest extends TestCase {
 		$this->assertStringContainsString( 'data-wp-interactive="bsb/cockpit"', $markup );
 		$this->assertStringContainsString( 'data-wp-init="callbacks.initTheme"', $markup );
 		$this->assertStringContainsString( 'data-wp-init---battery="callbacks.initBattery"', $markup );
-		$this->assertStringContainsString( 'data-wp-init---clock="callbacks.tick"', $markup );
+		$this->assertStringContainsString( 'data-wp-init---wake-lock="callbacks.initWakeLock"', $markup );
+		$this->assertStringContainsString( 'data-wp-watch---run-activity="callbacks.syncRunActivity"', $markup );
 		$this->assertStringContainsString( 'data-wp-bind--data-theme="context.theme"', $markup );
 		$this->assertStringContainsString( 'data-wp-class--is-compact="state.isCompact"', $markup );
 		$this->assertStringContainsString( 'class="wp-block-bsb-cockpit"', $markup );
@@ -73,11 +74,46 @@ final class CockpitViewTest extends TestCase {
 
 		$this->assertStringContainsString( 'class="bsb-cockpit__idle" data-wp-bind--hidden="state.isRunning"', $markup );
 		$this->assertStringContainsString( 'class="bsb-cockpit__viewport-wrap" hidden data-wp-bind--hidden="state.isIdle"', $markup );
-		$this->assertStringContainsString( 'class="bsb-cockpit__postcard-mark"', $markup );
+		$this->assertStringContainsString( 'class="bsb-photo__mark"', $markup );
 		$this->assertStringContainsString( 'class="bsb-cockpit__stamp"', $markup );
 		$this->assertStringContainsString( 'How this run works', $markup );
 		$this->assertStringContainsString( 'Greetings from', $markup );
 		$this->assertStringContainsString( 'Set the session', $markup );
+		// The keep-the-screen-awake notice rides on the postcard.
+		$this->assertStringContainsString( 'class="bsb-cockpit__postcard-notice"', $markup );
+		$this->assertStringContainsString( 'Keep the laptop open', $markup );
+	}
+
+	/**
+	 * The run summary is a flip card shown only once a run has ended, with its
+	 * report bound to the store and a flip control that turns the card.
+	 */
+	public function test_render_includes_the_run_summary_flip_card(): void {
+		$markup = $this->render();
+
+		// Shown only when a run has ended.
+		$this->assertStringContainsString( 'class="bsb-summary" hidden data-wp-bind--hidden="!state.isEnded"', $markup );
+		// The 3D card turns on the flipped state.
+		$this->assertStringContainsString( 'data-wp-class--is-flipped="state.isFlipped"', $markup );
+		// The flip indicator turns the card.
+		$this->assertStringContainsString( 'data-wp-on--click="actions.toggleFlip"', $markup );
+		// The verdict heading binds to the store; the SVG is painted imperatively
+		// by a watch (directives cannot live inside SVG during server render).
+		$this->assertStringContainsString( 'data-wp-text="state.summaryHeading"', $markup );
+		$this->assertStringContainsString( 'data-wp-watch="callbacks.renderSummary"', $markup );
+		// The chart is an empty SVG skeleton the watch paints into.
+		$this->assertStringContainsString( 'class="bsb-summary__chart" viewBox="0 0 480 90"', $markup );
+		// The battery readout splits start/end around the arrow glyph.
+		$this->assertStringContainsString( 'data-wp-text="context.summaryBatteryStart"', $markup );
+		$this->assertStringContainsString( 'data-wp-text="context.summaryBatteryEnd"', $markup );
+		$this->assertStringContainsString( 'class="bsb-stat__arrow"', $markup );
+		// The summary's drain graph hides when there is nothing to plot.
+		$this->assertStringContainsString( 'data-wp-bind--hidden="!context.hasGraph"', $markup );
+		// New run returns to the idle startup screen (it does not start a run).
+		$this->assertStringContainsString( 'class="bsb-summary__new" data-wp-on--click="actions.newRun"', $markup );
+		// The card reuses the shared photo (front) and franked-stamp (back).
+		$this->assertStringContainsString( 'class="bsb-photo bsb-photo--fill"', $markup );
+		$this->assertStringContainsString( 'class="bsb-frank"', $markup );
 	}
 
 	/**
@@ -255,8 +291,34 @@ final class CockpitViewTest extends TestCase {
 	}
 
 	/**
-	 * Renders the view with a full set of escaped values, as the render template
-	 * supplies them.
+	 * The view escapes the values it is handed: text slots with esc_html,
+	 * attribute slots with esc_attr — so the render template passes raw, translated
+	 * strings and never escapes ahead of the view.
+	 */
+	public function test_render_escapes_the_values_it_is_handed(): void {
+		$markup = ( new CockpitView() )->render(
+			array(
+				'wrapper'     => 'class="wp-block-bsb-cockpit"',
+				'context'     => 'data-wp-context=\'{}\'',
+				'brand_title' => '<b>X</b>',
+				'theme_label' => 'Theme "x"',
+				'mode_label'  => 'Mode <i>',
+			)
+		);
+
+		// Text slot escaped (the deck title and the forwarded photo greeting).
+		$this->assertStringContainsString( '&lt;b&gt;X&lt;/b&gt;', $markup );
+		$this->assertStringNotContainsString( '<b>X</b>', $markup );
+		// Attribute slot escaped.
+		$this->assertStringContainsString( 'aria-label="Theme &quot;x&quot;"', $markup );
+		// A label used in both a text slot and an aria-label is escaped in both.
+		$this->assertStringContainsString( 'Mode &lt;i&gt;', $markup );
+		$this->assertStringNotContainsString( 'Mode <i>', $markup );
+	}
+
+	/**
+	 * Renders the view with a full set of representative values, as the render
+	 * template supplies them.
 	 *
 	 * @return string The rendered cockpit markup.
 	 */
@@ -282,7 +344,7 @@ final class CockpitViewTest extends TestCase {
 				'battery_label'      => 'Battery',
 				'rate10_label'       => 'Rate · 10 min',
 				'rate_session_label' => 'Rate · session',
-				'tte_label'          => 'Time to empty',
+				'tte_label'          => '100% → 0%',
 				'target_short_label' => 'Target',
 				'surfing_label'      => 'Surfing',
 				'elapsed_label'      => 'elapsed',
@@ -303,6 +365,14 @@ final class CockpitViewTest extends TestCase {
 				'idle_step2_text'    => 'Hit Start. The charger unplugs and the run begins on its own.',
 				'idle_step3_title'   => 'Watch the slope',
 				'idle_step3_text'    => 'It runs hands-free while the battery drains; you just watch the numbers.',
+				'idle_notice_title'  => 'Keep the laptop open',
+				'idle_notice_text'   => 'The wake lock keeps the screen on; do not close the lid.',
+				'dropped_label'      => 'Dropped',
+				'pts_label'          => 'pts',
+				'elapsed_run_label'  => 'Elapsed',
+				'new_run_label'      => 'New run',
+				'flip_label'         => 'Flip',
+				'summary_brand'      => 'BATTERY · SURF · BENCH',
 			)
 		);
 	}

@@ -93,6 +93,10 @@ classDiagram
         +render() void
     }
 
+    class SessionsScreenView {
+        +render(array data) string
+    }
+
     class CoursePage {
         +__construct(string slug, string title, string content)
         +slug() string
@@ -145,6 +149,14 @@ classDiagram
         +render(array data) string
     }
 
+    class PostcardPhoto {
+        +render(array data) string
+    }
+
+    class FrankedStamp {
+        +render(array data) string
+    }
+
     BatterySurfBench --> I18n : creates & owns (composition)
     BatterySurfBench --> Registry : creates & owns (composition)
     BatterySurfBench --> Paths : creates & owns (composition)
@@ -168,6 +180,8 @@ classDiagram
     SessionsScreen ..|> Manager : implements
     SessionsScreen --> SessionSchema : uses
     SessionsScreen --> Assets : uses
+    SessionsScreen ..> SessionsScreenView : renders via
+    SessionsScreenView ..|> View : implements
     CourseLibrary --> CourseCatalog : uses
     CourseRouter ..|> Manager : implements
     CourseRouter --> CourseCatalog : uses
@@ -181,6 +195,10 @@ classDiagram
     Cockpit ..> CockpitView : renders via (block template)
     CockpitDashboard ..|> View : implements
     CockpitView ..|> View : implements
+    PostcardPhoto ..|> View : implements
+    FrankedStamp ..|> View : implements
+    CockpitView ..> PostcardPhoto : composes (idle + summary)
+    CockpitView ..> FrankedStamp : composes (summary)
     Registry ..|> ContainerInterface : implements
     Registry ..> NotFoundException : throws
     NotFoundException --|> InvalidArgumentException : extends

@@ -35,10 +35,23 @@ interface CockpitContext {
 	rate10: number | null;
 	rateSession: number | null;
 	secondsToEmpty: number | null;
+	ended: boolean;
+	endReason: '' | 'duration' | 'targetDrop' | 'stopped' | 'plugged';
+	flipped: boolean;
+	reasonText: Record<
+		string,
+		{ head: string; sig: string; arc: string; unit: string }
+	>;
+	summaryBatteryStart: string;
+	summaryBatteryEnd: string;
+	summaryDropped: string;
+	hasGraph: boolean;
+	graphJson: string;
 }
 
 interface CockpitConfig {
 	state: {
+		hasGraph: boolean;
 		currentSrc: string;
 		isModeDuration: boolean;
 		isModeTargetDrop: boolean;
@@ -60,6 +73,15 @@ interface CockpitConfig {
 		rate10Display: string;
 		rateSessionDisplay: string;
 		timeToEmptyDisplay: string;
+		isEnded: boolean;
+		isFlipped: boolean;
+		isReasonDuration: boolean;
+		isReasonTargetDrop: boolean;
+		isReasonStopped: boolean;
+		isReasonPlugged: boolean;
+		summaryHeading: string;
+		summarySig: string;
+		summaryElapsed: string;
 	};
 	actions: {
 		selectMode: () => void;
@@ -72,13 +94,17 @@ interface CockpitConfig {
 		selectSpeed: () => void;
 		toggleRun: () => void;
 		toggleCompact: () => void;
+		toggleFlip: () => void;
+		newRun: () => void;
 		toggleTheme: () => void;
 	};
 	callbacks: {
-		tick: () => () => void;
 		initTheme: () => () => void;
 		initBattery: () => () => void;
+		initWakeLock: () => () => void;
+		syncRunActivity: () => void;
 		rollDuration: () => void;
+		renderSummary: () => void;
 	};
 }
 
@@ -109,6 +135,15 @@ const baseContext = (): CockpitContext => ( {
 	rate10: null,
 	rateSession: null,
 	secondsToEmpty: null,
+	ended: false,
+	endReason: '',
+	flipped: false,
+	reasonText: {},
+	summaryBatteryStart: '',
+	summaryBatteryEnd: '',
+	summaryDropped: '',
+	hasGraph: false,
+	graphJson: '',
 } );
 
 const mocks = vi.hoisted( () => ( {
@@ -126,7 +161,7 @@ vi.mock( '@wordpress/interactivity', () => ( {
 	getElement: () => ( { ref: mocks.element } ),
 } ) );
 
-import './view';
+import { __resetInstance } from './view';
 
 const page = ( n: string ): CoursePage => ( {
 	slug: n,
@@ -178,6 +213,8 @@ const key = ( name: string ): KeyboardEvent =>
 beforeEach( () => {
 	mocks.context = baseContext();
 	mocks.element = { dataset: {}, checked: false, value: '' };
+	// The run state is a module singleton; reset it so tests stay isolated.
+	__resetInstance();
 } );
 
 describe( 'bsb/cockpit view store', () => {
@@ -436,13 +473,16 @@ describe( 'bsb/cockpit view store', () => {
 			expect( mocks.config?.state.isIdle ).toBe( false );
 		} );
 
-		it( 'starts a run, resetting the elapsed clock', () => {
+		it( 'starts a run, resetting the run-scoped state', () => {
 			mocks.context.elapsed = 999;
+			// A leftover compact view from a prior run is reset on start.
+			mocks.context.compact = true;
 
 			mocks.config?.actions.toggleRun();
 
 			expect( mocks.context.running ).toBe( true );
 			expect( mocks.context.elapsed ).toBe( 0 );
+			expect( mocks.context.compact ).toBe( false );
 		} );
 
 		it( 'stops a live run back to the idle state', () => {
@@ -452,8 +492,9 @@ describe( 'bsb/cockpit view store', () => {
 			mocks.config?.actions.toggleRun();
 
 			expect( mocks.context.running ).toBe( false );
-			// Leaving a run also drops the compact view.
-			expect( mocks.context.compact ).toBe( false );
+			// Leaving a run drops the compact view: isCompact derives false once
+			// the run is no longer live.
+			expect( mocks.config?.state.isCompact ).toBe( false );
 		} );
 
 		it( 'toggles the compact view, but only counts while running', () => {
@@ -526,18 +567,66 @@ describe( 'bsb/cockpit view store', () => {
 			expect( mocks.config?.state.runClock ).toBe( '10:05' );
 		} );
 
-		it( 'ticks the clock once a second while running, until cleaned up', () => {
+		it( 'runs the clock once a second while a run is live, and stops with it', () => {
 			vi.useFakeTimers();
 			mocks.context.running = true;
 
-			const cleanup = mocks.config!.callbacks.tick();
+			// The watch starts the clock when the run goes live.
+			mocks.config!.callbacks.syncRunActivity();
 			vi.advanceTimersByTime( 3000 );
 			expect( mocks.context.elapsed ).toBe( 3 );
 
-			cleanup();
+			// The run ends; the watch reacts to `running` and stops the clock.
+			mocks.context.running = false;
+			mocks.config!.callbacks.syncRunActivity();
 			vi.advanceTimersByTime( 5000 );
 			expect( mocks.context.elapsed ).toBe( 3 );
 
+			vi.useRealTimers();
+		} );
+
+		it( 'stops the run and restores the deck when the duration elapses', () => {
+			vi.useFakeTimers();
+			mocks.context.mode = 'duration';
+			mocks.context.durationMinutes = 5;
+			mocks.context.running = true;
+			mocks.context.compact = true;
+			// One second short of the five-minute duration.
+			mocks.context.elapsed = 299;
+
+			mocks.config!.callbacks.syncRunActivity();
+			vi.advanceTimersByTime( 1000 );
+
+			// The countdown hit zero: the run ends and the deck comes back — the
+			// compact pill closes because `isCompact` derives false once stopped.
+			expect( mocks.context.running ).toBe( false );
+			expect( mocks.config?.state.isCompact ).toBe( false );
+			expect( mocks.context.endReason ).toBe( 'duration' );
+
+			// The watch reacts to the run ending and stops the clock.
+			mocks.config!.callbacks.syncRunActivity();
+			vi.advanceTimersByTime( 5000 );
+			expect( mocks.context.elapsed ).toBe( 300 );
+
+			vi.useRealTimers();
+		} );
+
+		it( 'keeps running past the clock in target-drop mode', () => {
+			vi.useFakeTimers();
+			mocks.context.mode = 'targetDrop';
+			mocks.context.durationMinutes = 5;
+			mocks.context.running = true;
+			mocks.context.elapsed = 299;
+
+			mocks.config!.callbacks.syncRunActivity();
+			vi.advanceTimersByTime( 2000 );
+
+			// Target-drop has no fixed length, so the clock keeps climbing.
+			expect( mocks.context.running ).toBe( true );
+			expect( mocks.context.elapsed ).toBe( 301 );
+
+			mocks.context.running = false;
+			mocks.config!.callbacks.syncRunActivity();
 			vi.useRealTimers();
 		} );
 
@@ -545,11 +634,11 @@ describe( 'bsb/cockpit view store', () => {
 			vi.useFakeTimers();
 			mocks.context.running = false;
 
-			const cleanup = mocks.config!.callbacks.tick();
+			// Idle: the watch never starts a clock.
+			mocks.config!.callbacks.syncRunActivity();
 			vi.advanceTimersByTime( 4000 );
 			expect( mocks.context.elapsed ).toBe( 0 );
 
-			cleanup();
 			vi.useRealTimers();
 		} );
 	} );
@@ -687,6 +776,484 @@ describe( 'bsb/cockpit view store', () => {
 			cleanup?.();
 
 			expect( mocks.context.batteryLevel ).toBeNull();
+		} );
+	} );
+
+	describe( 'drain-rate calculations', () => {
+		afterEach( () => {
+			delete ( navigator as { getBattery?: unknown } ).getBattery;
+			vi.restoreAllMocks();
+		} );
+
+		/**
+		 * Stubs `performance.now` to return the queued timestamps in order, so a
+		 * run's samples land at known elapsed times.
+		 * @param times
+		 */
+		const mockClock = ( times: number[] ): void => {
+			const queue = [ ...times ];
+			vi.spyOn( performance, 'now' ).mockImplementation(
+				() => queue.shift() ?? times[ times.length - 1 ] ?? 0
+			);
+		};
+
+		it( 'derives the rates and projection from samples taken during a run', async () => {
+			// start → first reading → stepped reading, ten minutes apart.
+			mockClock( [ 0, 0, 600_000 ] );
+			const mockBattery = {
+				level: 0.8,
+				charging: false,
+				addEventListener: vi.fn(),
+				removeEventListener: vi.fn(),
+			};
+			( navigator as { getBattery?: unknown } ).getBattery = () =>
+				Promise.resolve( mockBattery );
+
+			mocks.config!.actions.toggleRun();
+			expect( mocks.context.running ).toBe( true );
+
+			const cleanup = mocks.config!.callbacks.initBattery();
+			await vi.waitFor( () =>
+				expect( mockBattery.addEventListener ).toHaveBeenCalled()
+			);
+
+			// The battery steps down 1% over the ten minutes since start.
+			const onChange = mockBattery.addEventListener.mock.calls.find(
+				( call ) => call[ 0 ] === 'levelchange'
+			)?.[ 1 ] as () => void;
+			mockBattery.level = 0.79;
+			onChange();
+
+			// 1% over 10 min → 6 %/h; full-charge runtime 100% at 6 %/h → 60,000 s.
+			expect( mocks.context.rateSession ).toBe( 6 );
+			expect( mocks.context.rate10 ).toBe( 6 );
+			expect( mocks.context.secondsToEmpty ).toBe( 60_000 );
+
+			// Ending the run freezes the summary onto the context: battery start
+			// and end, drop, and the serialised drain-graph draw model.
+			mocks.config?.actions.toggleRun();
+			expect( mocks.context.summaryBatteryStart ).toBe( '80' );
+			expect( mocks.context.summaryBatteryEnd ).toBe( '79' );
+			expect( mocks.context.summaryDropped ).toBe( '1' );
+			expect( mocks.context.hasGraph ).toBe( true );
+			const graph = JSON.parse( mocks.context.graphJson );
+			expect( graph.line.startsWith( 'M' ) ).toBe( true );
+			expect( graph.area.endsWith( 'Z' ) ).toBe( true );
+
+			cleanup();
+		} );
+
+		it( 'clears stale readouts when a fresh run starts', () => {
+			mockClock( [ 0 ] );
+			mocks.context.rate10 = 9;
+			mocks.context.rateSession = 9;
+			mocks.context.secondsToEmpty = 1_000;
+
+			mocks.config!.actions.toggleRun();
+
+			expect( mocks.context.rate10 ).toBeNull();
+			expect( mocks.context.rateSession ).toBeNull();
+			expect( mocks.context.secondsToEmpty ).toBeNull();
+		} );
+
+		it( 'normalizes a tampered duration when a run starts', () => {
+			mockClock( [ 0 ] );
+			// A crafted context tries to stretch the run past the ceiling.
+			mocks.context.durationMinutes = 300;
+
+			mocks.config!.actions.toggleRun();
+
+			expect( mocks.context.durationMinutes ).toBe( 240 );
+		} );
+
+		it( 'stops sampling once the device is plugged in mid-run', async () => {
+			mockClock( [ 0, 0, 300_000, 600_000 ] );
+			const mockBattery = {
+				level: 0.8,
+				charging: false,
+				addEventListener: vi.fn(),
+				removeEventListener: vi.fn(),
+			};
+			( navigator as { getBattery?: unknown } ).getBattery = () =>
+				Promise.resolve( mockBattery );
+
+			mocks.config!.actions.toggleRun();
+			const cleanup = mocks.config!.callbacks.initBattery();
+			await vi.waitFor( () =>
+				expect( mockBattery.addEventListener ).toHaveBeenCalled()
+			);
+
+			const handlers = ( type: string ): ( () => void ) =>
+				mockBattery.addEventListener.mock.calls.find(
+					( call ) => call[ 0 ] === type
+				)?.[ 1 ] as () => void;
+
+			// The charger goes in: the run ends and sampling stops.
+			mockBattery.charging = true;
+			handlers( 'chargingchange' )();
+			expect( mocks.context.running ).toBe( false );
+			expect( mocks.context.endReason ).toBe( 'plugged' );
+
+			// A later reading while plugged in does not resume the calculations.
+			mockBattery.level = 0.5;
+			handlers( 'levelchange' )();
+			expect( mocks.context.rateSession ).toBeNull();
+
+			cleanup();
+		} );
+
+		it( 'stops a target-drop run when the battery reaches the target', async () => {
+			const mockBattery = {
+				level: 0.8,
+				charging: false,
+				addEventListener: vi.fn(),
+				removeEventListener: vi.fn(),
+			};
+			( navigator as { getBattery?: unknown } ).getBattery = () =>
+				Promise.resolve( mockBattery );
+
+			mocks.context.mode = 'targetDrop';
+			mocks.context.targetPercent = 75;
+			mocks.config!.actions.toggleRun();
+			const cleanup = mocks.config!.callbacks.initBattery();
+			await vi.waitFor( () =>
+				expect( mockBattery.addEventListener ).toHaveBeenCalled()
+			);
+
+			const onChange = mockBattery.addEventListener.mock.calls.find(
+				( call ) => call[ 0 ] === 'levelchange'
+			)?.[ 1 ] as () => void;
+
+			// One step above the target: the target holds (not dragged down) and
+			// the run keeps going.
+			mockBattery.level = 0.76;
+			onChange();
+			expect( mocks.context.batteryLevel ).toBe( 76 );
+			expect( mocks.context.targetPercent ).toBe( 75 );
+			expect( mocks.context.running ).toBe( true );
+
+			// Reaches the target exactly: the run stops at 75, not a step later.
+			mockBattery.level = 0.75;
+			onChange();
+			expect( mocks.context.running ).toBe( false );
+			expect( mocks.context.endReason ).toBe( 'targetDrop' );
+
+			cleanup();
+		} );
+
+		it( 'does not stop a duration run on the battery level', async () => {
+			const mockBattery = {
+				level: 0.8,
+				charging: false,
+				addEventListener: vi.fn(),
+				removeEventListener: vi.fn(),
+			};
+			( navigator as { getBattery?: unknown } ).getBattery = () =>
+				Promise.resolve( mockBattery );
+
+			mocks.context.mode = 'duration';
+			mocks.context.targetPercent = 75;
+			mocks.config!.actions.toggleRun();
+			const cleanup = mocks.config!.callbacks.initBattery();
+			await vi.waitFor( () =>
+				expect( mockBattery.addEventListener ).toHaveBeenCalled()
+			);
+
+			const onChange = mockBattery.addEventListener.mock.calls.find(
+				( call ) => call[ 0 ] === 'levelchange'
+			)?.[ 1 ] as () => void;
+
+			// Well past the target value, but duration mode ignores the level.
+			mockBattery.level = 0.7;
+			onChange();
+			expect( mocks.context.batteryLevel ).toBe( 70 );
+			expect( mocks.context.running ).toBe( true );
+
+			cleanup();
+		} );
+
+		it( 'runs the battery heartbeat poll only while a run is live', async () => {
+			const setSpy = vi.spyOn( window, 'setInterval' );
+			const clearSpy = vi.spyOn( window, 'clearInterval' );
+			const mockBattery = {
+				level: 0.8,
+				charging: false,
+				addEventListener: vi.fn(),
+				removeEventListener: vi.fn(),
+			};
+			( navigator as { getBattery?: unknown } ).getBattery = () =>
+				Promise.resolve( mockBattery );
+
+			const cleanup = mocks.config!.callbacks.initBattery();
+			await vi.waitFor( () =>
+				expect( mockBattery.addEventListener ).toHaveBeenCalled()
+			);
+
+			// Only the 30s heartbeat poll, isolated from any other interval.
+			const heartbeats = (): unknown[] =>
+				setSpy.mock.calls.filter( ( call ) => call[ 1 ] === 30_000 );
+
+			// Idle: the watch keeps the poll at rest.
+			mocks.context.running = false;
+			mocks.config!.callbacks.syncRunActivity();
+			expect( heartbeats() ).toHaveLength( 0 );
+
+			// Run live: the watch starts the poll at the 30s cadence.
+			mocks.context.running = true;
+			mocks.config!.callbacks.syncRunActivity();
+			expect( heartbeats() ).toHaveLength( 1 );
+			const beatIndex = setSpy.mock.calls.findIndex(
+				( call ) => call[ 1 ] === 30_000
+			);
+			const beatId = setSpy.mock.results[ beatIndex ]!.value;
+
+			// The poll is idempotent while the run continues (no second timer).
+			mocks.config!.callbacks.syncRunActivity();
+			expect( heartbeats() ).toHaveLength( 1 );
+
+			// Run ends — by any cause that flips `running` — and the poll stops.
+			mocks.context.running = false;
+			mocks.config!.callbacks.syncRunActivity();
+			expect( clearSpy ).toHaveBeenCalledWith( beatId );
+
+			cleanup();
+		} );
+	} );
+
+	describe( 'screen wake lock', () => {
+		afterEach( () => {
+			delete ( navigator as { wakeLock?: unknown } ).wakeLock;
+		} );
+
+		/** A fake wake-lock sentinel whose `release` event can be fired. */
+		const fakeSentinel = () => {
+			const listeners: Record< string, () => void > = {};
+			const sentinel = {
+				released: false,
+				release: vi.fn( () => {
+					sentinel.released = true;
+					return Promise.resolve();
+				} ),
+				addEventListener: ( type: string, listener: () => void ) => {
+					listeners[ type ] = listener;
+				},
+				removeEventListener: ( type: string ) => {
+					delete listeners[ type ];
+				},
+				fire: ( type: string ) => listeners[ type ]?.(),
+			};
+
+			return sentinel;
+		};
+
+		it( 'holds the lock while a run is live and drops it on stop', async () => {
+			const sentinel = fakeSentinel();
+			const request = vi.fn( () => Promise.resolve( sentinel ) );
+			( navigator as { wakeLock?: unknown } ).wakeLock = { request };
+
+			const cleanup = mocks.config!.callbacks.initWakeLock();
+
+			// The watch takes the lock when the run goes live.
+			mocks.context.running = true;
+			mocks.config!.callbacks.syncRunActivity();
+			await vi.waitFor( () =>
+				expect( request ).toHaveBeenCalledTimes( 1 )
+			);
+
+			// And drops it when the run ends.
+			mocks.context.running = false;
+			mocks.config!.callbacks.syncRunActivity();
+			await vi.waitFor( () =>
+				expect( sentinel.release ).toHaveBeenCalled()
+			);
+
+			cleanup();
+		} );
+
+		it( 're-acquires the lock when the page becomes visible during a run', async () => {
+			const first = fakeSentinel();
+			const second = fakeSentinel();
+			const request = vi
+				.fn()
+				.mockResolvedValueOnce( first )
+				.mockResolvedValueOnce( second );
+			( navigator as { wakeLock?: unknown } ).wakeLock = { request };
+
+			const cleanup = mocks.config!.callbacks.initWakeLock();
+			mocks.context.running = true;
+			mocks.config!.callbacks.syncRunActivity();
+			await vi.waitFor( () =>
+				expect( request ).toHaveBeenCalledTimes( 1 )
+			);
+
+			// The browser drops the lock when the tab hides.
+			first.released = true;
+			first.fire( 'release' );
+
+			// Visible again while still running: the lock is re-acquired.
+			document.dispatchEvent( new Event( 'visibilitychange' ) );
+			await vi.waitFor( () =>
+				expect( request ).toHaveBeenCalledTimes( 2 )
+			);
+
+			mocks.context.running = false;
+			mocks.config!.callbacks.syncRunActivity();
+			cleanup();
+		} );
+
+		it( 'does not re-acquire on visibility when no run is live', async () => {
+			const sentinel = fakeSentinel();
+			const request = vi.fn( () => Promise.resolve( sentinel ) );
+			( navigator as { wakeLock?: unknown } ).wakeLock = { request };
+
+			const cleanup = mocks.config!.callbacks.initWakeLock();
+
+			// Idle: a visibility change must not grab a lock.
+			mocks.context.running = false;
+			document.dispatchEvent( new Event( 'visibilitychange' ) );
+			await Promise.resolve();
+			expect( request ).not.toHaveBeenCalled();
+
+			cleanup();
+		} );
+
+		it( 'runs without a lock where the Wake Lock API is unavailable', () => {
+			const cleanup = mocks.config!.callbacks.initWakeLock();
+
+			mocks.context.running = true;
+			expect( () =>
+				mocks.config!.callbacks.syncRunActivity()
+			).not.toThrow();
+
+			mocks.context.running = false;
+			mocks.config!.callbacks.syncRunActivity();
+			cleanup();
+		} );
+	} );
+
+	describe( 'run summary', () => {
+		it( 'ends the run with a reason when stopped by hand', () => {
+			mocks.context.running = true;
+
+			mocks.config?.actions.toggleRun();
+
+			expect( mocks.context.ended ).toBe( true );
+			expect( mocks.context.endReason ).toBe( 'stopped' );
+			expect( mocks.context.flipped ).toBe( false );
+			expect( mocks.config?.state.isEnded ).toBe( true );
+			expect( mocks.config?.state.isReasonStopped ).toBe( true );
+		} );
+
+		it( 'clears the ended summary when a fresh run starts', () => {
+			mocks.context.ended = true;
+			mocks.context.endReason = 'stopped';
+			mocks.context.flipped = true;
+
+			mocks.config?.actions.toggleRun();
+
+			expect( mocks.context.running ).toBe( true );
+			expect( mocks.context.ended ).toBe( false );
+			expect( mocks.context.endReason ).toBe( '' );
+			expect( mocks.context.flipped ).toBe( false );
+		} );
+
+		it( 'dismisses the summary to the startup screen without starting a run', () => {
+			mocks.context.ended = true;
+			mocks.context.endReason = 'stopped';
+			mocks.context.flipped = true;
+
+			mocks.config?.actions.newRun();
+
+			// Back to idle: summary gone, but no run started.
+			expect( mocks.context.ended ).toBe( false );
+			expect( mocks.context.endReason ).toBe( '' );
+			expect( mocks.context.flipped ).toBe( false );
+			expect( mocks.context.running ).toBe( false );
+		} );
+
+		it( 'turns the summary card between front and back', () => {
+			expect( mocks.config?.state.isFlipped ).toBe( false );
+
+			mocks.config?.actions.toggleFlip();
+			expect( mocks.context.flipped ).toBe( true );
+			expect( mocks.config?.state.isFlipped ).toBe( true );
+
+			mocks.config?.actions.toggleFlip();
+			expect( mocks.config?.state.isFlipped ).toBe( false );
+		} );
+
+		it( 'formats the elapsed run clock for the summary', () => {
+			mocks.context.elapsed = 75;
+			expect( mocks.config?.state.summaryElapsed ).toBe( '01:15' );
+		} );
+
+		it( 'has no frozen summary or graph until a run ends', () => {
+			expect( mocks.context.hasGraph ).toBe( false );
+			expect( mocks.context.summaryBatteryStart ).toBe( '' );
+		} );
+
+		it( 'reads the verdict wording for the end reason', () => {
+			mocks.context.reasonText = {
+				stopped: {
+					head: 'Called it early.',
+					sig: 'You stopped the run.',
+					arc: '· STOPPED ·',
+					unit: 'elapsed',
+				},
+			};
+			mocks.context.endReason = 'stopped';
+
+			expect( mocks.config?.state.summaryHeading ).toBe(
+				'Called it early.'
+			);
+			expect( mocks.config?.state.summarySig ).toBe(
+				'You stopped the run.'
+			);
+		} );
+
+		it( 'paints the summary chart and postmark text imperatively from the run', () => {
+			const root = document.createElement( 'div' );
+			root.innerHTML =
+				'<svg class="bsb-summary__chart"></svg>' +
+				'<span class="bsb-frank__arc-text"></span>' +
+				'<span class="bsb-frank__val"></span>' +
+				'<span class="bsb-frank__unit"></span>';
+			mocks.element = root as unknown as MockElement;
+			mocks.context.reasonText = {
+				stopped: {
+					head: 'h',
+					sig: 's',
+					arc: '· STOPPED ·',
+					unit: 'elapsed',
+				},
+			};
+			mocks.context.endReason = 'stopped';
+			mocks.context.elapsed = 75;
+			mocks.context.graphJson = JSON.stringify( {
+				frame: { left: 30, right: 470, top: 10, bottom: 208 },
+				area: 'M 30 10 L 470 208 Z',
+				line: 'M 30 10 L 470 208',
+				fit: 'M 30 10 L 470 208',
+				dots: [ { cx: 30, cy: 10 } ],
+				yTicks: [ { pos: 10, label: '100' } ],
+				xTicks: [ { pos: 30, label: '0m' } ],
+			} );
+
+			mocks.config?.callbacks.renderSummary();
+
+			// The chart was repainted from the frozen model …
+			const chart = root.querySelector( '.bsb-summary__chart' )!;
+			expect( chart.childNodes.length ).toBeGreaterThan( 0 );
+			// … and the postmark text set from the run.
+			expect(
+				root.querySelector( '.bsb-frank__arc-text' )!.textContent
+			).toBe( '· STOPPED ·' );
+			expect( root.querySelector( '.bsb-frank__val' )!.textContent ).toBe(
+				'01:15'
+			);
+			expect(
+				root.querySelector( '.bsb-frank__unit' )!.textContent
+			).toBe( 'elapsed' );
 		} );
 	} );
 

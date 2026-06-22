@@ -7,6 +7,7 @@
 
 namespace ErdemBircan\BatterySurfBench\Admin;
 
+use ErdemBircan\BatterySurfBench\Admin\Views\SessionsScreenView;
 use ErdemBircan\BatterySurfBench\Assets;
 use ErdemBircan\BatterySurfBench\Content\SessionSchema;
 use ErdemBircan\BatterySurfBench\Support\Manager;
@@ -15,8 +16,6 @@ use function __;
 use function add_action;
 use function add_query_arg;
 use function add_submenu_page;
-use function esc_html__;
-use function esc_url;
 use function home_url;
 
 defined( 'ABSPATH' ) || exit;
@@ -127,19 +126,27 @@ class SessionsScreen implements Manager {
 
 	/**
 	 * Renders the screen: a wrapped heading, a link that opens the cockpit
-	 * dashboard, and the container the bundle mounts the DataViews grid into.
+	 * dashboard, and the container the bundle mounts the DataViews grid into. The
+	 * markup itself lives in {@see SessionsScreenView}; this only prepares the
+	 * dynamic, already-escaped values and prints the finished view.
 	 *
 	 * @return void
 	 */
 	public function render(): void {
 		$cockpit_url = add_query_arg( $this->cockpit_param, $this->cockpit_value, home_url( '/' ) );
 
-		printf(
-			'<div class="wrap"><h1>%1$s <a href="%2$s" class="page-title-action">%3$s</a></h1><div id="bsb-sessions-app"></div></div>',
-			esc_html__( 'Benchmark Sessions', 'battery-surf-bench' ),
-			esc_url( $cockpit_url ),
-			esc_html__( 'Open Cockpit', 'battery-surf-bench' )
+		$markup = ( new SessionsScreenView() )->render(
+			array(
+				'heading'       => __( 'Benchmark Sessions', 'battery-surf-bench' ),
+				'cockpit_url'   => $cockpit_url,
+				'cockpit_label' => __( 'Open Cockpit', 'battery-surf-bench' ),
+			)
 		);
+
+		// The view escapes each value and returns finished, trusted markup, so the
+		// assembled HTML cannot be run through an escaper here.
+		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- trusted pre-escaped view markup; see comment above.
+		echo $markup;
 	}
 
 	/**
