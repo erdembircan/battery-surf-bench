@@ -90,19 +90,6 @@ export const paintGraph = (
 		add( label );
 	}
 
-	// The measured-window band behind the series.
-	if ( model.window ) {
-		add(
-			el( 'rect', {
-				class: 'bsb-summary__chart-window',
-				x: model.window.x,
-				y: frame.top,
-				width: model.window.w,
-				height: frame.bottom - frame.top,
-			} )
-		);
-	}
-
 	// Series: measured area + staircase, with the projection dashed beneath.
 	add( el( 'path', { class: 'bsb-summary__chart-area', d: model.area } ) );
 	if ( model.fit ) {

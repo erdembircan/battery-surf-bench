@@ -3,9 +3,9 @@
  *
  * The consumer is the summary painter, which draws the returned draw model onto
  * an SVG. These tests verify the guards (nothing to plot), the staircase / area
- * structure, the normalised fixed axes (0–100 % over 0 → full-charge time), that
- * the projection meets the x axis at the right edge, and that plotted points
- * stay within the viewport.
+ * structure, the session-fitted padded axes, and that the 100 → 0 projection is
+ * clipped into the zoomed frame — present when it crosses the window, omitted
+ * when it falls outside it.
  */
 
 import { describe, it, expect } from 'vitest';
@@ -50,7 +50,7 @@ describe( 'buildGraph', () => {
 		).toBeNull();
 	} );
 
-	it( 'traces a staircase, a closed area and a 100→0 projection', () => {
+	it( 'traces a staircase, a closed area and endpoint dots', () => {
 		const g = buildGraph(
 			[ s( 0, 0.82 ), s( 300_000, 0.79 ), s( 600_000, 0.75 ) ],
 			7200,
@@ -61,8 +61,63 @@ describe( 'buildGraph', () => {
 		// Staircase: two L segments (across, then down) per step after the first.
 		expect( ( g.line.match( /L/g ) ?? [] ).length ).toBe( 4 );
 		expect( g.area.endsWith( 'Z' ) ).toBe( true );
-		expect( g.fit ).not.toBeNull();
 		expect( g.dots ).toHaveLength( 2 );
+	} );
+
+	it( 'fits the y axis to the observed range, padded out to whole fives', () => {
+		// 75 %..82 % → padded/snapped to 70..85, ticks every five.
+		const g = buildGraph( [ s( 0, 0.82 ), s( 600_000, 0.75 ) ], 7200, VP )!;
+
+		expect( g.yTicks.map( ( t ) => t.label ) ).toEqual( [
+			'70',
+			'75',
+			'80',
+			'85',
+		] );
+		// The low end sits on the bottom edge, the high end on the top edge.
+		expect( g.yTicks[ 0 ]!.pos ).toBe( g.frame.bottom );
+		expect( g.yTicks[ g.yTicks.length - 1 ]!.pos ).toBe( g.frame.top );
+	} );
+
+	it( 'fits the x axis to the run length plus rounded headroom', () => {
+		// 10 min run → padded to 11.8, rounded up to 12 min.
+		const g = buildGraph( [ s( 0, 0.82 ), s( 600_000, 0.75 ) ], 7200, VP )!;
+
+		expect( g.xTicks.map( ( t ) => t.label ) ).toEqual( [
+			'0m',
+			'6m',
+			'12m',
+		] );
+	} );
+
+	it( 'omits the projection when it falls outside the zoomed window', () => {
+		// A short, shallow run: the 100 → 0 line over the first 12 min sits well
+		// above the 70–85 % window, so none of it is in view.
+		const g = buildGraph(
+			[ s( 0, 0.82 ), s( 600_000, 0.75 ) ],
+			7_680,
+			VP
+		)!;
+
+		expect( g.fit ).toBeNull();
+	} );
+
+	it( 'clips the projection into the frame when it crosses the window', () => {
+		// A longer, deeper run (82 % → 40 % over an hour): the projection enters
+		// the fitted window and is drawn, clipped to the plot box.
+		const g = buildGraph(
+			[ s( 0, 0.82 ), s( 3_600_000, 0.4 ) ],
+			8_568,
+			VP
+		)!;
+
+		expect( g.fit ).not.toBeNull();
+		for ( const [ x, y ] of points( g.fit! ) ) {
+			expect( x ).toBeGreaterThanOrEqual( g.frame.left - 0.5 );
+			expect( x ).toBeLessThanOrEqual( g.frame.right + 0.5 );
+			expect( y ).toBeGreaterThanOrEqual( g.frame.top - 0.5 );
+			expect( y ).toBeLessThanOrEqual( g.frame.bottom + 0.5 );
+		}
 	} );
 
 	it( 'omits the projection when no full-charge time is known', () => {
@@ -70,42 +125,6 @@ describe( 'buildGraph', () => {
 
 		expect( g ).not.toBeNull();
 		expect( g.fit ).toBeNull();
-	} );
-
-	it( 'runs the projection corner-to-corner so it meets the x axis', () => {
-		const g = buildGraph( [ s( 0, 0.82 ), s( 600_000, 0.75 ) ], 7200, VP )!;
-
-		// (left, top) → (right, bottom): 100 % at t=0 down to 0 % at empty time.
-		const pts = points( g.fit! );
-		expect( pts[ 0 ] ).toEqual( [ g.frame.left, g.frame.top ] );
-		expect( pts[ 1 ] ).toEqual( [ g.frame.right, g.frame.bottom ] );
-	} );
-
-	it( 'normalises the y axis to a fixed 0–100 % range', () => {
-		const g = buildGraph( [ s( 0, 0.82 ), s( 600_000, 0.75 ) ], 7200, VP )!;
-
-		// Ticks every 25 points across the whole range, regardless of the data.
-		expect( g.yTicks.map( ( t ) => t.label ) ).toEqual( [
-			'0',
-			'25',
-			'50',
-			'75',
-			'100',
-		] );
-		// 0 % sits on the bottom edge, 100 % on the top edge.
-		expect( g.yTicks[ 0 ]!.pos ).toBe( g.frame.bottom );
-		expect( g.yTicks[ 4 ]!.pos ).toBe( g.frame.top );
-	} );
-
-	it( 'labels time ticks at start/mid/end of the full-charge span', () => {
-		// 7200 s = 120 min full-charge time → 0, 60, 120 min.
-		const g = buildGraph( [ s( 0, 0.82 ), s( 600_000, 0.75 ) ], 7200, VP )!;
-
-		expect( g.xTicks.map( ( t ) => t.label ) ).toEqual( [
-			'0m',
-			'1h',
-			'2h',
-		] );
 	} );
 
 	it( 'keeps every plotted point inside the viewport', () => {

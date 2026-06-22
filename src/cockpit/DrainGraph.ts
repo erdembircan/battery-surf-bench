@@ -3,16 +3,18 @@
  * into a flat, serialisable draw model for the summary's battery chart.
  *
  * Pure and presentation-agnostic: it maps the run-length-encoded samples
- * (elapsed time, battery level) into a fixed, normalised coordinate space and
- * emits the path/tick/marker geometry. The frame is the same shape as the SVG
- * viewBox, so the painter ({@link ./GraphSvg}) draws it at a uniform scale with
- * no `preserveAspectRatio` stretching. The maths stays testable without a DOM.
+ * (elapsed time, battery level) into a coordinate space and emits the
+ * path/tick/marker geometry. The frame is the same shape as the SVG viewBox, so
+ * the painter ({@link ./GraphSvg}) draws it at a uniform scale with no
+ * `preserveAspectRatio` stretching. The maths stays testable without a DOM.
  *
- * The frame is normalised, not fitted to the observed window: the y axis always
- * spans 0–100 % and the x axis spans 0 to the projected full-charge runtime, so
- * the dashed 100 → 0 projection runs corner-to-corner and meets the x axis at
- * the right edge. The measured battery is drawn over it as a staircase (the
- * level is quantised), occupying the slice of full-charge time the run covered.
+ * The frame is fitted to the session, not the full charge: the y axis spans the
+ * observed battery range padded out to whole fives, and the x axis spans 0 to a
+ * padded, rounded run length — so a short or shallow run still fills the chart.
+ * The 100 → 0 projection is drawn into that same zoomed frame, clipped to the
+ * plot box: it runs through the section and exits the view, and for many runs
+ * (the early, high-battery slice of a long projection) it falls outside the
+ * fitted window entirely and is omitted.
  */
 
 import { type Sample } from './DrainRate';
@@ -55,10 +57,8 @@ export interface GraphModel {
 	area: string;
 	/** Stepped path `d` tracing the measured battery over time. */
 	line: string;
-	/** Straight 100 → 0 projection `d`, or null when no rate is known. */
+	/** The 100 → 0 projection `d`, clipped to the frame; null when out of view. */
 	fit: string | null;
-	/** The measured-window band (x and width), or null when nothing measured. */
-	window: { x: number; w: number } | null;
 	/** Endpoint markers (first and last measured sample). */
 	dots: GraphDot[];
 	/** Horizontal grid ticks (battery %), with their y coordinates. */
@@ -66,6 +66,11 @@ export interface GraphModel {
 	/** Vertical axis ticks (elapsed time), with their x coordinates. */
 	xTicks: GraphTick[];
 }
+
+/** Percentage points of headroom padded above/below the observed battery range. */
+const PAD_PCT = 2;
+/** Fraction of the run length padded onto the x axis past the last sample. */
+const PAD_TIME = 0.18;
 
 /**
  * Rounds to one decimal as a compact path-coordinate number.
@@ -89,11 +94,40 @@ const timeLabel = ( minutes: number ): string => {
 };
 
 /**
+ * The minute the x axis rounds up to, scaled to the run length so ticks land on
+ * tidy values for short, medium and long runs.
+ * @param minutes The run length in minutes.
+ */
+const xRoundUnit = ( minutes: number ): number => {
+	if ( minutes < 20 ) {
+		return 1;
+	}
+	if ( minutes < 90 ) {
+		return 5;
+	}
+	return 15;
+};
+
+/**
+ * The battery-% step between y gridlines, widened as the fitted range grows so
+ * the tick count stays readable.
+ * @param range The fitted y range in percentage points.
+ */
+const yTickStep = ( range: number ): number => {
+	if ( range <= 20 ) {
+		return 5;
+	}
+	if ( range <= 50 ) {
+		return 10;
+	}
+	return 20;
+};
+
+/**
  * Builds the chart geometry for a run, or null when there is nothing to plot
- * (fewer than two samples, or no elapsed span). The y axis is fixed at 0–100 %
- * and the x axis at 0 to the projected full-charge runtime, so the projection
- * meets the x axis at the right edge; when no rate is known the x axis falls
- * back to the measured span and the projection is omitted.
+ * (fewer than two samples, or no elapsed span). The axes are fitted to the
+ * session and padded; the 100 → 0 projection is clipped into that zoomed frame,
+ * so it may exit the view or fall outside it entirely (and is then omitted).
  * @param samples        The run's samples, oldest first; `t` is elapsed ms, `level` a 0..1 fraction.
  * @param secondsToEmpty Projected full-charge (100 % → 0 %) runtime in seconds, or null when unknown.
  * @param vp             The viewport to map into.
@@ -112,12 +146,23 @@ export const buildGraph = (
 		return null;
 	}
 
-	// x domain: the full-charge runtime, never shorter than the measured span.
-	const emptyMin =
-		secondsToEmpty !== null && secondsToEmpty > 0
-			? secondsToEmpty / 60
-			: null;
-	const domainMax = Math.max( emptyMin ?? 0, maxElapsedMin );
+	// y domain: the observed battery range, padded and snapped out to whole fives.
+	const levels = samples.map( ( s ) => s.level * 100 );
+	const minL = Math.min( ...levels );
+	const maxL = Math.max( ...levels );
+	let lo = Math.max( 0, Math.floor( ( minL - PAD_PCT ) / 5 ) * 5 );
+	let hi = Math.min( 100, Math.ceil( ( maxL + PAD_PCT ) / 5 ) * 5 );
+	if ( hi - lo < 5 ) {
+		hi = Math.min( 100, lo + 5 );
+		lo = Math.max( 0, hi - 5 );
+	}
+
+	// x domain: the run length plus headroom, rounded up to a tidy unit.
+	const unit = xRoundUnit( maxElapsedMin );
+	const xMax = Math.max(
+		unit,
+		Math.ceil( ( maxElapsedMin * ( 1 + PAD_TIME ) ) / unit ) * unit
+	);
 
 	const frame: GraphFrame = {
 		left: vp.padLeft,
@@ -127,10 +172,10 @@ export const buildGraph = (
 	};
 
 	const sx = ( min: number ): number =>
-		frame.left + ( min / domainMax ) * ( frame.right - frame.left );
-	// y is normalised to a fixed 0..100 % range, top to bottom.
+		frame.left + ( min / xMax ) * ( frame.right - frame.left );
 	const sy = ( pct: number ): number =>
-		frame.top + ( ( 100 - pct ) / 100 ) * ( frame.bottom - frame.top );
+		frame.top +
+		( ( hi - pct ) / ( hi - lo ) ) * ( frame.bottom - frame.top );
 
 	// Staircase through the samples: hold the previous level across to each new
 	// time, then step down to the new level.
@@ -144,42 +189,79 @@ export const buildGraph = (
 	}
 
 	const lastX = n( px( samples[ samples.length - 1 ]! ) );
-	const baseY = n( sy( 0 ) );
+	const baseY = n( sy( lo ) );
 	const firstX = n( px( samples[ 0 ]! ) );
 	const area = `${ line } L ${ lastX } ${ baseY } L ${ firstX } ${ baseY } Z`;
-
-	const fit =
-		emptyMin !== null
-			? `M ${ n( sx( 0 ) ) } ${ n( sy( 100 ) ) } L ${ n(
-					sx( emptyMin )
-			  ) } ${ n( sy( 0 ) ) }`
-			: null;
 
 	return {
 		frame,
 		area,
 		line,
-		fit,
-		window: {
-			x: frame.left,
-			w: n( px( samples[ samples.length - 1 ]! ) - frame.left ),
-		},
+		fit: fitPath( secondsToEmpty, lo, hi, xMax, sx, sy ),
 		dots: [
 			{ cx: firstX, cy: n( py( samples[ 0 ]! ) ) },
 			{ cx: lastX, cy: n( py( samples[ samples.length - 1 ]! ) ) },
 		],
-		yTicks: yTicks( sy ),
-		xTicks: xTicks( domainMax, sx ),
+		yTicks: yTicks( lo, hi, sy ),
+		xTicks: xTicks( xMax, sx ),
 	};
 };
 
 /**
- * Battery-percent grid ticks at 0/25/50/75/100 across the fixed y range.
+ * The 100 → 0 projection clipped to the fitted frame, or null when none of it
+ * falls inside the zoomed window. The projection is `level = 100·(1 − t/empty)`;
+ * the visible slice is where that line is both within the run window (x) and the
+ * padded battery range (y).
+ * @param secondsToEmpty Projected full-charge runtime in seconds, or null.
+ * @param lo             The y domain minimum (battery %).
+ * @param hi             The y domain maximum (battery %).
+ * @param xMax           The x domain maximum (minutes).
+ * @param sx
  * @param sy
  */
-const yTicks = ( sy: ( pct: number ) => number ): GraphTick[] => {
+const fitPath = (
+	secondsToEmpty: number | null,
+	lo: number,
+	hi: number,
+	xMax: number,
+	sx: ( min: number ) => number,
+	sy: ( pct: number ) => number
+): string | null => {
+	if ( secondsToEmpty === null || secondsToEmpty <= 0 ) {
+		return null;
+	}
+	const emptyMin = secondsToEmpty / 60;
+
+	// The line falls from 100 % at t=0; it sits in the [lo, hi] band between the
+	// times it crosses hi (earlier) and lo (later). Intersect that with the run
+	// window to get the visible slice.
+	const tA = Math.max( 0, emptyMin * ( 1 - hi / 100 ) );
+	const tB = Math.min( xMax, emptyMin * ( 1 - lo / 100 ) );
+	if ( tA >= tB ) {
+		return null;
+	}
+
+	const level = ( t: number ): number => 100 * ( 1 - t / emptyMin );
+	return `M ${ n( sx( tA ) ) } ${ n( sy( level( tA ) ) ) } L ${ n(
+		sx( tB )
+	) } ${ n( sy( level( tB ) ) ) }`;
+};
+
+/**
+ * Battery-percent grid ticks across the fitted y range, stepped to keep the
+ * count readable as the range widens.
+ * @param lo The y domain minimum (battery %).
+ * @param hi The y domain maximum (battery %).
+ * @param sy
+ */
+const yTicks = (
+	lo: number,
+	hi: number,
+	sy: ( pct: number ) => number
+): GraphTick[] => {
+	const step = yTickStep( hi - lo );
 	const ticks: GraphTick[] = [];
-	for ( let pct = 0; pct <= 100; pct += 25 ) {
+	for ( let pct = lo; pct <= hi + 0.001; pct += step ) {
 		ticks.push( { pos: n( sy( pct ) ), label: String( pct ) } );
 	}
 	return ticks;
@@ -187,14 +269,11 @@ const yTicks = ( sy: ( pct: number ) => number ): GraphTick[] => {
 
 /**
  * Elapsed-time ticks at the start, midpoint and end of the x domain.
- * @param domainMax The x domain maximum, in minutes.
+ * @param xMax The x domain maximum, in minutes.
  * @param sx
  */
-const xTicks = (
-	domainMax: number,
-	sx: ( min: number ) => number
-): GraphTick[] =>
-	[ 0, domainMax / 2, domainMax ].map( ( min ) => ( {
+const xTicks = ( xMax: number, sx: ( min: number ) => number ): GraphTick[] =>
+	[ 0, xMax / 2, xMax ].map( ( min ) => ( {
 		pos: n( sx( min ) ),
 		label: timeLabel( min ),
 	} ) );

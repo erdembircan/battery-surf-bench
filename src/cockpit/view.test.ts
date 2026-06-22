@@ -1234,7 +1234,6 @@ describe( 'bsb/cockpit view store', () => {
 				area: 'M 30 10 L 470 208 Z',
 				line: 'M 30 10 L 470 208',
 				fit: 'M 30 10 L 470 208',
-				window: { x: 30, w: 100 },
 				dots: [ { cx: 30, cy: 10 } ],
 				yTicks: [ { pos: 10, label: '100' } ],
 				xTicks: [ { pos: 30, label: '0m' } ],

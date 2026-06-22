@@ -20,7 +20,6 @@ const model = (): GraphModel => ( {
 	area: 'M 30 45 L 60 59 Z',
 	line: 'M 30 45 L 60 59',
 	fit: 'M 30 10 L 470 208',
-	window: { x: 30, w: 30 },
 	dots: [
 		{ cx: 30, cy: 45 },
 		{ cx: 60, cy: 59 },
@@ -52,9 +51,6 @@ describe( 'paintGraph', () => {
 		expect(
 			svg.querySelectorAll( '.bsb-summary__chart-label--x' )
 		).toHaveLength( 2 );
-		expect(
-			svg.querySelector( '.bsb-summary__chart-window' )
-		).not.toBeNull();
 		expect(
 			svg.querySelector( '.bsb-summary__chart-area' )?.getAttribute( 'd' )
 		).toBe( 'M 30 45 L 60 59 Z' );
