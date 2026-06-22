@@ -1,17 +1,92 @@
 %% Cockpit front-end modules — contract chart.
 %% The client side of the `bsb/cockpit` block: the Interactivity store and the
-%% focused domains it delegates to. Function-only modules are marked
-%% <<module>>; the rest are classes. Only the public (exported) surface is shown.
+%% focused domains it delegates to. The store is built from focused domain
+%% slices — each a <<module>> exporting a StorePart — that the view composes into
+%% one store definition and registers under the `bsb/cockpit` namespace. The
+%% slices share a per-instance run state and a run lifecycle seam, and read/write
+%% the reactive CockpitContext. Function-only modules are marked <<module>>;
+%% type-only modules <<types>>; the rest are classes. Only the public (exported)
+%% surface is shown.
 classDiagram
     direction LR
 
-    class CockpitStore {
+    %% --- Composition root: folds the slices into one store and registers it.
+    class CockpitView {
         <<module>>
-        state: derived readouts
-        actions: deck controls, toggleSound, toggleFlip, toggleIdleFlip
-        callbacks: initBattery, initWakeLock, initSound, syncRunActivity, rollDuration
-        startup: idleFlipped + isDeckShown (flip reveals the deck)
-        summary: ended/flipped/reason + drain-graph getters
+        store('bsb/cockpit', mergeStoreParts(...slices))
+        +__resetInstance() void
+    }
+
+    class StoreParts {
+        <<module>>
+        +mergeStoreParts(...StorePart) MergedStore
+    }
+
+    %% --- Store slices: each owns one surface of the deck and reads CockpitContext.
+    class RunStore {
+        <<module>>
+        state: currentSrc, run/idle/compact, clock & rate readouts
+        actions: toggleRun, toggleCompact
+        callbacks: syncRunActivity, initWakeLock
+    }
+
+    class ConfigStore {
+        <<module>>
+        state: mode/speed flags, durationDisplay
+        actions: selectMode, stepDuration, toggleBaseline, selectSpeed
+        callbacks: rollDuration (odometer)
+    }
+
+    class TargetStore {
+        <<module>>
+        state: targetDisplay, targetCap, targetColor
+        actions: targetPointerDown/Move/Up, targetKeyDown
+    }
+
+    class BatteryStore {
+        <<module>>
+        state: batteryDisplay, batteryColor, isCharging
+        callbacks: initBattery
+    }
+
+    class SoundStore {
+        <<module>>
+        state: isSoundOn
+        actions: toggleSound
+        callbacks: initSound
+    }
+
+    class SummaryStore {
+        <<module>>
+        state: ended/flipped/reason + verdict readouts
+        actions: toggleFlip, newRun
+        callbacks: renderSummary
+    }
+
+    class StartupStore {
+        <<module>>
+        state: isIdleFlipped, isDeckShown
+        actions: toggleIdleFlip
+    }
+
+    %% --- Shared seam between slices.
+    class CockpitContext {
+        <<types>>
+        CockpitContext, RunEndReason, ReasonText
+    }
+
+    class RunInstance {
+        <<module>>
+        +instanceFor() InstanceState
+        +now() number
+        +__resetInstance() void
+    }
+
+    class RunLifecycle {
+        <<module>>
+        +stopRun(ctx, instance, RunEndReason) void
+        +applyReadouts(ctx, RunSession) void
+        +GRAPH_VIEWPORT
     }
 
     class RunConfig {
@@ -33,8 +108,8 @@ classDiagram
     }
 
     %% Dark mode is disabled: the Theme module is retained in the codebase but
-    %% intentionally unwired — the store no longer imports it, so the cockpit
-    %% renders the light palette only and nothing reads/writes the stored pref.
+    %% intentionally unwired — no slice imports it, so the cockpit renders the
+    %% light palette only and nothing reads/writes the stored pref.
     class Theme {
         <<module>>
         +resolveTheme(ThemePref) ThemeName
@@ -113,16 +188,52 @@ classDiagram
         +held: bool
     }
 
-    CockpitStore --> RunConfig : normalizes config
-    CockpitStore --> TargetControl : maps slider input
-    CockpitStore --> Format : formats readouts
-    CockpitStore --> BatteryMonitor : creates & owns (composition)
-    CockpitStore --> ScreenWakeLock : creates & owns (composition)
-    CockpitStore --> RunSession : creates & owns (composition)
-    CockpitStore --> FinishChime : creates & owns (composition)
-    BatteryMonitor ..> CockpitStore : reports BatteryReading
-    CockpitStore --> DrainGraph : builds summary chart model
-    CockpitStore --> GraphSvg : paints chart from model
+    %% Composition root wires the slices together.
+    CockpitView --> StoreParts : merges slices
+    CockpitView --> RunStore : composes
+    CockpitView --> ConfigStore : composes
+    CockpitView --> TargetStore : composes
+    CockpitView --> BatteryStore : composes
+    CockpitView --> SoundStore : composes
+    CockpitView --> SummaryStore : composes
+    CockpitView --> StartupStore : composes
+
+    %% Slices share the run state, lifecycle seam and reactive context.
+    RunStore ..> CockpitContext : reads/writes
+    ConfigStore ..> CockpitContext : reads/writes
+    TargetStore ..> CockpitContext : reads/writes
+    BatteryStore ..> CockpitContext : reads/writes
+    SoundStore ..> CockpitContext : reads/writes
+    SummaryStore ..> CockpitContext : reads/writes
+    StartupStore ..> CockpitContext : reads/writes
+
+    RunStore --> RunLifecycle : ends runs
+    BatteryStore --> RunLifecycle : ends runs (charger/target)
+    RunLifecycle --> RunInstance : reads run session
+    RunStore --> RunInstance : run state
+    BatteryStore --> RunInstance : run state
+    SoundStore --> RunInstance : chime state
+    SummaryStore --> RunInstance : auto-flip timer
+
+    %% Slice → focused domain delegation.
+    RunStore --> RunConfig : normalizes config
+    RunStore --> TargetControl : clamps target on start
+    RunStore --> Format : formats readouts
+    RunStore --> ScreenWakeLock : creates & owns (composition)
+    ConfigStore --> RunConfig : normalizes duration
+    ConfigStore --> Format : duration digits
+    TargetStore --> TargetControl : maps slider input
+    BatteryStore --> TargetControl : caps idle target
+    BatteryStore --> BatteryMonitor : creates & owns (composition)
+    SoundStore --> FinishChime : creates & owns (composition)
+    SummaryStore --> Format : formats verdict
+    SummaryStore --> GraphSvg : paints chart from model
+
+    %% Run lifecycle & instance own the long-lived calculation objects.
+    RunInstance --> RunSession : creates & owns (composition)
+    RunLifecycle --> DrainGraph : builds summary chart model
+    BatteryMonitor ..> BatteryStore : reports BatteryReading
+
     GraphSvg ..> DrainGraph : draws GraphModel
     RunSession --> SampleLog : creates & owns (composition)
     RunSession --> DrainRate : fits & projects
