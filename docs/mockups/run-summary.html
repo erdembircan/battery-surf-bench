@@ -96,30 +96,29 @@
   .greet small { display:block; font-size:.6em; opacity:.92; margin-top:.1em; padding-left:1.2em; }
   /* a "postmark" stamped over the picture — the run's verdict, in rubber-stamp
      ink: deep green-teal for a completed run, deep coral for an interrupted one. */
-  /* a real postmark is stamped in one dark ink — keeping it a single solid,
-     opaque colour reads over every part of the bright picture (the verdict is
-     already spelled out in the arc text). No blend mode: multiply over the
-     gradient was what made the small curved text unreadable. */
-  .pmHolder { position:absolute; z-index:5; right:1.1rem; bottom:1.2rem; --pm-ink:#15303d; }
-
-  /* round date-stamp (curved text), optionally with cancellation bars */
-  .pm { display:block; overflow:visible; transform:rotate(-9deg); }
+  /* ── Franked stamp component: a relative, overflow-visible wrapper holds the
+     postage stamp and the cancellation as SIBLINGS, so the stamp's perforation
+     mask never clips the cancellation. The cancellation is token-sized and offset
+     askew so it overhangs and reads as naturally stamped, in grey translucent
+     rubber-stamp ink. ── */
+  .frank { position:absolute; z-index:5; top:1.1rem; right:1.2rem; overflow:visible;
+    --stamp-w:50px; --stamp-h:60px; --cancel-d:72px; }
+  .cancel { position:absolute; z-index:1; --pm-ink:rgba(96,110,120,.72);
+    width:var(--cancel-d); height:var(--cancel-d);
+    top:calc((var(--stamp-h) - var(--cancel-d)) / 2 - 8px);
+    left:calc((var(--stamp-w) - var(--cancel-d)) / 2 + 7px);
+    transform:rotate(-12deg); }
+  .pm { width:100%; height:100%; display:block; overflow:visible; }
   .pm text { font-family:'Space Mono',monospace; font-weight:700; fill:var(--pm-ink); }
   .pm .ring { fill:none; stroke:var(--pm-ink); }
   .pm .arc { font-size:8px; letter-spacing:.4px; }
   .pm .big { font-family:'Anton'; font-weight:400; font-size:17px; letter-spacing:.4px; }
   .pm .lab { font-size:6.4px; letter-spacing:2px; }
-  .pm .bar { stroke:var(--pm-ink); stroke-width:2.2; fill:none; stroke-linecap:round; opacity:.9; }
-
-  /* boxed rubber stamp */
-  .pmBox { position:relative; transform:rotate(-6deg); border:2.5px solid var(--pm-ink); color:var(--pm-ink); padding:.34rem .7rem .4rem; text-align:center; border-radius:3px; }
-  .pmBox::before { content:''; position:absolute; inset:3px; border:1px solid var(--pm-ink); border-radius:2px; opacity:.55; }
-  .pmBox b { font-family:'Anton'; font-weight:400; font-size:1.6rem; display:block; line-height:.9; }
-  .pmBox span { font-size:.5rem; font-weight:700; letter-spacing:.22em; text-transform:uppercase; }
+  .pm .bar { stroke:var(--pm-ink); stroke-width:2.2; fill:none; stroke-linecap:round; opacity:.85; }
 
   /* right: the written back — the report */
   .msg { padding:1.5rem 1.7rem 1.4rem; position:relative; display:flex; flex-direction:column; }
-  .stamp { position:absolute; top:1.1rem; right:1.1rem; width:50px; height:60px; background:var(--stamp-edge); --r:3.1px; --sp:10px;
+  .stamp { position:relative; width:var(--stamp-w); height:var(--stamp-h); background:var(--stamp-edge); --r:3.1px; --sp:10px;
     -webkit-mask:
       radial-gradient(var(--r) at 50% 0,#0000 96%,#000) repeat-x 50% 0/var(--sp) 100%,
       radial-gradient(var(--r) at 50% 100%,#0000 96%,#000) repeat-x 50% 100%/var(--sp) 100%,
@@ -181,14 +180,6 @@
     <label><input type="radio" name="g" value="stats" /> Stats only</label>
     <span style="flex:1"></span>
     <label><input type="checkbox" id="dark" /> dark deck</label>
-  </div>
-  <div class="ctl">
-    <strong>Postmark</strong>
-    <label><input type="radio" name="pm" value="stamp" checked /> Date-stamp</label>
-    <label><input type="radio" name="pm" value="cancel" /> Cancellation</label>
-    <label><input type="radio" name="pm" value="box" /> Boxed stamp</label>
-    <label><input type="radio" name="pm" value="none" /> None</label>
-    <span style="flex:1; font-size:.72rem; color:var(--ink-soft)">ink turns coral when a run is cut short (stopped / plugged in)</span>
   </div>
   <p class="note" id="note"></p>
 
@@ -252,40 +243,28 @@
     </svg>`;
   }
 
-  // the postmark — a rubber-stamp verdict over the picture, ink coloured by
-  // whether the run completed (green-teal) or was cut short (coral).
-  function postmark(R){
-    const style = document.querySelector('input[name=pm]:checked').value;
-    if (style === 'none') return '';
-    const cls = R.ok ? 'ok' : 'bad';
-    const [val, lab] = R.tag;
-    if (style === 'box') {
-      return `<div class="pmHolder ${cls}"><div class="pmBox"><b>${val}</b><span>${lab}</span></div></div>`;
-    }
-    const cancel = style === 'cancel';
-    const cx = cancel ? 150 : 60, W = cancel ? 210 : 120;
-    const bars = cancel ? [44,54,64,74].map(y=>`<path class="bar" d="M6 ${y} q 22 -6 44 0 t 44 0"/>`).join('') : '';
-    // Rings and the band between them. Both arcs sit on the band's mid-radius
-    // ((inner+outer)/2); `dominant-baseline:central` centres the glyphs' vertical
-    // middle on that radius, so each line keeps an equal gap to the inner and
-    // outer ring. The top arc runs left→right; the bottom arc is drawn
-    // RIGHT→LEFT (reversed) so its text reads upright, not upside-down.
+  // the cancellation — a small round postmark stamped over the postage stamp.
+  // Circle-centred SVG (origin at the ring centre) so it fills the .cancel box.
+  // Both arcs sit on the band mid-radius with dominant-baseline:central, so each
+  // line keeps an equal gap to the inner and outer ring; the bottom arc is drawn
+  // RIGHT→LEFT (reversed) so its text reads upright. Cancellation bars sweep left.
+  function cancellation(R){
     const Ro = 47, Ri = 34, Rm = (Ro + Ri) / 2;
-    return `<div class="pmHolder ${cls}">
-      <svg class="pm" width="${cancel?160:96}" height="96" viewBox="0 0 ${W} 120">
-        <defs>
-          <path id="aT" d="M${cx-Rm} 60 A${Rm} ${Rm} 0 0 1 ${cx+Rm} 60"/>
-          <path id="aB" d="M${cx+Rm} 60 A${Rm} ${Rm} 0 0 1 ${cx-Rm} 60"/>
-        </defs>
-        ${bars}
-        <circle class="ring" cx="${cx}" cy="60" r="${Ro}" stroke-width="2.2"/>
-        <circle class="ring" cx="${cx}" cy="60" r="${Ri}" stroke-width="1"/>
-        <text class="arc" text-anchor="middle" dominant-baseline="central"><textPath href="#aT" startOffset="50%">BATTERY · SURF · BENCH</textPath></text>
-        <text class="arc" text-anchor="middle" dominant-baseline="central"><textPath href="#aB" startOffset="50%">${R.arc}</textPath></text>
-        <text class="big" x="${cx}" y="57" text-anchor="middle" dominant-baseline="central">${val}</text>
-        <text class="lab" x="${cx}" y="70" text-anchor="middle" dominant-baseline="central">${lab.toUpperCase()}</text>
-      </svg>
-    </div>`;
+    const [val, lab] = R.tag;
+    const bars = [-15,-5,5,15].map(y=>`<path class="bar" d="M-58 ${y} q 13 -5 26 0 t 26 0"/>`).join('');
+    return `<svg class="pm" width="100%" height="100%" viewBox="-60 -60 120 120">
+      <defs>
+        <path id="aT" d="M${-Rm} 0 A${Rm} ${Rm} 0 0 1 ${Rm} 0"/>
+        <path id="aB" d="M${Rm} 0 A${Rm} ${Rm} 0 0 1 ${-Rm} 0"/>
+      </defs>
+      ${bars}
+      <circle class="ring" cx="0" cy="0" r="${Ro}" stroke-width="2.2"/>
+      <circle class="ring" cx="0" cy="0" r="${Ri}" stroke-width="1"/>
+      <text class="arc" text-anchor="middle" dominant-baseline="central"><textPath href="#aT" startOffset="50%">BATTERY · SURF · BENCH</textPath></text>
+      <text class="arc" text-anchor="middle" dominant-baseline="central"><textPath href="#aB" startOffset="50%">${R.arc}</textPath></text>
+      <text class="big" x="0" y="-3" text-anchor="middle" dominant-baseline="central">${val}</text>
+      <text class="lab" x="0" y="11" text-anchor="middle" dominant-baseline="central">${lab.toUpperCase()}</text>
+    </svg>`;
   }
 
   function render(){
@@ -311,10 +290,9 @@
           <div class="picPhoto"></div>
           <div class="picMark"></div>
           <div class="greet">Greetings from<small>Battery Surf Bench</small></div>
-          ${postmark(R)}
         </div>
         <div class="msg">
-          <div class="stamp"></div>
+          <div class="frank"><div class="stamp"></div><div class="cancel">${cancellation(R)}</div></div>
           <h3>${R.head}</h3>
           <div class="sig">${R.sig}</div>
           <div class="divide"></div>
@@ -325,13 +303,12 @@
       </div>`;
   }
 
-  document.querySelectorAll('input[name=r],input[name=g],input[name=pm]').forEach(el=>el.addEventListener('change',render));
+  document.querySelectorAll('input[name=r],input[name=g]').forEach(el=>el.addEventListener('change',render));
   document.getElementById('dark').addEventListener('change', e => document.body.classList.toggle('dark', e.target.checked));
 
   const q = new URLSearchParams(location.search);
   if (q.has('reason')) { const el=document.querySelector(`input[name=r][value="${q.get('reason')}"]`); if(el) el.checked=true; }
   if (q.has('layout')) { const el=document.querySelector(`input[name=g][value="${q.get('layout')}"]`); if(el) el.checked=true; }
-  if (q.has('pm')) { const el=document.querySelector(`input[name=pm][value="${q.get('pm')}"]`); if(el) el.checked=true; }
   if (q.get('dark')==='1') { document.body.classList.add('dark'); document.getElementById('dark').checked=true; }
   if (q.get('bare')==='1') document.body.classList.add('bare');
   render();
