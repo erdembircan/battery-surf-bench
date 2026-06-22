@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Cockpit — finish-sound toggle placement</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@500&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --sky-0:#f3fafd; --sky-1:#e7f6ff; --aqua:#9ad9ea; --teal:#2f9bb3; --teal-deep:#1c7e96;
+    --sand:#f4e6cc; --navy:#1f3a5f; --ink:#1f3a5f; --ink-soft:#5b7488;
+    --coral:#ff7a5c; --coral-deep:#ef5a3a; --sun:#ffce5c;
+    --field:#f1f7fa; --line:#e1edf2;
+    --status-grad:linear-gradient(150deg,var(--teal),var(--teal-deep)); --status-ink:#eafaff;
+    --font-ui:'Plus Jakarta Sans',system-ui,sans-serif;
+    --font-disp:'Fraunces',Georgia,serif;
+    --font-mono:'DM Mono',ui-monospace,monospace;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:var(--font-ui);color:var(--ink);background:#dcebf0;padding:1.4rem}
+
+  /* ---- control bar to switch placement candidates ---- */
+  .ctl{max-width:1080px;margin:0 auto 1.3rem;background:#fff;border-radius:14px;padding:1rem 1.2rem;box-shadow:0 6px 18px rgba(31,58,95,.1)}
+  .ctl h1{margin:0 0 .2rem;font-family:var(--font-disp);font-weight:600;font-size:1.15rem;color:var(--navy)}
+  .ctl p{margin:0 0 .9rem;font-size:.82rem;color:var(--ink-soft);line-height:1.5}
+  .ctl .row{display:flex;flex-wrap:wrap;gap:1.4rem}
+  .ctl fieldset{border:1px solid var(--line);border-radius:11px;padding:.7rem .9rem;margin:0}
+  .ctl legend{font-size:.62rem;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--teal);padding:0 .35rem}
+  .ctl label{display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:600;color:var(--navy);cursor:pointer;padding:.18rem 0}
+  .ctl input{accent-color:var(--teal)}
+  .ctl button.preview{margin-top:.3rem;border:0;border-radius:9px;padding:.5rem .9rem;font:700 .8rem var(--font-ui);color:#fff;background:linear-gradient(150deg,var(--teal),var(--teal-deep));cursor:pointer}
+
+  .stage-grid{display:grid;grid-template-columns:380px 1fr;gap:1.4rem;max-width:1080px;margin:0 auto;align-items:start}
+  @media(max-width:900px){.stage-grid{grid-template-columns:1fr}}
+  .cap{font-size:.68rem;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-soft);margin:0 0 .55rem .2rem}
+
+  /* ===================== DECK ===================== */
+  .deck{position:relative;display:flex;flex-direction:column;border-radius:18px;overflow:hidden;
+    padding:1.5rem 1.4rem 1.3rem;border:1px solid #dfeaf0;
+    background:radial-gradient(120% 70% at 50% -10%,#fff 0%,var(--sky-0) 40%,transparent 70%),linear-gradient(180deg,var(--sky-1) 0%,#fff 60%);}
+  .brand{display:flex;align-items:center;justify-content:space-between;gap:.8rem;padding-bottom:1.1rem;margin-bottom:1.1rem;border-bottom:1px solid #e1edf2}
+  .brand .id{display:flex;align-items:center;gap:.7rem}
+  .chip{width:42px;height:42px;border-radius:13px;display:grid;place-items:center;color:#fff;font-size:1.2rem;
+    background:linear-gradient(150deg,var(--aqua),var(--teal));box-shadow:0 6px 16px rgba(47,155,179,.35),inset 0 1px 0 rgba(255,255,255,.5)}
+  .title{font-family:var(--font-disp);font-weight:600;font-size:1.25rem;line-height:1;color:var(--navy)}
+  .sub{font-size:.58rem;font-weight:800;letter-spacing:.32em;text-transform:uppercase;color:var(--teal);margin-top:.3rem}
+  .hdr-tools{display:flex;align-items:center;gap:.45rem}
+
+  .body{display:flex;flex-direction:column;gap:1.25rem}
+  .field{display:flex;flex-direction:column;gap:.5rem}
+  .lab{font-family:var(--font-disp);font-weight:600;font-size:.92rem;color:var(--navy)}
+  .seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:.25rem;padding:.28rem;border-radius:13px;background:var(--field);box-shadow:inset 0 1px 2px rgba(31,58,95,.08)}
+  .seg button{cursor:pointer;border:0;border-radius:10px;background:transparent;padding:.55rem .4rem;font:700 .82rem var(--font-ui);color:var(--ink-soft)}
+  .seg button.on{color:#fff;background:linear-gradient(150deg,var(--teal),var(--teal-deep));box-shadow:0 4px 12px rgba(47,155,179,.4)}
+  .step{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:.4rem;padding:.4rem;border-radius:13px;background:var(--field);box-shadow:inset 0 1px 2px rgba(31,58,95,.08)}
+  .step b{width:2.2rem;height:2.2rem;display:grid;place-items:center;border-radius:10px;background:#fff;color:var(--teal);font-size:1.3rem;box-shadow:0 1px 4px rgba(31,58,95,.12);cursor:pointer}
+  .read{display:flex;align-items:baseline;justify-content:center;gap:.35rem}
+  .read em{font-family:var(--font-mono);font-style:normal;font-size:1.6rem;color:var(--navy)}
+  .read span{font-size:.66rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--teal)}
+
+  /* config-row toggle variant: icon + label + switch */
+  .tog{display:flex;align-items:center;gap:.7rem;cursor:pointer;padding:.7rem .8rem;border-radius:13px;background:var(--field);box-shadow:inset 0 1px 2px rgba(31,58,95,.08)}
+  .tog .ico{flex:0 0 auto;width:1.6rem;height:1.6rem;color:var(--teal)}
+  .tog .txt{flex:1 1 auto}
+  .tog .txt b{display:block;font-weight:700;font-size:.9rem;color:var(--navy)}
+  .tog .txt small{display:block;font-size:.7rem;color:var(--ink-soft);margin-top:.1rem}
+  .tk{position:relative;flex:0 0 auto;width:3.1rem;height:1.7rem;border-radius:99px;background:#dce8ee;transition:.25s;box-shadow:inset 0 1px 2px rgba(31,58,95,.12)}
+  .tb{position:absolute;top:.2rem;left:.2rem;width:1.3rem;height:1.3rem;border-radius:50%;background:#fff;box-shadow:0 2px 5px rgba(31,58,95,.25);transition:.25s var(--ease)}
+  .tog.on .tk{background:linear-gradient(150deg,#59d3a0,var(--aqua))}.tog.on .tb{transform:translateX(1.4rem)}
+
+  /* round icon-button (header / footer variants) */
+  .iconbtn{width:2.3rem;height:2.3rem;flex:0 0 auto;display:grid;place-items:center;border:1px solid var(--line);border-radius:10px;
+    background:rgba(47,155,179,.08);color:var(--ink-soft);cursor:pointer;transition:.18s}
+  .iconbtn:hover{color:var(--navy)}
+  .iconbtn.on{color:#fff;border-color:transparent;background:linear-gradient(150deg,var(--teal),var(--teal-deep));box-shadow:0 4px 12px rgba(47,155,179,.4)}
+  .iconbtn svg{width:1.25rem;height:1.25rem}
+
+  .run{margin-top:.2rem;border-radius:14px;overflow:hidden;background:var(--status-grad);color:var(--status-ink);padding:.8rem 1rem;display:flex;align-items:center;gap:.55rem;box-shadow:0 8px 20px rgba(28,126,150,.35)}
+  .run .dot{width:.55rem;height:.55rem;border-radius:50%;background:var(--sun);box-shadow:0 0 10px var(--sun)}
+  .run .rt{font-size:.68rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase}
+
+  .foot{display:flex;align-items:center;gap:.6rem;padding-top:1.2rem;margin-top:1.1rem;border-top:1px solid #e1edf2}
+  .stop{flex:1 1 auto;padding:.9rem;cursor:pointer;border:0;border-radius:14px;background:linear-gradient(160deg,var(--coral),var(--coral-deep));color:#fff;font-family:var(--font-disp);font-weight:600;font-size:1.1rem;box-shadow:0 8px 18px rgba(239,90,58,.4),inset 0 1px 0 rgba(255,255,255,.3)}
+
+  /* ===================== COMPACT TOP PILL ===================== */
+  .compact-demo{display:flex;flex-direction:column;gap:1.4rem}
+  .topbar .pill{position:relative;overflow:hidden;min-height:88px;display:flex;align-items:center;gap:1.2rem;padding:.6rem 1.3rem;border-radius:14px;background:var(--status-grad);color:var(--status-ink);box-shadow:0 18px 36px -16px rgba(28,126,150,.5)}
+  .col-lead{flex:0 0 auto;display:flex;align-items:center;gap:.5rem;font-size:.7rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;white-space:nowrap}
+  .col-lead .dot{width:.55rem;height:.55rem;border-radius:50%;background:var(--sun);box-shadow:0 0 12px var(--sun)}
+  .col-info{flex:1 1 auto;min-width:0;display:flex;flex-wrap:wrap;justify-content:center;gap:.8rem 2.2rem}
+  .stat{text-align:center}
+  .stat .l{display:block;font-size:.56rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;opacity:.62;white-space:nowrap}
+  .stat .v{display:block;margin-top:.15rem;font-family:var(--font-mono);font-weight:500;font-size:1.05rem;line-height:1.05;white-space:nowrap}
+  .stat .v.lg{font-size:1.5rem}
+  .col-ctrl{flex:0 0 auto;display:flex;align-items:center;gap:.5rem;position:relative;z-index:2}
+  .tstop{padding:.5rem 1rem;border:0;border-radius:9px;background:linear-gradient(160deg,var(--coral),var(--coral-deep));color:#fff;font-family:var(--font-disp);font-weight:600;font-size:.85rem;cursor:pointer}
+  .tbtn{width:2.1rem;height:2.1rem;display:grid;place-items:center;border:0;border-radius:8px;background:rgba(255,255,255,.16);color:#fff;cursor:pointer;transition:.18s}
+  .tbtn.on{background:rgba(255,255,255,.34);box-shadow:inset 0 0 0 1px rgba(255,255,255,.5)}
+  .tbtn svg{width:1.2rem;height:1.2rem}
+  .waves{position:absolute;inset-inline:0;bottom:0;height:34px;overflow:hidden;z-index:0;pointer-events:none}
+  .wave{position:absolute;inset-inline:0;bottom:0;height:34px;background-repeat:repeat-x;background-size:200px 100%;opacity:.6;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='40' viewBox='0 0 200 40' preserveAspectRatio='none'%3E%3Cpath d='M0 20 q 50 -14 100 0 t 100 0 V40 H0 Z' fill='%23eafaff' fill-opacity='0.5'/%3E%3C/svg%3E")}
+
+  /* hide whichever placement is not selected */
+  body[data-deck="header"] .v-deck-row,
+  body[data-deck="header"] .v-deck-foot{display:none}
+  body[data-deck="row"] .v-deck-header,
+  body[data-deck="row"] .v-deck-foot{display:none}
+  body[data-deck="foot"] .v-deck-header,
+  body[data-deck="foot"] .v-deck-row{display:none}
+
+  .note{font-size:.78rem;color:var(--ink-soft);margin:.6rem .2rem 0;line-height:1.5}
+  .toast{position:fixed;left:50%;bottom:1.4rem;transform:translateX(-50%) translateY(20px);opacity:0;
+    background:var(--navy);color:#fff;padding:.7rem 1.1rem;border-radius:11px;font-size:.82rem;font-weight:600;
+    box-shadow:0 10px 30px rgba(31,58,95,.35);transition:.3s var(--ease);pointer-events:none;z-index:50}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body data-deck="header">
+  <div class="ctl">
+    <h1>Finish-sound toggle — placement study</h1>
+    <p>A single icon toggle that mutes/plays a chime when a run ends <strong>naturally</strong> (duration reached or target battery drop hit) — never on manual Stop or unplug. State persists in <code>localStorage</code>. Pick where it lives in the deck; the compact pill placement is fixed (control cluster). The chime here is <strong>synthesised with the Web Audio API</strong> — no sound file ships. Click <em>Preview chime</em> to hear it.</p>
+    <div class="row">
+      <fieldset>
+        <legend>Deck placement</legend>
+        <label><input type="radio" name="deck" value="header" checked> Header icon (next to compact chevron)</label>
+        <label><input type="radio" name="deck" value="row"> Config row (icon + label + switch)</label>
+        <label><input type="radio" name="deck" value="foot"> Footer icon (beside Stop)</label>
+      </fieldset>
+      <fieldset>
+        <legend>Sound</legend>
+        <label style="cursor:default">Click any speaker icon/switch to toggle on/off.</label>
+        <label style="cursor:default">On = teal/filled · off = muted/outline.</label>
+        <button class="preview" id="preview">▶ Preview chime</button>
+      </fieldset>
+    </div>
+  </div>
+
+  <div class="stage-grid">
+    <!-- ============ DECK ============ -->
+    <div>
+      <p class="cap">Left dashboard (deck)</p>
+      <aside class="deck">
+        <header class="brand">
+          <span class="id"><span class="chip">🏄</span><span><div class="title">Battery Surf Bench</div><div class="sub">Cockpit</div></span></span>
+          <span class="hdr-tools v-deck-header">
+            <button class="iconbtn snd on" data-snd aria-label="Finish sound" title="Finish sound: on"></button>
+          </span>
+        </header>
+        <div class="body">
+          <div class="field"><span class="lab">Mode</span><div class="seg"><button class="on">Duration</button><button>Target drop</button></div></div>
+          <div class="field"><span class="lab">Run duration</span><div class="step"><b>&minus;</b><div class="read"><em>30</em><span>min</span></div><b>+</b></div></div>
+
+          <!-- config-row variant -->
+          <div class="field v-deck-row">
+            <span class="lab">Finish sound</span>
+            <label class="tog on" data-snd>
+              <span class="ico snd-ico"></span>
+              <span class="txt"><b>Chime when run ends</b><small>Plays only on natural finish</small></span>
+              <span class="tk"><span class="tb"></span></span>
+            </label>
+          </div>
+
+          <div class="run"><span class="dot"></span><span class="rt">Surfing · 12:04 elapsed</span></div>
+        </div>
+        <footer class="foot">
+          <button class="stop">Stop</button>
+          <button class="iconbtn snd on v-deck-foot" data-snd aria-label="Finish sound" title="Finish sound: on"></button>
+        </footer>
+      </aside>
+      <p class="note v-deck-header"><strong>Header icon:</strong> discreet utility, sits with other chrome (compact chevron, later theme toggle). Always visible, no config clutter.</p>
+      <p class="note v-deck-row"><strong>Config row:</strong> self-explaining with label + sublabel, matches the existing "Baseline calibration" switch. Reads as a run setting.</p>
+      <p class="note v-deck-foot"><strong>Footer icon:</strong> paired with Stop — groups the "run outcome" controls. Compact, but less discoverable.</p>
+    </div>
+
+    <!-- ============ COMPACT ============ -->
+    <div class="compact-demo">
+      <p class="cap">Compact view (top pill)</p>
+      <div class="topbar">
+        <div class="pill">
+          <div class="col-lead"><span class="dot"></span><span>Surfing · 12:04</span></div>
+          <div class="col-info">
+            <div class="stat"><span class="l">Battery</span><span class="v lg">84%</span></div>
+            <div class="stat"><span class="l">Time to empty</span><span class="v">6:18</span></div>
+            <div class="stat"><span class="l">Rate · 10 min</span><span class="v">7.2%/h</span></div>
+          </div>
+          <div class="col-ctrl">
+            <button class="tbtn snd on" data-snd aria-label="Finish sound" title="Finish sound: on"></button>
+            <button class="tstop">Stop</button>
+            <button class="tbtn" aria-label="Expand"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
+          </div>
+          <span class="waves"><span class="wave"></span></span>
+        </div>
+      </div>
+      <p class="note">In compact, the icon joins the control cluster before Stop — same toggle, same stored state. It's the only spare control surface, so a single icon (not a labeled row) is the right fit here.</p>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+<script>
+  const SND_ON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>`;
+  const SND_OFF = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4V5z"/><line x1="22" y1="9" x2="16" y2="15"/><line x1="16" y1="9" x2="22" y2="15"/></svg>`;
+
+  function paintIcons(on){
+    document.querySelectorAll('.iconbtn.snd, .tbtn.snd').forEach(b=>{ b.innerHTML = on?SND_ON:SND_OFF; b.classList.toggle('on',on); b.title='Finish sound: '+(on?'on':'off'); });
+    document.querySelectorAll('.snd-ico').forEach(s=>{ s.innerHTML = on?SND_ON:SND_OFF; });
+    document.querySelectorAll('.tog[data-snd]').forEach(t=>t.classList.toggle('on',on));
+  }
+
+  // ---- Web Audio API chime (no sound file) — a short 3-note arpeggio ----
+  let ac;
+  function chime(){
+    ac = ac || new (window.AudioContext||window.webkitAudioContext)();
+    if(ac.state==='suspended') ac.resume();
+    const now = ac.currentTime;
+    [880, 1108.73, 1318.51].forEach((f,i)=>{       // A5, C#6, E6 — bright major triad
+      const t = now + i*0.12;
+      const osc = ac.createOscillator(), g = ac.createGain();
+      osc.type='sine'; osc.frequency.value=f;
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(0.22, t+0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t+0.45);
+      osc.connect(g).connect(ac.destination);
+      osc.start(t); osc.stop(t+0.5);
+    });
+  }
+
+  let on = true;
+  paintIcons(on);
+  const toast = document.getElementById('toast');
+  let tid;
+  document.addEventListener('click',e=>{
+    const t = e.target.closest('[data-snd]');
+    if(!t) return;
+    e.preventDefault();
+    on = !on; paintIcons(on);
+    if(on) chime();
+    toast.textContent = 'Finish sound '+(on?'ON — chime will play on natural finish':'OFF — silent');
+    toast.classList.add('show'); clearTimeout(tid); tid=setTimeout(()=>toast.classList.remove('show'),1600);
+  });
+  document.getElementById('preview').addEventListener('click',chime);
+  document.querySelectorAll('input[name="deck"]').forEach(r=>r.addEventListener('change',()=>document.body.dataset.deck=r.value));
+</script>
+</body>
+</html>

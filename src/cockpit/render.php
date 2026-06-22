@@ -45,6 +45,9 @@ $bsb_context = array(
 	'speed'               => 1,
 	'running'             => false,
 	'compact'             => false,
+	// Seeded on; the client restores the remembered choice from localStorage on
+	// hydration, since the server cannot know a client-side preference.
+	'soundEnabled'        => true,
 	'elapsed'             => 0,
 	// Seeded at the nominal max; the client caps it down to the current battery
 	// level on the first reading, so the slider defaults to "as much as you have".
@@ -132,6 +135,7 @@ $bsb_markup = ( new CockpitView() )->render(
 		'plugged_label'      => __( 'Plugged in', 'battery-surf-bench' ),
 		'compact_label'      => __( 'Compact the dashboard', 'battery-surf-bench' ),
 		'expand_label'       => __( 'Expand the dashboard', 'battery-surf-bench' ),
+		'sound_label'        => __( 'Toggle the end-of-run sound', 'battery-surf-bench' ),
 		'viewport_title'     => __( 'Surf viewport', 'battery-surf-bench' ),
 		'shield_label'       => __( 'View only while the run is surfing', 'battery-surf-bench' ),
 		'greeting_lead'      => __( 'Greetings from', 'battery-surf-bench' ),

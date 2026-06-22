@@ -10,7 +10,8 @@
  * tested domains — theme resolution ({@link ./Theme}), the target-drop slider
  * ({@link ./TargetControl}), config normalization ({@link ./RunConfig}), display
  * formatting ({@link ./Format}), battery acquisition ({@link ./BatteryMonitor}),
- * and the drain-rate calculations ({@link ./RunSession}). Keeping the store thin
+ * the drain-rate calculations ({@link ./RunSession}), and the end-of-run chime
+ * ({@link ./FinishChime}). Keeping the store thin
  * is deliberate: the Interactivity API makes it easy to pile everything into one
  * file, and the calculations especially must live where they can be unit-tested
  * in isolation.
@@ -44,6 +45,12 @@ import { ScreenWakeLock, type WakeLockSentinelLike } from './WakeLock';
 import { RunSession } from './RunSession';
 import { buildGraph, type GraphViewport, type GraphModel } from './DrainGraph';
 import { paintGraph } from './GraphSvg';
+import {
+	FinishChime,
+	audioContextCtor,
+	readStoredSound,
+	writeStoredSound,
+} from './FinishChime';
 
 /** One surfable course page, as supplied by the `bsb/course-pages` binding. */
 interface CoursePage {
@@ -62,6 +69,7 @@ interface CockpitContext {
 	speed: number;
 	running: boolean;
 	compact: boolean;
+	soundEnabled: boolean;
 	elapsed: number;
 	targetPercent: number;
 	batteryLevel: number | null;
@@ -111,6 +119,8 @@ interface InstanceState {
 	wakeLock: ScreenWakeLock | null;
 	/** The run clock interval id while a run is live, or null when at rest. */
 	clock: number | null;
+	/** The finish chime, or null where Web Audio is absent. */
+	chime: FinishChime | null;
 }
 
 /**
@@ -126,6 +136,7 @@ const runInstance: InstanceState = {
 	monitor: null,
 	wakeLock: null,
 	clock: null,
+	chime: null,
 };
 
 /** The cockpit's run calculation state. */
@@ -138,6 +149,7 @@ export const __resetInstance = (): void => {
 	runInstance.monitor = null;
 	runInstance.wakeLock = null;
 	runInstance.clock = null;
+	runInstance.chime = null;
 };
 
 /** The monotonic clock the run session stamps samples against. */
@@ -225,6 +237,10 @@ const freezeSummary = (
  * marked ended with the reason it ended, and the summary card is reset to its
  * picture front. The summary's visibility derives from `ended`, so it appears
  * whatever ended the run.
+ *
+ * A natural finish — the duration elapsed or the target drop was reached —
+ * sounds the finish chime when enabled; a manual stop or a charger interrupt
+ * stays silent.
  * @param context
  * @param instance
  * @param reason   Why the run ended, recorded for the summary's verdict.
@@ -240,6 +256,13 @@ const stopRun = (
 	context.endReason = reason;
 	context.flipped = false;
 	instance.session.stop();
+
+	if (
+		context.soundEnabled &&
+		( reason === 'duration' || reason === 'targetDrop' )
+	) {
+		instance.chime?.play();
+	}
 };
 
 /** Whether a pointer drag on the battery slider is in progress. */
@@ -465,6 +488,11 @@ store( 'bsb/cockpit', {
 			const context = getContext< CockpitContext >();
 			return context.reasonText?.[ context.endReason ]?.sig ?? '';
 		},
+
+		/** Whether the finish chime is enabled — drives the deck's sound toggle. */
+		get isSoundOn(): boolean {
+			return getContext< CockpitContext >().soundEnabled;
+		},
 	},
 	actions: {
 		/** Selects the run mode named by the triggering control's `data-mode`. */
@@ -633,6 +661,12 @@ store( 'bsb/cockpit', {
 			context.flipped = false;
 			context.running = true;
 
+			// Unlock audio under this click (a user gesture) so a default-on run
+			// the user never toggled can still sound at its gesture-less finish.
+			if ( context.soundEnabled ) {
+				instance.chime?.prime();
+			}
+
 			instance.session.start( now() );
 			if ( instance.lastReading ) {
 				instance.session.record(
@@ -651,6 +685,23 @@ store( 'bsb/cockpit', {
 		toggleCompact(): void {
 			const context = getContext< CockpitContext >();
 			context.compact = ! context.compact;
+		},
+
+		/**
+		 * Toggles whether a chime sounds when a run finishes naturally, and
+		 * remembers the choice across visits. Enabling sounds the chime once as
+		 * audible confirmation, which also unlocks the audio context under this
+		 * click (a user gesture) so a later, gesture-less finish can play.
+		 */
+		toggleSound(): void {
+			const context = getContext< CockpitContext >();
+			const instance = instanceFor();
+			context.soundEnabled = ! context.soundEnabled;
+			writeStoredSound( context.soundEnabled );
+
+			if ( context.soundEnabled ) {
+				instance.chime?.play();
+			}
 		},
 
 		/** Turns the summary card between its picture front and its report back. */
@@ -813,6 +864,22 @@ store( 'bsb/cockpit', {
 				void instance.wakeLock?.release();
 				instance.wakeLock = null;
 			};
+		},
+
+		/**
+		 * Restores the remembered finish-sound preference onto the context and
+		 * builds the chime. Run once on hydration; where Web Audio is absent the
+		 * chime stays null and finish plays are silently skipped.
+		 */
+		initSound(): void {
+			const context = getContext< CockpitContext >();
+			const instance = instanceFor();
+			context.soundEnabled = readStoredSound();
+
+			const ctor = audioContextCtor();
+			if ( ctor && ! instance.chime ) {
+				instance.chime = new FinishChime( () => new ctor() );
+			}
 		},
 
 		/**
