@@ -174,6 +174,24 @@ CELLS;
 			</span>
 INNER;
 
+		// Shared postcard components, rendered once and placed in both the idle
+		// postcard and the run-summary card so the illustration and the stamp are a
+		// single source, not divergent copies.
+		$photo      = ( new PostcardPhoto() )->render(
+			array(
+				'greeting_lead' => $greeting_lead,
+				'brand_title'   => $brand_title,
+			)
+		);
+		$photo_fill = ( new PostcardPhoto() )->render(
+			array(
+				'greeting_lead' => $greeting_lead,
+				'brand_title'   => $brand_title,
+				'modifier'      => 'bsb-photo--fill',
+			)
+		);
+		$frank      = ( new FrankedStamp() )->render( array( 'brand' => $summary_brand ) );
+
 		return <<<HTML
 <div {$wrapper} data-wp-interactive="bsb/cockpit" {$context} data-wp-init="callbacks.initTheme" data-wp-init---battery="callbacks.initBattery" data-wp-init---wake-lock="callbacks.initWakeLock" data-wp-watch---run-activity="callbacks.syncRunActivity" data-wp-bind--data-theme="context.theme" data-wp-class--is-compact="state.isCompact">
 	<aside class="bsb-cockpit__deck">
@@ -275,12 +293,7 @@ INNER;
 		</div>
 		<div class="bsb-cockpit__idle" data-wp-bind--hidden="state.isRunning">
 			<div class="bsb-cockpit__postcard">
-				<div class="bsb-cockpit__postcard-pic">
-					<span class="bsb-cockpit__postcard-mark" aria-hidden="true"></span>
-					<span class="bsb-cockpit__postcard-wash" aria-hidden="true"></span>
-					<span class="bsb-cockpit__postcard-grain" aria-hidden="true"></span>
-					<p class="bsb-cockpit__postcard-greet">{$greeting_lead}<span>{$brand_title}</span></p>
-				</div>
+				{$photo}
 				<div class="bsb-cockpit__postcard-note">
 					<span class="bsb-cockpit__stamp" aria-hidden="true"></span>
 					<h2 class="bsb-cockpit__postcard-heading">{$idle_heading}</h2>
@@ -305,34 +318,11 @@ INNER;
 	<div class="bsb-summary" hidden data-wp-bind--hidden="!state.isEnded" data-wp-watch="callbacks.renderSummary">
 		<div class="bsb-summary__card" data-wp-class--is-flipped="state.isFlipped">
 			<div class="bsb-summary__face bsb-summary__face--front">
-				<span class="bsb-cockpit__postcard-mark" aria-hidden="true"></span>
-				<span class="bsb-cockpit__postcard-wash" aria-hidden="true"></span>
-				<span class="bsb-cockpit__postcard-grain" aria-hidden="true"></span>
-				<p class="bsb-cockpit__postcard-greet">{$greeting_lead}<span>{$brand_title}</span></p>
+				{$photo_fill}
 				<button type="button" class="bsb-summary__flip" data-wp-on--click="actions.toggleFlip"><span class="bsb-summary__flip-icon" aria-hidden="true"></span>{$flip_label}</button>
 			</div>
 			<div class="bsb-summary__face bsb-summary__face--back">
-				<span class="bsb-summary__frank" aria-hidden="true">
-					<span class="bsb-cockpit__stamp"></span>
-					<span class="bsb-summary__cancel">
-						<svg class="bsb-summary__pm" viewBox="-60 -60 120 120" width="100%" height="100%">
-							<defs>
-								<path id="bsb-pm-top" d="M-40.5 0 A40.5 40.5 0 0 1 40.5 0"></path>
-								<path id="bsb-pm-bot" d="M40.5 0 A40.5 40.5 0 0 1 -40.5 0"></path>
-							</defs>
-							<path class="bsb-summary__pm-bar" d="M-58 -15 q 13 -5 26 0 t 26 0"></path>
-							<path class="bsb-summary__pm-bar" d="M-58 -5 q 13 -5 26 0 t 26 0"></path>
-							<path class="bsb-summary__pm-bar" d="M-58 5 q 13 -5 26 0 t 26 0"></path>
-							<path class="bsb-summary__pm-bar" d="M-58 15 q 13 -5 26 0 t 26 0"></path>
-							<circle class="bsb-summary__pm-ring" cx="0" cy="0" r="47"></circle>
-							<circle class="bsb-summary__pm-ring" cx="0" cy="0" r="34"></circle>
-							<text class="bsb-summary__pm-arc" text-anchor="middle" dominant-baseline="central"><textPath href="#bsb-pm-top" startOffset="50%">{$summary_brand}</textPath></text>
-							<text class="bsb-summary__pm-arc" text-anchor="middle" dominant-baseline="central"><textPath class="bsb-summary__pm-arc-text" href="#bsb-pm-bot" startOffset="50%"></textPath></text>
-							<text class="bsb-summary__pm-val" x="0" y="-3" text-anchor="middle" dominant-baseline="central"></text>
-							<text class="bsb-summary__pm-unit" x="0" y="11" text-anchor="middle" dominant-baseline="central"></text>
-						</svg>
-					</span>
-				</span>
+				{$frank}
 				<div class="bsb-summary__report">
 					<h2 class="bsb-summary__head" data-wp-text="state.summaryHeading"></h2>
 					<p class="bsb-summary__sig" data-wp-text="state.summarySig"></p>

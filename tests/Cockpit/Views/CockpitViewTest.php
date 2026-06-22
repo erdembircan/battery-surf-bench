@@ -74,7 +74,7 @@ final class CockpitViewTest extends TestCase {
 
 		$this->assertStringContainsString( 'class="bsb-cockpit__idle" data-wp-bind--hidden="state.isRunning"', $markup );
 		$this->assertStringContainsString( 'class="bsb-cockpit__viewport-wrap" hidden data-wp-bind--hidden="state.isIdle"', $markup );
-		$this->assertStringContainsString( 'class="bsb-cockpit__postcard-mark"', $markup );
+		$this->assertStringContainsString( 'class="bsb-photo__mark"', $markup );
 		$this->assertStringContainsString( 'class="bsb-cockpit__stamp"', $markup );
 		$this->assertStringContainsString( 'How this run works', $markup );
 		$this->assertStringContainsString( 'Greetings from', $markup );
@@ -106,6 +106,9 @@ final class CockpitViewTest extends TestCase {
 		$this->assertStringContainsString( 'data-wp-bind--hidden="!state.hasGraph"', $markup );
 		// New run restarts via the run toggle.
 		$this->assertStringContainsString( 'class="bsb-summary__new" data-wp-on--click="actions.toggleRun"', $markup );
+		// The card reuses the shared photo (front) and franked-stamp (back).
+		$this->assertStringContainsString( 'class="bsb-photo bsb-photo--fill"', $markup );
+		$this->assertStringContainsString( 'class="bsb-frank"', $markup );
 	}
 
 	/**

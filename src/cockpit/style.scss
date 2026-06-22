@@ -1023,7 +1023,7 @@ body {
 }
 
 // front: the illustrated picture side
-.bsb-cockpit__postcard-pic {
+.bsb-photo {
 	position: relative;
 	min-height: 360px;
 	overflow: hidden;
@@ -1056,7 +1056,7 @@ body {
 }
 
 // the surfer mark, tinted ocean-blue, lifted above the sun-faded wash
-.bsb-cockpit__postcard-mark {
+.bsb-photo__mark {
 	position: absolute;
 	inset: 0;
 	z-index: 3;
@@ -1073,7 +1073,7 @@ body {
 }
 
 // the warm "left in the sun" wash over the gradient
-.bsb-cockpit__postcard-wash {
+.bsb-photo__wash {
 	position: absolute;
 	inset: 0;
 	z-index: 1;
@@ -1087,7 +1087,7 @@ body {
 }
 
 // fine print grain
-.bsb-cockpit__postcard-grain {
+.bsb-photo__grain {
 	position: absolute;
 	inset: 0;
 	z-index: 2;
@@ -1098,7 +1098,7 @@ body {
 	background-size: 160px 160px;
 }
 
-.bsb-cockpit__postcard-greet {
+.bsb-photo__greet {
 	position: absolute;
 	z-index: 4;
 	top: 2.1rem;
@@ -1213,12 +1213,10 @@ body {
 // a blank, light, hand-stuck postage stamp: just a perforated (scalloped) edge
 // cut by a four-way radial-gradient mask, with the interior knocked back to the
 // paper colour so only the outline shows.
-.bsb-cockpit__stamp {
-	position: absolute;
-	top: 1.1rem;
-	right: 1.1rem;
-	width: 56px;
-	height: 68px;
+// A perforated postage stamp: the scalloped edge cut by a four-way radial mask,
+// with a paper interior and a thin inner rule. Shared by the idle postcard stamp
+// and the run-summary franked stamp so the cut never drifts between them.
+%postage-stamp {
 	background: var(--stamp-edge);
 	mask:
 		radial-gradient(3.4px at 50% 0, #0000 96%, #000) repeat-x 50% 0 / 11px 100%,
@@ -1241,6 +1239,16 @@ body {
 		border-radius: 2px;
 		background: var(--paper);
 	}
+}
+
+.bsb-cockpit__stamp {
+	@extend %postage-stamp;
+
+	position: absolute;
+	top: 1.1rem;
+	right: 1.1rem;
+	width: 56px;
+	height: 68px;
 }
 
 // ── Compact top pill ─────────────────────────────────────────────────────────
@@ -1429,7 +1437,11 @@ body {
 	display: grid;
 	place-items: center;
 	padding: 2.4rem;
-	background: var(--stage-bg);
+	// Same sunlit sky as the idle screen (no waves — those live on the info pill).
+	background: var(--idle-sky);
+	// The 3D perspective belongs on the parent of the rotating card, not the card
+	// itself, so the flip actually reads as a turn.
+	perspective: 1800px;
 
 	&[hidden] {
 		display: none;
@@ -1443,7 +1455,6 @@ body {
 	transform: rotate(-1.4deg);
 	transform-style: preserve-3d;
 	transition: transform 0.75s cubic-bezier(0.2, 0.7, 0.2, 1);
-	perspective: 1800px;
 
 	&.is-flipped {
 		transform: rotate(-1.4deg) rotateY(180deg);
@@ -1466,13 +1477,11 @@ body {
 	}
 }
 
-// front: the picture postcard (reuses the idle postcard's mark/wash/grain/greet)
-.bsb-summary__face--front {
-	.bsb-cockpit__postcard-greet {
-		position: absolute;
-		left: 1.7rem;
-		top: 1.8rem;
-	}
+// The photo fills a summary face (the idle usage sizes itself as a grid cell).
+.bsb-photo--fill {
+	position: absolute;
+	inset: 0;
+	min-height: 0;
 }
 
 // the discreet flip indicator, on both faces in the same corner
@@ -1645,48 +1654,57 @@ body {
 	box-shadow: 0 10px 22px var(--accent-shadow);
 }
 
-// the franked stamp (postage stamp + askew grey cancellation), top-right of back
-.bsb-summary__frank {
+// ── Franked stamp — a postage stamp with an askew grey cancellation over it ───
+// A reusable component: absolutely positioned (it never pushes its host), with
+// the cancellation sized by tokens and offset askew so it overhangs naturally.
+.bsb-frank {
+	--stamp-w: 50px;
+	--stamp-h: 60px;
+	--cancel-d: 72px;
+	--cancel-ink: rgba(96, 110, 120, 0.72);
+
 	position: absolute;
 	top: 1.2rem;
 	right: 1.4rem;
 	z-index: 3;
-	width: 50px;
-	height: 60px;
-
-	.bsb-cockpit__stamp {
-		position: relative;
-		display: block;
-		width: 100%;
-		height: 100%;
-	}
+	width: var(--stamp-w);
+	height: var(--stamp-h);
 }
 
-.bsb-summary__cancel {
+.bsb-frank__stamp {
+	@extend %postage-stamp;
+
+	position: relative;
+	display: block;
+	width: 100%;
+	height: 100%;
+}
+
+.bsb-frank__cancel {
 	position: absolute;
-	top: calc((60px - 72px) / 2 - 8px);
-	left: calc((50px - 72px) / 2 + 7px);
-	width: 72px;
-	height: 72px;
+	top: calc((var(--stamp-h) - var(--cancel-d)) / 2 - 8px);
+	left: calc((var(--stamp-w) - var(--cancel-d)) / 2 + 7px);
+	width: var(--cancel-d);
+	height: var(--cancel-d);
 	transform: rotate(-12deg);
 }
 
-.bsb-summary__pm {
+.bsb-frank__pm {
 	display: block;
 	width: 100%;
 	height: 100%;
 	overflow: visible;
 
 	text {
-		fill: rgba(96, 110, 120, 0.72);
+		fill: var(--cancel-ink);
 		font-family: theme.$font-mono;
 		font-weight: 700;
 	}
 }
 
-.bsb-summary__pm-ring {
+.bsb-frank__ring {
 	fill: none;
-	stroke: rgba(96, 110, 120, 0.72);
+	stroke: var(--cancel-ink);
 
 	&:first-of-type {
 		stroke-width: 2.2;
@@ -1696,26 +1714,26 @@ body {
 	}
 }
 
-.bsb-summary__pm-bar {
+.bsb-frank__bar {
 	fill: none;
-	stroke: rgba(96, 110, 120, 0.72);
+	stroke: var(--cancel-ink);
 	stroke-width: 2.2;
 	stroke-linecap: round;
 	opacity: 0.85;
 }
 
-.bsb-summary__pm-arc {
+.bsb-frank__arc {
 	font-size: 8px;
 	letter-spacing: 0.4px;
 }
 
-.bsb-summary__pm-val {
+.bsb-frank__val {
 	font-family: theme.$font-display;
 	font-weight: 400;
 	font-size: 17px;
 }
 
-.bsb-summary__pm-unit {
+.bsb-frank__unit {
 	font-size: 6.4px;
 	letter-spacing: 2px;
 }

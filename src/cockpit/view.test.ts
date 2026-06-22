@@ -1206,15 +1206,11 @@ describe( 'bsb/cockpit view store', () => {
 
 			mocks.config?.callbacks.renderSummary();
 
-			expect( nodes[ '.bsb-summary__pm-arc-text' ].textContent ).toBe(
+			expect( nodes[ '.bsb-frank__arc-text' ].textContent ).toBe(
 				'· STOPPED ·'
 			);
-			expect( nodes[ '.bsb-summary__pm-val' ].textContent ).toBe(
-				'01:15'
-			);
-			expect( nodes[ '.bsb-summary__pm-unit' ].textContent ).toBe(
-				'elapsed'
-			);
+			expect( nodes[ '.bsb-frank__val' ].textContent ).toBe( '01:15' );
+			expect( nodes[ '.bsb-frank__unit' ].textContent ).toBe( 'elapsed' );
 		} );
 	} );
 

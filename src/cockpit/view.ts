@@ -1008,9 +1008,9 @@ store( 'bsb/cockpit', {
 					el.textContent = text;
 				}
 			};
-			setText( '.bsb-summary__pm-arc-text', reason?.arc ?? '' );
-			setText( '.bsb-summary__pm-val', value );
-			setText( '.bsb-summary__pm-unit', reason?.unit ?? '' );
+			setText( '.bsb-frank__arc-text', reason?.arc ?? '' );
+			setText( '.bsb-frank__val', value );
+			setText( '.bsb-frank__unit', reason?.unit ?? '' );
 		},
 	},
 } );
