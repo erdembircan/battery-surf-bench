@@ -13,7 +13,7 @@
  * overriding those tokens rather than touching this file.
  */
 
-import type { Field } from '@wordpress/dataviews/wp';
+import type { Field } from '@wordpress/dataviews';
 import type { SessionFieldDescriptor, SessionRecord } from './Types';
 
 /**

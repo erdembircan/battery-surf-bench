@@ -30,10 +30,10 @@ vi.mock( '@wordpress/data', () => ( {
 	useDispatch: () => ( { deleteEntityRecord: hooks.deleteEntityRecord } ),
 } ) );
 
-vi.mock( '@wordpress/dataviews/wp', async () => {
+vi.mock( '@wordpress/dataviews', async () => {
 	const actual = await vi.importActual<
-		typeof import('@wordpress/dataviews/wp')
-	>( '@wordpress/dataviews/wp' );
+		typeof import('@wordpress/dataviews')
+	>( '@wordpress/dataviews' );
 	return {
 		...actual,
 		DataViews: ( props: Record< string, unknown > ) => {
