@@ -1036,10 +1036,13 @@ body {
 	perspective: 1800px;
 }
 
-// The startup card sails up and settles into its tilt when the stage opens. Fill
-// mode `backwards` so the resting transform reverts to the card's own (the base
-// tilt, or the flipped rotateY) — the entrance never pins the flip transform.
-.bsb-flipcard--idle {
+// The card sails up and settles into its tilt when it appears — the startup card
+// as the stage opens, the summary card when it is raised at run end (it animates
+// each time its host un-hides from display:none). Fill mode `backwards` so the
+// resting transform reverts to the card's own (the base tilt, or the flipped
+// rotateY) — the entrance never pins the flip transform.
+.bsb-flipcard--idle,
+.bsb-flipcard--summary {
 	animation: bsb-postcard-in 0.8s cubic-bezier(0.2, 0.8, 0.25, 1) backwards;
 }
 

@@ -1161,7 +1161,8 @@ describe( 'bsb/cockpit view store', () => {
 			expect( mocks.context.flipped ).toBe( false );
 		} );
 
-		it( 'dismisses the summary to the startup screen without starting a run', () => {
+		it( 'dismisses the summary to the startup front, then auto-flips to reveal the deck', () => {
+			vi.useFakeTimers();
 			mocks.context.ended = true;
 			mocks.context.endReason = 'stopped';
 			mocks.context.flipped = true;
@@ -1169,14 +1170,41 @@ describe( 'bsb/cockpit view store', () => {
 
 			mocks.config?.actions.newRun();
 
-			// Back to the startup front: summary gone, both cards reset, deck
-			// tucked away, but no run started.
+			// Immediately: back to the startup front — summary gone, both cards
+			// reset to their picture front, deck tucked away, no run started.
 			expect( mocks.context.ended ).toBe( false );
 			expect( mocks.context.endReason ).toBe( '' );
 			expect( mocks.context.flipped ).toBe( false );
 			expect( mocks.context.idleFlipped ).toBe( false );
 			expect( mocks.config?.state.isDeckShown ).toBe( false );
 			expect( mocks.context.running ).toBe( false );
+
+			// After the beat: the startup card auto-flips to its how-it-works back,
+			// sliding the deck in — without the user re-flipping by hand.
+			vi.advanceTimersByTime( 1000 );
+			expect( mocks.context.idleFlipped ).toBe( true );
+			expect( mocks.config?.state.isDeckShown ).toBe( true );
+			expect( mocks.context.running ).toBe( false );
+
+			vi.useRealTimers();
+		} );
+
+		it( 'auto-flip sets the flip state explicitly, not toggling a hand flip back', () => {
+			vi.useFakeTimers();
+			mocks.context.ended = true;
+
+			mocks.config?.actions.newRun();
+
+			// The user flips to the back by hand during the wait.
+			mocks.config?.actions.toggleIdleFlip();
+			expect( mocks.context.idleFlipped ).toBe( true );
+
+			// The pending auto-flip lands on the back too (idempotent) instead of
+			// toggling the user's flip back to the front.
+			vi.advanceTimersByTime( 1000 );
+			expect( mocks.context.idleFlipped ).toBe( true );
+
+			vi.useRealTimers();
 		} );
 
 		it( 'turns the summary card between front and back', () => {
