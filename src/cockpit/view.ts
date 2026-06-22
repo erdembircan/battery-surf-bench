@@ -82,6 +82,13 @@ interface CockpitContext {
 	endReason: RunEndReason;
 	flipped: boolean;
 	reasonText: Record< string, ReasonText >;
+	/**
+	 * The run's calculation state, parked on the context (client-only, never
+	 * seeded) so every element scope reaches the same instance — a WeakMap keyed
+	 * by the context proxy fails because `getContext()` hands back a different
+	 * proxy per scope, while plain context properties propagate across them.
+	 */
+	__bsb?: InstanceState;
 }
 
 /** Why a run ended — drives the summary's verdict; empty before any run ends. */
@@ -114,32 +121,24 @@ interface InstanceState {
 }
 
 /**
- * Per-instance state, keyed by the block's context object. Holds the run's
- * calculation model so it survives across the store's actions and callbacks
- * without polluting the reactive context with non-serializable objects, and so
- * multiple cockpits on a page stay independent.
- */
-const instances = new WeakMap< CockpitContext, InstanceState >();
-
-/**
- * The calculation state for a context, created on first access.
+ * The run's calculation state for a context, created on first access and parked
+ * on the context itself so every element scope (actions, callbacks, getters)
+ * reaches the same instance. It holds non-reactive model objects, not display
+ * data, so keeping it on the context doesn't drive rendering.
  * @param context
  */
 const instanceFor = ( context: CockpitContext ): InstanceState => {
-	let state = instances.get( context );
-
-	if ( ! state ) {
-		state = {
+	if ( ! context.__bsb ) {
+		context.__bsb = {
 			session: new RunSession(),
 			lastReading: null,
 			monitor: null,
 			wakeLock: null,
 			clock: null,
 		};
-		instances.set( context, state );
 	}
 
-	return state;
+	return context.__bsb;
 };
 
 /** The monotonic clock the run session stamps samples against. */
