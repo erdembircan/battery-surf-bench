@@ -10,8 +10,14 @@
  * a benchmarking tool accumulates.
  */
 
-import { DataViews, filterSortAndPaginate } from '@wordpress/dataviews/wp';
-import type { Action, View } from '@wordpress/dataviews/wp';
+// Import the default `@wordpress/dataviews` build, not its self-contained
+// `/wp` build. The default build leaves its `@wordpress/*` dependencies as bare
+// imports, so the dependency-extraction plugin externalizes them to the
+// `wp-components`, `wp-compose`, `wp-primitives` (etc.) handles WordPress
+// enqueues — keeping the screen bundle ~120 KiB instead of bundling the whole
+// of `@wordpress/components` and shipping ~1.7 MiB. Do not switch this to `/wp`.
+import { DataViews, filterSortAndPaginate } from '@wordpress/dataviews';
+import type { Action, View } from '@wordpress/dataviews';
 import { useEntityRecords, store as coreStore } from '@wordpress/core-data';
 import { useDispatch } from '@wordpress/data';
 import { useMemo, useState } from '@wordpress/element';

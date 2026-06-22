@@ -11,7 +11,7 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen, cleanup } from '@testing-library/react';
 import { createElement } from 'react';
-import type { Field } from '@wordpress/dataviews/wp';
+import type { Field } from '@wordpress/dataviews';
 import { buildFields } from './Fields';
 import type {
 	SessionFieldDescriptor,
