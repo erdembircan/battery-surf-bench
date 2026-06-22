@@ -42,8 +42,12 @@ export interface GraphModel {
 	xTicks: GraphTick[];
 }
 
-/** Rounds to one decimal as a compact path-coordinate string. */
-const n = ( value: number ): string => ( Math.round( value * 10 ) / 10 ).toString();
+/**
+ * Rounds to one decimal as a compact path-coordinate string.
+ * @param value
+ */
+const n = ( value: number ): string =>
+	( Math.round( value * 10 ) / 10 ).toString();
 
 /**
  * Builds the chart geometry for a run's samples, or null when there is nothing
@@ -91,7 +95,9 @@ export const buildGraph = (
 
 	// Staircase through the samples: hold the previous level across to each new
 	// time, then step to the new level.
-	let step = `M ${ n( sx( samples[ 0 ]!.t ) ) } ${ n( sy( samples[ 0 ]!.level ) ) }`;
+	let step = `M ${ n( sx( samples[ 0 ]!.t ) ) } ${ n(
+		sy( samples[ 0 ]!.level )
+	) }`;
 	for ( let i = 1; i < samples.length; i++ ) {
 		const x = sx( samples[ i ]!.t );
 		step += ` L ${ n( x ) } ${ n( sy( samples[ i - 1 ]!.level ) ) }`;
@@ -114,6 +120,10 @@ export const buildGraph = (
 /**
  * The straight least-squares drain-fit path across the chart, or null when the
  * samples have no slope (the chart then shows only the measured staircase).
+ * @param samples
+ * @param maxT
+ * @param sx
+ * @param sy
  */
 const fitPath = (
 	samples: readonly Sample[],
@@ -137,7 +147,8 @@ const fitPath = (
 		sumTL += s.t * s.level;
 	}
 	const count = usable.length;
-	const slope = ( count * sumTL - sumT * sumL ) / ( count * sumTT - sumT * sumT );
+	const slope =
+		( count * sumTL - sumT * sumL ) / ( count * sumTT - sumT * sumT );
 	const intercept = ( sumL - slope * sumT ) / count;
 
 	const y0 = intercept;
@@ -148,7 +159,12 @@ const fitPath = (
 	) }`;
 };
 
-/** Battery-percent grid ticks at multiples of five within the range. */
+/**
+ * Battery-percent grid ticks at multiples of five within the range.
+ * @param loPct
+ * @param hiPct
+ * @param sy
+ */
 const yTicks = (
 	loPct: number,
 	hiPct: number,
@@ -157,19 +173,32 @@ const yTicks = (
 	const ticks: GraphTick[] = [];
 	const first = Math.ceil( loPct / 5 ) * 5;
 	for ( let pct = first; pct <= hiPct; pct += 5 ) {
-		ticks.push( { pos: Math.round( sy( pct / 100 ) * 10 ) / 10, label: String( pct ) } );
+		ticks.push( {
+			pos: Math.round( sy( pct / 100 ) * 10 ) / 10,
+			label: String( pct ),
+		} );
 	}
 
 	return ticks;
 };
 
-/** Elapsed-minute ticks at the start, midpoint and end of the run. */
+/**
+ * Elapsed-minute ticks at the start, midpoint and end of the run.
+ * @param maxT
+ * @param sx
+ */
 const xTicks = ( maxT: number, sx: ( t: number ) => number ): GraphTick[] => {
 	const mins = ( t: number ): string => String( Math.round( t / 60_000 ) );
 
 	return [
 		{ pos: Math.round( sx( 0 ) * 10 ) / 10, label: '0' },
-		{ pos: Math.round( sx( maxT / 2 ) * 10 ) / 10, label: mins( maxT / 2 ) },
-		{ pos: Math.round( sx( maxT ) * 10 ) / 10, label: `${ mins( maxT ) }m` },
+		{
+			pos: Math.round( sx( maxT / 2 ) * 10 ) / 10,
+			label: mins( maxT / 2 ),
+		},
+		{
+			pos: Math.round( sx( maxT ) * 10 ) / 10,
+			label: `${ mins( maxT ) }m`,
+		},
 	];
 };

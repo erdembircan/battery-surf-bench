@@ -26,7 +26,10 @@ const s = ( t: number, level: number, charging = false ): Sample => ( {
 	charging,
 } );
 
-/** Every numeric pair in a path `d`, as [x, y] points. */
+/**
+ * Every numeric pair in a path `d`, as [x, y] points.
+ * @param d
+ */
 const points = ( d: string ): Array< [ number, number ] > => {
 	const nums = ( d.match( /-?\d+(\.\d+)?/g ) ?? [] ).map( Number );
 	const pts: Array< [ number, number ] > = [];
@@ -82,6 +85,10 @@ describe( 'buildGraph', () => {
 		const g = buildGraph( [ s( 0, 0.82 ), s( 600_000, 0.75 ) ], VP )!;
 
 		expect( g.yTicks.map( ( t ) => t.label ) ).toEqual( [ '75', '80' ] );
-		expect( g.xTicks.map( ( t ) => t.label ) ).toEqual( [ '0', '5', '10m' ] );
+		expect( g.xTicks.map( ( t ) => t.label ) ).toEqual( [
+			'0',
+			'5',
+			'10m',
+		] );
 	} );
 } );
