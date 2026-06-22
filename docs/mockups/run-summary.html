@@ -106,9 +106,9 @@
   .pm { display:block; overflow:visible; transform:rotate(-9deg); }
   .pm text { font-family:'Space Mono',monospace; font-weight:700; fill:var(--pm-ink); }
   .pm .ring { fill:none; stroke:var(--pm-ink); }
-  .pm .arc { font-size:7px; letter-spacing:1px; }
-  .pm .big { font-family:'Anton'; font-weight:400; font-size:22px; letter-spacing:.4px; }
-  .pm .lab { font-size:6.6px; letter-spacing:2.4px; }
+  .pm .arc { font-size:6.6px; letter-spacing:.9px; }
+  .pm .big { font-family:'Anton'; font-weight:400; font-size:16px; letter-spacing:.4px; }
+  .pm .lab { font-size:6px; letter-spacing:2px; }
   .pm .bar { stroke:var(--pm-ink); stroke-width:2.2; fill:none; stroke-linecap:round; opacity:.9; }
 
   /* boxed rubber stamp */
@@ -264,20 +264,24 @@
     }
     const cancel = style === 'cancel';
     const cx = cancel ? 150 : 60, W = cancel ? 210 : 120;
-    const bars = cancel ? [44,56,68,80].map(y=>`<path class="bar" d="M2 ${y} q 22 -7 44 0 t 44 0"/>`).join('') : '';
+    const bars = cancel ? [44,54,64,74].map(y=>`<path class="bar" d="M6 ${y} q 22 -6 44 0 t 44 0"/>`).join('') : '';
+    // Two arcs in the band between the rings. The top arc runs left→right; the
+    // bottom arc is drawn RIGHT→LEFT (reversed) so its text reads upright rather
+    // than upside-down. The bottom arc's larger radius offsets its inward glyph
+    // growth, so both lines sit centred in the same band.
     return `<div class="pmHolder ${cls}">
-      <svg class="pm" width="${cancel?168:120}" height="120" viewBox="0 0 ${W} 120">
+      <svg class="pm" width="${cancel?150:86}" height="86" viewBox="0 0 ${W} 120">
         <defs>
-          <path id="aT" d="M${cx-47.5} 62 A47.5 47.5 0 0 1 ${cx+47.5} 62"/>
-          <path id="aB" d="M${cx-47.5} 62 A47.5 47.5 0 0 0 ${cx+47.5} 62"/>
+          <path id="aT" d="M${cx-38} 60 A38 38 0 0 1 ${cx+38} 60"/>
+          <path id="aB" d="M${cx+43} 60 A43 43 0 0 1 ${cx-43} 60"/>
         </defs>
         ${bars}
-        <circle class="ring" cx="${cx}" cy="62" r="56" stroke-width="2.4"/>
-        <circle class="ring" cx="${cx}" cy="62" r="39" stroke-width="1"/>
+        <circle class="ring" cx="${cx}" cy="60" r="47" stroke-width="2.2"/>
+        <circle class="ring" cx="${cx}" cy="60" r="34" stroke-width="1"/>
         <text class="arc" text-anchor="middle"><textPath href="#aT" startOffset="50%">BATTERY · SURF · BENCH</textPath></text>
-        <text class="arc" text-anchor="middle" dominant-baseline="hanging"><textPath href="#aB" startOffset="50%">${R.arc}</textPath></text>
-        <text class="big" x="${cx}" y="66" text-anchor="middle">${val}</text>
-        <text class="lab" x="${cx}" y="79" text-anchor="middle">${lab.toUpperCase()}</text>
+        <text class="arc" text-anchor="middle"><textPath href="#aB" startOffset="50%">${R.arc}</textPath></text>
+        <text class="big" x="${cx}" y="65" text-anchor="middle">${val}</text>
+        <text class="lab" x="${cx}" y="74" text-anchor="middle">${lab.toUpperCase()}</text>
       </svg>
     </div>`;
   }
