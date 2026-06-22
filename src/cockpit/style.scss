@@ -37,8 +37,10 @@ body {
 	-webkit-font-smoothing: antialiased;
 	transition: grid-template-columns $compact-dur $ease;
 
-	// Compact: the deck collapses to nothing so the stage fills the width.
-	&.is-compact {
+	// Compact (mid-run) and the startup front (deck tucked away until the postcard
+	// is flipped): the deck collapses to nothing so the stage fills the width.
+	&.is-compact,
+	&.is-deck-hidden {
 		grid-template-columns: 0 1fr;
 	}
 
@@ -70,10 +72,12 @@ body {
 	box-shadow: 2px 0 8px -5px rgba(0, 20, 40, 0.14);
 	transition: transform $compact-dur $ease;
 
-	// Compact: slide fully out to the left, in step with the column collapse. The
-	// translation magnitude tracks the column width, so the deck's right edge
-	// stays flush with the stage's left edge — no gap, no overlap, no reflow.
-	.wp-block-bsb-cockpit.is-compact & {
+	// Compact (and the startup front): slide fully out to the left, in step with
+	// the column collapse. The translation magnitude tracks the column width, so
+	// the deck's right edge stays flush with the stage's left edge — no gap, no
+	// overlap, no reflow.
+	.wp-block-bsb-cockpit.is-compact &,
+	.wp-block-bsb-cockpit.is-deck-hidden & {
 		transform: translateX(-100%);
 		pointer-events: none;
 	}
@@ -1012,18 +1016,27 @@ body {
 	place-items: center;
 	padding: 2.2rem;
 	background: var(--idle-sky);
+	// The 3D perspective belongs on the parent of the rotating card, so the
+	// startup flip reads as a turn — the same context the summary gives its card.
+	perspective: 1800px;
 }
 
-.bsb-cockpit__postcard {
-	display: grid;
-	grid-template-columns: 1.05fr 1.2fr;
-	width: min(860px, 100%);
-	overflow: hidden;
-	border: 1px solid var(--paper-line);
-	border-radius: 14px;
-	background: var(--paper);
-	box-shadow: 0 26px 60px rgba(0, 0, 0, 0.32);
-	transform: rotate(-1.4deg);
+// The startup card sails up and settles into its tilt when the stage opens. Fill
+// mode `backwards` so the resting transform reverts to the card's own (the base
+// tilt, or the flipped rotateY) — the entrance never pins the flip transform.
+.bsb-flipcard--idle {
+	animation: bsb-postcard-in 0.8s cubic-bezier(0.2, 0.8, 0.25, 1) backwards;
+}
+
+@keyframes bsb-postcard-in {
+	0% {
+		opacity: 0;
+		transform: translateY(46px) scale(0.9) rotate(2deg);
+	}
+	100% {
+		opacity: 1;
+		transform: rotate(-1.4deg);
+	}
 }
 
 // front: the illustrated picture side
@@ -1128,10 +1141,11 @@ body {
 	}
 }
 
-// back: the written note
+// back: the written note, filling the flip card's back face
 .bsb-cockpit__postcard-note {
-	position: relative;
-	padding: 1.5rem 1.6rem;
+	position: absolute;
+	inset: 0;
+	padding: 1.5rem 1.7rem;
 	color: var(--paper-ink);
 }
 
@@ -1243,16 +1257,6 @@ body {
 		border-radius: 2px;
 		background: var(--paper);
 	}
-}
-
-.bsb-cockpit__stamp {
-	@extend %postage-stamp;
-
-	position: absolute;
-	top: 1.1rem;
-	right: 1.1rem;
-	width: 56px;
-	height: 68px;
 }
 
 // ── Compact top pill ─────────────────────────────────────────────────────────
@@ -1485,7 +1489,12 @@ body {
 	}
 }
 
-.bsb-summary__card {
+// ── Flip postcard — the shared two-faced card (startup + summary) ─────────────
+// The 3D card turns between its picture front and its written back. Sized and
+// wired once here; the startup postcard (inside .bsb-cockpit__idle) and the run
+// summary (overlaid by .bsb-summary) both reuse this shell — only the face
+// contents and the bound store field (idleFlipped vs flipped) differ.
+.bsb-flipcard {
 	position: relative;
 	width: min(680px, 94%);
 	aspect-ratio: 1.62 / 1;
@@ -1498,7 +1507,7 @@ body {
 	}
 }
 
-.bsb-summary__face {
+.bsb-flipcard__face {
 	position: absolute;
 	inset: 0;
 	overflow: hidden;
@@ -1517,12 +1526,12 @@ body {
 // Only the face turned toward the viewer is interactive — the away-facing face
 // is invisible (backface-hidden) but would otherwise sit over the visible one
 // and swallow clicks meant for its buttons.
-.bsb-summary__card:not(.is-flipped) .bsb-summary__face--back,
-.bsb-summary__card.is-flipped .bsb-summary__face--front {
+.bsb-flipcard:not(.is-flipped) .bsb-flipcard__face--back,
+.bsb-flipcard.is-flipped .bsb-flipcard__face--front {
 	pointer-events: none;
 }
 
-// The photo fills a summary face (the idle usage sizes itself as a grid cell).
+// The photo fills a flip face (instead of sizing itself as a standalone block).
 .bsb-photo--fill {
 	position: absolute;
 	inset: 0;
@@ -1530,7 +1539,7 @@ body {
 }
 
 // the discreet flip indicator, on both faces in the same corner
-.bsb-summary__flip {
+.bsb-flipcard__flip {
 	position: absolute;
 	right: 1rem;
 	bottom: 1rem;
@@ -1562,7 +1571,7 @@ body {
 	}
 }
 
-.bsb-summary__flip-icon {
+.bsb-flipcard__flip-icon {
 	$flip-glyph: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M12 6V3L8 7l4 4V8a4 4 0 1 1-4 4H6a6 6 0 1 0 6-6z'/%3E%3C/svg%3E");
 
 	width: 0.95rem;
@@ -1570,10 +1579,10 @@ body {
 	background: currentColor;
 	mask: $flip-glyph center / contain no-repeat;
 	-webkit-mask: $flip-glyph center / contain no-repeat;
-	animation: bsb-summary-nudge 3s ease-in-out infinite;
+	animation: bsb-flipcard-nudge 3s ease-in-out infinite;
 }
 
-@keyframes bsb-summary-nudge {
+@keyframes bsb-flipcard-nudge {
 	0%,
 	86%,
 	100% {

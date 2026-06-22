@@ -80,6 +80,7 @@ interface CockpitContext {
 	ended: boolean;
 	endReason: RunEndReason;
 	flipped: boolean;
+	idleFlipped: boolean;
 	reasonText: Record< string, ReasonText >;
 	// Frozen summary readouts, stored on the context (reactive) at run end so the
 	// summary re-renders — the session log they derive from is not a signal.
@@ -385,6 +386,27 @@ store( 'bsb/cockpit', {
 		/** Whether a run is live — shows the pill and hides the config controls. */
 		get isRunning(): boolean {
 			return getContext< CockpitContext >().running;
+		},
+
+		/**
+		 * Whether the startup postcard is turned to its written "how it works"
+		 * back. Drives both the card's flip and the deck reveal (the two are
+		 * coupled before a run: flipping to the back slides the deck in).
+		 */
+		get isIdleFlipped(): boolean {
+			return getContext< CockpitContext >().idleFlipped;
+		},
+
+		/**
+		 * Whether the control deck is tucked away off-screen. At session start the
+		 * deck is hidden so the postcard stands alone; flipping the startup card to
+		 * its back slides the deck in. The deck is always present while a run is
+		 * live (it carries the readouts pill).
+		 */
+		get isDeckHidden(): boolean {
+			const { running, idleFlipped } = getContext< CockpitContext >();
+
+			return ! running && ! idleFlipped;
 		},
 
 		/**
@@ -711,15 +733,27 @@ store( 'bsb/cockpit', {
 		},
 
 		/**
-		 * Dismisses the summary back to the idle startup screen — the deck and the
-		 * startup postcard — without beginning a run. Clears the ended state; a run
-		 * only starts later when the user presses Start.
+		 * Turns the startup postcard between its picture front and its written
+		 * "how it works" back. Coupled to the deck reveal: the back is shown with
+		 * the control deck slid in, the front with the deck tucked away.
+		 */
+		toggleIdleFlip(): void {
+			const context = getContext< CockpitContext >();
+			context.idleFlipped = ! context.idleFlipped;
+		},
+
+		/**
+		 * Dismisses the summary back to the startup screen — the postcard on its
+		 * picture front with the deck tucked away, as at session start — without
+		 * beginning a run. Clears the ended and flip state; a run only starts later
+		 * when the user flips to the deck and presses Start.
 		 */
 		newRun(): void {
 			const context = getContext< CockpitContext >();
 			context.ended = false;
 			context.endReason = '';
 			context.flipped = false;
+			context.idleFlipped = false;
 		},
 	},
 	callbacks: {

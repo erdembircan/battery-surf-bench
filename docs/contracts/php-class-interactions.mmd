@@ -157,6 +157,10 @@ classDiagram
         +render(array data) string
     }
 
+    class FlipPostcard {
+        +render(array data) string
+    }
+
     BatterySurfBench --> I18n : creates & owns (composition)
     BatterySurfBench --> Registry : creates & owns (composition)
     BatterySurfBench --> Paths : creates & owns (composition)
@@ -197,8 +201,10 @@ classDiagram
     CockpitView ..|> View : implements
     PostcardPhoto ..|> View : implements
     FrankedStamp ..|> View : implements
-    CockpitView ..> PostcardPhoto : composes (idle + summary)
-    CockpitView ..> FrankedStamp : composes (summary)
+    FlipPostcard ..|> View : implements
+    CockpitView ..> FlipPostcard : composes (startup + summary)
+    CockpitView ..> PostcardPhoto : composes (startup + summary)
+    CockpitView ..> FrankedStamp : composes (startup blank + summary franked)
     Registry ..|> ContainerInterface : implements
     Registry ..> NotFoundException : throws
     NotFoundException --|> InvalidArgumentException : extends

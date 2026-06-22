@@ -130,30 +130,26 @@ class CockpitView implements View {
 		$pts_label          = isset( $data['pts_label'] ) ? (string) $data['pts_label'] : '';
 		$elapsed_run_label  = isset( $data['elapsed_run_label'] ) ? (string) $data['elapsed_run_label'] : '';
 		$new_run_label      = isset( $data['new_run_label'] ) ? (string) $data['new_run_label'] : '';
-		$flip_label         = isset( $data['flip_label'] ) ? (string) $data['flip_label'] : '';
 		$summary_brand      = isset( $data['summary_brand'] ) ? (string) $data['summary_brand'] : '';
 		$measured_label     = isset( $data['measured_label'] ) ? (string) $data['measured_label'] : '';
 		$projected_label    = isset( $data['projected_label'] ) ? (string) $data['projected_label'] : '';
 
-		// Shared postcard components, rendered once and placed in both the idle
+		// Shared postcard components, rendered once and placed in both the startup
 		// postcard and the run-summary card so the illustration and the stamp are a
 		// single source, not divergent copies. They are built from the raw values
 		// first — each child view escapes what it is handed — before this view
-		// escapes the same values for its own slots below.
-		$photo      = ( new PostcardPhoto() )->render(
-			array(
-				'greeting_lead' => $greeting_lead,
-				'brand_title'   => $brand_title,
-			)
-		);
-		$photo_fill = ( new PostcardPhoto() )->render(
+		// escapes the same values for its own slots below. The photo fills a flip
+		// face in both places; the summary stamp is franked (a cancellation reads
+		// as "the run is done") while the startup stamp is left blank.
+		$photo_fill  = ( new PostcardPhoto() )->render(
 			array(
 				'greeting_lead' => $greeting_lead,
 				'brand_title'   => $brand_title,
 				'modifier'      => 'bsb-photo--fill',
 			)
 		);
-		$frank      = ( new FrankedStamp() )->render( array( 'brand' => $summary_brand ) );
+		$frank       = ( new FrankedStamp() )->render( array( 'brand' => $summary_brand ) );
+		$frank_blank = ( new FrankedStamp() )->render( array( 'cancel_enabled' => false ) );
 
 		// This view owns its markup, so it escapes every value it interpolates:
 		// text slots with esc_html(), attribute slots with esc_attr(). The wrapper
@@ -206,7 +202,6 @@ class CockpitView implements View {
 		$pts_label          = esc_html( $pts_label );
 		$elapsed_run_label  = esc_html( $elapsed_run_label );
 		$new_run_label      = esc_html( $new_run_label );
-		$flip_label         = esc_html( $flip_label );
 		$measured_label     = esc_html( $measured_label );
 		$projected_label    = esc_html( $projected_label );
 
@@ -258,8 +253,76 @@ CELLS;
 			</span>
 INNER;
 
+		// The startup flip postcard: its picture front greets the visitor with the
+		// deck tucked away; flipping it (actions.toggleIdleFlip) turns to the written
+		// "how this run works" back and slides the deck in. Built on the shared
+		// FlipPostcard shell with a blank (uncancelled) stamp.
+		$idle_back = <<<HTML
+{$frank_blank}
+		<div class="bsb-cockpit__postcard-note">
+			<h2 class="bsb-cockpit__postcard-heading">{$idle_heading}</h2>
+			<p class="bsb-cockpit__postcard-subtitle">{$idle_subtitle}</p>
+			<span class="bsb-cockpit__postcard-divide" aria-hidden="true"></span>
+			<ol class="bsb-cockpit__postcard-steps">
+				<li><span class="bsb-cockpit__postcard-num">1</span><span class="bsb-cockpit__postcard-step"><b>{$idle_step1_title}</b>{$idle_step1_text}</span></li>
+				<li><span class="bsb-cockpit__postcard-num">2</span><span class="bsb-cockpit__postcard-step"><b>{$idle_step2_title}</b>{$idle_step2_text}</span></li>
+				<li><span class="bsb-cockpit__postcard-num">3</span><span class="bsb-cockpit__postcard-step"><b>{$idle_step3_title}</b>{$idle_step3_text}</span></li>
+			</ol>
+			<p class="bsb-cockpit__postcard-notice"><b>{$idle_notice_title}</b>{$idle_notice_text}</p>
+		</div>
+HTML;
+		$idle_card = ( new FlipPostcard() )->render(
+			array(
+				'front'       => $photo_fill,
+				'back'        => $idle_back,
+				'flip_label'  => $data['flip_label'] ?? '',
+				'flip_action' => 'actions.toggleIdleFlip',
+				'flip_state'  => 'state.isIdleFlipped',
+				'modifier'    => 'bsb-flipcard--idle',
+			)
+		);
+
+		// The run-summary flip card, on the same shell: a franked (cancelled) stamp
+		// and the run report on the back. Flips through actions.toggleFlip.
+		$summary_back = <<<HTML
+{$frank}
+		<div class="bsb-summary__report">
+			<h2 class="bsb-summary__head" data-wp-text="state.summaryHeading"></h2>
+			<p class="bsb-summary__sig" data-wp-text="state.summarySig"></p>
+			<span class="bsb-summary__divide" aria-hidden="true"></span>
+			<div class="bsb-summary__graph" data-wp-bind--hidden="!context.hasGraph">
+				<svg class="bsb-summary__chart" viewBox="0 0 480 90" aria-hidden="true"></svg>
+				<div class="bsb-summary__legend" aria-hidden="true">
+					<span class="bsb-summary__legend-item"><span class="bsb-summary__legend-swatch"></span>{$measured_label}</span>
+					<span class="bsb-summary__legend-item"><span class="bsb-summary__legend-swatch bsb-summary__legend-swatch--fit"></span>{$projected_label}</span>
+				</div>
+			</div>
+			<div class="bsb-summary__stats">
+				<div class="bsb-stat"><span class="bsb-stat__label">{$tte_label}</span><span class="bsb-stat__value" data-wp-text="state.timeToEmptyDisplay"></span></div>
+				<div class="bsb-stat"><span class="bsb-stat__label">{$rate_session_label}</span><span class="bsb-stat__value"><span data-wp-text="state.rateSessionDisplay"></span><span class="bsb-stat__unit">%/h</span></span></div>
+				<div class="bsb-stat"><span class="bsb-stat__label">{$rate10_label}</span><span class="bsb-stat__value"><span data-wp-text="state.rate10Display"></span><span class="bsb-stat__unit">%/h</span></span></div>
+				<div class="bsb-stat"><span class="bsb-stat__label">{$battery_label}</span><span class="bsb-stat__value bsb-stat__value--arrow"><span data-wp-text="context.summaryBatteryStart"></span><span class="bsb-stat__arrow" aria-hidden="true"></span><span data-wp-text="context.summaryBatteryEnd"></span></span></div>
+				<div class="bsb-stat"><span class="bsb-stat__label">{$dropped_label}</span><span class="bsb-stat__value"><span data-wp-text="context.summaryDropped"></span><span class="bsb-stat__unit">{$pts_label}</span></span></div>
+				<div class="bsb-stat"><span class="bsb-stat__label">{$elapsed_run_label}</span><span class="bsb-stat__value" data-wp-text="state.summaryElapsed"></span></div>
+			</div>
+			<div class="bsb-summary__actions">
+				<button type="button" class="bsb-summary__new" data-wp-on--click="actions.newRun">{$new_run_label}</button>
+			</div>
+		</div>
+HTML;
+		$summary_card = ( new FlipPostcard() )->render(
+			array(
+				'front'       => $photo_fill,
+				'back'        => $summary_back,
+				'flip_label'  => $data['flip_label'] ?? '',
+				'flip_action' => 'actions.toggleFlip',
+				'flip_state'  => 'state.isFlipped',
+				'modifier'    => 'bsb-flipcard--summary',
+			)
+		);
+
 		return <<<HTML
-<div {$wrapper} data-wp-interactive="bsb/cockpit" {$context} data-wp-init---battery="callbacks.initBattery" data-wp-init---wake-lock="callbacks.initWakeLock" data-wp-init---sound="callbacks.initSound" data-wp-watch---run-activity="callbacks.syncRunActivity" data-wp-class--is-compact="state.isCompact">
+<div {$wrapper} data-wp-interactive="bsb/cockpit" {$context} data-wp-init---battery="callbacks.initBattery" data-wp-init---wake-lock="callbacks.initWakeLock" data-wp-init---sound="callbacks.initSound" data-wp-watch---run-activity="callbacks.syncRunActivity" data-wp-class--is-compact="state.isCompact" data-wp-class--is-deck-hidden="state.isDeckHidden">
 	<aside class="bsb-cockpit__deck">
 		<header class="bsb-deck__brand">
 			<span class="bsb-deck__mark" aria-hidden="true"></span>
@@ -359,21 +422,7 @@ INNER;
 			</div>
 		</div>
 		<div class="bsb-cockpit__idle" data-wp-bind--hidden="state.isRunning">
-			<div class="bsb-cockpit__postcard">
-				{$photo}
-				<div class="bsb-cockpit__postcard-note">
-					<span class="bsb-cockpit__stamp" aria-hidden="true"></span>
-					<h2 class="bsb-cockpit__postcard-heading">{$idle_heading}</h2>
-					<p class="bsb-cockpit__postcard-subtitle">{$idle_subtitle}</p>
-					<span class="bsb-cockpit__postcard-divide" aria-hidden="true"></span>
-					<ol class="bsb-cockpit__postcard-steps">
-						<li><span class="bsb-cockpit__postcard-num">1</span><span class="bsb-cockpit__postcard-step"><b>{$idle_step1_title}</b>{$idle_step1_text}</span></li>
-						<li><span class="bsb-cockpit__postcard-num">2</span><span class="bsb-cockpit__postcard-step"><b>{$idle_step2_title}</b>{$idle_step2_text}</span></li>
-						<li><span class="bsb-cockpit__postcard-num">3</span><span class="bsb-cockpit__postcard-step"><b>{$idle_step3_title}</b>{$idle_step3_text}</span></li>
-					</ol>
-					<p class="bsb-cockpit__postcard-notice"><b>{$idle_notice_title}</b>{$idle_notice_text}</p>
-				</div>
-			</div>
+			{$idle_card}
 		</div>
 		<div class="bsb-cockpit__viewport-wrap" hidden data-wp-bind--hidden="state.isIdle">
 			<iframe class="bsb-cockpit__viewport" title="{$viewport_title}" data-wp-bind--src="state.currentSrc"></iframe>
@@ -383,39 +432,7 @@ INNER;
 	</div>
 
 	<div class="bsb-summary" hidden data-wp-bind--hidden="!state.isEnded" data-wp-watch="callbacks.renderSummary">
-		<div class="bsb-summary__card" data-wp-class--is-flipped="state.isFlipped">
-			<div class="bsb-summary__face bsb-summary__face--front">
-				{$photo_fill}
-				<button type="button" class="bsb-summary__flip" data-wp-on--click="actions.toggleFlip"><span class="bsb-summary__flip-icon" aria-hidden="true"></span>{$flip_label}</button>
-			</div>
-			<div class="bsb-summary__face bsb-summary__face--back">
-				{$frank}
-				<div class="bsb-summary__report">
-					<h2 class="bsb-summary__head" data-wp-text="state.summaryHeading"></h2>
-					<p class="bsb-summary__sig" data-wp-text="state.summarySig"></p>
-					<span class="bsb-summary__divide" aria-hidden="true"></span>
-					<div class="bsb-summary__graph" data-wp-bind--hidden="!context.hasGraph">
-						<svg class="bsb-summary__chart" viewBox="0 0 480 90" aria-hidden="true"></svg>
-						<div class="bsb-summary__legend" aria-hidden="true">
-							<span class="bsb-summary__legend-item"><span class="bsb-summary__legend-swatch"></span>{$measured_label}</span>
-							<span class="bsb-summary__legend-item"><span class="bsb-summary__legend-swatch bsb-summary__legend-swatch--fit"></span>{$projected_label}</span>
-						</div>
-					</div>
-					<div class="bsb-summary__stats">
-						<div class="bsb-stat"><span class="bsb-stat__label">{$tte_label}</span><span class="bsb-stat__value" data-wp-text="state.timeToEmptyDisplay"></span></div>
-						<div class="bsb-stat"><span class="bsb-stat__label">{$rate_session_label}</span><span class="bsb-stat__value"><span data-wp-text="state.rateSessionDisplay"></span><span class="bsb-stat__unit">%/h</span></span></div>
-						<div class="bsb-stat"><span class="bsb-stat__label">{$rate10_label}</span><span class="bsb-stat__value"><span data-wp-text="state.rate10Display"></span><span class="bsb-stat__unit">%/h</span></span></div>
-						<div class="bsb-stat"><span class="bsb-stat__label">{$battery_label}</span><span class="bsb-stat__value bsb-stat__value--arrow"><span data-wp-text="context.summaryBatteryStart"></span><span class="bsb-stat__arrow" aria-hidden="true"></span><span data-wp-text="context.summaryBatteryEnd"></span></span></div>
-						<div class="bsb-stat"><span class="bsb-stat__label">{$dropped_label}</span><span class="bsb-stat__value"><span data-wp-text="context.summaryDropped"></span><span class="bsb-stat__unit">{$pts_label}</span></span></div>
-						<div class="bsb-stat"><span class="bsb-stat__label">{$elapsed_run_label}</span><span class="bsb-stat__value" data-wp-text="state.summaryElapsed"></span></div>
-					</div>
-					<div class="bsb-summary__actions">
-						<button type="button" class="bsb-summary__new" data-wp-on--click="actions.newRun">{$new_run_label}</button>
-					</div>
-				</div>
-				<button type="button" class="bsb-summary__flip bsb-summary__flip--paper" data-wp-on--click="actions.toggleFlip"><span class="bsb-summary__flip-icon" aria-hidden="true"></span>{$flip_label}</button>
-			</div>
-		</div>
+		{$summary_card}
 	</div>
 </div>
 HTML;

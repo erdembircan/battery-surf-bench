@@ -62,6 +62,9 @@ $bsb_context = array(
 	'ended'               => false,
 	'endReason'           => '',
 	'flipped'             => false,
+	// The startup postcard opens on its picture front, deck tucked away; flipping
+	// to the "how it works" back slides the deck in.
+	'idleFlipped'         => false,
 	// Summary readouts, frozen onto the context at run end (kept reactive so the
 	// summary renders); empty until a run finishes.
 	'summaryBatteryStart' => '',
