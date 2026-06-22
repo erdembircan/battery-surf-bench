@@ -104,8 +104,8 @@ final class CockpitViewTest extends TestCase {
 		$this->assertStringContainsString( 'class="bsb-summary__chart-line"', $markup );
 		// The summary's drain graph hides when there is nothing to plot.
 		$this->assertStringContainsString( 'data-wp-bind--hidden="!state.hasGraph"', $markup );
-		// New run restarts via the run toggle.
-		$this->assertStringContainsString( 'class="bsb-summary__new" data-wp-on--click="actions.toggleRun"', $markup );
+		// New run returns to the idle startup screen (it does not start a run).
+		$this->assertStringContainsString( 'class="bsb-summary__new" data-wp-on--click="actions.newRun"', $markup );
 		// The card reuses the shared photo (front) and franked-stamp (back).
 		$this->assertStringContainsString( 'class="bsb-photo bsb-photo--fill"', $markup );
 		$this->assertStringContainsString( 'class="bsb-frank"', $markup );

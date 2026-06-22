@@ -651,6 +651,18 @@ store( 'bsb/cockpit', {
 		},
 
 		/**
+		 * Dismisses the summary back to the idle startup screen — the deck and the
+		 * startup postcard — without beginning a run. Clears the ended state; a run
+		 * only starts later when the user presses Start.
+		 */
+		newRun(): void {
+			const context = getContext< CockpitContext >();
+			context.ended = false;
+			context.endReason = '';
+			context.flipped = false;
+		},
+
+		/**
 		 * Cycles the theme preference (system → light → dark → system) and
 		 * remembers it. "System" follows the OS, so it is a sticky choice in its
 		 * own right; a fixed light/dark choice overrides the OS until changed.

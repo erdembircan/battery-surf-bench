@@ -92,6 +92,7 @@ interface CockpitConfig {
 		toggleRun: () => void;
 		toggleCompact: () => void;
 		toggleFlip: () => void;
+		newRun: () => void;
 		toggleTheme: () => void;
 	};
 	callbacks: {
@@ -1136,6 +1137,20 @@ describe( 'bsb/cockpit view store', () => {
 			expect( mocks.context.ended ).toBe( false );
 			expect( mocks.context.endReason ).toBe( '' );
 			expect( mocks.context.flipped ).toBe( false );
+		} );
+
+		it( 'dismisses the summary to the startup screen without starting a run', () => {
+			mocks.context.ended = true;
+			mocks.context.endReason = 'stopped';
+			mocks.context.flipped = true;
+
+			mocks.config?.actions.newRun();
+
+			// Back to idle: summary gone, but no run started.
+			expect( mocks.context.ended ).toBe( false );
+			expect( mocks.context.endReason ).toBe( '' );
+			expect( mocks.context.flipped ).toBe( false );
+			expect( mocks.context.running ).toBe( false );
 		} );
 
 		it( 'turns the summary card between front and back', () => {

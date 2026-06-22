@@ -343,7 +343,7 @@ INNER;
 						<div class="bsb-stat"><span class="bsb-stat__label">{$elapsed_run_label}</span><span class="bsb-stat__value" data-wp-text="state.summaryElapsed"></span></div>
 					</div>
 					<div class="bsb-summary__actions">
-						<button type="button" class="bsb-summary__new" data-wp-on--click="actions.toggleRun">{$new_run_label}</button>
+						<button type="button" class="bsb-summary__new" data-wp-on--click="actions.newRun">{$new_run_label}</button>
 					</div>
 				</div>
 				<button type="button" class="bsb-summary__flip bsb-summary__flip--paper" data-wp-on--click="actions.toggleFlip"><span class="bsb-summary__flip-icon" aria-hidden="true"></span>{$flip_label}</button>
