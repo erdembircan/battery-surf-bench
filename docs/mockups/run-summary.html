@@ -43,7 +43,7 @@
   .ctl label { display:inline-flex; align-items:center; gap:.3rem; cursor:pointer; }
   .note { font-size:.82rem; color:var(--ink-soft); margin:0 0 1rem; min-height:1.2em; }
 
-  .cockpit { display:grid; grid-template-columns:340px 1fr; height:660px; border-radius:18px; overflow:hidden; box-shadow:0 20px 54px rgba(0,0,0,.22); }
+  .cockpit { display:grid; grid-template-columns:1fr; height:660px; border-radius:18px; overflow:hidden; box-shadow:0 20px 54px rgba(0,0,0,.22); }
 
   /* ── left deck (static, back at idle once a run ends) ── */
   .deck { display:flex; flex-direction:column; padding:1.5rem; background:var(--deck-bg); border-right:1px solid var(--line); }
@@ -184,24 +184,6 @@
   <p class="note" id="note"></p>
 
   <div class="cockpit">
-    <aside class="deck">
-      <header class="brand">
-        <span class="mark"></span>
-        <span class="title">Battery Surf Bench</span>
-        <span class="subtitle">Cockpit</span>
-        <span class="acts">
-          <button class="ibtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg></button>
-        </span>
-      </header>
-      <div class="deck-body">
-        <div class="field"><div class="flabel">Mode</div><div class="seg"><button class="on">Duration</button><button>Target drop</button></div></div>
-        <div class="field"><div class="flabel">Run duration</div>
-          <div class="dur"><button class="step">−</button><span class="num">30<small>min</small></span><button class="step">+</button></div>
-        </div>
-        <div class="field"><div class="flabel">Demo speed</div><div class="seg" style="grid-template-columns:1fr 1fr 1fr"><button class="on">1×</button><button>4×</button><button>10×</button></div></div>
-        <button class="start">Start the run</button>
-      </div>
-    </aside>
     <main class="stage" id="stage">
       <div class="waves"><i></i><i></i><i></i></div>
       <div class="pcWrap" id="pc"></div>
