@@ -266,8 +266,8 @@ INNER;
 			<span class="bsb-deck__title">{$brand_title}</span>
 			<span class="bsb-deck__subtitle">{$brand_subtitle}</span>
 			<span class="bsb-deck__actions">
-				<button type="button" class="bsb-deck__sound" data-wp-on--click="actions.toggleSound" data-wp-class--is-on="state.isSoundOn" data-wp-bind--aria-pressed="state.isSoundOn" aria-label="{$sound_label}"></button>
 				<button type="button" class="bsb-deck__compact" data-wp-on--click="actions.toggleCompact" data-wp-class--is-hidden="state.isIdle" aria-label="{$compact_label}"></button>
+				<button type="button" class="bsb-deck__sound" data-wp-on--click="actions.toggleSound" data-wp-class--is-on="state.isSoundOn" data-wp-bind--aria-pressed="state.isSoundOn" aria-label="{$sound_label}"></button>
 			</span>
 		</header>
 
@@ -354,6 +354,7 @@ INNER;
 				<div class="bsb-deck__readout-ctrl">
 					<button type="button" class="bsb-deck__readout-stop" data-wp-on--click="actions.toggleRun">{$stop_label}</button>
 					<button type="button" class="bsb-deck__expand" data-wp-on--click="actions.toggleCompact" aria-label="{$expand_label}"></button>
+					<button type="button" class="bsb-deck__readout-sound" data-wp-on--click="actions.toggleSound" data-wp-class--is-on="state.isSoundOn" data-wp-bind--aria-pressed="state.isSoundOn" aria-label="{$sound_label}"></button>
 				</div>
 			</div>
 		</div>

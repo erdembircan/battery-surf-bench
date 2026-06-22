@@ -59,10 +59,16 @@ test.describe( 'Cockpit dashboard route', () => {
 			page.locator( '.bsb-run[data-wp-on--click="actions.toggleRun"]' )
 		).toBeAttached();
 
-		// The finish-sound toggle ships in the deck header, wired to the store.
+		// The finish-sound toggle ships in both the deck header and the compact
+		// top pill, each wired to the same store action.
 		await expect(
 			page.locator(
 				'.bsb-deck__sound[data-wp-on--click="actions.toggleSound"]'
+			)
+		).toBeAttached();
+		await expect(
+			page.locator(
+				'.bsb-deck__readout-sound[data-wp-on--click="actions.toggleSound"]'
 			)
 		).toBeAttached();
 
