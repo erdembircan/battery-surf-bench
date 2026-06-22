@@ -97,9 +97,11 @@ final class CockpitViewTest extends TestCase {
 		$this->assertStringContainsString( 'data-wp-class--is-flipped="state.isFlipped"', $markup );
 		// The flip indicator turns the card.
 		$this->assertStringContainsString( 'data-wp-on--click="actions.toggleFlip"', $markup );
-		// The verdict heading and drain-graph paths bind to the store.
+		// The verdict heading binds to the store; the SVG is painted imperatively
+		// by a watch (directives cannot live inside SVG during server render).
 		$this->assertStringContainsString( 'data-wp-text="state.summaryHeading"', $markup );
-		$this->assertStringContainsString( 'data-wp-bind--d="state.graphStep"', $markup );
+		$this->assertStringContainsString( 'data-wp-watch="callbacks.renderSummary"', $markup );
+		$this->assertStringContainsString( 'class="bsb-summary__chart-line"', $markup );
 		// The summary's drain graph hides when there is nothing to plot.
 		$this->assertStringContainsString( 'data-wp-bind--hidden="!state.hasGraph"', $markup );
 		// New run restarts via the run toggle.

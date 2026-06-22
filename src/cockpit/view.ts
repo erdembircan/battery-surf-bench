@@ -443,18 +443,6 @@ store( 'bsb/cockpit', {
 			return summary ? String( Math.round( summary.droppedPct ) ) : '—';
 		},
 
-		/**
-		 * The postmark's centre value: the stop-at percentage for a target run,
-		 * otherwise the elapsed run clock.
-		 */
-		get summaryPostmarkValue(): string {
-			const context = getContext< CockpitContext >();
-
-			return context.endReason === 'targetDrop'
-				? `${ context.targetPercent }%`
-				: formatClock( context.elapsed );
-		},
-
 		/** The summary's handwritten verdict heading for the end reason. */
 		get summaryHeading(): string {
 			const context = getContext< CockpitContext >();
@@ -467,36 +455,9 @@ store( 'bsb/cockpit', {
 			return context.reasonText?.[ context.endReason ]?.sig ?? '';
 		},
 
-		/** The postmark's lower curved label for the end reason. */
-		get summaryArc(): string {
-			const context = getContext< CockpitContext >();
-			return context.reasonText?.[ context.endReason ]?.arc ?? '';
-		},
-
-		/** The postmark's centre unit label for the end reason. */
-		get summaryPostmarkLabel(): string {
-			const context = getContext< CockpitContext >();
-			return context.reasonText?.[ context.endReason ]?.unit ?? '';
-		},
-
 		/** Whether the run has enough samples to draw the summary drain graph. */
 		get hasGraph(): boolean {
 			return graphFor( getContext< CockpitContext >() ) !== null;
-		},
-
-		/** Filled-area `d` under the summary drain curve. */
-		get graphArea(): string {
-			return graphFor( getContext< CockpitContext >() )?.area ?? '';
-		},
-
-		/** Stepped measured-battery `d` for the summary drain curve. */
-		get graphStep(): string {
-			return graphFor( getContext< CockpitContext >() )?.step ?? '';
-		},
-
-		/** Straight drain-fit `d` over the summary drain curve, empty if none. */
-		get graphFit(): string {
-			return graphFor( getContext< CockpitContext >() )?.fit ?? '';
 		},
 	},
 	actions: {
@@ -1010,6 +971,46 @@ store( 'bsb/cockpit', {
 			} );
 
 			state.value = durationMinutes;
+		},
+
+		/**
+		 * Paints the summary's SVG from the frozen run — the drain-graph paths and
+		 * the postmark's verdict text. Done imperatively (rather than with bound
+		 * directives) because the Interactivity runtime cannot process directives
+		 * inside SVG during server render; driven by `data-wp-watch`, it re-runs
+		 * when the run ends or its reason changes.
+		 */
+		renderSummary(): void {
+			const root = getElement().ref as HTMLElement | null;
+
+			if ( ! root ) {
+				return;
+			}
+
+			const context = getContext< CockpitContext >();
+
+			const graph = graphFor( context );
+			const setPath = ( selector: string, d: string ): void => {
+				root.querySelector( selector )?.setAttribute( 'd', d );
+			};
+			setPath( '.bsb-summary__chart-area', graph?.area ?? '' );
+			setPath( '.bsb-summary__chart-fit', graph?.fit ?? '' );
+			setPath( '.bsb-summary__chart-line', graph?.step ?? '' );
+
+			const reason = context.reasonText?.[ context.endReason ];
+			const value =
+				context.endReason === 'targetDrop'
+					? `${ context.targetPercent }%`
+					: formatClock( context.elapsed );
+			const setText = ( selector: string, text: string ): void => {
+				const el = root.querySelector( selector );
+				if ( el ) {
+					el.textContent = text;
+				}
+			};
+			setText( '.bsb-summary__pm-arc-text', reason?.arc ?? '' );
+			setText( '.bsb-summary__pm-val', value );
+			setText( '.bsb-summary__pm-unit', reason?.unit ?? '' );
 		},
 	},
 } );

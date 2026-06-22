@@ -302,7 +302,7 @@ INNER;
 		</div>
 	</div>
 
-	<div class="bsb-summary" hidden data-wp-bind--hidden="!state.isEnded">
+	<div class="bsb-summary" hidden data-wp-bind--hidden="!state.isEnded" data-wp-watch="callbacks.renderSummary">
 		<div class="bsb-summary__card" data-wp-class--is-flipped="state.isFlipped">
 			<div class="bsb-summary__face bsb-summary__face--front">
 				<span class="bsb-cockpit__postcard-mark" aria-hidden="true"></span>
@@ -327,9 +327,9 @@ INNER;
 							<circle class="bsb-summary__pm-ring" cx="0" cy="0" r="47"></circle>
 							<circle class="bsb-summary__pm-ring" cx="0" cy="0" r="34"></circle>
 							<text class="bsb-summary__pm-arc" text-anchor="middle" dominant-baseline="central"><textPath href="#bsb-pm-top" startOffset="50%">{$summary_brand}</textPath></text>
-							<text class="bsb-summary__pm-arc" text-anchor="middle" dominant-baseline="central"><textPath href="#bsb-pm-bot" startOffset="50%" data-wp-text="state.summaryArc"></textPath></text>
-							<text class="bsb-summary__pm-val" x="0" y="-3" text-anchor="middle" dominant-baseline="central" data-wp-text="state.summaryPostmarkValue"></text>
-							<text class="bsb-summary__pm-unit" x="0" y="11" text-anchor="middle" dominant-baseline="central" data-wp-text="state.summaryPostmarkLabel"></text>
+							<text class="bsb-summary__pm-arc" text-anchor="middle" dominant-baseline="central"><textPath class="bsb-summary__pm-arc-text" href="#bsb-pm-bot" startOffset="50%"></textPath></text>
+							<text class="bsb-summary__pm-val" x="0" y="-3" text-anchor="middle" dominant-baseline="central"></text>
+							<text class="bsb-summary__pm-unit" x="0" y="11" text-anchor="middle" dominant-baseline="central"></text>
 						</svg>
 					</span>
 				</span>
@@ -339,9 +339,9 @@ INNER;
 					<span class="bsb-summary__divide" aria-hidden="true"></span>
 					<div class="bsb-summary__graph" data-wp-bind--hidden="!state.hasGraph">
 						<svg class="bsb-summary__chart" viewBox="0 0 360 120" preserveAspectRatio="none" aria-hidden="true">
-							<path class="bsb-summary__chart-area" data-wp-bind--d="state.graphArea"></path>
-							<path class="bsb-summary__chart-fit" data-wp-bind--d="state.graphFit"></path>
-							<path class="bsb-summary__chart-line" data-wp-bind--d="state.graphStep"></path>
+							<path class="bsb-summary__chart-area"></path>
+							<path class="bsb-summary__chart-fit"></path>
+							<path class="bsb-summary__chart-line"></path>
 						</svg>
 					</div>
 					<div class="bsb-summary__stats">

@@ -38,14 +38,15 @@ interface CockpitContext {
 	ended: boolean;
 	endReason: '' | 'duration' | 'targetDrop' | 'stopped' | 'plugged';
 	flipped: boolean;
+	reasonText: Record<
+		string,
+		{ head: string; sig: string; arc: string; unit: string }
+	>;
 }
 
 interface CockpitConfig {
 	state: {
 		hasGraph: boolean;
-		graphArea: string;
-		graphStep: string;
-		graphFit: string;
 		currentSrc: string;
 		isModeDuration: boolean;
 		isModeTargetDrop: boolean;
@@ -73,10 +74,11 @@ interface CockpitConfig {
 		isReasonTargetDrop: boolean;
 		isReasonStopped: boolean;
 		isReasonPlugged: boolean;
+		summaryHeading: string;
+		summarySig: string;
 		summaryElapsed: string;
 		summaryBattery: string;
 		summaryDropped: string;
-		summaryPostmarkValue: string;
 	};
 	actions: {
 		selectMode: () => void;
@@ -98,6 +100,7 @@ interface CockpitConfig {
 		initWakeLock: () => () => void;
 		syncRunActivity: () => void;
 		rollDuration: () => void;
+		renderSummary: () => void;
 	};
 }
 
@@ -131,6 +134,7 @@ const baseContext = (): CockpitContext => ( {
 	ended: false,
 	endReason: '',
 	flipped: false,
+	reasonText: {},
 } );
 
 const mocks = vi.hoisted( () => ( {
@@ -816,12 +820,6 @@ describe( 'bsb/cockpit view store', () => {
 
 			// The summary drain graph now has something to plot.
 			expect( mocks.config?.state.hasGraph ).toBe( true );
-			expect( mocks.config?.state.graphStep.startsWith( 'M' ) ).toBe(
-				true
-			);
-			expect( mocks.config?.state.graphArea.endsWith( 'Z' ) ).toBe(
-				true
-			);
 
 			cleanup();
 		} );
@@ -1160,18 +1158,63 @@ describe( 'bsb/cockpit view store', () => {
 
 		it( 'has no drain graph until a run has been sampled', () => {
 			expect( mocks.config?.state.hasGraph ).toBe( false );
-			expect( mocks.config?.state.graphStep ).toBe( '' );
-			expect( mocks.config?.state.graphArea ).toBe( '' );
 		} );
 
-		it( 'uses the target percent or the elapsed clock as the postmark value', () => {
-			mocks.context.endReason = 'targetDrop';
-			mocks.context.targetPercent = 75;
-			expect( mocks.config?.state.summaryPostmarkValue ).toBe( '75%' );
+		it( 'reads the verdict wording for the end reason', () => {
+			mocks.context.reasonText = {
+				stopped: {
+					head: 'Called it early.',
+					sig: 'You stopped the run.',
+					arc: '· STOPPED ·',
+					unit: 'elapsed',
+				},
+			};
+			mocks.context.endReason = 'stopped';
 
+			expect( mocks.config?.state.summaryHeading ).toBe(
+				'Called it early.'
+			);
+			expect( mocks.config?.state.summarySig ).toBe(
+				'You stopped the run.'
+			);
+		} );
+
+		it( 'paints the summary postmark text imperatively from the run', () => {
+			const nodes: Record< string, { textContent: string } > = {};
+			const root = {
+				querySelector: ( sel: string ) => {
+					nodes[ sel ] ??= {
+						textContent: '',
+						setAttribute() {
+							/* graph paths */
+						},
+					} as unknown as { textContent: string };
+					return nodes[ sel ];
+				},
+			};
+			mocks.element = root as unknown as MockElement;
+			mocks.context.reasonText = {
+				stopped: {
+					head: 'h',
+					sig: 's',
+					arc: '· STOPPED ·',
+					unit: 'elapsed',
+				},
+			};
 			mocks.context.endReason = 'stopped';
 			mocks.context.elapsed = 75;
-			expect( mocks.config?.state.summaryPostmarkValue ).toBe( '01:15' );
+
+			mocks.config?.callbacks.renderSummary();
+
+			expect( nodes[ '.bsb-summary__pm-arc-text' ].textContent ).toBe(
+				'· STOPPED ·'
+			);
+			expect( nodes[ '.bsb-summary__pm-val' ].textContent ).toBe(
+				'01:15'
+			);
+			expect( nodes[ '.bsb-summary__pm-unit' ].textContent ).toBe(
+				'elapsed'
+			);
 		} );
 	} );
 
