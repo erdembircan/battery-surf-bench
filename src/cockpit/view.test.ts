@@ -27,8 +27,6 @@ interface CockpitContext {
 	running: boolean;
 	compact: boolean;
 	elapsed: number;
-	theme: 'light' | 'dark';
-	themePref: 'light' | 'dark' | 'system';
 	targetPercent: number;
 	batteryLevel: number | null;
 	batteryCharging: boolean;
@@ -96,10 +94,8 @@ interface CockpitConfig {
 		toggleCompact: () => void;
 		toggleFlip: () => void;
 		newRun: () => void;
-		toggleTheme: () => void;
 	};
 	callbacks: {
-		initTheme: () => () => void;
 		initBattery: () => () => void;
 		initWakeLock: () => () => void;
 		syncRunActivity: () => void;
@@ -127,8 +123,6 @@ const baseContext = (): CockpitContext => ( {
 	running: false,
 	compact: false,
 	elapsed: 0,
-	theme: 'light',
-	themePref: 'system',
 	targetPercent: 20,
 	batteryLevel: null,
 	batteryCharging: false,
@@ -1254,107 +1248,6 @@ describe( 'bsb/cockpit view store', () => {
 			expect(
 				root.querySelector( '.bsb-frank__unit' )!.textContent
 			).toBe( 'elapsed' );
-		} );
-	} );
-
-	describe( 'theme', () => {
-		beforeEach( () => {
-			window.localStorage.clear();
-		} );
-
-		afterEach( () => {
-			delete ( window as { matchMedia?: unknown } ).matchMedia;
-		} );
-
-		/**
-		 * Stubs `prefers-color-scheme: dark` and lets a test flip it live.
-		 * @param matches
-		 */
-		const mockOsDark = ( matches: boolean ) => {
-			const listeners = new Set< () => void >();
-			const mql = {
-				matches,
-				addEventListener: ( _type: string, cb: () => void ) =>
-					listeners.add( cb ),
-				removeEventListener: ( _type: string, cb: () => void ) =>
-					listeners.delete( cb ),
-				flip: ( next: boolean ) => {
-					mql.matches = next;
-					listeners.forEach( ( cb ) => cb() );
-				},
-			};
-			( window as { matchMedia?: unknown } ).matchMedia = () => mql;
-
-			return mql;
-		};
-
-		it( 'cycles system → light → dark and remembers the preference', () => {
-			// The seeded preference is "system"; with no OS dark, it resolves light.
-			mocks.config?.actions.toggleTheme();
-			expect( mocks.context.themePref ).toBe( 'light' );
-			expect( mocks.context.theme ).toBe( 'light' );
-			expect( window.localStorage.getItem( 'bsb-cockpit-theme' ) ).toBe(
-				'light'
-			);
-
-			mocks.config?.actions.toggleTheme();
-			expect( mocks.context.themePref ).toBe( 'dark' );
-			expect( mocks.context.theme ).toBe( 'dark' );
-
-			mocks.config?.actions.toggleTheme();
-			expect( mocks.context.themePref ).toBe( 'system' );
-			expect( window.localStorage.getItem( 'bsb-cockpit-theme' ) ).toBe(
-				'system'
-			);
-		} );
-
-		it( 'restores a remembered fixed preference on init', () => {
-			window.localStorage.setItem( 'bsb-cockpit-theme', 'dark' );
-
-			mocks.config?.callbacks.initTheme();
-
-			expect( mocks.context.themePref ).toBe( 'dark' );
-			expect( mocks.context.theme ).toBe( 'dark' );
-		} );
-
-		it( 'defaults to following the system when nothing is remembered', () => {
-			mocks.config?.callbacks.initTheme();
-
-			expect( mocks.context.themePref ).toBe( 'system' );
-			expect( mocks.context.theme ).toBe( 'light' );
-		} );
-
-		it( 'resolves the system preference to the OS dark scheme', () => {
-			mockOsDark( true );
-
-			mocks.config?.callbacks.initTheme();
-
-			expect( mocks.context.themePref ).toBe( 'system' );
-			expect( mocks.context.theme ).toBe( 'dark' );
-		} );
-
-		it( 'lets a fixed preference override the OS', () => {
-			mockOsDark( true );
-			window.localStorage.setItem( 'bsb-cockpit-theme', 'light' );
-
-			mocks.config?.callbacks.initTheme();
-
-			expect( mocks.context.themePref ).toBe( 'light' );
-			expect( mocks.context.theme ).toBe( 'light' );
-		} );
-
-		it( 're-applies on OS change while on system, until cleaned up', () => {
-			const mql = mockOsDark( false );
-
-			const cleanup = mocks.config!.callbacks.initTheme();
-			expect( mocks.context.theme ).toBe( 'light' );
-
-			mql.flip( true );
-			expect( mocks.context.theme ).toBe( 'dark' );
-
-			cleanup();
-			mql.flip( false );
-			expect( mocks.context.theme ).toBe( 'dark' );
 		} );
 	} );
 } );

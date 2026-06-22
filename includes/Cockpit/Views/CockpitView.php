@@ -40,7 +40,6 @@ class CockpitView implements View {
 	 *     @type string $context           `data-wp-context` attribute from `wp_interactivity_data_wp_context()`.
 	 *     @type string $brand_title       Translated plugin name shown in the deck brand.
 	 *     @type string $brand_subtitle    Translated "Cockpit" label under the brand.
-	 *     @type string $theme_label       Translated accessible label for the theme toggle.
 	 *     @type string $mode_label        Translated label for the mode field.
 	 *     @type string $duration_mode     Translated label for the duration mode option.
 	 *     @type string $target_drop_mode  Translated label for the target-drop mode option.
@@ -88,7 +87,6 @@ class CockpitView implements View {
 		$context            = isset( $data['context'] ) ? (string) $data['context'] : '';
 		$brand_title        = isset( $data['brand_title'] ) ? (string) $data['brand_title'] : '';
 		$brand_subtitle     = isset( $data['brand_subtitle'] ) ? (string) $data['brand_subtitle'] : '';
-		$theme_label        = isset( $data['theme_label'] ) ? (string) $data['theme_label'] : '';
 		$mode_label         = isset( $data['mode_label'] ) ? (string) $data['mode_label'] : '';
 		$duration_mode      = isset( $data['duration_mode'] ) ? (string) $data['duration_mode'] : '';
 		$target_drop_mode   = isset( $data['target_drop_mode'] ) ? (string) $data['target_drop_mode'] : '';
@@ -165,7 +163,6 @@ class CockpitView implements View {
 		$speed_label_attr   = esc_attr( $speed_label );
 		$brand_title        = esc_html( $brand_title );
 		$brand_subtitle     = esc_html( $brand_subtitle );
-		$theme_label        = esc_attr( $theme_label );
 		$mode_label         = esc_html( $mode_label );
 		$duration_mode      = esc_html( $duration_mode );
 		$target_drop_mode   = esc_html( $target_drop_mode );
@@ -259,7 +256,7 @@ CELLS;
 INNER;
 
 		return <<<HTML
-<div {$wrapper} data-wp-interactive="bsb/cockpit" {$context} data-wp-init="callbacks.initTheme" data-wp-init---battery="callbacks.initBattery" data-wp-init---wake-lock="callbacks.initWakeLock" data-wp-watch---run-activity="callbacks.syncRunActivity" data-wp-bind--data-theme="context.theme" data-wp-class--is-compact="state.isCompact">
+<div {$wrapper} data-wp-interactive="bsb/cockpit" {$context} data-wp-init---battery="callbacks.initBattery" data-wp-init---wake-lock="callbacks.initWakeLock" data-wp-watch---run-activity="callbacks.syncRunActivity" data-wp-class--is-compact="state.isCompact">
 	<aside class="bsb-cockpit__deck">
 		<header class="bsb-deck__brand">
 			<span class="bsb-deck__mark" aria-hidden="true"></span>
@@ -267,7 +264,6 @@ INNER;
 			<span class="bsb-deck__subtitle">{$brand_subtitle}</span>
 			<span class="bsb-deck__actions">
 				<button type="button" class="bsb-deck__compact" data-wp-on--click="actions.toggleCompact" data-wp-class--is-hidden="state.isIdle" aria-label="{$compact_label}"></button>
-				<button type="button" class="bsb-deck__theme" data-pref="system" data-wp-bind--data-pref="context.themePref" data-wp-on--click="actions.toggleTheme" aria-label="{$theme_label}"></button>
 			</span>
 		</header>
 
