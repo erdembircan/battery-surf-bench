@@ -28,7 +28,7 @@ final class FrankedStampTest extends TestCase {
 
 	/**
 	 * The stamp, cancellation rings and the watch's text targets are present, with
-	 * the brand on the upper arc.
+	 * the brand on the upper arc — the cancellation is stamped by default.
 	 */
 	public function test_render_outputs_the_stamp_and_cancellation(): void {
 		$markup = ( new FrankedStamp() )->render(
@@ -37,11 +37,30 @@ final class FrankedStampTest extends TestCase {
 
 		$this->assertStringContainsString( 'class="bsb-frank"', $markup );
 		$this->assertStringContainsString( 'class="bsb-frank__stamp"', $markup );
+		$this->assertStringContainsString( 'class="bsb-frank__cancel"', $markup );
 		$this->assertStringContainsString( 'BATTERY · SURF · BENCH', $markup );
 		// The watch fills these from the run; they ship empty.
 		$this->assertStringContainsString( 'class="bsb-frank__arc-text"', $markup );
 		$this->assertStringContainsString( 'class="bsb-frank__val"', $markup );
 		$this->assertStringContainsString( 'class="bsb-frank__unit"', $markup );
+	}
+
+	/**
+	 * With the cancellation disabled (the startup postcard's blank stamp), the
+	 * bare perforated stamp ships with no postmark over it — the gating flag the
+	 * startup card relies on.
+	 */
+	public function test_render_omits_the_cancellation_when_disabled(): void {
+		$markup = ( new FrankedStamp() )->render(
+			array( 'cancel_enabled' => false )
+		);
+
+		// The perforated stamp itself still ships.
+		$this->assertStringContainsString( 'class="bsb-frank"', $markup );
+		$this->assertStringContainsString( 'class="bsb-frank__stamp"', $markup );
+		// …but no cancellation postmark is stamped over it.
+		$this->assertStringNotContainsString( 'class="bsb-frank__cancel"', $markup );
+		$this->assertStringNotContainsString( 'class="bsb-frank__arc-text"', $markup );
 	}
 
 	/**

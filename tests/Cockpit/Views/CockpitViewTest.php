@@ -41,6 +41,9 @@ final class CockpitViewTest extends TestCase {
 		$this->assertStringContainsString( 'data-wp-init---wake-lock="callbacks.initWakeLock"', $markup );
 		$this->assertStringContainsString( 'data-wp-watch---run-activity="callbacks.syncRunActivity"', $markup );
 		$this->assertStringContainsString( 'data-wp-class--is-compact="state.isCompact"', $markup );
+		// The deck is hidden by default (the stylesheet's base state) and revealed
+		// by the client adding this class once a run is live or the card is flipped.
+		$this->assertStringContainsString( 'data-wp-class--is-deck-shown="state.isDeckShown"', $markup );
 		$this->assertStringContainsString( 'class="wp-block-bsb-cockpit"', $markup );
 		$this->assertStringContainsString( 'data-wp-context=\'{"activeIndex":0}\'', $markup );
 		$this->assertStringContainsString( 'data-wp-bind--src="state.currentSrc"', $markup );
@@ -63,17 +66,24 @@ final class CockpitViewTest extends TestCase {
 	}
 
 	/**
-	 * Before a run the stage shows the idle postcard, not the iframe: the idle
+	 * Before a run the stage shows the startup postcard, not the iframe: the idle
 	 * screen is hidden while running and the viewport-wrap (shipped hidden) is
 	 * hidden while idle, so the benchmarked page never loads on the idle screen.
+	 * The postcard is the shared flip card on its picture front; its how-it-works
+	 * lives on the back, turned in by the startup flip (which reveals the deck).
 	 */
 	public function test_render_shows_the_idle_postcard_until_running(): void {
 		$markup = $this->render();
 
 		$this->assertStringContainsString( 'class="bsb-cockpit__idle" data-wp-bind--hidden="state.isRunning"', $markup );
 		$this->assertStringContainsString( 'class="bsb-cockpit__viewport-wrap" hidden data-wp-bind--hidden="state.isIdle"', $markup );
+		// The startup postcard is the shared flip card, turned by its own store
+		// field (idleFlipped), distinct from the summary card's flip.
+		$this->assertStringContainsString( 'class="bsb-flipcard bsb-flipcard--idle" data-wp-class--is-flipped="state.isIdleFlipped"', $markup );
+		$this->assertStringContainsString( 'data-wp-on--click="actions.toggleIdleFlip"', $markup );
 		$this->assertStringContainsString( 'class="bsb-photo__mark"', $markup );
-		$this->assertStringContainsString( 'class="bsb-cockpit__stamp"', $markup );
+		// The startup card carries a blank (uncancelled) franked stamp.
+		$this->assertStringContainsString( 'class="bsb-frank"', $markup );
 		$this->assertStringContainsString( 'How this run works', $markup );
 		$this->assertStringContainsString( 'Greetings from', $markup );
 		$this->assertStringContainsString( 'Set the session', $markup );

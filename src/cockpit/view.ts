@@ -80,6 +80,7 @@ interface CockpitContext {
 	ended: boolean;
 	endReason: RunEndReason;
 	flipped: boolean;
+	idleFlipped: boolean;
 	reasonText: Record< string, ReasonText >;
 	// Frozen summary readouts, stored on the context (reactive) at run end so the
 	// summary re-renders — the session log they derive from is not a signal.
@@ -107,6 +108,13 @@ interface ReasonText {
 	unit: string;
 }
 
+/**
+ * How long the startup card rests on its picture front after "New run" before it
+ * auto-flips to the how-it-works back (revealing the deck) — a beat to register
+ * the return to the start, then the deck slides in on its own.
+ */
+const AUTO_FLIP_DELAY_MS = 1000;
+
 /** Per-instance calculation state, kept off the reactive context and keyed by it. */
 interface InstanceState {
 	/** The run's sample log and drain-rate derivations. */
@@ -121,6 +129,12 @@ interface InstanceState {
 	clock: number | null;
 	/** The finish chime, or null where Web Audio is absent. */
 	chime: FinishChime | null;
+	/**
+	 * The pending auto-flip timeout id after "New run" returns to the startup
+	 * front, or null when none is scheduled. Tracked so a fresh dismissal cancels
+	 * any prior pending flip and the timeout can be cleared if a run starts first.
+	 */
+	idleFlipTimer: number | null;
 }
 
 /**
@@ -137,6 +151,7 @@ const runInstance: InstanceState = {
 	wakeLock: null,
 	clock: null,
 	chime: null,
+	idleFlipTimer: null,
 };
 
 /** The cockpit's run calculation state. */
@@ -385,6 +400,28 @@ store( 'bsb/cockpit', {
 		/** Whether a run is live — shows the pill and hides the config controls. */
 		get isRunning(): boolean {
 			return getContext< CockpitContext >().running;
+		},
+
+		/**
+		 * Whether the startup postcard is turned to its written "how it works"
+		 * back. Drives both the card's flip and the deck reveal (the two are
+		 * coupled before a run: flipping to the back slides the deck in).
+		 */
+		get isIdleFlipped(): boolean {
+			return getContext< CockpitContext >().idleFlipped;
+		},
+
+		/**
+		 * Whether the control deck is slid into view. The deck is hidden by
+		 * default (the stylesheet's base state), so at session start the postcard
+		 * stands alone with no hydration flash; this reveal class is added once a
+		 * run is live (the deck carries the readouts pill) or the startup card is
+		 * flipped to its back.
+		 */
+		get isDeckShown(): boolean {
+			const { running, idleFlipped } = getContext< CockpitContext >();
+
+			return running || idleFlipped;
 		},
 
 		/**
@@ -711,15 +748,40 @@ store( 'bsb/cockpit', {
 		},
 
 		/**
-		 * Dismisses the summary back to the idle startup screen — the deck and the
-		 * startup postcard — without beginning a run. Clears the ended state; a run
-		 * only starts later when the user presses Start.
+		 * Turns the startup postcard between its picture front and its written
+		 * "how it works" back. Coupled to the deck reveal: the back is shown with
+		 * the control deck slid in, the front with the deck tucked away.
+		 */
+		toggleIdleFlip(): void {
+			const context = getContext< CockpitContext >();
+			context.idleFlipped = ! context.idleFlipped;
+		},
+
+		/**
+		 * Dismisses the summary back to the startup screen — the postcard on its
+		 * picture front, as at session start — without beginning a run. Clears the
+		 * ended and flip state, then, after a short beat, auto-flips the startup
+		 * card to its how-it-works back so the deck slides in on its own (saving a
+		 * manual re-flip). The auto-flip sets `idleFlipped` explicitly rather than
+		 * toggling it: if the user flips by hand during the wait, the timer still
+		 * lands on the back instead of undoing their flip.
 		 */
 		newRun(): void {
 			const context = getContext< CockpitContext >();
+			const instance = instanceFor();
+
 			context.ended = false;
 			context.endReason = '';
 			context.flipped = false;
+			context.idleFlipped = false;
+
+			if ( instance.idleFlipTimer !== null ) {
+				clearTimeout( instance.idleFlipTimer );
+			}
+			instance.idleFlipTimer = setTimeout( () => {
+				context.idleFlipped = true;
+				instance.idleFlipTimer = null;
+			}, AUTO_FLIP_DELAY_MS ) as unknown as number;
 		},
 	},
 	callbacks: {

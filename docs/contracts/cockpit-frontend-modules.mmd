@@ -8,8 +8,9 @@ classDiagram
     class CockpitStore {
         <<module>>
         state: derived readouts
-        actions: deck controls, toggleSound, toggleFlip
+        actions: deck controls, toggleSound, toggleFlip, toggleIdleFlip
         callbacks: initBattery, initWakeLock, initSound, syncRunActivity, rollDuration
+        startup: idleFlipped + isDeckShown (flip reveals the deck)
         summary: ended/flipped/reason + drain-graph getters
     }
 

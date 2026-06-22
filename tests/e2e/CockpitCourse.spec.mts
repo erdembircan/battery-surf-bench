@@ -76,11 +76,34 @@ test.describe( 'Cockpit dashboard route', () => {
 		// the server markup — it must not flash in before hydration hides it.
 		await expect( page.locator( '.bsb-field--target' ) ).toBeHidden();
 
-		// Before a run the stage shows the idle postcard, not the iframe.
+		// Before a run the stage shows the startup postcard, not the iframe. It is
+		// the shared flip card on its picture front, turned by its own store field
+		// (idleFlipped) — distinct from the summary card's flip.
 		await expect( page.locator( '.bsb-cockpit__idle' ) ).toBeVisible();
+		await expect(
+			page.locator(
+				'.bsb-flipcard--idle[data-wp-class--is-flipped="state.isIdleFlipped"]'
+			)
+		).toBeAttached();
+		await expect(
+			page
+				.locator(
+					'.bsb-flipcard--idle .bsb-flipcard__flip[data-wp-on--click="actions.toggleIdleFlip"]'
+				)
+				.first()
+		).toBeAttached();
 		await expect(
 			page.locator( '.bsb-cockpit__postcard-heading' )
 		).toHaveText( /how this run works/i );
+
+		// At session start the control deck is tucked away (the stylesheet's
+		// default) so the postcard stands alone with no hydration flash — the
+		// reveal class is absent until a run is live or the startup card is
+		// flipped. The deck markup itself is still present (off-screen).
+		await expect(
+			page.locator( '.wp-block-bsb-cockpit.is-deck-shown' )
+		).toHaveCount( 0 );
+		await expect( page.locator( '.bsb-cockpit__deck' ) ).toBeAttached();
 
 		// The viewport ships hidden and the benchmarked page is NOT fetched while
 		// idle — the iframe src stays empty until surfing starts.
@@ -99,17 +122,18 @@ test.describe( 'Cockpit dashboard route', () => {
 		).toBeAttached();
 
 		// The run-summary flip card is present but hidden until a run ends, with
-		// its flip control and report wired to the store.
+		// its flip control and report wired to the store. It reuses the same shared
+		// flip-card shell as the startup postcard, bound to the summary's flip field.
 		await expect( page.locator( '.bsb-summary' ) ).toBeHidden();
 		await expect(
 			page.locator(
-				'.bsb-summary__card[data-wp-class--is-flipped="state.isFlipped"]'
+				'.bsb-flipcard--summary[data-wp-class--is-flipped="state.isFlipped"]'
 			)
 		).toBeAttached();
 		await expect(
 			page
 				.locator(
-					'.bsb-summary__flip[data-wp-on--click="actions.toggleFlip"]'
+					'.bsb-flipcard--summary .bsb-flipcard__flip[data-wp-on--click="actions.toggleFlip"]'
 				)
 				.first()
 		).toBeAttached();

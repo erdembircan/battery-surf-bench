@@ -62,6 +62,9 @@ $bsb_context = array(
 	'ended'               => false,
 	'endReason'           => '',
 	'flipped'             => false,
+	// The startup postcard opens on its picture front, deck tucked away; flipping
+	// to the "how it works" back slides the deck in.
+	'idleFlipped'         => false,
 	// Summary readouts, frozen onto the context at run end (kept reactive so the
 	// summary renders); empty until a run finishes.
 	'summaryBatteryStart' => '',
@@ -105,6 +108,13 @@ $bsb_context = array(
 // `src` is rendered — the Interactivity runtime processes the binding during
 // server render too, and would strip a literal value since the derived getter
 // is defined client-side.
+//
+// The deck is hidden by default in the stylesheet, not via a class here: a
+// freshly rendered cockpit is always the startup front, so the deck must paint
+// tucked away. The client adds `is-deck-shown` once a run is live or the startup
+// card is flipped. Defaulting to hidden in CSS (rather than a server-seeded
+// class, which the Interactivity runtime would strip since the getter is
+// client-side) means the deck never flashes in and slides out on load.
 $bsb_markup = ( new CockpitView() )->render(
 	array(
 		'wrapper'            => get_block_wrapper_attributes(),

@@ -14,29 +14,41 @@ use function esc_html;
 defined( 'ABSPATH' ) || exit;
 
 /**
- * A reusable franked stamp: a perforated postage stamp with a round cancellation
- * postmark stamped over it, deliberately askew. The component is
- * absolutely-positioned so it never pushes the layout it sits on. The
+ * A reusable franked stamp: a perforated postage stamp with — when enabled — a
+ * round cancellation postmark stamped over it, deliberately askew. The component
+ * is absolutely-positioned so it never pushes the layout it sits on. The
  * cancellation's verdict text (the lower arc, value and unit) is left empty here
  * and painted by the store's `renderSummary` watch, since the Interactivity
  * runtime cannot process directives inside SVG during server render.
+ *
+ * The cancellation is gated by `cancel_enabled`: the end-of-run summary franks
+ * its stamp (a cancelled postmark reads as "this run is done"), while the
+ * pre-run startup postcard shows a blank, uncancelled stamp.
  */
 class FrankedStamp implements View {
 
 	/**
 	 * Renders the franked stamp.
 	 *
-	 * @param array<string, mixed> $data View data: raw `brand` (the view escapes it) for
-	 *                                    the postmark's upper curved label.
+	 * @param array<string, mixed> $data {
+	 *     View data.
+	 *
+	 *     @type string $brand          Raw upper curved label (the view escapes it).
+	 *     @type bool   $cancel_enabled Whether to stamp the cancellation postmark over the
+	 *                                  stamp. Defaults to true; pass false for a blank stamp.
+	 * }
 	 * @return string The franked-stamp markup.
 	 */
 	public function render( array $data = array() ): string {
-		$brand = esc_html( isset( $data['brand'] ) ? (string) $data['brand'] : '' );
+		$brand          = esc_html( isset( $data['brand'] ) ? (string) $data['brand'] : '' );
+		$cancel_enabled = ! isset( $data['cancel_enabled'] ) || (bool) $data['cancel_enabled'];
 
-		return <<<HTML
-<span class="bsb-frank" aria-hidden="true">
-	<span class="bsb-frank__stamp"></span>
-	<span class="bsb-frank__cancel">
+		// The cancellation postmark — only stamped when enabled. A blank stamp
+		// (startup postcard) is the bare perforated stamp with no postmark over it.
+		$cancel = '';
+		if ( $cancel_enabled ) {
+			$cancel = <<<HTML
+<span class="bsb-frank__cancel">
 		<svg class="bsb-frank__pm" viewBox="-60 -60 120 120" width="100%" height="100%">
 			<defs>
 				<path id="bsb-frank-top" d="M-40.5 0 A40.5 40.5 0 0 1 40.5 0"></path>
@@ -54,6 +66,13 @@ class FrankedStamp implements View {
 			<text class="bsb-frank__unit" x="0" y="11" text-anchor="middle" dominant-baseline="central"></text>
 		</svg>
 	</span>
+HTML;
+		}
+
+		return <<<HTML
+<span class="bsb-frank" aria-hidden="true">
+	<span class="bsb-frank__stamp"></span>
+	{$cancel}
 </span>
 HTML;
 	}
