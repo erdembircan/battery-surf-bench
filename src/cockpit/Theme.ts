@@ -4,8 +4,12 @@
  * The deck offers two palettes — Coastal Daybreak (light) and Dusk Lineup
  * (dark) — chosen by a preference that can also follow the operating system.
  * This module owns the preference vocabulary, how a preference resolves to an
- * applied theme, and how the choice is remembered across visits, so the store
- * only has to wire these to context and the toggle control.
+ * applied theme, and how the choice is remembered across visits.
+ *
+ * Dark mode is currently disabled: this module is retained intact but the
+ * cockpit store no longer wires it, so nothing resolves, persists, or reads a
+ * theme preference and the deck renders the light palette only. The API is kept
+ * here so the functionality can be reconnected without rebuilding it.
  */
 
 /** The deck's resolved colour theme — Coastal Daybreak or Dusk Lineup. */

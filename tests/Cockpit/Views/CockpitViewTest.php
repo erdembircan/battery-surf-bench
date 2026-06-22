@@ -37,11 +37,9 @@ final class CockpitViewTest extends TestCase {
 		$markup = $this->render();
 
 		$this->assertStringContainsString( 'data-wp-interactive="bsb/cockpit"', $markup );
-		$this->assertStringContainsString( 'data-wp-init="callbacks.initTheme"', $markup );
 		$this->assertStringContainsString( 'data-wp-init---battery="callbacks.initBattery"', $markup );
 		$this->assertStringContainsString( 'data-wp-init---wake-lock="callbacks.initWakeLock"', $markup );
 		$this->assertStringContainsString( 'data-wp-watch---run-activity="callbacks.syncRunActivity"', $markup );
-		$this->assertStringContainsString( 'data-wp-bind--data-theme="context.theme"', $markup );
 		$this->assertStringContainsString( 'data-wp-class--is-compact="state.isCompact"', $markup );
 		$this->assertStringContainsString( 'class="wp-block-bsb-cockpit"', $markup );
 		$this->assertStringContainsString( 'data-wp-context=\'{"activeIndex":0}\'', $markup );
@@ -259,17 +257,18 @@ final class CockpitViewTest extends TestCase {
 	}
 
 	/**
-	 * The theme toggle cycles the preference through `actions.toggleTheme`,
-	 * reflects the current preference for its icon, and carries its accessible
-	 * label so the deck can switch between light, dark and system themes.
+	 * Dark mode is disabled: the deck renders no theme switcher and the region
+	 * binds no theme, so the cockpit shows the light palette only and nothing
+	 * reads or writes a stored theme preference.
 	 */
-	public function test_render_wires_the_theme_toggle(): void {
+	public function test_render_omits_the_theme_switcher(): void {
 		$markup = $this->render();
 
-		$this->assertStringContainsString( 'class="bsb-deck__theme"', $markup );
-		$this->assertStringContainsString( 'data-wp-on--click="actions.toggleTheme"', $markup );
-		$this->assertStringContainsString( 'data-wp-bind--data-pref="context.themePref"', $markup );
-		$this->assertStringContainsString( 'aria-label="Toggle light or dark theme"', $markup );
+		$this->assertStringNotContainsString( 'bsb-deck__theme', $markup );
+		$this->assertStringNotContainsString( 'actions.toggleTheme', $markup );
+		$this->assertStringNotContainsString( 'callbacks.initTheme', $markup );
+		$this->assertStringNotContainsString( 'data-theme', $markup );
+		$this->assertStringNotContainsString( 'context.themePref', $markup );
 	}
 
 	/**
@@ -298,11 +297,11 @@ final class CockpitViewTest extends TestCase {
 	public function test_render_escapes_the_values_it_is_handed(): void {
 		$markup = ( new CockpitView() )->render(
 			array(
-				'wrapper'     => 'class="wp-block-bsb-cockpit"',
-				'context'     => 'data-wp-context=\'{}\'',
-				'brand_title' => '<b>X</b>',
-				'theme_label' => 'Theme "x"',
-				'mode_label'  => 'Mode <i>',
+				'wrapper'       => 'class="wp-block-bsb-cockpit"',
+				'context'       => 'data-wp-context=\'{}\'',
+				'brand_title'   => '<b>X</b>',
+				'compact_label' => 'Compact "x"',
+				'mode_label'    => 'Mode <i>',
 			)
 		);
 
@@ -310,7 +309,7 @@ final class CockpitViewTest extends TestCase {
 		$this->assertStringContainsString( '&lt;b&gt;X&lt;/b&gt;', $markup );
 		$this->assertStringNotContainsString( '<b>X</b>', $markup );
 		// Attribute slot escaped.
-		$this->assertStringContainsString( 'aria-label="Theme &quot;x&quot;"', $markup );
+		$this->assertStringContainsString( 'aria-label="Compact &quot;x&quot;"', $markup );
 		// A label used in both a text slot and an aria-label is escaped in both.
 		$this->assertStringContainsString( 'Mode &lt;i&gt;', $markup );
 		$this->assertStringNotContainsString( 'Mode <i>', $markup );
@@ -329,7 +328,6 @@ final class CockpitViewTest extends TestCase {
 				'context'            => 'data-wp-context=\'{"activeIndex":0}\'',
 				'brand_title'        => 'Battery Surf Bench',
 				'brand_subtitle'     => 'Cockpit',
-				'theme_label'        => 'Toggle light or dark theme',
 				'mode_label'         => 'Mode',
 				'duration_mode'      => 'Duration',
 				'target_drop_mode'   => 'Target drop',

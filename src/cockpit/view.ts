@@ -34,14 +34,6 @@ import {
 	targetColor,
 } from './TargetControl';
 import {
-	type ThemeName,
-	type ThemePref,
-	resolveTheme,
-	nextThemePref,
-	readStoredPref,
-	writeStoredPref,
-} from './Theme';
-import {
 	formatClock,
 	formatTimeToEmpty,
 	formatRate,
@@ -71,8 +63,6 @@ interface CockpitContext {
 	running: boolean;
 	compact: boolean;
 	elapsed: number;
-	theme: ThemeName;
-	themePref: ThemePref;
 	targetPercent: number;
 	batteryLevel: number | null;
 	batteryCharging: boolean;
@@ -680,19 +670,6 @@ store( 'bsb/cockpit', {
 			context.endReason = '';
 			context.flipped = false;
 		},
-
-		/**
-		 * Cycles the theme preference (system → light → dark → system) and
-		 * remembers it. "System" follows the OS, so it is a sticky choice in its
-		 * own right; a fixed light/dark choice overrides the OS until changed.
-		 */
-		toggleTheme(): void {
-			const context = getContext< CockpitContext >();
-			const next = nextThemePref( context.themePref );
-			context.themePref = next;
-			context.theme = resolveTheme( next );
-			writeStoredPref( next );
-		},
 	},
 	callbacks: {
 		/**
@@ -836,31 +813,6 @@ store( 'bsb/cockpit', {
 				void instance.wakeLock?.release();
 				instance.wakeLock = null;
 			};
-		},
-
-		/**
-		 * Restores the remembered theme preference on mount and keeps the resolved
-		 * theme in sync: a fixed light/dark choice applies as-is, while "system"
-		 * (the default) follows the OS and re-applies when its scheme changes.
-		 * Returns a cleanup that detaches the OS listener.
-		 */
-		initTheme(): () => void {
-			const context = getContext< CockpitContext >();
-			const media =
-				typeof window.matchMedia === 'function'
-					? window.matchMedia( '(prefers-color-scheme: dark)' )
-					: null;
-
-			const apply = (): void => {
-				const pref = readStoredPref();
-				context.themePref = pref;
-				context.theme = resolveTheme( pref );
-			};
-
-			apply();
-			media?.addEventListener?.( 'change', apply );
-
-			return () => media?.removeEventListener?.( 'change', apply );
 		},
 
 		/**

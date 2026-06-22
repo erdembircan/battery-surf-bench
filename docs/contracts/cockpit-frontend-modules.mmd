@@ -9,7 +9,7 @@ classDiagram
         <<module>>
         state: derived readouts
         actions: deck controls, toggleFlip
-        callbacks: initBattery, initWakeLock, initTheme, syncRunActivity, rollDuration
+        callbacks: initBattery, initWakeLock, syncRunActivity, rollDuration
         summary: ended/flipped/reason + drain-graph getters
     }
 
@@ -31,6 +31,9 @@ classDiagram
         +TARGET_MIN, TARGET_MAX, TARGET_STEP
     }
 
+    %% Dark mode is disabled: the Theme module is retained in the codebase but
+    %% intentionally unwired — the store no longer imports it, so the cockpit
+    %% renders the light palette only and nothing reads/writes the stored pref.
     class Theme {
         <<module>>
         +resolveTheme(ThemePref) ThemeName
@@ -101,7 +104,6 @@ classDiagram
 
     CockpitStore --> RunConfig : normalizes config
     CockpitStore --> TargetControl : maps slider input
-    CockpitStore --> Theme : resolves & persists theme
     CockpitStore --> Format : formats readouts
     CockpitStore --> BatteryMonitor : creates & owns (composition)
     CockpitStore --> ScreenWakeLock : creates & owns (composition)

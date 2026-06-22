@@ -296,7 +296,6 @@ body {
 	gap: 0.5rem;
 }
 
-.bsb-deck__theme,
 .bsb-deck__compact {
 	position: relative;
 	z-index: 1;
@@ -354,26 +353,6 @@ body {
 		mask-image: theme.$chevron-down;
 		-webkit-mask-image: theme.$chevron-down;
 		transform: rotate(180deg);
-	}
-}
-
-// The theme icon reflects the current preference: sun (light), moon (dark), or
-// a monitor (system / follow-the-OS), masked from the shared theme icons.
-.bsb-deck__theme {
-
-	&[data-pref='light']::before {
-		mask-image: theme.$sun-icon;
-		-webkit-mask-image: theme.$sun-icon;
-	}
-
-	&[data-pref='dark']::before {
-		mask-image: theme.$moon;
-		-webkit-mask-image: theme.$moon;
-	}
-
-	&[data-pref='system']::before {
-		mask-image: theme.$monitor-icon;
-		-webkit-mask-image: theme.$monitor-icon;
 	}
 }
 

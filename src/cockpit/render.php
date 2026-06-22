@@ -46,8 +46,6 @@ $bsb_context = array(
 	'running'             => false,
 	'compact'             => false,
 	'elapsed'             => 0,
-	'theme'               => 'light',
-	'themePref'           => 'system',
 	// Seeded at the nominal max; the client caps it down to the current battery
 	// level on the first reading, so the slider defaults to "as much as you have".
 	'targetPercent'       => 95,
@@ -110,7 +108,6 @@ $bsb_markup = ( new CockpitView() )->render(
 		'context'            => wp_interactivity_data_wp_context( $bsb_context ),
 		'brand_title'        => __( 'Battery Surf Bench', 'battery-surf-bench' ),
 		'brand_subtitle'     => __( 'Cockpit', 'battery-surf-bench' ),
-		'theme_label'        => __( 'Toggle light or dark theme', 'battery-surf-bench' ),
 		'mode_label'         => __( 'Mode', 'battery-surf-bench' ),
 		'duration_mode'      => __( 'Duration', 'battery-surf-bench' ),
 		'target_drop_mode'   => __( 'Target drop', 'battery-surf-bench' ),
