@@ -8,8 +8,9 @@ classDiagram
     class CockpitStore {
         <<module>>
         state: derived readouts
-        actions: deck controls
+        actions: deck controls, toggleFlip
         callbacks: initBattery, initWakeLock, initTheme, syncRunActivity, rollDuration
+        summary: ended/flipped/reason + drain-graph getters
     }
 
     class RunConfig {
@@ -56,6 +57,11 @@ classDiagram
         +WINDOW_MS
     }
 
+    class DrainGraph {
+        <<module>>
+        +buildGraph(Sample[], GraphViewport) GraphModel|null
+    }
+
     class SampleLog {
         +record(number, number, bool) void
         +all() RleSample[]
@@ -69,6 +75,8 @@ classDiagram
         +active: bool
         +record(number, number, bool) void
         +readouts() Readouts
+        +summary() RunSummary|null
+        +samples() RleSample[]
         +stop() void
     }
 
@@ -94,6 +102,8 @@ classDiagram
     CockpitStore --> ScreenWakeLock : creates & owns (composition)
     CockpitStore --> RunSession : creates & owns (composition)
     BatteryMonitor ..> CockpitStore : reports BatteryReading
+    CockpitStore --> DrainGraph : builds summary chart
     RunSession --> SampleLog : creates & owns (composition)
     RunSession --> DrainRate : fits & projects
+    DrainGraph --> DrainRate : fits the drain line
     SampleLog ..> DrainRate : RleSample extends Sample

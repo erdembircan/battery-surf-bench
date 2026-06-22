@@ -85,6 +85,22 @@ test.describe( 'Cockpit dashboard route', () => {
 			page.locator( '.bsb-cockpit__shield-badge' )
 		).toBeAttached();
 
+		// The run-summary flip card is present but hidden until a run ends, with
+		// its flip control and report wired to the store.
+		await expect( page.locator( '.bsb-summary' ) ).toBeHidden();
+		await expect(
+			page.locator(
+				'.bsb-summary__card[data-wp-class--is-flipped="state.isFlipped"]'
+			)
+		).toBeAttached();
+		await expect(
+			page
+				.locator(
+					'.bsb-summary__flip[data-wp-on--click="actions.toggleFlip"]'
+				)
+				.first()
+		).toBeAttached();
+
 		// Stripped dashboard: the cockpit's own stylesheet is the only one that
 		// survives — every theme or other-plugin stylesheet is dequeued, so no
 		// foreign CSS leaks in.

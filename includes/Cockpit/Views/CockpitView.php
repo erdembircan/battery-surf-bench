@@ -119,6 +119,12 @@ class CockpitView implements View {
 		$idle_step3_text    = isset( $data['idle_step3_text'] ) ? (string) $data['idle_step3_text'] : '';
 		$idle_notice_title  = isset( $data['idle_notice_title'] ) ? (string) $data['idle_notice_title'] : '';
 		$idle_notice_text   = isset( $data['idle_notice_text'] ) ? (string) $data['idle_notice_text'] : '';
+		$dropped_label      = isset( $data['dropped_label'] ) ? (string) $data['dropped_label'] : '';
+		$pts_label          = isset( $data['pts_label'] ) ? (string) $data['pts_label'] : '';
+		$elapsed_run_label  = isset( $data['elapsed_run_label'] ) ? (string) $data['elapsed_run_label'] : '';
+		$new_run_label      = isset( $data['new_run_label'] ) ? (string) $data['new_run_label'] : '';
+		$flip_label         = isset( $data['flip_label'] ) ? (string) $data['flip_label'] : '';
+		$summary_brand      = isset( $data['summary_brand'] ) ? (string) $data['summary_brand'] : '';
 
 		// Each duration-odometer wheel is a strip of 0–9 repeated three times; the
 		// client store (rollDuration) slides it to roll the digit. Built here so
@@ -293,6 +299,65 @@ INNER;
 			<iframe class="bsb-cockpit__viewport" title="{$viewport_title}" data-wp-bind--src="state.currentSrc"></iframe>
 			<div class="bsb-cockpit__shield" aria-hidden="true"></div>
 			<p class="bsb-cockpit__shield-badge">{$shield_label}</p>
+		</div>
+	</div>
+
+	<div class="bsb-summary" hidden data-wp-bind--hidden="!state.isEnded">
+		<div class="bsb-summary__card" data-wp-class--is-flipped="state.isFlipped">
+			<div class="bsb-summary__face bsb-summary__face--front">
+				<span class="bsb-cockpit__postcard-mark" aria-hidden="true"></span>
+				<span class="bsb-cockpit__postcard-wash" aria-hidden="true"></span>
+				<span class="bsb-cockpit__postcard-grain" aria-hidden="true"></span>
+				<p class="bsb-cockpit__postcard-greet">{$greeting_lead}<span>{$brand_title}</span></p>
+				<button type="button" class="bsb-summary__flip" data-wp-on--click="actions.toggleFlip"><span class="bsb-summary__flip-icon" aria-hidden="true"></span>{$flip_label}</button>
+			</div>
+			<div class="bsb-summary__face bsb-summary__face--back">
+				<span class="bsb-summary__frank" aria-hidden="true">
+					<span class="bsb-cockpit__stamp"></span>
+					<span class="bsb-summary__cancel">
+						<svg class="bsb-summary__pm" viewBox="-60 -60 120 120" width="100%" height="100%">
+							<defs>
+								<path id="bsb-pm-top" d="M-40.5 0 A40.5 40.5 0 0 1 40.5 0"></path>
+								<path id="bsb-pm-bot" d="M40.5 0 A40.5 40.5 0 0 1 -40.5 0"></path>
+							</defs>
+							<path class="bsb-summary__pm-bar" d="M-58 -15 q 13 -5 26 0 t 26 0"></path>
+							<path class="bsb-summary__pm-bar" d="M-58 -5 q 13 -5 26 0 t 26 0"></path>
+							<path class="bsb-summary__pm-bar" d="M-58 5 q 13 -5 26 0 t 26 0"></path>
+							<path class="bsb-summary__pm-bar" d="M-58 15 q 13 -5 26 0 t 26 0"></path>
+							<circle class="bsb-summary__pm-ring" cx="0" cy="0" r="47"></circle>
+							<circle class="bsb-summary__pm-ring" cx="0" cy="0" r="34"></circle>
+							<text class="bsb-summary__pm-arc" text-anchor="middle" dominant-baseline="central"><textPath href="#bsb-pm-top" startOffset="50%">{$summary_brand}</textPath></text>
+							<text class="bsb-summary__pm-arc" text-anchor="middle" dominant-baseline="central"><textPath href="#bsb-pm-bot" startOffset="50%" data-wp-text="state.summaryArc"></textPath></text>
+							<text class="bsb-summary__pm-val" x="0" y="-3" text-anchor="middle" dominant-baseline="central" data-wp-text="state.summaryPostmarkValue"></text>
+							<text class="bsb-summary__pm-unit" x="0" y="11" text-anchor="middle" dominant-baseline="central" data-wp-text="state.summaryPostmarkLabel"></text>
+						</svg>
+					</span>
+				</span>
+				<div class="bsb-summary__report">
+					<h2 class="bsb-summary__head" data-wp-text="state.summaryHeading"></h2>
+					<p class="bsb-summary__sig" data-wp-text="state.summarySig"></p>
+					<span class="bsb-summary__divide" aria-hidden="true"></span>
+					<div class="bsb-summary__graph" data-wp-bind--hidden="!state.hasGraph">
+						<svg class="bsb-summary__chart" viewBox="0 0 360 120" preserveAspectRatio="none" aria-hidden="true">
+							<path class="bsb-summary__chart-area" data-wp-bind--d="state.graphArea"></path>
+							<path class="bsb-summary__chart-fit" data-wp-bind--d="state.graphFit"></path>
+							<path class="bsb-summary__chart-line" data-wp-bind--d="state.graphStep"></path>
+						</svg>
+					</div>
+					<div class="bsb-summary__stats">
+						<div class="bsb-stat"><span class="bsb-stat__label">{$tte_label}</span><span class="bsb-stat__value" data-wp-text="state.timeToEmptyDisplay"></span></div>
+						<div class="bsb-stat"><span class="bsb-stat__label">{$rate_session_label}</span><span class="bsb-stat__value"><span data-wp-text="state.rateSessionDisplay"></span><span class="bsb-stat__unit">%/h</span></span></div>
+						<div class="bsb-stat"><span class="bsb-stat__label">{$rate10_label}</span><span class="bsb-stat__value"><span data-wp-text="state.rate10Display"></span><span class="bsb-stat__unit">%/h</span></span></div>
+						<div class="bsb-stat"><span class="bsb-stat__label">{$battery_label}</span><span class="bsb-stat__value" data-wp-text="state.summaryBattery"></span></div>
+						<div class="bsb-stat"><span class="bsb-stat__label">{$dropped_label}</span><span class="bsb-stat__value"><span data-wp-text="state.summaryDropped"></span><span class="bsb-stat__unit">{$pts_label}</span></span></div>
+						<div class="bsb-stat"><span class="bsb-stat__label">{$elapsed_run_label}</span><span class="bsb-stat__value" data-wp-text="state.summaryElapsed"></span></div>
+					</div>
+					<div class="bsb-summary__actions">
+						<button type="button" class="bsb-summary__new" data-wp-on--click="actions.toggleRun">{$new_run_label}</button>
+					</div>
+				</div>
+				<button type="button" class="bsb-summary__flip bsb-summary__flip--paper" data-wp-on--click="actions.toggleFlip"><span class="bsb-summary__flip-icon" aria-hidden="true"></span>{$flip_label}</button>
+			</div>
 		</div>
 	</div>
 </div>

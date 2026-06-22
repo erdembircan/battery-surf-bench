@@ -61,6 +61,34 @@ $bsb_context = array(
 	'ended'           => false,
 	'endReason'       => '',
 	'flipped'         => false,
+	// Translated summary wording, indexed by end reason; the store picks the set
+	// matching how the run ended (kept here so the strings stay translatable).
+	'reasonText'      => array(
+		'duration'   => array(
+			'head' => esc_html__( 'The run is in.', 'battery-surf-bench' ),
+			'sig'  => esc_html__( 'Ran the full duration.', 'battery-surf-bench' ),
+			'arc'  => esc_html__( '· COMPLETED ·', 'battery-surf-bench' ),
+			'unit' => esc_html__( 'run', 'battery-surf-bench' ),
+		),
+		'targetDrop' => array(
+			'head' => esc_html__( 'Target reached.', 'battery-surf-bench' ),
+			'sig'  => esc_html__( 'The battery hit your mark.', 'battery-surf-bench' ),
+			'arc'  => esc_html__( '· TARGET MET ·', 'battery-surf-bench' ),
+			'unit' => esc_html__( 'reached', 'battery-surf-bench' ),
+		),
+		'stopped'    => array(
+			'head' => esc_html__( 'Called it early.', 'battery-surf-bench' ),
+			'sig'  => esc_html__( 'You stopped the run.', 'battery-surf-bench' ),
+			'arc'  => esc_html__( '· STOPPED ·', 'battery-surf-bench' ),
+			'unit' => esc_html__( 'elapsed', 'battery-surf-bench' ),
+		),
+		'plugged'    => array(
+			'head' => esc_html__( 'Plugged back in.', 'battery-surf-bench' ),
+			'sig'  => esc_html__( 'The charger ended the run.', 'battery-surf-bench' ),
+			'arc'  => esc_html__( '· INTERRUPTED ·', 'battery-surf-bench' ),
+			'unit' => esc_html__( 'elapsed', 'battery-surf-bench' ),
+		),
+	),
 );
 
 // The viewport's `src` is owned by the Interactivity API: `data-wp-bind--src`
@@ -110,6 +138,12 @@ $bsb_markup = ( new CockpitView() )->render(
 		'idle_step2_text'    => esc_html__( 'Hit Start. The charger unplugs and the run begins on its own.', 'battery-surf-bench' ),
 		'idle_step3_title'   => esc_html__( 'Watch the slope', 'battery-surf-bench' ),
 		'idle_step3_text'    => esc_html__( 'It runs hands-free while the battery drains; you just watch the numbers.', 'battery-surf-bench' ),
+		'dropped_label'      => esc_html__( 'Dropped', 'battery-surf-bench' ),
+		'pts_label'          => esc_html__( 'pts', 'battery-surf-bench' ),
+		'elapsed_run_label'  => esc_html__( 'Elapsed', 'battery-surf-bench' ),
+		'new_run_label'      => esc_html__( 'New run', 'battery-surf-bench' ),
+		'flip_label'         => esc_html__( 'Flip', 'battery-surf-bench' ),
+		'summary_brand'      => esc_html__( 'BATTERY · SURF · BENCH', 'battery-surf-bench' ),
 		'idle_notice_title'  => esc_html__( 'Keep the laptop open', 'battery-surf-bench' ),
 		'idle_notice_text'   => esc_html__( 'Keep the laptop\'s lid open for the whole run. If the screen goes dark, the run can\'t measure properly.', 'battery-surf-bench' ),
 	)

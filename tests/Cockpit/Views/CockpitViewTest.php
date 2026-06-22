@@ -85,6 +85,28 @@ final class CockpitViewTest extends TestCase {
 	}
 
 	/**
+	 * The run summary is a flip card shown only once a run has ended, with its
+	 * report bound to the store and a flip control that turns the card.
+	 */
+	public function test_render_includes_the_run_summary_flip_card(): void {
+		$markup = $this->render();
+
+		// Shown only when a run has ended.
+		$this->assertStringContainsString( 'class="bsb-summary" hidden data-wp-bind--hidden="!state.isEnded"', $markup );
+		// The 3D card turns on the flipped state.
+		$this->assertStringContainsString( 'data-wp-class--is-flipped="state.isFlipped"', $markup );
+		// The flip indicator turns the card.
+		$this->assertStringContainsString( 'data-wp-on--click="actions.toggleFlip"', $markup );
+		// The verdict heading and drain-graph paths bind to the store.
+		$this->assertStringContainsString( 'data-wp-text="state.summaryHeading"', $markup );
+		$this->assertStringContainsString( 'data-wp-bind--d="state.graphStep"', $markup );
+		// The summary's drain graph hides when there is nothing to plot.
+		$this->assertStringContainsString( 'data-wp-bind--hidden="!state.hasGraph"', $markup );
+		// New run restarts via the run toggle.
+		$this->assertStringContainsString( 'class="bsb-summary__new" data-wp-on--click="actions.toggleRun"', $markup );
+	}
+
+	/**
 	 * The control deck wires the mode segmented control to the store: each option
 	 * names its mode, calls `actions.selectMode`, and reflects the active mode.
 	 */
@@ -309,6 +331,12 @@ final class CockpitViewTest extends TestCase {
 				'idle_step3_text'    => 'It runs hands-free while the battery drains; you just watch the numbers.',
 				'idle_notice_title'  => 'Keep the laptop open',
 				'idle_notice_text'   => 'The wake lock keeps the screen on; do not close the lid.',
+				'dropped_label'      => 'Dropped',
+				'pts_label'          => 'pts',
+				'elapsed_run_label'  => 'Elapsed',
+				'new_run_label'      => 'New run',
+				'flip_label'         => 'Flip',
+				'summary_brand'      => 'BATTERY · SURF · BENCH',
 			)
 		);
 	}

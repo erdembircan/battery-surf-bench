@@ -31,6 +31,7 @@ body {
 	grid-template-columns: $deck-width 1fr;
 	height: 100vh;
 	overflow: hidden;
+	position: relative;
 	font-family: theme.$font-ui;
 	color: var(--text);
 	-webkit-font-smoothing: antialiased;
@@ -1413,4 +1414,308 @@ body {
 	.bsb-cockpit__deck {
 		overflow-y: auto;
 	}
+}
+
+// ── Run summary — the flip-card report shown when a run ends ──────────────────
+// Overlays the whole cockpit (deck + stage) once `ended` is set. The card flips
+// in 3D between its picture front and its written report back. Built on the same
+// foundations as the stamp/cancellation: a 3D context with two backface-hidden
+// faces, and a franked stamp whose cancellation is centred on the stamp by a
+// shared anchor.
+.bsb-summary {
+	position: absolute;
+	inset: 0;
+	z-index: 30;
+	display: grid;
+	place-items: center;
+	padding: 2.4rem;
+	background: var(--stage-bg);
+
+	&[hidden] {
+		display: none;
+	}
+}
+
+.bsb-summary__card {
+	position: relative;
+	width: min(680px, 94%);
+	aspect-ratio: 1.62 / 1;
+	transform: rotate(-1.4deg);
+	transform-style: preserve-3d;
+	transition: transform 0.75s cubic-bezier(0.2, 0.7, 0.2, 1);
+	perspective: 1800px;
+
+	&.is-flipped {
+		transform: rotate(-1.4deg) rotateY(180deg);
+	}
+}
+
+.bsb-summary__face {
+	position: absolute;
+	inset: 0;
+	overflow: hidden;
+	border-radius: 14px;
+	border: 1px solid var(--paper-line);
+	background: var(--paper);
+	box-shadow: 0 26px 60px rgba(0, 0, 0, 0.32);
+	backface-visibility: hidden;
+	-webkit-backface-visibility: hidden;
+
+	&--back {
+		transform: rotateY(180deg);
+	}
+}
+
+// front: the picture postcard (reuses the idle postcard's mark/wash/grain/greet)
+.bsb-summary__face--front {
+	.bsb-cockpit__postcard-greet {
+		position: absolute;
+		left: 1.7rem;
+		top: 1.8rem;
+	}
+}
+
+// the discreet flip indicator, on both faces in the same corner
+.bsb-summary__flip {
+	position: absolute;
+	right: 1rem;
+	bottom: 1rem;
+	z-index: 4;
+	display: inline-flex;
+	align-items: center;
+	gap: 0.4rem;
+	padding: 0.38rem 0.7rem;
+	border: 1px solid rgba(255, 255, 255, 0.32);
+	border-radius: 999px;
+	background: rgba(255, 255, 255, 0.15);
+	backdrop-filter: blur(5px);
+	-webkit-backdrop-filter: blur(5px);
+	color: #fff;
+	font:
+		700 0.7rem/1 theme.$font-ui;
+	letter-spacing: 0.04em;
+	text-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+	cursor: pointer;
+
+	// on the paper back, ink-toned instead of glassy-on-photo
+	&--paper {
+		color: var(--paper-ink);
+		background: color-mix(in srgb, var(--paper-ink) 8%, transparent);
+		border-color: color-mix(in srgb, var(--paper-ink) 22%, transparent);
+		backdrop-filter: none;
+		-webkit-backdrop-filter: none;
+		text-shadow: none;
+	}
+}
+
+.bsb-summary__flip-icon {
+	$flip-glyph: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M12 6V3L8 7l4 4V8a4 4 0 1 1-4 4H6a6 6 0 1 0 6-6z'/%3E%3C/svg%3E");
+
+	width: 0.95rem;
+	height: 0.95rem;
+	background: currentColor;
+	mask: $flip-glyph center / contain no-repeat;
+	-webkit-mask: $flip-glyph center / contain no-repeat;
+	animation: bsb-summary-nudge 3s ease-in-out infinite;
+}
+
+@keyframes bsb-summary-nudge {
+	0%,
+	86%,
+	100% {
+		transform: rotate(0);
+	}
+	93% {
+		transform: rotate(-32deg);
+	}
+}
+
+// the report back
+.bsb-summary__report {
+	position: absolute;
+	inset: 0;
+	padding: 1.4rem 1.6rem 1.3rem;
+	display: flex;
+	flex-direction: column;
+}
+
+.bsb-summary__head {
+	margin: 0.1rem 0 0.1rem;
+	max-width: 64%;
+	font:
+		700 1.95rem/0.9 theme.$font-hand;
+	color: var(--paper-ink);
+}
+
+.bsb-summary__sig {
+	margin: 0;
+	font:
+		400 1.12rem/1.1 theme.$font-hand;
+	color: var(--paper-accent);
+}
+
+.bsb-summary__divide {
+	height: 1px;
+	margin: 0.7rem 0;
+	background: repeating-linear-gradient(
+		90deg,
+		var(--paper-line) 0 8px,
+		transparent 8px 14px
+	);
+}
+
+// the drain graph
+.bsb-summary__graph {
+	margin-bottom: 0.2rem;
+
+	&[hidden] {
+		display: none;
+	}
+}
+
+.bsb-summary__chart {
+	display: block;
+	width: 100%;
+	height: 104px;
+}
+
+.bsb-summary__chart-area {
+	fill: color-mix(in srgb, var(--paper-accent) 16%, transparent);
+	stroke: none;
+}
+
+.bsb-summary__chart-line {
+	fill: none;
+	stroke: var(--paper-accent);
+	stroke-width: 2.2;
+	stroke-linejoin: round;
+}
+
+.bsb-summary__chart-fit {
+	fill: none;
+	stroke: var(--coral, #ef8f3c);
+	stroke-width: 1.6;
+	stroke-dasharray: 4 4;
+}
+
+// the stat tiles
+.bsb-summary__stats {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: 0.4rem 0.5rem;
+	margin-top: 0.7rem;
+
+	.bsb-stat__label {
+		font-size: 0.54rem;
+		letter-spacing: 0.13em;
+		color: var(--text-soft);
+	}
+
+	.bsb-stat__value {
+		font:
+			400 1.4rem/1 theme.$font-display;
+		color: var(--paper-ink);
+	}
+
+	.bsb-stat__unit {
+		margin-left: 0.16rem;
+		font:
+			700 0.58rem/1 theme.$font-mono;
+		color: var(--paper-accent);
+	}
+}
+
+.bsb-summary__actions {
+	display: flex;
+	margin-top: auto;
+	padding-top: 0.8rem;
+}
+
+.bsb-summary__new {
+	padding: 0.65rem 1.7rem;
+	border: 0;
+	border-radius: 11px;
+	background: var(--accent-grad);
+	color: var(--accent-ink);
+	font:
+		400 0.92rem/1 theme.$font-display;
+	letter-spacing: 0.05em;
+	text-transform: uppercase;
+	cursor: pointer;
+	box-shadow: 0 10px 22px var(--accent-shadow);
+}
+
+// the franked stamp (postage stamp + askew grey cancellation), top-right of back
+.bsb-summary__frank {
+	position: absolute;
+	top: 1.2rem;
+	right: 1.4rem;
+	z-index: 3;
+	width: 50px;
+	height: 60px;
+
+	.bsb-cockpit__stamp {
+		position: relative;
+		display: block;
+		width: 100%;
+		height: 100%;
+	}
+}
+
+.bsb-summary__cancel {
+	position: absolute;
+	top: calc((60px - 72px) / 2 - 8px);
+	left: calc((50px - 72px) / 2 + 7px);
+	width: 72px;
+	height: 72px;
+	transform: rotate(-12deg);
+}
+
+.bsb-summary__pm {
+	display: block;
+	width: 100%;
+	height: 100%;
+	overflow: visible;
+
+	text {
+		fill: rgba(96, 110, 120, 0.72);
+		font-family: theme.$font-mono;
+		font-weight: 700;
+	}
+}
+
+.bsb-summary__pm-ring {
+	fill: none;
+	stroke: rgba(96, 110, 120, 0.72);
+
+	&:first-of-type {
+		stroke-width: 2.2;
+	}
+	&:last-of-type {
+		stroke-width: 1;
+	}
+}
+
+.bsb-summary__pm-bar {
+	fill: none;
+	stroke: rgba(96, 110, 120, 0.72);
+	stroke-width: 2.2;
+	stroke-linecap: round;
+	opacity: 0.85;
+}
+
+.bsb-summary__pm-arc {
+	font-size: 8px;
+	letter-spacing: 0.4px;
+}
+
+.bsb-summary__pm-val {
+	font-family: theme.$font-display;
+	font-weight: 400;
+	font-size: 17px;
+}
+
+.bsb-summary__pm-unit {
+	font-size: 6.4px;
+	letter-spacing: 2px;
 }

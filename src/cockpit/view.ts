@@ -81,10 +81,23 @@ interface CockpitContext {
 	ended: boolean;
 	endReason: RunEndReason;
 	flipped: boolean;
+	reasonText: Record< string, ReasonText >;
 }
 
 /** Why a run ended — drives the summary's verdict; empty before any run ends. */
 type RunEndReason = '' | 'duration' | 'targetDrop' | 'stopped' | 'plugged';
+
+/** The translated wording shown on the summary for a given end reason. */
+interface ReasonText {
+	/** Handwritten verdict heading, e.g. "The run is in.". */
+	head: string;
+	/** One-line signature under the heading, e.g. "Ran the full 30 minutes.". */
+	sig: string;
+	/** The postmark's lower curved label, e.g. "· COMPLETED ·". */
+	arc: string;
+	/** The postmark's centre unit label, e.g. "MIN RUN" / "REACHED" / "ELAPSED". */
+	unit: string;
+}
 
 /** Per-instance calculation state, kept off the reactive context and keyed by it. */
 interface InstanceState {
@@ -440,6 +453,30 @@ store( 'bsb/cockpit', {
 			return context.endReason === 'targetDrop'
 				? `${ context.targetPercent }%`
 				: formatClock( context.elapsed );
+		},
+
+		/** The summary's handwritten verdict heading for the end reason. */
+		get summaryHeading(): string {
+			const context = getContext< CockpitContext >();
+			return context.reasonText?.[ context.endReason ]?.head ?? '';
+		},
+
+		/** The summary's one-line signature for the end reason. */
+		get summarySig(): string {
+			const context = getContext< CockpitContext >();
+			return context.reasonText?.[ context.endReason ]?.sig ?? '';
+		},
+
+		/** The postmark's lower curved label for the end reason. */
+		get summaryArc(): string {
+			const context = getContext< CockpitContext >();
+			return context.reasonText?.[ context.endReason ]?.arc ?? '';
+		},
+
+		/** The postmark's centre unit label for the end reason. */
+		get summaryPostmarkLabel(): string {
+			const context = getContext< CockpitContext >();
+			return context.reasonText?.[ context.endReason ]?.unit ?? '';
 		},
 
 		/** Whether the run has enough samples to draw the summary drain graph. */
