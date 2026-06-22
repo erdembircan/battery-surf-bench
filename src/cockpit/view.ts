@@ -82,13 +82,6 @@ interface CockpitContext {
 	endReason: RunEndReason;
 	flipped: boolean;
 	reasonText: Record< string, ReasonText >;
-	/**
-	 * The run's calculation state, parked on the context (client-only, never
-	 * seeded) so every element scope reaches the same instance — a WeakMap keyed
-	 * by the context proxy fails because `getContext()` hands back a different
-	 * proxy per scope, while plain context properties propagate across them.
-	 */
-	__bsb?: InstanceState;
 }
 
 /** Why a run ended — drives the summary's verdict; empty before any run ends. */
@@ -121,24 +114,30 @@ interface InstanceState {
 }
 
 /**
- * The run's calculation state for a context, created on first access and parked
- * on the context itself so every element scope (actions, callbacks, getters)
- * reaches the same instance. It holds non-reactive model objects, not display
- * data, so keeping it on the context doesn't drive rendering.
- * @param context
+ * The cockpit's run calculation state. A single module instance: the dashboard
+ * renders exactly one cockpit, and every element scope must reach the same
+ * session — neither a WeakMap keyed by the context proxy nor a runtime-added
+ * context property reaches all scopes, because `getContext()` returns a distinct
+ * proxy per scope and only the seeded context keys propagate across them.
  */
-const instanceFor = ( context: CockpitContext ): InstanceState => {
-	if ( ! context.__bsb ) {
-		context.__bsb = {
-			session: new RunSession(),
-			lastReading: null,
-			monitor: null,
-			wakeLock: null,
-			clock: null,
-		};
-	}
+const runInstance: InstanceState = {
+	session: new RunSession(),
+	lastReading: null,
+	monitor: null,
+	wakeLock: null,
+	clock: null,
+};
 
-	return context.__bsb;
+/** The cockpit's run calculation state. */
+const instanceFor = (): InstanceState => runInstance;
+
+/** Resets the run state between tests. Not used by the running cockpit. */
+export const __resetInstance = (): void => {
+	runInstance.session = new RunSession();
+	runInstance.lastReading = null;
+	runInstance.monitor = null;
+	runInstance.wakeLock = null;
+	runInstance.clock = null;
 };
 
 /** The monotonic clock the run session stamps samples against. */
@@ -154,12 +153,9 @@ const GRAPH_VIEWPORT: GraphViewport = {
 	padBottom: 18,
 };
 
-/**
- * The summary chart geometry for a context's run, or null when nothing to plot.
- * @param context
- */
-const graphFor = ( context: CockpitContext ) =>
-	buildGraph( instanceFor( context ).session.samples(), GRAPH_VIEWPORT );
+/** The summary chart geometry for the run, or null when nothing to plot. */
+const graphFor = () =>
+	buildGraph( instanceFor().session.samples(), GRAPH_VIEWPORT );
 
 /**
  * Mirrors the session's derived readouts onto the reactive context.
@@ -420,9 +416,7 @@ store( 'bsb/cockpit', {
 
 		/** Battery start→end for the summary (e.g. `82→75`), em dash until known. */
 		get summaryBattery(): string {
-			const summary = instanceFor(
-				getContext< CockpitContext >()
-			).session.summary();
+			const summary = instanceFor().session.summary();
 
 			if ( ! summary ) {
 				return '—';
@@ -435,9 +429,7 @@ store( 'bsb/cockpit', {
 
 		/** Percentage points the battery dropped over the run, em dash until known. */
 		get summaryDropped(): string {
-			const summary = instanceFor(
-				getContext< CockpitContext >()
-			).session.summary();
+			const summary = instanceFor().session.summary();
 
 			return summary ? String( Math.round( summary.droppedPct ) ) : '—';
 		},
@@ -456,7 +448,7 @@ store( 'bsb/cockpit', {
 
 		/** Whether the run has enough samples to draw the summary drain graph. */
 		get hasGraph(): boolean {
-			return graphFor( getContext< CockpitContext >() ) !== null;
+			return graphFor() !== null;
 		},
 	},
 	actions: {
@@ -590,7 +582,7 @@ store( 'bsb/cockpit', {
 		 */
 		toggleRun(): void {
 			const context = getContext< CockpitContext >();
-			const instance = instanceFor( context );
+			const instance = instanceFor();
 
 			if ( context.running ) {
 				stopRun( context, instance, 'stopped' );
@@ -708,7 +700,7 @@ store( 'bsb/cockpit', {
 			}
 
 			const context = getContext< CockpitContext >();
-			const instance = instanceFor( context );
+			const instance = instanceFor();
 
 			const monitor = new BatteryMonitor( {
 				getBattery: provider,
@@ -793,7 +785,7 @@ store( 'bsb/cockpit', {
 			}
 
 			const context = getContext< CockpitContext >();
-			const instance = instanceFor( context );
+			const instance = instanceFor();
 			instance.wakeLock = new ScreenWakeLock( {
 				request: () => api.request( 'screen' ),
 			} );
@@ -856,7 +848,7 @@ store( 'bsb/cockpit', {
 		 */
 		syncRunActivity(): void {
 			const context = getContext< CockpitContext >();
-			const instance = instanceFor( context );
+			const instance = instanceFor();
 
 			if ( context.running ) {
 				instance.monitor?.startHeartbeat();
@@ -1000,7 +992,7 @@ store( 'bsb/cockpit', {
 
 			const context = getContext< CockpitContext >();
 
-			const graph = graphFor( context );
+			const graph = graphFor();
 			const setPath = ( selector: string, d: string ): void => {
 				root.querySelector( selector )?.setAttribute( 'd', d );
 			};

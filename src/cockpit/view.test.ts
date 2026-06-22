@@ -153,7 +153,7 @@ vi.mock( '@wordpress/interactivity', () => ( {
 	getElement: () => ( { ref: mocks.element } ),
 } ) );
 
-import './view';
+import { __resetInstance } from './view';
 
 const page = ( n: string ): CoursePage => ( {
 	slug: n,
@@ -205,6 +205,8 @@ const key = ( name: string ): KeyboardEvent =>
 beforeEach( () => {
 	mocks.context = baseContext();
 	mocks.element = { dataset: {}, checked: false, value: '' };
+	// The run state is a module singleton; reset it so tests stay isolated.
+	__resetInstance();
 } );
 
 describe( 'bsb/cockpit view store', () => {
