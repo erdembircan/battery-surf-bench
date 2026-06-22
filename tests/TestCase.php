@@ -26,8 +26,18 @@ abstract class TestCase extends PHPUnitTestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
-		Functions\when( 'esc_html' )->returnArg();
+
+		// Escapers behave like WordPress' (htmlspecialchars with ENT_QUOTES), so
+		// tests can assert a view actually escapes the values it is handed. esc_url
+		// uses the same stand-in — enough to prove the view routes URLs through it.
+		$escape = static fn( $value ): string => htmlspecialchars( (string) $value, ENT_QUOTES );
+		Functions\when( 'esc_html' )->alias( $escape );
+		Functions\when( 'esc_attr' )->alias( $escape );
+		Functions\when( 'esc_url' )->alias( $escape );
+
+		// Translation helpers pass their text through unchanged.
 		Functions\when( 'esc_html__' )->returnArg();
+		Functions\when( 'esc_attr__' )->returnArg();
 		Functions\when( '__' )->returnArg();
 	}
 

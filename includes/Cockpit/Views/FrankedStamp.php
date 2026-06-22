@@ -9,6 +9,8 @@ namespace ErdemBircan\BatterySurfBench\Cockpit\Views;
 
 use ErdemBircan\BatterySurfBench\Support\View;
 
+use function esc_html;
+
 defined( 'ABSPATH' ) || exit;
 
 /**
@@ -24,12 +26,12 @@ class FrankedStamp implements View {
 	/**
 	 * Renders the franked stamp.
 	 *
-	 * @param array<string, mixed> $data View data: `brand` (already-escaped) for the
-	 *                                    postmark's upper curved label.
+	 * @param array<string, mixed> $data View data: raw `brand` (the view escapes it) for
+	 *                                    the postmark's upper curved label.
 	 * @return string The franked-stamp markup.
 	 */
 	public function render( array $data = array() ): string {
-		$brand = isset( $data['brand'] ) ? (string) $data['brand'] : '';
+		$brand = esc_html( isset( $data['brand'] ) ? (string) $data['brand'] : '' );
 
 		return <<<HTML
 <span class="bsb-frank" aria-hidden="true">

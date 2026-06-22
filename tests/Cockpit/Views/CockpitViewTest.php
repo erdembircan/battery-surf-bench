@@ -14,10 +14,10 @@ use ErdemBircan\BatterySurfBench\Support\View;
 use ErdemBircan\BatterySurfBench\Tests\TestCase;
 
 /**
- * The block view renders the cockpit's front-end markup from the already-escaped
- * values the render template hands it. Its contract: emit the Interactivity
- * region with the supplied wrapper attributes and context, and wire the
- * controls and viewport to the store directives the client view binds to.
+ * The block view renders the cockpit's front-end markup from the raw values the
+ * render template hands it, escaping each into its slot. Its contract: emit the
+ * Interactivity region with the supplied wrapper attributes and context, and wire
+ * the controls and viewport to the store directives the client view binds to.
  */
 final class CockpitViewTest extends TestCase {
 
@@ -291,8 +291,34 @@ final class CockpitViewTest extends TestCase {
 	}
 
 	/**
-	 * Renders the view with a full set of escaped values, as the render template
-	 * supplies them.
+	 * The view escapes the values it is handed: text slots with esc_html,
+	 * attribute slots with esc_attr — so the render template passes raw, translated
+	 * strings and never escapes ahead of the view.
+	 */
+	public function test_render_escapes_the_values_it_is_handed(): void {
+		$markup = ( new CockpitView() )->render(
+			array(
+				'wrapper'     => 'class="wp-block-bsb-cockpit"',
+				'context'     => 'data-wp-context=\'{}\'',
+				'brand_title' => '<b>X</b>',
+				'theme_label' => 'Theme "x"',
+				'mode_label'  => 'Mode <i>',
+			)
+		);
+
+		// Text slot escaped (the deck title and the forwarded photo greeting).
+		$this->assertStringContainsString( '&lt;b&gt;X&lt;/b&gt;', $markup );
+		$this->assertStringNotContainsString( '<b>X</b>', $markup );
+		// Attribute slot escaped.
+		$this->assertStringContainsString( 'aria-label="Theme &quot;x&quot;"', $markup );
+		// A label used in both a text slot and an aria-label is escaped in both.
+		$this->assertStringContainsString( 'Mode &lt;i&gt;', $markup );
+		$this->assertStringNotContainsString( 'Mode <i>', $markup );
+	}
+
+	/**
+	 * Renders the view with a full set of representative values, as the render
+	 * template supplies them.
 	 *
 	 * @return string The rendered cockpit markup.
 	 */

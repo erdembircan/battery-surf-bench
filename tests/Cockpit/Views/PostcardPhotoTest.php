@@ -56,4 +56,25 @@ final class PostcardPhotoTest extends TestCase {
 			$markup
 		);
 	}
+
+	/**
+	 * The view escapes the values it is handed — text with esc_html, the modifier
+	 * (an attribute) with esc_attr — so consumers pass raw, translated strings.
+	 */
+	public function test_render_escapes_the_values_it_is_handed(): void {
+		$markup = ( new PostcardPhoto() )->render(
+			array(
+				'greeting_lead' => 'Hi <script>',
+				'brand_title'   => 'A & "B"',
+				'modifier'      => 'x" onload="evil',
+			)
+		);
+
+		$this->assertStringContainsString( 'Hi &lt;script&gt;', $markup );
+		$this->assertStringContainsString( 'A &amp; &quot;B&quot;', $markup );
+		$this->assertStringNotContainsString( '<script>', $markup );
+		// The modifier lands in the class attribute, escaped, so it cannot break out.
+		$this->assertStringContainsString( 'onload=&quot;evil', $markup );
+		$this->assertStringNotContainsString( 'onload="evil', $markup );
+	}
 }

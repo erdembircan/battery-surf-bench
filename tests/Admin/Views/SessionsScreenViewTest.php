@@ -15,8 +15,8 @@ use ErdemBircan\BatterySurfBench\Tests\TestCase;
 
 /**
  * The view renders the listing screen's chrome. Its contract: return the wrapped
- * heading, the cockpit link, and the grid's mount container, interpolating the
- * already-escaped values it is handed.
+ * heading, the cockpit link, and the grid's mount container, escaping the raw
+ * values it is handed.
  */
 final class SessionsScreenViewTest extends TestCase {
 
@@ -66,5 +66,28 @@ final class SessionsScreenViewTest extends TestCase {
 
 		$this->assertStringContainsString( '<div class="wrap">', $output );
 		$this->assertStringContainsString( 'id="bsb-sessions-app"', $output );
+	}
+
+	/**
+	 * The view escapes what it is handed: heading and label as text, the URL
+	 * through esc_url — so the consumer passes raw values, not pre-escaped ones.
+	 */
+	public function test_render_escapes_the_values_it_is_handed(): void {
+		$output = ( new SessionsScreenView() )->render(
+			array(
+				'heading'       => 'Sessions <script>',
+				'cockpit_url'   => 'https://example.test/?a="b"',
+				'cockpit_label' => 'Open & "Cockpit"',
+			)
+		);
+
+		$this->assertStringContainsString( 'Sessions &lt;script&gt;', $output );
+		$this->assertStringNotContainsString( '<script>', $output );
+		$this->assertStringContainsString( 'Open &amp; &quot;Cockpit&quot;', $output );
+		// The URL is routed through esc_url; its quotes are encoded in the href.
+		$this->assertStringContainsString(
+			'href="https://example.test/?a=&quot;b&quot;"',
+			$output
+		);
 	}
 }

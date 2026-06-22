@@ -16,8 +16,6 @@ use function __;
 use function add_action;
 use function add_query_arg;
 use function add_submenu_page;
-use function esc_html__;
-use function esc_url;
 use function home_url;
 
 defined( 'ABSPATH' ) || exit;
@@ -139,15 +137,14 @@ class SessionsScreen implements Manager {
 
 		$markup = ( new SessionsScreenView() )->render(
 			array(
-				'heading'       => esc_html__( 'Benchmark Sessions', 'battery-surf-bench' ),
-				'cockpit_url'   => esc_url( $cockpit_url ),
-				'cockpit_label' => esc_html__( 'Open Cockpit', 'battery-surf-bench' ),
+				'heading'       => __( 'Benchmark Sessions', 'battery-surf-bench' ),
+				'cockpit_url'   => $cockpit_url,
+				'cockpit_label' => __( 'Open Cockpit', 'battery-surf-bench' ),
 			)
 		);
 
-		// The view interpolates only the already-escaped values prepared above
-		// into its trusted markup, so the assembled HTML cannot be run through an
-		// escaper here.
+		// The view escapes each value and returns finished, trusted markup, so the
+		// assembled HTML cannot be run through an escaper here.
 		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- trusted pre-escaped view markup; see comment above.
 		echo $markup;
 	}

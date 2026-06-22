@@ -43,4 +43,20 @@ final class FrankedStampTest extends TestCase {
 		$this->assertStringContainsString( 'class="bsb-frank__val"', $markup );
 		$this->assertStringContainsString( 'class="bsb-frank__unit"', $markup );
 	}
+
+	/**
+	 * The view escapes the brand it is handed, so consumers pass a raw, translated
+	 * string rather than escaping ahead of the view.
+	 */
+	public function test_render_escapes_the_brand(): void {
+		$markup = ( new FrankedStamp() )->render(
+			array( 'brand' => '<b>X</b> & "Y"' )
+		);
+
+		$this->assertStringContainsString(
+			'&lt;b&gt;X&lt;/b&gt; &amp; &quot;Y&quot;',
+			$markup
+		);
+		$this->assertStringNotContainsString( '<b>X</b>', $markup );
+	}
 }

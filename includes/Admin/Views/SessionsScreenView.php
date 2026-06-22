@@ -9,6 +9,9 @@ namespace ErdemBircan\BatterySurfBench\Admin\Views;
 
 use ErdemBircan\BatterySurfBench\Support\View;
 
+use function esc_html;
+use function esc_url;
+
 defined( 'ABSPATH' ) || exit;
 
 /**
@@ -24,13 +27,13 @@ class SessionsScreenView implements View {
 	/**
 	 * Renders the listing screen's markup around the given values.
 	 *
-	 * @param array<string, mixed> $data Already-escaped values: `heading`, `cockpit_url`, `cockpit_label`.
+	 * @param array<string, mixed> $data Raw values the view escapes: `heading`, `cockpit_url`, `cockpit_label`.
 	 * @return string The rendered screen markup.
 	 */
 	public function render( array $data = array() ): string {
-		$heading       = isset( $data['heading'] ) ? (string) $data['heading'] : '';
-		$cockpit_url   = isset( $data['cockpit_url'] ) ? (string) $data['cockpit_url'] : '';
-		$cockpit_label = isset( $data['cockpit_label'] ) ? (string) $data['cockpit_label'] : '';
+		$heading       = esc_html( isset( $data['heading'] ) ? (string) $data['heading'] : '' );
+		$cockpit_url   = esc_url( isset( $data['cockpit_url'] ) ? (string) $data['cockpit_url'] : '' );
+		$cockpit_label = esc_html( isset( $data['cockpit_label'] ) ? (string) $data['cockpit_label'] : '' );
 
 		return <<<HTML
 <div class="wrap"><h1>{$heading} <a href="{$cockpit_url}" class="page-title-action">{$cockpit_label}</a></h1><div id="bsb-sessions-app"></div></div>

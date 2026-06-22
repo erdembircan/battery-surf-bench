@@ -9,6 +9,9 @@ namespace ErdemBircan\BatterySurfBench\Cockpit\Views;
 
 use ErdemBircan\BatterySurfBench\Support\View;
 
+use function esc_attr;
+use function esc_html;
+
 defined( 'ABSPATH' ) || exit;
 
 /**
@@ -18,10 +21,11 @@ defined( 'ABSPATH' ) || exit;
  * control — each wired to the client store ({@see src/cockpit/view.ts}). While a
  * run is live the configuration controls give way to the live readouts pill; the
  * stage carries the viewport iframe. The block's server render
- * template ({@see src/cockpit/render.php}) prepares the dynamic, already-escaped
+ * template ({@see src/cockpit/render.php}) prepares the dynamic, raw (translated)
  * values — wrapper attributes, the per-instance `data-wp-context`, and the
- * translated labels — and hands them here; this view owns the structure, held
- * in a heredoc, so no HTML is written inline in the render template.
+ * translated labels — and hands them here; this view owns the structure and the
+ * escaping, held in a heredoc, so no HTML is written or escaped inline in the
+ * render template.
  */
 class CockpitView implements View {
 
@@ -29,52 +33,53 @@ class CockpitView implements View {
 	 * Renders the cockpit block markup.
 	 *
 	 * @param array<string, mixed> $data {
-	 *     Already-escaped values from the block render template.
+	 *     Raw (translated) values from the block render template; this view escapes
+	 *     each into its slot (text with esc_html, attributes with esc_attr).
 	 *
 	 *     @type string $wrapper           Block wrapper attributes from `get_block_wrapper_attributes()`.
 	 *     @type string $context           `data-wp-context` attribute from `wp_interactivity_data_wp_context()`.
-	 *     @type string $brand_title       Translated, escaped plugin name shown in the deck brand.
-	 *     @type string $brand_subtitle    Translated, escaped "Cockpit" label under the brand.
-	 *     @type string $theme_label       Translated, escaped accessible label for the theme toggle.
-	 *     @type string $mode_label        Translated, escaped label for the mode field.
-	 *     @type string $duration_mode     Translated, escaped label for the duration mode option.
-	 *     @type string $target_drop_mode  Translated, escaped label for the target-drop mode option.
-	 *     @type string $duration_label    Translated, escaped label for the duration field.
-	 *     @type string $minutes_label     Translated, escaped unit label for the duration readout.
-	 *     @type string $decrease_label    Translated, escaped accessible label for the decrease control.
-	 *     @type string $increase_label    Translated, escaped accessible label for the increase control.
-	 *     @type string $target_label      Translated, escaped label for the target-drop field.
-	 *     @type string $target_aria       Translated, escaped accessible label for the target slider.
-	 *     @type string $baseline_label    Translated, escaped label for the baseline calibration toggle.
-	 *     @type string $speed_label        Translated, escaped label for the speed field.
-	 *     @type string $battery_label      Translated, escaped label for the battery readout.
-	 *     @type string $rate10_label       Translated, escaped label for the 10-minute drain rate.
-	 *     @type string $rate_session_label Translated, escaped label for the session drain rate.
-	 *     @type string $tte_label          Translated, escaped label for the time-to-empty readout.
-	 *     @type string $target_short_label Translated, escaped label for the target readout (target-drop mode).
-	 *     @type string $surfing_label     Translated, escaped "Surfing" word for the running indicator.
-	 *     @type string $elapsed_label     Translated, escaped "elapsed" word (target-drop mode clock).
-	 *     @type string $remaining_label   Translated, escaped "left" word (duration-mode countdown clock).
-	 *     @type string $start_label       Translated, escaped label for the run control when idle.
-	 *     @type string $stop_label        Translated, escaped label for the run control when running.
-	 *     @type string $plugged_label     Translated, escaped run-control label when blocked by charging.
-	 *     @type string $compact_label     Translated, escaped accessible label for the compact control.
-	 *     @type string $expand_label      Translated, escaped accessible label for the expand control.
-	 *     @type string $viewport_title    Translated, escaped title for the viewport iframe.
-	 *     @type string $shield_label      Translated, escaped "view only" chip text over the viewport.
-	 *     @type string $greeting_lead     Translated, escaped "Greetings from" line of the idle postcard.
-	 *     @type string $idle_heading      Translated, escaped heading on the idle postcard back.
-	 *     @type string $idle_subtitle     Translated, escaped subtitle under the idle heading.
-	 *     @type string $idle_step1_title  Translated, escaped title of idle step 1.
-	 *     @type string $idle_step1_text   Translated, escaped body of idle step 1.
-	 *     @type string $idle_step2_title  Translated, escaped title of idle step 2.
-	 *     @type string $idle_step2_text   Translated, escaped body of idle step 2.
-	 *     @type string $idle_step3_title  Translated, escaped title of idle step 3.
-	 *     @type string $idle_step3_text   Translated, escaped body of idle step 3.
-	 *     @type string $idle_notice_title Translated, escaped title of the keep-awake notice.
-	 *     @type string $idle_notice_text  Translated, escaped body of the keep-awake notice.
-	 *     @type string $measured_label    Translated, escaped legend label for the measured drain series.
-	 *     @type string $projected_label   Translated, escaped legend label for the 100→0 projection.
+	 *     @type string $brand_title       Translated plugin name shown in the deck brand.
+	 *     @type string $brand_subtitle    Translated "Cockpit" label under the brand.
+	 *     @type string $theme_label       Translated accessible label for the theme toggle.
+	 *     @type string $mode_label        Translated label for the mode field.
+	 *     @type string $duration_mode     Translated label for the duration mode option.
+	 *     @type string $target_drop_mode  Translated label for the target-drop mode option.
+	 *     @type string $duration_label    Translated label for the duration field.
+	 *     @type string $minutes_label     Translated unit label for the duration readout.
+	 *     @type string $decrease_label    Translated accessible label for the decrease control.
+	 *     @type string $increase_label    Translated accessible label for the increase control.
+	 *     @type string $target_label      Translated label for the target-drop field.
+	 *     @type string $target_aria       Translated accessible label for the target slider.
+	 *     @type string $baseline_label    Translated label for the baseline calibration toggle.
+	 *     @type string $speed_label        Translated label for the speed field.
+	 *     @type string $battery_label      Translated label for the battery readout.
+	 *     @type string $rate10_label       Translated label for the 10-minute drain rate.
+	 *     @type string $rate_session_label Translated label for the session drain rate.
+	 *     @type string $tte_label          Translated label for the time-to-empty readout.
+	 *     @type string $target_short_label Translated label for the target readout (target-drop mode).
+	 *     @type string $surfing_label     Translated "Surfing" word for the running indicator.
+	 *     @type string $elapsed_label     Translated "elapsed" word (target-drop mode clock).
+	 *     @type string $remaining_label   Translated "left" word (duration-mode countdown clock).
+	 *     @type string $start_label       Translated label for the run control when idle.
+	 *     @type string $stop_label        Translated label for the run control when running.
+	 *     @type string $plugged_label     Translated run-control label when blocked by charging.
+	 *     @type string $compact_label     Translated accessible label for the compact control.
+	 *     @type string $expand_label      Translated accessible label for the expand control.
+	 *     @type string $viewport_title    Translated title for the viewport iframe.
+	 *     @type string $shield_label      Translated "view only" chip text over the viewport.
+	 *     @type string $greeting_lead     Translated "Greetings from" line of the idle postcard.
+	 *     @type string $idle_heading      Translated heading on the idle postcard back.
+	 *     @type string $idle_subtitle     Translated subtitle under the idle heading.
+	 *     @type string $idle_step1_title  Translated title of idle step 1.
+	 *     @type string $idle_step1_text   Translated body of idle step 1.
+	 *     @type string $idle_step2_title  Translated title of idle step 2.
+	 *     @type string $idle_step2_text   Translated body of idle step 2.
+	 *     @type string $idle_step3_title  Translated title of idle step 3.
+	 *     @type string $idle_step3_text   Translated body of idle step 3.
+	 *     @type string $idle_notice_title Translated title of the keep-awake notice.
+	 *     @type string $idle_notice_text  Translated body of the keep-awake notice.
+	 *     @type string $measured_label    Translated legend label for the measured drain series.
+	 *     @type string $projected_label   Translated legend label for the 100→0 projection.
 	 * }
 	 * @return string The block's HTML.
 	 */
@@ -130,6 +135,81 @@ class CockpitView implements View {
 		$measured_label     = isset( $data['measured_label'] ) ? (string) $data['measured_label'] : '';
 		$projected_label    = isset( $data['projected_label'] ) ? (string) $data['projected_label'] : '';
 
+		// Shared postcard components, rendered once and placed in both the idle
+		// postcard and the run-summary card so the illustration and the stamp are a
+		// single source, not divergent copies. They are built from the raw values
+		// first — each child view escapes what it is handed — before this view
+		// escapes the same values for its own slots below.
+		$photo      = ( new PostcardPhoto() )->render(
+			array(
+				'greeting_lead' => $greeting_lead,
+				'brand_title'   => $brand_title,
+			)
+		);
+		$photo_fill = ( new PostcardPhoto() )->render(
+			array(
+				'greeting_lead' => $greeting_lead,
+				'brand_title'   => $brand_title,
+				'modifier'      => 'bsb-photo--fill',
+			)
+		);
+		$frank      = ( new FrankedStamp() )->render( array( 'brand' => $summary_brand ) );
+
+		// This view owns its markup, so it escapes every value it interpolates:
+		// text slots with esc_html(), attribute slots with esc_attr(). The wrapper
+		// attributes and the data-wp-context attribute arrive pre-built by WordPress
+		// and stay as-is, as do the composed child-view markups above. `mode_label`
+		// and `speed_label` appear in both a text slot and an aria-label, so each
+		// also gets an attribute-escaped variant.
+		$mode_label_attr    = esc_attr( $mode_label );
+		$speed_label_attr   = esc_attr( $speed_label );
+		$brand_title        = esc_html( $brand_title );
+		$brand_subtitle     = esc_html( $brand_subtitle );
+		$theme_label        = esc_attr( $theme_label );
+		$mode_label         = esc_html( $mode_label );
+		$duration_mode      = esc_html( $duration_mode );
+		$target_drop_mode   = esc_html( $target_drop_mode );
+		$duration_label     = esc_html( $duration_label );
+		$minutes_label      = esc_html( $minutes_label );
+		$decrease_label     = esc_attr( $decrease_label );
+		$increase_label     = esc_attr( $increase_label );
+		$target_label       = esc_html( $target_label );
+		$target_aria        = esc_attr( $target_aria );
+		$baseline_label     = esc_html( $baseline_label );
+		$speed_label        = esc_html( $speed_label );
+		$battery_label      = esc_html( $battery_label );
+		$rate10_label       = esc_html( $rate10_label );
+		$rate_session_label = esc_html( $rate_session_label );
+		$tte_label          = esc_html( $tte_label );
+		$target_short_label = esc_html( $target_short_label );
+		$surfing_label      = esc_html( $surfing_label );
+		$elapsed_label      = esc_html( $elapsed_label );
+		$remaining_label    = esc_html( $remaining_label );
+		$start_label        = esc_html( $start_label );
+		$stop_label         = esc_html( $stop_label );
+		$plugged_label      = esc_html( $plugged_label );
+		$compact_label      = esc_attr( $compact_label );
+		$expand_label       = esc_attr( $expand_label );
+		$viewport_title     = esc_attr( $viewport_title );
+		$shield_label       = esc_html( $shield_label );
+		$idle_heading       = esc_html( $idle_heading );
+		$idle_subtitle      = esc_html( $idle_subtitle );
+		$idle_step1_title   = esc_html( $idle_step1_title );
+		$idle_step1_text    = esc_html( $idle_step1_text );
+		$idle_step2_title   = esc_html( $idle_step2_title );
+		$idle_step2_text    = esc_html( $idle_step2_text );
+		$idle_step3_title   = esc_html( $idle_step3_title );
+		$idle_step3_text    = esc_html( $idle_step3_text );
+		$idle_notice_title  = esc_html( $idle_notice_title );
+		$idle_notice_text   = esc_html( $idle_notice_text );
+		$dropped_label      = esc_html( $dropped_label );
+		$pts_label          = esc_html( $pts_label );
+		$elapsed_run_label  = esc_html( $elapsed_run_label );
+		$new_run_label      = esc_html( $new_run_label );
+		$flip_label         = esc_html( $flip_label );
+		$measured_label     = esc_html( $measured_label );
+		$projected_label    = esc_html( $projected_label );
+
 		// Each duration-odometer wheel is a strip of 0–9 repeated three times; the
 		// client store (rollDuration) slides it to roll the digit. Built here so
 		// the wheel markup stays a single repeated unit owned by the view.
@@ -178,24 +258,6 @@ CELLS;
 			</span>
 INNER;
 
-		// Shared postcard components, rendered once and placed in both the idle
-		// postcard and the run-summary card so the illustration and the stamp are a
-		// single source, not divergent copies.
-		$photo      = ( new PostcardPhoto() )->render(
-			array(
-				'greeting_lead' => $greeting_lead,
-				'brand_title'   => $brand_title,
-			)
-		);
-		$photo_fill = ( new PostcardPhoto() )->render(
-			array(
-				'greeting_lead' => $greeting_lead,
-				'brand_title'   => $brand_title,
-				'modifier'      => 'bsb-photo--fill',
-			)
-		);
-		$frank      = ( new FrankedStamp() )->render( array( 'brand' => $summary_brand ) );
-
 		return <<<HTML
 <div {$wrapper} data-wp-interactive="bsb/cockpit" {$context} data-wp-init="callbacks.initTheme" data-wp-init---battery="callbacks.initBattery" data-wp-init---wake-lock="callbacks.initWakeLock" data-wp-watch---run-activity="callbacks.syncRunActivity" data-wp-bind--data-theme="context.theme" data-wp-class--is-compact="state.isCompact">
 	<aside class="bsb-cockpit__deck">
@@ -214,7 +276,7 @@ INNER;
 			<div class="bsb-deck__config">
 			<section class="bsb-field">
 				<span class="bsb-field__label">{$mode_label}</span>
-				<div class="bsb-seg" role="group" aria-label="{$mode_label}">
+				<div class="bsb-seg" role="group" aria-label="{$mode_label_attr}">
 					<button type="button" class="bsb-seg__option" data-mode="duration" data-wp-on--click="actions.selectMode" data-wp-class--is-active="state.isModeDuration" data-wp-bind--aria-pressed="state.isModeDuration">{$duration_mode}</button>
 					<button type="button" class="bsb-seg__option" data-mode="targetDrop" data-wp-on--click="actions.selectMode" data-wp-class--is-active="state.isModeTargetDrop" data-wp-bind--aria-pressed="state.isModeTargetDrop">{$target_drop_mode}</button>
 				</div>
@@ -261,7 +323,7 @@ INNER;
 
 			<section class="bsb-field">
 				<span class="bsb-field__label">{$speed_label}</span>
-				<div class="bsb-seg bsb-seg--speed" role="group" aria-label="{$speed_label}">
+				<div class="bsb-seg bsb-seg--speed" role="group" aria-label="{$speed_label_attr}">
 					<button type="button" class="bsb-seg__option" data-speed="1" data-wp-on--click="actions.selectSpeed" data-wp-class--is-active="state.isSpeed1" data-wp-bind--aria-pressed="state.isSpeed1">1&times;</button>
 					<button type="button" class="bsb-seg__option" data-speed="4" data-wp-on--click="actions.selectSpeed" data-wp-class--is-active="state.isSpeed4" data-wp-bind--aria-pressed="state.isSpeed4">4&times;</button>
 					<button type="button" class="bsb-seg__option" data-speed="10" data-wp-on--click="actions.selectSpeed" data-wp-class--is-active="state.isSpeed10" data-wp-bind--aria-pressed="state.isSpeed10">10&times;</button>
