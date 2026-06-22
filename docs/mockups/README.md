@@ -23,6 +23,7 @@ The shipped deck draws from **Coastal Daybreak** (light) and **Dusk Lineup**
 
 | File                   | Component                                        |
 | ---------------------- | ------------------------------------------------ |
+| `run-summary.html`     | End-of-run report shown when a run stops (any cause: duration / target / stopped / plugged-in). Reuses the idle **postcard** object (to be extracted into one shared view), now carrying the results: the info readouts as stat tiles plus an optional battery drain graph. Toggle end reason / graph / dark. Serve from the **repo root** for the brand mark |
 | `target-control.html`  | Target-drop battery slider (the battery *is* the slider; drag/keys set the stop-at %, green→red) |
 | `info-section.html`    | Live readouts as a card grid: battery (level + fill colour, charging via cable), drain rates, time-to-empty |
 | `cable-animate.html`   | Charging cable slide-in / slide-out animation for the readout battery |
