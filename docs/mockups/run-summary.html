@@ -96,19 +96,19 @@
   .greet small { display:block; font-size:.6em; opacity:.92; margin-top:.1em; padding-left:1.2em; }
   /* a "postmark" stamped over the picture — the run's verdict, in rubber-stamp
      ink: deep green-teal for a completed run, deep coral for an interrupted one. */
-  .pmHolder { position:absolute; z-index:5; right:.9rem; bottom:.9rem; mix-blend-mode:multiply; filter:drop-shadow(0 1px 0 rgba(255,255,255,.12)); }
-  /* the picture is the same bright illustration in both themes, so the stamp ink
-     is theme-independent — a dark green-teal (ok) or coral (interrupted). */
-  .pmHolder.ok  { --pm-ink:rgba(11,74,66,.9); }
-  .pmHolder.bad { --pm-ink:rgba(141,42,30,.92); }
+  /* a real postmark is stamped in one dark ink — keeping it a single solid,
+     opaque colour reads over every part of the bright picture (the verdict is
+     already spelled out in the arc text). No blend mode: multiply over the
+     gradient was what made the small curved text unreadable. */
+  .pmHolder { position:absolute; z-index:5; right:1.1rem; bottom:1.2rem; --pm-ink:#15303d; }
 
   /* round date-stamp (curved text), optionally with cancellation bars */
   .pm { display:block; overflow:visible; transform:rotate(-9deg); }
   .pm text { font-family:'Space Mono',monospace; font-weight:700; fill:var(--pm-ink); }
   .pm .ring { fill:none; stroke:var(--pm-ink); }
-  .pm .arc { font-size:6.6px; letter-spacing:.9px; }
-  .pm .big { font-family:'Anton'; font-weight:400; font-size:16px; letter-spacing:.4px; }
-  .pm .lab { font-size:6px; letter-spacing:2px; }
+  .pm .arc { font-size:8px; letter-spacing:.4px; }
+  .pm .big { font-family:'Anton'; font-weight:400; font-size:17px; letter-spacing:.4px; }
+  .pm .lab { font-size:6.4px; letter-spacing:2px; }
   .pm .bar { stroke:var(--pm-ink); stroke-width:2.2; fill:none; stroke-linecap:round; opacity:.9; }
 
   /* boxed rubber stamp */
@@ -265,23 +265,25 @@
     const cancel = style === 'cancel';
     const cx = cancel ? 150 : 60, W = cancel ? 210 : 120;
     const bars = cancel ? [44,54,64,74].map(y=>`<path class="bar" d="M6 ${y} q 22 -6 44 0 t 44 0"/>`).join('') : '';
-    // Two arcs in the band between the rings. The top arc runs left→right; the
-    // bottom arc is drawn RIGHT→LEFT (reversed) so its text reads upright rather
-    // than upside-down. The bottom arc's larger radius offsets its inward glyph
-    // growth, so both lines sit centred in the same band.
+    // Rings and the band between them. Both arcs sit on the band's mid-radius
+    // ((inner+outer)/2); `dominant-baseline:central` centres the glyphs' vertical
+    // middle on that radius, so each line keeps an equal gap to the inner and
+    // outer ring. The top arc runs left→right; the bottom arc is drawn
+    // RIGHT→LEFT (reversed) so its text reads upright, not upside-down.
+    const Ro = 47, Ri = 34, Rm = (Ro + Ri) / 2;
     return `<div class="pmHolder ${cls}">
-      <svg class="pm" width="${cancel?150:86}" height="86" viewBox="0 0 ${W} 120">
+      <svg class="pm" width="${cancel?160:96}" height="96" viewBox="0 0 ${W} 120">
         <defs>
-          <path id="aT" d="M${cx-38} 60 A38 38 0 0 1 ${cx+38} 60"/>
-          <path id="aB" d="M${cx+43} 60 A43 43 0 0 1 ${cx-43} 60"/>
+          <path id="aT" d="M${cx-Rm} 60 A${Rm} ${Rm} 0 0 1 ${cx+Rm} 60"/>
+          <path id="aB" d="M${cx+Rm} 60 A${Rm} ${Rm} 0 0 1 ${cx-Rm} 60"/>
         </defs>
         ${bars}
-        <circle class="ring" cx="${cx}" cy="60" r="47" stroke-width="2.2"/>
-        <circle class="ring" cx="${cx}" cy="60" r="34" stroke-width="1"/>
-        <text class="arc" text-anchor="middle"><textPath href="#aT" startOffset="50%">BATTERY · SURF · BENCH</textPath></text>
-        <text class="arc" text-anchor="middle"><textPath href="#aB" startOffset="50%">${R.arc}</textPath></text>
-        <text class="big" x="${cx}" y="65" text-anchor="middle">${val}</text>
-        <text class="lab" x="${cx}" y="74" text-anchor="middle">${lab.toUpperCase()}</text>
+        <circle class="ring" cx="${cx}" cy="60" r="${Ro}" stroke-width="2.2"/>
+        <circle class="ring" cx="${cx}" cy="60" r="${Ri}" stroke-width="1"/>
+        <text class="arc" text-anchor="middle" dominant-baseline="central"><textPath href="#aT" startOffset="50%">BATTERY · SURF · BENCH</textPath></text>
+        <text class="arc" text-anchor="middle" dominant-baseline="central"><textPath href="#aB" startOffset="50%">${R.arc}</textPath></text>
+        <text class="big" x="${cx}" y="57" text-anchor="middle" dominant-baseline="central">${val}</text>
+        <text class="lab" x="${cx}" y="70" text-anchor="middle" dominant-baseline="central">${lab.toUpperCase()}</text>
       </svg>
     </div>`;
   }
