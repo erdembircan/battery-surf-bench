@@ -77,9 +77,6 @@
   body.dark .waves i:nth-child(2){ background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='280' height='120' viewBox='0 0 280 120' preserveAspectRatio='none'%3E%3Cpath d='M0 78 q 70 -22 140 0 t 140 0 V120 H0 Z' fill='%230f5e72' fill-opacity='.5'/%3E%3C/svg%3E"); }
   body.dark .waves i:nth-child(3){ background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='280' height='120' viewBox='0 0 280 120' preserveAspectRatio='none'%3E%3Cpath d='M0 92 q 70 -18 140 0 t 140 0 V120 H0 Z' fill='%23062b3d' fill-opacity='.6'/%3E%3C/svg%3E"); }
   @keyframes drift { from{ transform:translateX(0);} to{ transform:translateX(-280px);} }
-  .sun { position:absolute; z-index:0; width:210px; height:210px; border-radius:50%; top:-50px; right:-44px;
-    background:radial-gradient(circle at 50% 50%, var(--sun) 0%, color-mix(in srgb,var(--sun) 70%,var(--amber)) 60%, transparent 72%); }
-
   /* ═══ the run-summary postcard — same object as the idle postcard ═══ */
   .pcWrap { position:relative; z-index:2; height:100%; display:grid; place-items:center; padding:2.2rem; }
   .card { position:relative; width:min(900px,97%); display:grid; grid-template-columns:.92fr 1.25fr; background:var(--paper); border-radius:14px; overflow:hidden;
@@ -97,14 +94,28 @@
     font-family:'Pacifico',cursive; font-size:1.7rem; line-height:1.02; color:#fff;
     transform:rotate(-7deg); transform-origin:left center; text-shadow:0 2px 10px rgba(0,0,0,.5); }
   .greet small { display:block; font-size:.6em; opacity:.92; margin-top:.1em; padding-left:1.2em; }
-  /* a round "postmark" stamped over the picture — the run's verdict */
-  .postmark { position:absolute; z-index:5; right:1.1rem; bottom:1.1rem; width:104px; height:104px; border-radius:50%;
-    border:2px solid rgba(255,255,255,.82); color:#fff; display:grid; place-items:center; text-align:center; transform:rotate(-11deg);
-    box-shadow:0 0 0 1px rgba(0,0,0,.12) inset; background:rgba(0,0,0,.14); }
-  .postmark b { font-family:'Anton'; font-size:1.42rem; line-height:.9; letter-spacing:.01em; }
-  .postmark span { font-size:.54rem; font-weight:700; letter-spacing:.18em; text-transform:uppercase; opacity:.92; margin-top:.18rem; }
-  .postmark::before, .postmark::after { content:''; position:absolute; left:8px; right:8px; height:1px; background:rgba(255,255,255,.6); }
-  .postmark::before { top:26px; } .postmark::after { bottom:26px; }
+  /* a "postmark" stamped over the picture — the run's verdict, in rubber-stamp
+     ink: deep green-teal for a completed run, deep coral for an interrupted one. */
+  .pmHolder { position:absolute; z-index:5; right:.9rem; bottom:.9rem; mix-blend-mode:multiply; filter:drop-shadow(0 1px 0 rgba(255,255,255,.12)); }
+  /* the picture is the same bright illustration in both themes, so the stamp ink
+     is theme-independent — a dark green-teal (ok) or coral (interrupted). */
+  .pmHolder.ok  { --pm-ink:rgba(11,74,66,.9); }
+  .pmHolder.bad { --pm-ink:rgba(141,42,30,.92); }
+
+  /* round date-stamp (curved text), optionally with cancellation bars */
+  .pm { display:block; overflow:visible; transform:rotate(-9deg); }
+  .pm text { font-family:'Space Mono',monospace; font-weight:700; fill:var(--pm-ink); }
+  .pm .ring { fill:none; stroke:var(--pm-ink); }
+  .pm .arc { font-size:8.2px; letter-spacing:1.4px; }
+  .pm .big { font-family:'Anton'; font-weight:400; font-size:22px; letter-spacing:.4px; }
+  .pm .lab { font-size:6.6px; letter-spacing:2.4px; }
+  .pm .bar { stroke:var(--pm-ink); stroke-width:2.2; fill:none; stroke-linecap:round; opacity:.9; }
+
+  /* boxed rubber stamp */
+  .pmBox { position:relative; transform:rotate(-6deg); border:2.5px solid var(--pm-ink); color:var(--pm-ink); padding:.34rem .7rem .4rem; text-align:center; border-radius:3px; }
+  .pmBox::before { content:''; position:absolute; inset:3px; border:1px solid var(--pm-ink); border-radius:2px; opacity:.55; }
+  .pmBox b { font-family:'Anton'; font-weight:400; font-size:1.6rem; display:block; line-height:.9; }
+  .pmBox span { font-size:.5rem; font-weight:700; letter-spacing:.22em; text-transform:uppercase; }
 
   /* right: the written back — the report */
   .msg { padding:1.5rem 1.7rem 1.4rem; position:relative; display:flex; flex-direction:column; }
@@ -171,6 +182,14 @@
     <span style="flex:1"></span>
     <label><input type="checkbox" id="dark" /> dark deck</label>
   </div>
+  <div class="ctl">
+    <strong>Postmark</strong>
+    <label><input type="radio" name="pm" value="stamp" checked /> Date-stamp</label>
+    <label><input type="radio" name="pm" value="cancel" /> Cancellation</label>
+    <label><input type="radio" name="pm" value="box" /> Boxed stamp</label>
+    <label><input type="radio" name="pm" value="none" /> None</label>
+    <span style="flex:1; font-size:.72rem; color:var(--ink-soft)">ink turns coral when a run is cut short (stopped / plugged in)</span>
+  </div>
   <p class="note" id="note"></p>
 
   <div class="cockpit">
@@ -193,7 +212,6 @@
       </div>
     </aside>
     <main class="stage" id="stage">
-      <div class="sun"></div>
       <div class="waves"><i></i><i></i><i></i></div>
       <div class="pcWrap" id="pc"></div>
     </main>
@@ -203,10 +221,10 @@
   // A representative 30-min run: stepped battery drain 82% → 75% (quantized).
   const SAMPLES = [ [0,82],[3.5,82],[5,81],[8,81],[10,80],[13,79],[16,78],[19,77],[22,76],[26,75],[30,75] ];
   const REASONS = {
-    duration: { tag:['30:00','min run'], el:'30:00', head:'The run is in.', sig:'Ran the full 30 minutes.', note:'Duration reached — the run completed its set length and stopped on its own.' },
-    target:   { tag:['75%','reached'],   el:'26:40', head:'Target reached.', sig:'Battery fell to your 75% mark.', note:'Target hit — the battery dropped to the chosen stop-at level and the run ended.' },
-    stopped:  { tag:['18:24','elapsed'], el:'18:24', head:'Called it early.', sig:'You stopped the run by hand.', note:'Stopped by you — the run ended on the stop control, partway through.' },
-    plugged:  { tag:['09:12','elapsed'], el:'09:12', head:'Plugged back in.', sig:'Charger went in; the run ended.', note:'Charger plugged in — a benchmark must run on battery, so plugging in ends the run.' },
+    duration: { tag:['30:00','min run'], el:'30:00', ok:true,  arc:'· COMPLETED ·',   head:'The run is in.', sig:'Ran the full 30 minutes.', note:'Duration reached — the run completed its set length and stopped on its own.' },
+    target:   { tag:['75%','reached'],   el:'26:40', ok:true,  arc:'· TARGET MET ·',  head:'Target reached.', sig:'Battery fell to your 75% mark.', note:'Target hit — the battery dropped to the chosen stop-at level and the run ended.' },
+    stopped:  { tag:['18:24','elapsed'], el:'18:24', ok:false, arc:'· STOPPED ·',     head:'Called it early.', sig:'You stopped the run by hand.', note:'Stopped by you — the run ended on the stop control, partway through.' },
+    plugged:  { tag:['09:12','elapsed'], el:'09:12', ok:false, arc:'· INTERRUPTED ·', head:'Plugged back in.', sig:'Charger went in; the run ended.', note:'Charger plugged in — a benchmark must run on battery, so plugging in ends the run.' },
   };
 
   // build the drain graph as an inline SVG (stepped measured line + dashed
@@ -234,6 +252,36 @@
     </svg>`;
   }
 
+  // the postmark — a rubber-stamp verdict over the picture, ink coloured by
+  // whether the run completed (green-teal) or was cut short (coral).
+  function postmark(R){
+    const style = document.querySelector('input[name=pm]:checked').value;
+    if (style === 'none') return '';
+    const cls = R.ok ? 'ok' : 'bad';
+    const [val, lab] = R.tag;
+    if (style === 'box') {
+      return `<div class="pmHolder ${cls}"><div class="pmBox"><b>${val}</b><span>${lab}</span></div></div>`;
+    }
+    const cancel = style === 'cancel';
+    const cx = cancel ? 150 : 60, W = cancel ? 210 : 120;
+    const bars = cancel ? [44,56,68,80].map(y=>`<path class="bar" d="M2 ${y} q 22 -7 44 0 t 44 0"/>`).join('') : '';
+    return `<div class="pmHolder ${cls}">
+      <svg class="pm" width="${cancel?168:120}" height="120" viewBox="0 0 ${W} 120">
+        <defs>
+          <path id="aT" d="M${cx-44} 62 A44 44 0 0 1 ${cx+44} 62"/>
+          <path id="aB" d="M${cx-37} 62 A37 37 0 0 0 ${cx+37} 62"/>
+        </defs>
+        ${bars}
+        <circle class="ring" cx="${cx}" cy="62" r="54" stroke-width="2.4"/>
+        <circle class="ring" cx="${cx}" cy="62" r="45" stroke-width="1"/>
+        <text class="arc" text-anchor="middle"><textPath href="#aT" startOffset="50%">BATTERY · SURF · BENCH</textPath></text>
+        <text class="arc" text-anchor="middle"><textPath href="#aB" startOffset="50%">${R.arc}</textPath></text>
+        <text class="big" x="${cx}" y="67" text-anchor="middle">${val}</text>
+        <text class="lab" x="${cx}" y="81" text-anchor="middle">${lab.toUpperCase()}</text>
+      </svg>
+    </div>`;
+  }
+
   function render(){
     const r = document.querySelector('input[name=r]:checked').value;
     const withGraph = document.querySelector('input[name=g]:checked').value === 'graph';
@@ -257,7 +305,7 @@
           <div class="picPhoto"></div>
           <div class="picMark"></div>
           <div class="greet">Greetings from<small>Battery Surf Bench</small></div>
-          <div class="postmark"><div><b>${R.tag[0]}</b><span>${R.tag[1]}</span></div></div>
+          ${postmark(R)}
         </div>
         <div class="msg">
           <div class="stamp"></div>
@@ -266,17 +314,18 @@
           <div class="divide"></div>
           ${withGraph ? `<div class="graph">${graphSVG()}<div class="legend"><span><i></i>battery (measured)</span><span class="pj"><i></i>drain fit</span></div></div>` : ``}
           <div class="stats ${withGraph?'':'two'}">${statsHtml}</div>
-          <div class="actions"><button class="btn primary">New run</button><button class="btn ghost">Details</button></div>
+          <div class="actions"><button class="btn primary">New run</button></div>
         </div>
       </div>`;
   }
 
-  document.querySelectorAll('input[name=r],input[name=g]').forEach(el=>el.addEventListener('change',render));
+  document.querySelectorAll('input[name=r],input[name=g],input[name=pm]').forEach(el=>el.addEventListener('change',render));
   document.getElementById('dark').addEventListener('change', e => document.body.classList.toggle('dark', e.target.checked));
 
   const q = new URLSearchParams(location.search);
   if (q.has('reason')) { const el=document.querySelector(`input[name=r][value="${q.get('reason')}"]`); if(el) el.checked=true; }
   if (q.has('layout')) { const el=document.querySelector(`input[name=g][value="${q.get('layout')}"]`); if(el) el.checked=true; }
+  if (q.has('pm')) { const el=document.querySelector(`input[name=pm][value="${q.get('pm')}"]`); if(el) el.checked=true; }
   if (q.get('dark')==='1') { document.body.classList.add('dark'); document.getElementById('dark').checked=true; }
   if (q.get('bare')==='1') document.body.classList.add('bare');
   render();
