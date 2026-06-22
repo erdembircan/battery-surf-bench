@@ -600,10 +600,11 @@ store( 'bsb/cockpit', {
 		 * Starts or stops the run. Starting normalizes the (client-seeded, so
 		 * untrusted) run configuration, resets the elapsed clock and readouts,
 		 * begins a fresh calculation session seeded with the latest battery
-		 * reading, reveals the readouts pill and hides the configuration controls;
-		 * stopping returns the cockpit to its idle, ready state with the controls
-		 * back. Starting is refused while the device is plugged in — a benchmark
-		 * must run on battery.
+		 * reading, reveals the readouts pill and hides the configuration controls,
+		 * and opens in the compact stage view (the user can expand to the full
+		 * dashboard mid-run); stopping returns the cockpit to its idle, ready
+		 * state with the controls back. Starting is refused while the device is
+		 * plugged in — a benchmark must run on battery.
 		 */
 		toggleRun(): void {
 			const context = getContext< CockpitContext >();
@@ -631,7 +632,9 @@ store( 'bsb/cockpit', {
 			);
 
 			context.elapsed = 0;
-			context.compact = false;
+			// Runs open in the compact stage view; the user can expand to the
+			// full dashboard mid-run via the stage's expand control.
+			context.compact = true;
 			context.rate10 = null;
 			context.rateSession = null;
 			context.secondsToEmpty = null;

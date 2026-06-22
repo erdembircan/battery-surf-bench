@@ -475,14 +475,14 @@ describe( 'bsb/cockpit view store', () => {
 
 		it( 'starts a run, resetting the run-scoped state', () => {
 			mocks.context.elapsed = 999;
-			// A leftover compact view from a prior run is reset on start.
-			mocks.context.compact = true;
+			// A run opens in the compact view regardless of the prior state.
+			mocks.context.compact = false;
 
 			mocks.config?.actions.toggleRun();
 
 			expect( mocks.context.running ).toBe( true );
 			expect( mocks.context.elapsed ).toBe( 0 );
-			expect( mocks.context.compact ).toBe( false );
+			expect( mocks.context.compact ).toBe( true );
 		} );
 
 		it( 'stops a live run back to the idle state', () => {
