@@ -21,9 +21,11 @@ describe( 'targetCap', () => {
 		expect( targetCap( null ) ).toBe( TARGET_MAX );
 	} );
 
-	it( 'snaps the current level down to the step', () => {
+	it( 'caps at the largest step strictly below the current level', () => {
 		expect( targetCap( 84 ) ).toBe( 80 );
-		expect( targetCap( 90 ) ).toBe( 90 );
+		// A level already on the grid can't be targeted (that's a zero drop).
+		expect( targetCap( 90 ) ).toBe( 85 );
+		expect( targetCap( 65 ) ).toBe( 60 );
 	} );
 
 	it( 'never drops below the minimum', () => {

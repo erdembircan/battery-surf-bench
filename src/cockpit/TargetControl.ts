@@ -17,9 +17,10 @@ export const TARGET_MAX = 95;
 export const TARGET_STEP = 5;
 
 /**
- * The highest stop-at level the slider allows: the current battery level snapped
- * down to the step, since you cannot target a drop above the battery you have.
- * Falls back to the nominal max until the level is known.
+ * The highest stop-at level the slider allows: the largest step strictly below
+ * the current battery level, since a target equal to (or above) the current
+ * level would be a zero drop. So at 65% the cap is 60, not 65. Falls back to the
+ * nominal max until the level is known.
  * @param batteryLevel Current level as a 0..100 percentage, or null when unknown.
  */
 export const targetCap = ( batteryLevel: number | null ): number => {
@@ -29,7 +30,7 @@ export const targetCap = ( batteryLevel: number | null ): number => {
 
 	return Math.max(
 		TARGET_MIN,
-		Math.floor( batteryLevel / TARGET_STEP ) * TARGET_STEP
+		Math.floor( ( batteryLevel - 1 ) / TARGET_STEP ) * TARGET_STEP
 	);
 };
 
