@@ -16,7 +16,7 @@ import {
 	minutesToLevel,
 	type DrainRateResult,
 } from './DrainRate';
-import { SampleLog } from './SampleLog';
+import { SampleLog, type RleSample } from './SampleLog';
 
 /** The derived values the deck binds onto its readout labels. */
 export interface Readouts {
@@ -144,6 +144,11 @@ export class RunSession {
 			endLevel: last.level,
 			droppedPct: ( first.level - last.level ) * 100,
 		};
+	}
+
+	/** The run's recorded samples, oldest first — the drain graph's input. */
+	samples(): readonly RleSample[] {
+		return this.log.all();
 	}
 
 	/** Ends the run; the recorded samples remain readable until the next start. */

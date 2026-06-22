@@ -50,6 +50,7 @@ import {
 import { BatteryMonitor, type BatteryReading } from './BatteryMonitor';
 import { ScreenWakeLock, type WakeLockSentinelLike } from './WakeLock';
 import { RunSession } from './RunSession';
+import { buildGraph, type GraphViewport } from './DrainGraph';
 
 /** One surfable course page, as supplied by the `bsb/course-pages` binding. */
 interface CoursePage {
@@ -130,6 +131,23 @@ const instanceFor = ( context: CockpitContext ): InstanceState => {
 
 /** The monotonic clock the run session stamps samples against. */
 const now = (): number => performance.now();
+
+/** The summary drain graph's drawing viewport (SVG user units). */
+const GRAPH_VIEWPORT: GraphViewport = {
+	width: 360,
+	height: 120,
+	padLeft: 24,
+	padRight: 8,
+	padTop: 10,
+	padBottom: 18,
+};
+
+/**
+ * The summary chart geometry for a context's run, or null when nothing to plot.
+ * @param context
+ */
+const graphFor = ( context: CockpitContext ) =>
+	buildGraph( instanceFor( context ).session.samples(), GRAPH_VIEWPORT );
 
 /**
  * Mirrors the session's derived readouts onto the reactive context.
@@ -422,6 +440,26 @@ store( 'bsb/cockpit', {
 			return context.endReason === 'targetDrop'
 				? `${ context.targetPercent }%`
 				: formatClock( context.elapsed );
+		},
+
+		/** Whether the run has enough samples to draw the summary drain graph. */
+		get hasGraph(): boolean {
+			return graphFor( getContext< CockpitContext >() ) !== null;
+		},
+
+		/** Filled-area `d` under the summary drain curve. */
+		get graphArea(): string {
+			return graphFor( getContext< CockpitContext >() )?.area ?? '';
+		},
+
+		/** Stepped measured-battery `d` for the summary drain curve. */
+		get graphStep(): string {
+			return graphFor( getContext< CockpitContext >() )?.step ?? '';
+		},
+
+		/** Straight drain-fit `d` over the summary drain curve, empty if none. */
+		get graphFit(): string {
+			return graphFor( getContext< CockpitContext >() )?.fit ?? '';
 		},
 	},
 	actions: {

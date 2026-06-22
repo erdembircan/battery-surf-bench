@@ -42,6 +42,10 @@ interface CockpitContext {
 
 interface CockpitConfig {
 	state: {
+		hasGraph: boolean;
+		graphArea: string;
+		graphStep: string;
+		graphFit: string;
 		currentSrc: string;
 		isModeDuration: boolean;
 		isModeTargetDrop: boolean;
@@ -810,6 +814,15 @@ describe( 'bsb/cockpit view store', () => {
 			expect( mocks.context.rate10 ).toBe( 6 );
 			expect( mocks.context.secondsToEmpty ).toBe( 60_000 );
 
+			// The summary drain graph now has something to plot.
+			expect( mocks.config?.state.hasGraph ).toBe( true );
+			expect( mocks.config?.state.graphStep.startsWith( 'M' ) ).toBe(
+				true
+			);
+			expect( mocks.config?.state.graphArea.endsWith( 'Z' ) ).toBe(
+				true
+			);
+
 			cleanup();
 		} );
 
@@ -1143,6 +1156,12 @@ describe( 'bsb/cockpit view store', () => {
 			expect( mocks.config?.state.summaryElapsed ).toBe( '01:15' );
 			expect( mocks.config?.state.summaryBattery ).toBe( '—' );
 			expect( mocks.config?.state.summaryDropped ).toBe( '—' );
+		} );
+
+		it( 'has no drain graph until a run has been sampled', () => {
+			expect( mocks.config?.state.hasGraph ).toBe( false );
+			expect( mocks.config?.state.graphStep ).toBe( '' );
+			expect( mocks.config?.state.graphArea ).toBe( '' );
 		} );
 
 		it( 'uses the target percent or the elapsed clock as the postmark value', () => {
