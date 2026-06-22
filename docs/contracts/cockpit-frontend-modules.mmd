@@ -8,8 +8,8 @@ classDiagram
     class CockpitStore {
         <<module>>
         state: derived readouts
-        actions: deck controls, toggleFlip
-        callbacks: initBattery, initWakeLock, syncRunActivity, rollDuration
+        actions: deck controls, toggleSound, toggleFlip
+        callbacks: initBattery, initWakeLock, initSound, syncRunActivity, rollDuration
         summary: ended/flipped/reason + drain-graph getters
     }
 
@@ -41,6 +41,16 @@ classDiagram
         +readStoredPref() ThemePref
         +writeStoredPref(ThemePref) void
         +osPrefersDark() bool
+    }
+
+    class FinishChime {
+        +__construct(make: () =&gt; AudioContextLike)
+        +prime() void
+        +play() void
+        +readStoredSound()$ bool
+        +writeStoredSound(bool)$ void
+        +audioContextCtor()$ AudioContextCtor|null
+        +SOUND_KEY
     }
 
     class Format {
@@ -108,6 +118,7 @@ classDiagram
     CockpitStore --> BatteryMonitor : creates & owns (composition)
     CockpitStore --> ScreenWakeLock : creates & owns (composition)
     CockpitStore --> RunSession : creates & owns (composition)
+    CockpitStore --> FinishChime : creates & owns (composition)
     BatteryMonitor ..> CockpitStore : reports BatteryReading
     CockpitStore --> DrainGraph : builds summary chart model
     CockpitStore --> GraphSvg : paints chart from model

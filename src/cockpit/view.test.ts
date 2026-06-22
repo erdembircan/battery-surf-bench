@@ -26,6 +26,7 @@ interface CockpitContext {
 	speed: number;
 	running: boolean;
 	compact: boolean;
+	soundEnabled: boolean;
 	elapsed: number;
 	targetPercent: number;
 	batteryLevel: number | null;
@@ -80,6 +81,7 @@ interface CockpitConfig {
 		summaryHeading: string;
 		summarySig: string;
 		summaryElapsed: string;
+		isSoundOn: boolean;
 	};
 	actions: {
 		selectMode: () => void;
@@ -92,12 +94,14 @@ interface CockpitConfig {
 		selectSpeed: () => void;
 		toggleRun: () => void;
 		toggleCompact: () => void;
+		toggleSound: () => void;
 		toggleFlip: () => void;
 		newRun: () => void;
 	};
 	callbacks: {
 		initBattery: () => () => void;
 		initWakeLock: () => () => void;
+		initSound: () => void;
 		syncRunActivity: () => void;
 		rollDuration: () => void;
 		renderSummary: () => void;
@@ -122,6 +126,7 @@ const baseContext = (): CockpitContext => ( {
 	speed: 1,
 	running: false,
 	compact: false,
+	soundEnabled: true,
 	elapsed: 0,
 	targetPercent: 20,
 	batteryLevel: null,
@@ -1248,6 +1253,138 @@ describe( 'bsb/cockpit view store', () => {
 			expect(
 				root.querySelector( '.bsb-frank__unit' )!.textContent
 			).toBe( 'elapsed' );
+		} );
+	} );
+
+	describe( 'finish sound', () => {
+		/**
+		 * Installs a recording stand-in for the platform `AudioContext`, so the
+		 * chime the store builds on init sounds through it. Returns whether any
+		 * note was sounded.
+		 */
+		const installAudio = (): { played: () => boolean } => {
+			let notes = 0;
+			class MockAudioContext {
+				currentTime = 0;
+				state = 'running';
+				destination = { connect: ( node: unknown ) => node };
+				resume(): void {}
+				createOscillator() {
+					notes += 1;
+					return {
+						type: '',
+						frequency: { value: 0 },
+						connect: ( node: unknown ) => node,
+						start: () => undefined,
+						stop: () => undefined,
+					};
+				}
+				createGain() {
+					return {
+						gain: {
+							setValueAtTime: () => undefined,
+							linearRampToValueAtTime: () => undefined,
+							exponentialRampToValueAtTime: () => undefined,
+						},
+						connect: ( node: unknown ) => node,
+					};
+				}
+			}
+			( window as { AudioContext?: unknown } ).AudioContext =
+				MockAudioContext as unknown;
+
+			return { played: () => notes > 0 };
+		};
+
+		afterEach( () => {
+			delete ( window as { AudioContext?: unknown } ).AudioContext;
+			window.localStorage.clear();
+		} );
+
+		it( 'reflects whether the finish sound is enabled', () => {
+			expect( mocks.config?.state.isSoundOn ).toBe( true );
+
+			mocks.context.soundEnabled = false;
+			expect( mocks.config?.state.isSoundOn ).toBe( false );
+		} );
+
+		it( 'toggles the finish sound and remembers the choice', () => {
+			installAudio();
+			mocks.config!.callbacks.initSound();
+
+			mocks.config!.actions.toggleSound();
+			expect( mocks.context.soundEnabled ).toBe( false );
+			expect( window.localStorage.getItem( 'bsb-cockpit-sound' ) ).toBe(
+				'off'
+			);
+
+			mocks.config!.actions.toggleSound();
+			expect( mocks.context.soundEnabled ).toBe( true );
+			expect( window.localStorage.getItem( 'bsb-cockpit-sound' ) ).toBe(
+				'on'
+			);
+		} );
+
+		it( 'restores the remembered preference on init', () => {
+			installAudio();
+
+			window.localStorage.setItem( 'bsb-cockpit-sound', 'off' );
+			mocks.config!.callbacks.initSound();
+			expect( mocks.context.soundEnabled ).toBe( false );
+
+			window.localStorage.setItem( 'bsb-cockpit-sound', 'on' );
+			mocks.config!.callbacks.initSound();
+			expect( mocks.context.soundEnabled ).toBe( true );
+		} );
+
+		it( 'sounds the chime when a run finishes naturally', () => {
+			const audio = installAudio();
+			mocks.config!.callbacks.initSound();
+
+			vi.useFakeTimers();
+			mocks.context.mode = 'duration';
+			mocks.context.durationMinutes = 5;
+			mocks.context.running = true;
+			mocks.context.elapsed = 299;
+
+			mocks.config!.callbacks.syncRunActivity();
+			vi.advanceTimersByTime( 1000 );
+
+			expect( mocks.context.endReason ).toBe( 'duration' );
+			expect( audio.played() ).toBe( true );
+
+			vi.useRealTimers();
+		} );
+
+		it( 'stays silent on a manual stop', () => {
+			const audio = installAudio();
+			mocks.config!.callbacks.initSound();
+
+			mocks.config!.actions.toggleRun();
+			mocks.config!.actions.toggleRun();
+
+			expect( mocks.context.endReason ).toBe( 'stopped' );
+			expect( audio.played() ).toBe( false );
+		} );
+
+		it( 'stays silent at a natural finish when disabled', () => {
+			const audio = installAudio();
+			window.localStorage.setItem( 'bsb-cockpit-sound', 'off' );
+			mocks.config!.callbacks.initSound();
+
+			vi.useFakeTimers();
+			mocks.context.mode = 'duration';
+			mocks.context.durationMinutes = 5;
+			mocks.context.running = true;
+			mocks.context.elapsed = 299;
+
+			mocks.config!.callbacks.syncRunActivity();
+			vi.advanceTimersByTime( 1000 );
+
+			expect( mocks.context.endReason ).toBe( 'duration' );
+			expect( audio.played() ).toBe( false );
+
+			vi.useRealTimers();
 		} );
 	} );
 } );

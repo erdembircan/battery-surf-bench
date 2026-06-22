@@ -287,7 +287,7 @@ body {
 	color: var(--subtitle-ink);
 }
 
-// Deck header actions — the compact and theme toggles, grouped on the right.
+// Deck header actions — the finish-sound and compact toggles, grouped on the right.
 .bsb-deck__actions {
 	grid-area: 1 / 3;
 	align-self: center;
@@ -296,7 +296,9 @@ body {
 	gap: 0.5rem;
 }
 
-.bsb-deck__compact {
+// Shared header icon-button shape — a square, masked-glyph control. The compact
+// and finish-sound toggles each extend it and supply their own glyph and states.
+%bsb-deck-iconbtn {
 	position: relative;
 	z-index: 1;
 	flex: 0 0 auto;
@@ -338,8 +340,31 @@ body {
 	}
 }
 
+// Finish-sound toggle — a speaker that mutes/sounds the end-of-run chime. Unlike
+// the compact toggle it shows whether idle or running; on state is accent-tinted
+// with sound waves, off state a muted speaker.
+.bsb-deck__sound {
+	@extend %bsb-deck-iconbtn;
+
+	&::before {
+		mask-image: theme.$speaker-off-icon;
+		-webkit-mask-image: theme.$speaker-off-icon;
+	}
+
+	&.is-on {
+		background: var(--surface);
+
+		&::before {
+			background: var(--paper-accent);
+			mask-image: theme.$speaker-on-icon;
+			-webkit-mask-image: theme.$speaker-on-icon;
+		}
+	}
+}
+
 // Compact toggle — a chevron pointing up (send the readouts to the top pill).
 .bsb-deck__compact {
+	@extend %bsb-deck-iconbtn;
 	transition: opacity 0.2s ease;
 
 	// Hidden while idle, but keep its slot in the header so starting a run reveals
@@ -1314,7 +1339,10 @@ body {
 	}
 }
 
-.bsb-deck__expand {
+// Shared pill icon-button shape — a translucent-on-teal masked-glyph control in
+// the compact top pill. The expand and finish-sound toggles each extend it and
+// supply their own glyph and states.
+%bsb-pill-iconbtn {
 	width: 2.1rem;
 	height: 2.1rem;
 	cursor: pointer;
@@ -1329,11 +1357,9 @@ body {
 		width: 1.15rem;
 		height: 1.15rem;
 		background: var(--status-ink);
-		mask-image: theme.$chevron-down;
 		mask-repeat: no-repeat;
 		mask-position: center;
 		mask-size: contain;
-		-webkit-mask-image: theme.$chevron-down;
 		-webkit-mask-repeat: no-repeat;
 		-webkit-mask-position: center;
 		-webkit-mask-size: contain;
@@ -1341,6 +1367,38 @@ body {
 
 	&:focus-visible {
 		@extend %focus-ring;
+	}
+}
+
+.bsb-deck__expand {
+	@extend %bsb-pill-iconbtn;
+
+	&::before {
+		mask-image: theme.$chevron-down;
+		-webkit-mask-image: theme.$chevron-down;
+	}
+}
+
+// Finish-sound toggle in the compact pill — the deck toggle's twin, tinted for
+// the teal pill: a muted speaker when off, sounding speaker on a brighter, ringed
+// face when on.
+.bsb-deck__readout-sound {
+	@extend %bsb-pill-iconbtn;
+	transition: background 0.18s ease;
+
+	&::before {
+		mask-image: theme.$speaker-off-icon;
+		-webkit-mask-image: theme.$speaker-off-icon;
+	}
+
+	&.is-on {
+		background: rgba(255, 255, 255, 0.34);
+		box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+
+		&::before {
+			mask-image: theme.$speaker-on-icon;
+			-webkit-mask-image: theme.$speaker-on-icon;
+		}
 	}
 }
 

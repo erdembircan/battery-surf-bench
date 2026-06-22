@@ -59,6 +59,19 @@ test.describe( 'Cockpit dashboard route', () => {
 			page.locator( '.bsb-run[data-wp-on--click="actions.toggleRun"]' )
 		).toBeAttached();
 
+		// The finish-sound toggle ships in both the deck header and the compact
+		// top pill, each wired to the same store action.
+		await expect(
+			page.locator(
+				'.bsb-deck__sound[data-wp-on--click="actions.toggleSound"]'
+			)
+		).toBeAttached();
+		await expect(
+			page.locator(
+				'.bsb-deck__readout-sound[data-wp-on--click="actions.toggleSound"]'
+			)
+		).toBeAttached();
+
 		// Duration mode is the default, so the target-drop field ships hidden in
 		// the server markup — it must not flash in before hydration hides it.
 		await expect( page.locator( '.bsb-field--target' ) ).toBeHidden();

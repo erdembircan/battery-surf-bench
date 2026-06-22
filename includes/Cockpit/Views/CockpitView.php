@@ -64,6 +64,7 @@ class CockpitView implements View {
 	 *     @type string $plugged_label     Translated run-control label when blocked by charging.
 	 *     @type string $compact_label     Translated accessible label for the compact control.
 	 *     @type string $expand_label      Translated accessible label for the expand control.
+	 *     @type string $sound_label       Translated accessible label for the finish-sound toggle.
 	 *     @type string $viewport_title    Translated title for the viewport iframe.
 	 *     @type string $shield_label      Translated "view only" chip text over the viewport.
 	 *     @type string $greeting_lead     Translated "Greetings from" line of the idle postcard.
@@ -111,6 +112,7 @@ class CockpitView implements View {
 		$plugged_label      = isset( $data['plugged_label'] ) ? (string) $data['plugged_label'] : '';
 		$compact_label      = isset( $data['compact_label'] ) ? (string) $data['compact_label'] : '';
 		$expand_label       = isset( $data['expand_label'] ) ? (string) $data['expand_label'] : '';
+		$sound_label        = isset( $data['sound_label'] ) ? (string) $data['sound_label'] : '';
 		$viewport_title     = isset( $data['viewport_title'] ) ? (string) $data['viewport_title'] : '';
 		$shield_label       = isset( $data['shield_label'] ) ? (string) $data['shield_label'] : '';
 		$greeting_lead      = isset( $data['greeting_lead'] ) ? (string) $data['greeting_lead'] : '';
@@ -187,6 +189,7 @@ class CockpitView implements View {
 		$plugged_label      = esc_html( $plugged_label );
 		$compact_label      = esc_attr( $compact_label );
 		$expand_label       = esc_attr( $expand_label );
+		$sound_label        = esc_attr( $sound_label );
 		$viewport_title     = esc_attr( $viewport_title );
 		$shield_label       = esc_html( $shield_label );
 		$idle_heading       = esc_html( $idle_heading );
@@ -256,7 +259,7 @@ CELLS;
 INNER;
 
 		return <<<HTML
-<div {$wrapper} data-wp-interactive="bsb/cockpit" {$context} data-wp-init---battery="callbacks.initBattery" data-wp-init---wake-lock="callbacks.initWakeLock" data-wp-watch---run-activity="callbacks.syncRunActivity" data-wp-class--is-compact="state.isCompact">
+<div {$wrapper} data-wp-interactive="bsb/cockpit" {$context} data-wp-init---battery="callbacks.initBattery" data-wp-init---wake-lock="callbacks.initWakeLock" data-wp-init---sound="callbacks.initSound" data-wp-watch---run-activity="callbacks.syncRunActivity" data-wp-class--is-compact="state.isCompact">
 	<aside class="bsb-cockpit__deck">
 		<header class="bsb-deck__brand">
 			<span class="bsb-deck__mark" aria-hidden="true"></span>
@@ -264,6 +267,7 @@ INNER;
 			<span class="bsb-deck__subtitle">{$brand_subtitle}</span>
 			<span class="bsb-deck__actions">
 				<button type="button" class="bsb-deck__compact" data-wp-on--click="actions.toggleCompact" data-wp-class--is-hidden="state.isIdle" aria-label="{$compact_label}"></button>
+				<button type="button" class="bsb-deck__sound" data-wp-on--click="actions.toggleSound" data-wp-class--is-on="state.isSoundOn" data-wp-bind--aria-pressed="state.isSoundOn" aria-label="{$sound_label}"></button>
 			</span>
 		</header>
 
@@ -350,6 +354,7 @@ INNER;
 				<div class="bsb-deck__readout-ctrl">
 					<button type="button" class="bsb-deck__readout-stop" data-wp-on--click="actions.toggleRun">{$stop_label}</button>
 					<button type="button" class="bsb-deck__expand" data-wp-on--click="actions.toggleCompact" aria-label="{$expand_label}"></button>
+					<button type="button" class="bsb-deck__readout-sound" data-wp-on--click="actions.toggleSound" data-wp-class--is-on="state.isSoundOn" data-wp-bind--aria-pressed="state.isSoundOn" aria-label="{$sound_label}"></button>
 				</div>
 			</div>
 		</div>
