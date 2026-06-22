@@ -61,6 +61,14 @@ $bsb_context = array(
 	'ended'           => false,
 	'endReason'       => '',
 	'flipped'         => false,
+	// Summary readouts, frozen onto the context at run end (kept reactive so the
+	// summary renders); empty until a run finishes.
+	'summaryBattery'  => '',
+	'summaryDropped'  => '',
+	'hasGraph'        => false,
+	'graphArea'       => '',
+	'graphStep'       => '',
+	'graphFit'        => '',
 	// Translated summary wording, indexed by end reason; the store picks the set
 	// matching how the run ended (kept here so the strings stay translatable).
 	'reasonText'      => array(

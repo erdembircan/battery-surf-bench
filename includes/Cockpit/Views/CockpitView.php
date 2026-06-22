@@ -327,7 +327,7 @@ INNER;
 					<h2 class="bsb-summary__head" data-wp-text="state.summaryHeading"></h2>
 					<p class="bsb-summary__sig" data-wp-text="state.summarySig"></p>
 					<span class="bsb-summary__divide" aria-hidden="true"></span>
-					<div class="bsb-summary__graph" data-wp-bind--hidden="!state.hasGraph">
+					<div class="bsb-summary__graph" data-wp-bind--hidden="!context.hasGraph">
 						<svg class="bsb-summary__chart" viewBox="0 0 360 120" preserveAspectRatio="none" aria-hidden="true">
 							<path class="bsb-summary__chart-area"></path>
 							<path class="bsb-summary__chart-fit"></path>
@@ -338,8 +338,8 @@ INNER;
 						<div class="bsb-stat"><span class="bsb-stat__label">{$tte_label}</span><span class="bsb-stat__value" data-wp-text="state.timeToEmptyDisplay"></span></div>
 						<div class="bsb-stat"><span class="bsb-stat__label">{$rate_session_label}</span><span class="bsb-stat__value"><span data-wp-text="state.rateSessionDisplay"></span><span class="bsb-stat__unit">%/h</span></span></div>
 						<div class="bsb-stat"><span class="bsb-stat__label">{$rate10_label}</span><span class="bsb-stat__value"><span data-wp-text="state.rate10Display"></span><span class="bsb-stat__unit">%/h</span></span></div>
-						<div class="bsb-stat"><span class="bsb-stat__label">{$battery_label}</span><span class="bsb-stat__value" data-wp-text="state.summaryBattery"></span></div>
-						<div class="bsb-stat"><span class="bsb-stat__label">{$dropped_label}</span><span class="bsb-stat__value"><span data-wp-text="state.summaryDropped"></span><span class="bsb-stat__unit">{$pts_label}</span></span></div>
+						<div class="bsb-stat"><span class="bsb-stat__label">{$battery_label}</span><span class="bsb-stat__value" data-wp-text="context.summaryBattery"></span></div>
+						<div class="bsb-stat"><span class="bsb-stat__label">{$dropped_label}</span><span class="bsb-stat__value"><span data-wp-text="context.summaryDropped"></span><span class="bsb-stat__unit">{$pts_label}</span></span></div>
 						<div class="bsb-stat"><span class="bsb-stat__label">{$elapsed_run_label}</span><span class="bsb-stat__value" data-wp-text="state.summaryElapsed"></span></div>
 					</div>
 					<div class="bsb-summary__actions">

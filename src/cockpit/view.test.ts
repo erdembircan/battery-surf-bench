@@ -42,6 +42,12 @@ interface CockpitContext {
 		string,
 		{ head: string; sig: string; arc: string; unit: string }
 	>;
+	summaryBattery: string;
+	summaryDropped: string;
+	hasGraph: boolean;
+	graphArea: string;
+	graphStep: string;
+	graphFit: string;
 }
 
 interface CockpitConfig {
@@ -77,8 +83,6 @@ interface CockpitConfig {
 		summaryHeading: string;
 		summarySig: string;
 		summaryElapsed: string;
-		summaryBattery: string;
-		summaryDropped: string;
 	};
 	actions: {
 		selectMode: () => void;
@@ -136,6 +140,12 @@ const baseContext = (): CockpitContext => ( {
 	endReason: '',
 	flipped: false,
 	reasonText: {},
+	summaryBattery: '',
+	summaryDropped: '',
+	hasGraph: false,
+	graphArea: '',
+	graphStep: '',
+	graphFit: '',
 } );
 
 const mocks = vi.hoisted( () => ( {
@@ -821,8 +831,14 @@ describe( 'bsb/cockpit view store', () => {
 			expect( mocks.context.rate10 ).toBe( 6 );
 			expect( mocks.context.secondsToEmpty ).toBe( 60_000 );
 
-			// The summary drain graph now has something to plot.
-			expect( mocks.config?.state.hasGraph ).toBe( true );
+			// Ending the run freezes the summary onto the context: battery
+			// start→end, drop, and the drain-graph paths.
+			mocks.config?.actions.toggleRun();
+			expect( mocks.context.summaryBattery ).toBe( '80→79' );
+			expect( mocks.context.summaryDropped ).toBe( '1' );
+			expect( mocks.context.hasGraph ).toBe( true );
+			expect( mocks.context.graphStep.startsWith( 'M' ) ).toBe( true );
+			expect( mocks.context.graphArea.endsWith( 'Z' ) ).toBe( true );
 
 			cleanup();
 		} );
@@ -1166,15 +1182,14 @@ describe( 'bsb/cockpit view store', () => {
 			expect( mocks.config?.state.isFlipped ).toBe( false );
 		} );
 
-		it( 'formats the summary readouts, with em dashes until sampled', () => {
+		it( 'formats the elapsed run clock for the summary', () => {
 			mocks.context.elapsed = 75;
 			expect( mocks.config?.state.summaryElapsed ).toBe( '01:15' );
-			expect( mocks.config?.state.summaryBattery ).toBe( '—' );
-			expect( mocks.config?.state.summaryDropped ).toBe( '—' );
 		} );
 
-		it( 'has no drain graph until a run has been sampled', () => {
-			expect( mocks.config?.state.hasGraph ).toBe( false );
+		it( 'has no frozen summary or graph until a run ends', () => {
+			expect( mocks.context.hasGraph ).toBe( false );
+			expect( mocks.context.summaryBattery ).toBe( '' );
 		} );
 
 		it( 'reads the verdict wording for the end reason', () => {

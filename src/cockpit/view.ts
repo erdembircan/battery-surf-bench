@@ -82,6 +82,14 @@ interface CockpitContext {
 	endReason: RunEndReason;
 	flipped: boolean;
 	reasonText: Record< string, ReasonText >;
+	// Frozen summary readouts, stored on the context (reactive) at run end so the
+	// summary re-renders — the session log they derive from is not a signal.
+	summaryBattery: string;
+	summaryDropped: string;
+	hasGraph: boolean;
+	graphArea: string;
+	graphStep: string;
+	graphFit: string;
 }
 
 /** Why a run ended — drives the summary's verdict; empty before any run ends. */
@@ -173,6 +181,37 @@ const applyReadouts = (
 };
 
 /**
+ * Freezes the run's summary onto the context: the rate readouts, the start→end
+ * battery and drop, and the drain-graph path data. All land in reactive context
+ * (not read live off the non-reactive session log) so the summary renders and
+ * re-renders correctly.
+ * @param context
+ * @param instance
+ */
+const freezeSummary = (
+	context: CockpitContext,
+	instance: InstanceState
+): void => {
+	applyReadouts( context, instance.session );
+
+	const summary = instance.session.summary();
+	context.summaryBattery = summary
+		? `${ Math.round( summary.startLevel * 100 ) }→${ Math.round(
+				summary.endLevel * 100
+		  ) }`
+		: '—';
+	context.summaryDropped = summary
+		? String( Math.round( summary.droppedPct ) )
+		: '—';
+
+	const graph = graphFor();
+	context.hasGraph = graph !== null;
+	context.graphArea = graph?.area ?? '';
+	context.graphStep = graph?.step ?? '';
+	context.graphFit = graph?.fit ?? '';
+};
+
+/**
  * Ends a live run, returning the cockpit to its idle, ready state: the run
  * stops and the calculation session is wound up. The single place a run is torn
  * down, whether by the stop control, by plugging in, or by the duration
@@ -194,7 +233,7 @@ const stopRun = (
 	instance: InstanceState,
 	reason: RunEndReason
 ): void => {
-	applyReadouts( context, instance.session );
+	freezeSummary( context, instance );
 	context.running = false;
 	context.ended = true;
 	context.endReason = reason;
@@ -414,26 +453,6 @@ store( 'bsb/cockpit', {
 			return formatClock( getContext< CockpitContext >().elapsed );
 		},
 
-		/** Battery start→end for the summary (e.g. `82→75`), em dash until known. */
-		get summaryBattery(): string {
-			const summary = instanceFor().session.summary();
-
-			if ( ! summary ) {
-				return '—';
-			}
-
-			return `${ Math.round( summary.startLevel * 100 ) }→${ Math.round(
-				summary.endLevel * 100
-			) }`;
-		},
-
-		/** Percentage points the battery dropped over the run, em dash until known. */
-		get summaryDropped(): string {
-			const summary = instanceFor().session.summary();
-
-			return summary ? String( Math.round( summary.droppedPct ) ) : '—';
-		},
-
 		/** The summary's handwritten verdict heading for the end reason. */
 		get summaryHeading(): string {
 			const context = getContext< CockpitContext >();
@@ -444,11 +463,6 @@ store( 'bsb/cockpit', {
 		get summarySig(): string {
 			const context = getContext< CockpitContext >();
 			return context.reasonText?.[ context.endReason ]?.sig ?? '';
-		},
-
-		/** Whether the run has enough samples to draw the summary drain graph. */
-		get hasGraph(): boolean {
-			return graphFor() !== null;
 		},
 	},
 	actions: {
@@ -992,13 +1006,14 @@ store( 'bsb/cockpit', {
 
 			const context = getContext< CockpitContext >();
 
-			const graph = graphFor();
+			// Read the frozen graph paths from context (reactive) so this watch
+			// re-runs when the summary is raised.
 			const setPath = ( selector: string, d: string ): void => {
 				root.querySelector( selector )?.setAttribute( 'd', d );
 			};
-			setPath( '.bsb-summary__chart-area', graph?.area ?? '' );
-			setPath( '.bsb-summary__chart-fit', graph?.fit ?? '' );
-			setPath( '.bsb-summary__chart-line', graph?.step ?? '' );
+			setPath( '.bsb-summary__chart-area', context.graphArea );
+			setPath( '.bsb-summary__chart-fit', context.graphFit );
+			setPath( '.bsb-summary__chart-line', context.graphStep );
 
 			const reason = context.reasonText?.[ context.endReason ];
 			const value =
