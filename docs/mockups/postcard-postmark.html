@@ -72,8 +72,24 @@
   .howline .tx { font-size:.82rem; line-height:1.4; color:var(--paper-ink); }
   .howline .tx b { display:block; }
 
-  /* ── the cancellation postmark, stamped on top of the card's top-right corner ── */
-  .pmHolder { position:absolute; z-index:7; top:.5rem; right:.5rem; --pm-ink:#15303d; }
+  /* ── the blank postage stamp (perforated edge), top-right of the back ── */
+  .stamp { position:absolute; z-index:6; top:1.1rem; right:1.3rem; width:54px; height:66px; background:#dfe4e8; --r:3.4px; --sp:11px;
+    -webkit-mask:
+      radial-gradient(var(--r) at 50% 0,#0000 96%,#000) repeat-x 50% 0/var(--sp) 100%,
+      radial-gradient(var(--r) at 50% 100%,#0000 96%,#000) repeat-x 50% 100%/var(--sp) 100%,
+      radial-gradient(var(--r) at 0 50%,#0000 96%,#000) repeat-y 0 50%/100% var(--sp),
+      radial-gradient(var(--r) at 100% 50%,#0000 96%,#000) repeat-y 100% 50%/100% var(--sp);
+    -webkit-mask-composite:source-in,source-in,source-in;
+    mask:
+      radial-gradient(var(--r) at 50% 0,#0000 96%,#000) repeat-x 50% 0/var(--sp) 100%,
+      radial-gradient(var(--r) at 50% 100%,#0000 96%,#000) repeat-x 50% 100%/var(--sp) 100%,
+      radial-gradient(var(--r) at 0 50%,#0000 96%,#000) repeat-y 0 50%/100% var(--sp),
+      radial-gradient(var(--r) at 100% 50%,#0000 96%,#000) repeat-y 100% 50%/100% var(--sp);
+    mask-composite:intersect; }
+  .stamp::before { content:''; position:absolute; inset:3px; background:var(--paper); border:1px solid rgba(120,138,150,.3); border-radius:2px; }
+
+  /* ── the cancellation postmark, stamped ON TOP of the postage stamp ── */
+  .pmHolder { position:absolute; z-index:7; top:.4rem; right:.2rem; --pm-ink:#15303d; }
   .pm { display:block; overflow:visible; transform:rotate(-8deg); }
   .pm text { font-family:'Space Mono',monospace; font-weight:700; fill:var(--pm-ink); }
   .pm .ring { fill:none; stroke:var(--pm-ink); }
@@ -120,6 +136,7 @@
             <div class="greet">Greetings from<small>Battery Surf Bench</small></div>
           </div>
           <div class="msg" id="msg"></div>
+          <div class="stamp"></div>
           <div id="pm"></div>
         </div>
       </div>
