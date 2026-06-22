@@ -106,7 +106,7 @@ $bsb_markup = ( new CockpitView() )->render(
 		'idle_step3_title'   => esc_html__( 'Watch the slope', 'battery-surf-bench' ),
 		'idle_step3_text'    => esc_html__( 'It runs hands-free while the battery drains; you just watch the numbers.', 'battery-surf-bench' ),
 		'idle_notice_title'  => esc_html__( 'Keep the laptop open', 'battery-surf-bench' ),
-		'idle_notice_text'   => esc_html__( 'Stop your screen and computer from going to sleep for the whole run. Keep the lid open and turn off auto-sleep. If the display goes dark, the run can\'t measure properly.', 'battery-surf-bench' ),
+		'idle_notice_text'   => esc_html__( 'Keep the laptop\'s lid open for the whole run. If the screen goes dark, the run can\'t measure properly.', 'battery-surf-bench' ),
 	)
 );
 
