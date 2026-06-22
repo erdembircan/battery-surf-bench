@@ -52,9 +52,14 @@
   .pic::before { content:''; position:absolute; inset:0; background:linear-gradient(180deg, rgba(0,0,0,.34) 0%, rgba(0,0,0,0) 30%, rgba(0,0,0,0) 62%, rgba(0,0,0,.3) 100%); }
   .greet { position:absolute; left:1.7rem; top:1.8rem; font-family:'Pacifico',cursive; font-size:2rem; line-height:1.02; color:#fff; transform:rotate(-7deg); transform-origin:left center; text-shadow:0 2px 10px rgba(0,0,0,.5); }
   .greet small { display:block; font-size:.62em; opacity:.92; margin-top:.1em; padding-left:1.4em; }
-  .flipHint { position:absolute; left:0; right:0; bottom:1.1rem; text-align:center; color:#fff; font-weight:700; font-size:.82rem; letter-spacing:.02em; text-shadow:0 1px 6px rgba(0,0,0,.5); display:flex; gap:.5rem; align-items:center; justify-content:center; }
-  .flipHint svg { width:1.1rem; height:1.1rem; animation:wig 1.6s ease-in-out infinite; }
-  @keyframes wig { 0%,100%{ transform:rotate(0);} 50%{ transform:rotate(18deg);} }
+  /* a discreet flip affordance: a small glassy pill in the corner, with a gentle
+     idle nudge so it reads as interactive without shouting */
+  .flipBadge { position:absolute; right:1rem; bottom:1rem; display:inline-flex; align-items:center; gap:.4rem;
+    padding:.38rem .7rem .38rem .6rem; border-radius:999px; color:#fff; font-size:.7rem; font-weight:700; letter-spacing:.04em;
+    background:rgba(255,255,255,.15); border:1px solid rgba(255,255,255,.32); backdrop-filter:blur(5px); -webkit-backdrop-filter:blur(5px);
+    text-shadow:0 1px 4px rgba(0,0,0,.4); box-shadow:0 4px 14px rgba(0,0,0,.18); }
+  .flipBadge svg { width:.95rem; height:.95rem; animation:wig 3s ease-in-out infinite; }
+  @keyframes wig { 0%,86%,100%{ transform:rotate(0);} 93%{ transform:rotate(-32deg);} }
 
   /* back = the report */
   .back .inner { position:absolute; inset:0; padding:1.4rem 1.6rem 1.3rem; display:flex; flex-direction:column; }
@@ -109,7 +114,7 @@
 </head>
 <body>
   <h1 class="pt">Run summary — flip card</h1>
-  <p class="sub">The postcard as a real postcard: front is the picture ("Greetings from" + logo + stamp); tap to flip to the written back — the report. Click the card to flip; or turn on auto-flip to feel the reveal on open. Serve from the repo root for the brand mark.</p>
+  <p class="sub">The postcard as a real postcard: front is the picture ("Greetings from" + logo); a discreet Flip badge in the corner turns it over to the written back — the report. Never auto-flips; the user chooses to turn it. Serve from the repo root for the brand mark.</p>
 
   <div class="ctl">
     <strong>End reason</strong>
@@ -118,7 +123,6 @@
     <label><input type="radio" name="r" value="stopped" /> You stopped it</label>
     <label><input type="radio" name="r" value="plugged" /> Charger plugged in</label>
     <span style="flex:1"></span>
-    <label><input type="checkbox" id="auto" /> auto-flip on open</label>
     <label><input type="checkbox" id="dark" /> dark</label>
   </div>
 
@@ -183,7 +187,7 @@
           <div class="picPhoto"></div>
           <div class="picMark"></div>
           <div class="greet">Greetings from<small>Battery Surf Bench</small></div>
-          <div class="flipHint">${flipIcon} Tap to read your report</div>
+          <div class="flipBadge">${flipIcon} Flip</div>
         </div>
       </div>
       <div class="face back">
@@ -209,7 +213,6 @@
 
   document.querySelectorAll('input[name=r]').forEach(el=>el.addEventListener('change',render));
   document.getElementById('dark').addEventListener('change', e => document.body.classList.toggle('dark', e.target.checked));
-  document.getElementById('auto').addEventListener('change', e => { if (e.target.checked) setTimeout(()=>card.classList.add('flipped'), 600); else card.classList.remove('flipped'); });
 
   const q = new URLSearchParams(location.search);
   if (q.has('reason')) { const el=document.querySelector(`input[name=r][value="${q.get('reason')}"]`); if(el) el.checked=true; }
@@ -217,7 +220,6 @@
   if (q.get('bare')==='1') document.body.classList.add('bare');
   render();
   if (q.get('flipped')==='1') card.classList.add('flipped');
-  if (q.get('auto')==='1') { document.getElementById('auto').checked=true; setTimeout(()=>card.classList.add('flipped'), 600); }
 </script>
 </body>
 </html>
