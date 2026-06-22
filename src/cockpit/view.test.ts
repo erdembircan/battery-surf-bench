@@ -42,12 +42,11 @@ interface CockpitContext {
 		string,
 		{ head: string; sig: string; arc: string; unit: string }
 	>;
-	summaryBattery: string;
+	summaryBatteryStart: string;
+	summaryBatteryEnd: string;
 	summaryDropped: string;
 	hasGraph: boolean;
-	graphArea: string;
-	graphStep: string;
-	graphFit: string;
+	graphJson: string;
 }
 
 interface CockpitConfig {
@@ -140,12 +139,11 @@ const baseContext = (): CockpitContext => ( {
 	endReason: '',
 	flipped: false,
 	reasonText: {},
-	summaryBattery: '',
+	summaryBatteryStart: '',
+	summaryBatteryEnd: '',
 	summaryDropped: '',
 	hasGraph: false,
-	graphArea: '',
-	graphStep: '',
-	graphFit: '',
+	graphJson: '',
 } );
 
 const mocks = vi.hoisted( () => ( {
@@ -831,14 +829,16 @@ describe( 'bsb/cockpit view store', () => {
 			expect( mocks.context.rate10 ).toBe( 6 );
 			expect( mocks.context.secondsToEmpty ).toBe( 60_000 );
 
-			// Ending the run freezes the summary onto the context: battery
-			// start→end, drop, and the drain-graph paths.
+			// Ending the run freezes the summary onto the context: battery start
+			// and end, drop, and the serialised drain-graph draw model.
 			mocks.config?.actions.toggleRun();
-			expect( mocks.context.summaryBattery ).toBe( '80→79' );
+			expect( mocks.context.summaryBatteryStart ).toBe( '80' );
+			expect( mocks.context.summaryBatteryEnd ).toBe( '79' );
 			expect( mocks.context.summaryDropped ).toBe( '1' );
 			expect( mocks.context.hasGraph ).toBe( true );
-			expect( mocks.context.graphStep.startsWith( 'M' ) ).toBe( true );
-			expect( mocks.context.graphArea.endsWith( 'Z' ) ).toBe( true );
+			const graph = JSON.parse( mocks.context.graphJson );
+			expect( graph.line.startsWith( 'M' ) ).toBe( true );
+			expect( graph.area.endsWith( 'Z' ) ).toBe( true );
 
 			cleanup();
 		} );
@@ -1189,7 +1189,7 @@ describe( 'bsb/cockpit view store', () => {
 
 		it( 'has no frozen summary or graph until a run ends', () => {
 			expect( mocks.context.hasGraph ).toBe( false );
-			expect( mocks.context.summaryBattery ).toBe( '' );
+			expect( mocks.context.summaryBatteryStart ).toBe( '' );
 		} );
 
 		it( 'reads the verdict wording for the end reason', () => {
@@ -1211,19 +1211,13 @@ describe( 'bsb/cockpit view store', () => {
 			);
 		} );
 
-		it( 'paints the summary postmark text imperatively from the run', () => {
-			const nodes: Record< string, { textContent: string } > = {};
-			const root = {
-				querySelector: ( sel: string ) => {
-					nodes[ sel ] ??= {
-						textContent: '',
-						setAttribute() {
-							/* graph paths */
-						},
-					} as unknown as { textContent: string };
-					return nodes[ sel ];
-				},
-			};
+		it( 'paints the summary chart and postmark text imperatively from the run', () => {
+			const root = document.createElement( 'div' );
+			root.innerHTML =
+				'<svg class="bsb-summary__chart"></svg>' +
+				'<span class="bsb-frank__arc-text"></span>' +
+				'<span class="bsb-frank__val"></span>' +
+				'<span class="bsb-frank__unit"></span>';
 			mocks.element = root as unknown as MockElement;
 			mocks.context.reasonText = {
 				stopped: {
@@ -1235,14 +1229,32 @@ describe( 'bsb/cockpit view store', () => {
 			};
 			mocks.context.endReason = 'stopped';
 			mocks.context.elapsed = 75;
+			mocks.context.graphJson = JSON.stringify( {
+				frame: { left: 30, right: 470, top: 10, bottom: 208 },
+				area: 'M 30 10 L 470 208 Z',
+				line: 'M 30 10 L 470 208',
+				fit: 'M 30 10 L 470 208',
+				window: { x: 30, w: 100 },
+				dots: [ { cx: 30, cy: 10 } ],
+				yTicks: [ { pos: 10, label: '100' } ],
+				xTicks: [ { pos: 30, label: '0m' } ],
+			} );
 
 			mocks.config?.callbacks.renderSummary();
 
-			expect( nodes[ '.bsb-frank__arc-text' ].textContent ).toBe(
-				'· STOPPED ·'
+			// The chart was repainted from the frozen model …
+			const chart = root.querySelector( '.bsb-summary__chart' )!;
+			expect( chart.childNodes.length ).toBeGreaterThan( 0 );
+			// … and the postmark text set from the run.
+			expect(
+				root.querySelector( '.bsb-frank__arc-text' )!.textContent
+			).toBe( '· STOPPED ·' );
+			expect( root.querySelector( '.bsb-frank__val' )!.textContent ).toBe(
+				'01:15'
 			);
-			expect( nodes[ '.bsb-frank__val' ].textContent ).toBe( '01:15' );
-			expect( nodes[ '.bsb-frank__unit' ].textContent ).toBe( 'elapsed' );
+			expect(
+				root.querySelector( '.bsb-frank__unit' )!.textContent
+			).toBe( 'elapsed' );
 		} );
 	} );
 

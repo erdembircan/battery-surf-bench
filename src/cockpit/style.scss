@@ -1590,10 +1590,42 @@ body {
 	}
 }
 
+// The chart scales uniformly (its viewBox aspect is honoured) and strokes stay
+// crisp at any size via non-scaling-stroke — no preserveAspectRatio stretching.
 .bsb-summary__chart {
 	display: block;
 	width: 100%;
-	height: 104px;
+	height: auto;
+}
+
+.bsb-summary__chart-grid {
+	stroke: var(--paper-line);
+	stroke-width: 1;
+	vector-effect: non-scaling-stroke;
+}
+
+.bsb-summary__chart-base {
+	stroke: color-mix(in srgb, var(--paper-ink) 38%, transparent);
+	stroke-width: 1.2;
+	vector-effect: non-scaling-stroke;
+}
+
+.bsb-summary__chart-label {
+	fill: var(--text-soft);
+	font-family: theme.$font-mono;
+	font-size: 9px;
+
+	&--y {
+		text-anchor: end;
+	}
+
+	&--x {
+		text-anchor: middle;
+	}
+}
+
+.bsb-summary__chart-window {
+	fill: color-mix(in srgb, var(--paper-accent) 7%, transparent);
 }
 
 .bsb-summary__chart-area {
@@ -1601,18 +1633,51 @@ body {
 	stroke: none;
 }
 
-.bsb-summary__chart-line {
-	fill: none;
-	stroke: var(--paper-accent);
-	stroke-width: 2.2;
-	stroke-linejoin: round;
-}
-
 .bsb-summary__chart-fit {
 	fill: none;
 	stroke: var(--coral, #ef8f3c);
 	stroke-width: 1.6;
-	stroke-dasharray: 4 4;
+	stroke-dasharray: 5 5;
+	vector-effect: non-scaling-stroke;
+}
+
+.bsb-summary__chart-line {
+	fill: none;
+	stroke: var(--paper-accent);
+	stroke-width: 2.4;
+	stroke-linejoin: round;
+	stroke-linecap: round;
+	vector-effect: non-scaling-stroke;
+}
+
+.bsb-summary__chart-dot {
+	fill: var(--paper-accent);
+}
+
+.bsb-summary__legend {
+	display: flex;
+	gap: 1.1rem;
+	margin-top: 0.35rem;
+	font-family: theme.$font-mono;
+	font-size: 0.56rem;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: var(--text-soft);
+}
+
+.bsb-summary__legend-item {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.35rem;
+}
+
+.bsb-summary__legend-swatch {
+	width: 16px;
+	border-top: 2.4px solid var(--paper-accent);
+
+	&--fit {
+		border-top: 1.6px dashed var(--coral, #ef8f3c);
+	}
 }
 
 // the stat tiles
@@ -1640,6 +1705,25 @@ body {
 			700 0.58rem/1 theme.$font-mono;
 		color: var(--paper-accent);
 	}
+}
+
+// The battery start→end value: a masked SVG arrow glyph (currentColor), flex-
+// centred between the two numbers, instead of a unicode → that renders
+// misshapen and baseline-off in the display font.
+.bsb-stat__value--arrow {
+	display: inline-flex;
+	align-items: center;
+}
+
+.bsb-stat__arrow {
+	$arrow-glyph: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M4 11h12.2l-4.6-4.6L13 5l7 7-7 7-1.4-1.4 4.6-4.6H4z'/%3E%3C/svg%3E");
+
+	width: 0.72em;
+	height: 0.72em;
+	margin: 0 0.12em;
+	background: var(--paper-accent);
+	mask: $arrow-glyph center / contain no-repeat;
+	-webkit-mask: $arrow-glyph center / contain no-repeat;
 }
 
 .bsb-summary__actions {

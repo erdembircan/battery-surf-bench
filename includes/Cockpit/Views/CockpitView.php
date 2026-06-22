@@ -73,6 +73,8 @@ class CockpitView implements View {
 	 *     @type string $idle_step3_text   Translated, escaped body of idle step 3.
 	 *     @type string $idle_notice_title Translated, escaped title of the keep-awake notice.
 	 *     @type string $idle_notice_text  Translated, escaped body of the keep-awake notice.
+	 *     @type string $measured_label    Translated, escaped legend label for the measured drain series.
+	 *     @type string $projected_label   Translated, escaped legend label for the 100→0 projection.
 	 * }
 	 * @return string The block's HTML.
 	 */
@@ -125,6 +127,8 @@ class CockpitView implements View {
 		$new_run_label      = isset( $data['new_run_label'] ) ? (string) $data['new_run_label'] : '';
 		$flip_label         = isset( $data['flip_label'] ) ? (string) $data['flip_label'] : '';
 		$summary_brand      = isset( $data['summary_brand'] ) ? (string) $data['summary_brand'] : '';
+		$measured_label     = isset( $data['measured_label'] ) ? (string) $data['measured_label'] : '';
+		$projected_label    = isset( $data['projected_label'] ) ? (string) $data['projected_label'] : '';
 
 		// Each duration-odometer wheel is a strip of 0–9 repeated three times; the
 		// client store (rollDuration) slides it to roll the digit. Built here so
@@ -328,17 +332,17 @@ INNER;
 					<p class="bsb-summary__sig" data-wp-text="state.summarySig"></p>
 					<span class="bsb-summary__divide" aria-hidden="true"></span>
 					<div class="bsb-summary__graph" data-wp-bind--hidden="!context.hasGraph">
-						<svg class="bsb-summary__chart" viewBox="0 0 360 120" preserveAspectRatio="none" aria-hidden="true">
-							<path class="bsb-summary__chart-area"></path>
-							<path class="bsb-summary__chart-fit"></path>
-							<path class="bsb-summary__chart-line"></path>
-						</svg>
+						<svg class="bsb-summary__chart" viewBox="0 0 480 90" aria-hidden="true"></svg>
+						<div class="bsb-summary__legend" aria-hidden="true">
+							<span class="bsb-summary__legend-item"><span class="bsb-summary__legend-swatch"></span>{$measured_label}</span>
+							<span class="bsb-summary__legend-item"><span class="bsb-summary__legend-swatch bsb-summary__legend-swatch--fit"></span>{$projected_label}</span>
+						</div>
 					</div>
 					<div class="bsb-summary__stats">
 						<div class="bsb-stat"><span class="bsb-stat__label">{$tte_label}</span><span class="bsb-stat__value" data-wp-text="state.timeToEmptyDisplay"></span></div>
 						<div class="bsb-stat"><span class="bsb-stat__label">{$rate_session_label}</span><span class="bsb-stat__value"><span data-wp-text="state.rateSessionDisplay"></span><span class="bsb-stat__unit">%/h</span></span></div>
 						<div class="bsb-stat"><span class="bsb-stat__label">{$rate10_label}</span><span class="bsb-stat__value"><span data-wp-text="state.rate10Display"></span><span class="bsb-stat__unit">%/h</span></span></div>
-						<div class="bsb-stat"><span class="bsb-stat__label">{$battery_label}</span><span class="bsb-stat__value" data-wp-text="context.summaryBattery"></span></div>
+						<div class="bsb-stat"><span class="bsb-stat__label">{$battery_label}</span><span class="bsb-stat__value bsb-stat__value--arrow"><span data-wp-text="context.summaryBatteryStart"></span><span class="bsb-stat__arrow" aria-hidden="true"></span><span data-wp-text="context.summaryBatteryEnd"></span></span></div>
 						<div class="bsb-stat"><span class="bsb-stat__label">{$dropped_label}</span><span class="bsb-stat__value"><span data-wp-text="context.summaryDropped"></span><span class="bsb-stat__unit">{$pts_label}</span></span></div>
 						<div class="bsb-stat"><span class="bsb-stat__label">{$elapsed_run_label}</span><span class="bsb-stat__value" data-wp-text="state.summaryElapsed"></span></div>
 					</div>

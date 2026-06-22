@@ -101,7 +101,12 @@ final class CockpitViewTest extends TestCase {
 		// by a watch (directives cannot live inside SVG during server render).
 		$this->assertStringContainsString( 'data-wp-text="state.summaryHeading"', $markup );
 		$this->assertStringContainsString( 'data-wp-watch="callbacks.renderSummary"', $markup );
-		$this->assertStringContainsString( 'class="bsb-summary__chart-line"', $markup );
+		// The chart is an empty SVG skeleton the watch paints into.
+		$this->assertStringContainsString( 'class="bsb-summary__chart" viewBox="0 0 480 90"', $markup );
+		// The battery readout splits start/end around the arrow glyph.
+		$this->assertStringContainsString( 'data-wp-text="context.summaryBatteryStart"', $markup );
+		$this->assertStringContainsString( 'data-wp-text="context.summaryBatteryEnd"', $markup );
+		$this->assertStringContainsString( 'class="bsb-stat__arrow"', $markup );
 		// The summary's drain graph hides when there is nothing to plot.
 		$this->assertStringContainsString( 'data-wp-bind--hidden="!context.hasGraph"', $markup );
 		// New run returns to the idle startup screen (it does not start a run).

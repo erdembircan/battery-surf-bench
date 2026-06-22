@@ -59,7 +59,12 @@ classDiagram
 
     class DrainGraph {
         <<module>>
-        +buildGraph(Sample[], GraphViewport) GraphModel|null
+        +buildGraph(Sample[], number|null, GraphViewport) GraphModel|null
+    }
+
+    class GraphSvg {
+        <<module>>
+        +paintGraph(SVGElement, GraphModel|null) void
     }
 
     class SampleLog {
@@ -102,8 +107,10 @@ classDiagram
     CockpitStore --> ScreenWakeLock : creates & owns (composition)
     CockpitStore --> RunSession : creates & owns (composition)
     BatteryMonitor ..> CockpitStore : reports BatteryReading
-    CockpitStore --> DrainGraph : builds summary chart
+    CockpitStore --> DrainGraph : builds summary chart model
+    CockpitStore --> GraphSvg : paints chart from model
+    GraphSvg ..> DrainGraph : draws GraphModel
     RunSession --> SampleLog : creates & owns (composition)
     RunSession --> DrainRate : fits & projects
-    DrainGraph --> DrainRate : fits the drain line
+    DrainGraph ..> DrainRate : maps Sample[]
     SampleLog ..> DrainRate : RleSample extends Sample

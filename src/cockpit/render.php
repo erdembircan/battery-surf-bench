@@ -37,41 +37,41 @@ $bsb_pages = isset( $attributes['pages'] ) && is_array( $attributes['pages'] ) ?
 // changing the index later re-points the viewport with no reload of the cockpit
 // itself; the deck reads and writes the run fields through the same store.
 $bsb_context = array(
-	'pages'           => $bsb_pages,
-	'activeIndex'     => 0,
-	'mode'            => 'duration',
-	'durationMinutes' => 30,
-	'baseline'        => false,
-	'speed'           => 1,
-	'running'         => false,
-	'compact'         => false,
-	'elapsed'         => 0,
-	'theme'           => 'light',
-	'themePref'       => 'system',
+	'pages'               => $bsb_pages,
+	'activeIndex'         => 0,
+	'mode'                => 'duration',
+	'durationMinutes'     => 30,
+	'baseline'            => false,
+	'speed'               => 1,
+	'running'             => false,
+	'compact'             => false,
+	'elapsed'             => 0,
+	'theme'               => 'light',
+	'themePref'           => 'system',
 	// Seeded at the nominal max; the client caps it down to the current battery
 	// level on the first reading, so the slider defaults to "as much as you have".
-	'targetPercent'   => 95,
-	'batteryLevel'    => null,
-	'batteryCharging' => false,
-	'rate10'          => null,
-	'rateSession'     => null,
-	'secondsToEmpty'  => null,
+	'targetPercent'       => 95,
+	'batteryLevel'        => null,
+	'batteryCharging'     => false,
+	'rate10'              => null,
+	'rateSession'         => null,
+	'secondsToEmpty'      => null,
 	// The run-summary state machine: a run has not ended yet, with no reason and
 	// the card on its picture front. Set when a run stops (whatever the cause).
-	'ended'           => false,
-	'endReason'       => '',
-	'flipped'         => false,
+	'ended'               => false,
+	'endReason'           => '',
+	'flipped'             => false,
 	// Summary readouts, frozen onto the context at run end (kept reactive so the
 	// summary renders); empty until a run finishes.
-	'summaryBattery'  => '',
-	'summaryDropped'  => '',
-	'hasGraph'        => false,
-	'graphArea'       => '',
-	'graphStep'       => '',
-	'graphFit'        => '',
+	'summaryBatteryStart' => '',
+	'summaryBatteryEnd'   => '',
+	'summaryDropped'      => '',
+	'hasGraph'            => false,
+	// Serialised drain-graph draw model; the summary painter parses it to draw.
+	'graphJson'           => '',
 	// Translated summary wording, indexed by end reason; the store picks the set
 	// matching how the run ended (kept here so the strings stay translatable).
-	'reasonText'      => array(
+	'reasonText'          => array(
 		'duration'   => array(
 			'head' => esc_html__( 'The run is in.', 'battery-surf-bench' ),
 			'sig'  => esc_html__( 'Ran the full duration.', 'battery-surf-bench' ),
@@ -151,6 +151,8 @@ $bsb_markup = ( new CockpitView() )->render(
 		'elapsed_run_label'  => esc_html__( 'Elapsed', 'battery-surf-bench' ),
 		'new_run_label'      => esc_html__( 'New run', 'battery-surf-bench' ),
 		'flip_label'         => esc_html__( 'Flip', 'battery-surf-bench' ),
+		'measured_label'     => esc_html__( 'Measured', 'battery-surf-bench' ),
+		'projected_label'    => esc_html__( 'Projected 100 → 0', 'battery-surf-bench' ),
 		'summary_brand'      => esc_html__( 'BATTERY · SURF · BENCH', 'battery-surf-bench' ),
 		'idle_notice_title'  => esc_html__( 'Keep the laptop open', 'battery-surf-bench' ),
 		'idle_notice_text'   => esc_html__( 'Keep the laptop\'s lid open for the whole run. If the screen goes dark, the run can\'t measure properly.', 'battery-surf-bench' ),

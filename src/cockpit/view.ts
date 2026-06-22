@@ -50,7 +50,8 @@ import {
 import { BatteryMonitor, type BatteryReading } from './BatteryMonitor';
 import { ScreenWakeLock, type WakeLockSentinelLike } from './WakeLock';
 import { RunSession } from './RunSession';
-import { buildGraph, type GraphViewport } from './DrainGraph';
+import { buildGraph, type GraphViewport, type GraphModel } from './DrainGraph';
+import { paintGraph } from './GraphSvg';
 
 /** One surfable course page, as supplied by the `bsb/course-pages` binding. */
 interface CoursePage {
@@ -84,12 +85,13 @@ interface CockpitContext {
 	reasonText: Record< string, ReasonText >;
 	// Frozen summary readouts, stored on the context (reactive) at run end so the
 	// summary re-renders — the session log they derive from is not a signal.
-	summaryBattery: string;
+	summaryBatteryStart: string;
+	summaryBatteryEnd: string;
 	summaryDropped: string;
 	hasGraph: boolean;
-	graphArea: string;
-	graphStep: string;
-	graphFit: string;
+	// The drain-graph draw model, serialised so it lands in reactive context; the
+	// summary painter parses it back to redraw the chart.
+	graphJson: string;
 }
 
 /** Why a run ended — drives the summary's verdict; empty before any run ends. */
@@ -151,19 +153,29 @@ export const __resetInstance = (): void => {
 /** The monotonic clock the run session stamps samples against. */
 const now = (): number => performance.now();
 
-/** The summary drain graph's drawing viewport (SVG user units). */
+/**
+ * The summary drain graph's drawing viewport (SVG user units). A wide, short
+ * aspect so the chart fills the card's width yet stays short enough to leave room
+ * for the stat tiles below it within the card's fixed aspect ratio.
+ */
 const GRAPH_VIEWPORT: GraphViewport = {
-	width: 360,
-	height: 120,
-	padLeft: 24,
-	padRight: 8,
-	padTop: 10,
+	width: 480,
+	height: 90,
+	padLeft: 30,
+	padRight: 10,
+	padTop: 8,
 	padBottom: 18,
 };
 
 /** The summary chart geometry for the run, or null when nothing to plot. */
-const graphFor = () =>
-	buildGraph( instanceFor().session.samples(), GRAPH_VIEWPORT );
+const graphFor = (): GraphModel | null => {
+	const session = instanceFor().session;
+	return buildGraph(
+		session.samples(),
+		session.readouts().secondsToEmpty,
+		GRAPH_VIEWPORT
+	);
+};
 
 /**
  * Mirrors the session's derived readouts onto the reactive context.
@@ -181,10 +193,10 @@ const applyReadouts = (
 };
 
 /**
- * Freezes the run's summary onto the context: the rate readouts, the start→end
- * battery and drop, and the drain-graph path data. All land in reactive context
- * (not read live off the non-reactive session log) so the summary renders and
- * re-renders correctly.
+ * Freezes the run's summary onto the context: the rate readouts, the start and
+ * end battery and drop, and the drain-graph draw model. All land in reactive
+ * context (not read live off the non-reactive session log) so the summary
+ * renders and re-renders correctly.
  * @param context
  * @param instance
  */
@@ -195,10 +207,11 @@ const freezeSummary = (
 	applyReadouts( context, instance.session );
 
 	const summary = instance.session.summary();
-	context.summaryBattery = summary
-		? `${ Math.round( summary.startLevel * 100 ) }→${ Math.round(
-				summary.endLevel * 100
-		  ) }`
+	context.summaryBatteryStart = summary
+		? String( Math.round( summary.startLevel * 100 ) )
+		: '—';
+	context.summaryBatteryEnd = summary
+		? String( Math.round( summary.endLevel * 100 ) )
 		: '—';
 	context.summaryDropped = summary
 		? String( Math.round( summary.droppedPct ) )
@@ -206,9 +219,7 @@ const freezeSummary = (
 
 	const graph = graphFor();
 	context.hasGraph = graph !== null;
-	context.graphArea = graph?.area ?? '';
-	context.graphStep = graph?.step ?? '';
-	context.graphFit = graph?.fit ?? '';
+	context.graphJson = graph ? JSON.stringify( graph ) : '';
 };
 
 /**
@@ -1006,14 +1017,15 @@ store( 'bsb/cockpit', {
 
 			const context = getContext< CockpitContext >();
 
-			// Read the frozen graph paths from context (reactive) so this watch
-			// re-runs when the summary is raised.
-			const setPath = ( selector: string, d: string ): void => {
-				root.querySelector( selector )?.setAttribute( 'd', d );
-			};
-			setPath( '.bsb-summary__chart-area', context.graphArea );
-			setPath( '.bsb-summary__chart-fit', context.graphFit );
-			setPath( '.bsb-summary__chart-line', context.graphStep );
+			// Repaint the drain chart from the frozen draw model on context
+			// (reactive), so this watch re-runs when the summary is raised.
+			const svg = root.querySelector( '.bsb-summary__chart' );
+			if ( svg ) {
+				const model: GraphModel | null = context.graphJson
+					? ( JSON.parse( context.graphJson ) as GraphModel )
+					: null;
+				paintGraph( svg as SVGElement, model );
+			}
 
 			const reason = context.reasonText?.[ context.endReason ];
 			const value =
