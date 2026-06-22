@@ -1477,6 +1477,14 @@ body {
 	}
 }
 
+// Only the face turned toward the viewer is interactive — the away-facing face
+// is invisible (backface-hidden) but would otherwise sit over the visible one
+// and swallow clicks meant for its buttons.
+.bsb-summary__card:not(.is-flipped) .bsb-summary__face--back,
+.bsb-summary__card.is-flipped .bsb-summary__face--front {
+	pointer-events: none;
+}
+
 // The photo fills a summary face (the idle usage sizes itself as a grid cell).
 .bsb-photo--fill {
 	position: absolute;
