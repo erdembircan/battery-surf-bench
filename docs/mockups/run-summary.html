@@ -106,7 +106,7 @@
   .pm { display:block; overflow:visible; transform:rotate(-9deg); }
   .pm text { font-family:'Space Mono',monospace; font-weight:700; fill:var(--pm-ink); }
   .pm .ring { fill:none; stroke:var(--pm-ink); }
-  .pm .arc { font-size:8.2px; letter-spacing:1.4px; }
+  .pm .arc { font-size:7px; letter-spacing:1px; }
   .pm .big { font-family:'Anton'; font-weight:400; font-size:22px; letter-spacing:.4px; }
   .pm .lab { font-size:6.6px; letter-spacing:2.4px; }
   .pm .bar { stroke:var(--pm-ink); stroke-width:2.2; fill:none; stroke-linecap:round; opacity:.9; }
@@ -268,16 +268,16 @@
     return `<div class="pmHolder ${cls}">
       <svg class="pm" width="${cancel?168:120}" height="120" viewBox="0 0 ${W} 120">
         <defs>
-          <path id="aT" d="M${cx-44} 62 A44 44 0 0 1 ${cx+44} 62"/>
-          <path id="aB" d="M${cx-37} 62 A37 37 0 0 0 ${cx+37} 62"/>
+          <path id="aT" d="M${cx-47.5} 62 A47.5 47.5 0 0 1 ${cx+47.5} 62"/>
+          <path id="aB" d="M${cx-47.5} 62 A47.5 47.5 0 0 0 ${cx+47.5} 62"/>
         </defs>
         ${bars}
-        <circle class="ring" cx="${cx}" cy="62" r="54" stroke-width="2.4"/>
-        <circle class="ring" cx="${cx}" cy="62" r="45" stroke-width="1"/>
+        <circle class="ring" cx="${cx}" cy="62" r="56" stroke-width="2.4"/>
+        <circle class="ring" cx="${cx}" cy="62" r="39" stroke-width="1"/>
         <text class="arc" text-anchor="middle"><textPath href="#aT" startOffset="50%">BATTERY · SURF · BENCH</textPath></text>
-        <text class="arc" text-anchor="middle"><textPath href="#aB" startOffset="50%">${R.arc}</textPath></text>
-        <text class="big" x="${cx}" y="67" text-anchor="middle">${val}</text>
-        <text class="lab" x="${cx}" y="81" text-anchor="middle">${lab.toUpperCase()}</text>
+        <text class="arc" text-anchor="middle" dominant-baseline="hanging"><textPath href="#aB" startOffset="50%">${R.arc}</textPath></text>
+        <text class="big" x="${cx}" y="66" text-anchor="middle">${val}</text>
+        <text class="lab" x="${cx}" y="79" text-anchor="middle">${lab.toUpperCase()}</text>
       </svg>
     </div>`;
   }
