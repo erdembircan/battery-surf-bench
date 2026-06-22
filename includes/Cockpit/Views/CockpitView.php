@@ -322,7 +322,7 @@ HTML;
 		);
 
 		return <<<HTML
-<div {$wrapper} data-wp-interactive="bsb/cockpit" {$context} data-wp-init---battery="callbacks.initBattery" data-wp-init---wake-lock="callbacks.initWakeLock" data-wp-init---sound="callbacks.initSound" data-wp-watch---run-activity="callbacks.syncRunActivity" data-wp-class--is-compact="state.isCompact" data-wp-class--is-deck-hidden="state.isDeckHidden">
+<div {$wrapper} data-wp-interactive="bsb/cockpit" {$context} data-wp-init---battery="callbacks.initBattery" data-wp-init---wake-lock="callbacks.initWakeLock" data-wp-init---sound="callbacks.initSound" data-wp-watch---run-activity="callbacks.syncRunActivity" data-wp-class--is-compact="state.isCompact" data-wp-class--is-deck-shown="state.isDeckShown">
 	<aside class="bsb-cockpit__deck">
 		<header class="bsb-deck__brand">
 			<span class="bsb-deck__mark" aria-hidden="true"></span>

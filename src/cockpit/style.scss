@@ -28,7 +28,10 @@ body {
 	@include theme.tokens;
 
 	display: grid;
-	grid-template-columns: $deck-width 1fr;
+	// Deck hidden by default so a freshly rendered cockpit — always the startup
+	// front — paints with the deck tucked away and no hydration flash. The client
+	// adds `is-deck-shown` once a run is live or the startup card is flipped.
+	grid-template-columns: 0 1fr;
 	height: 100vh;
 	overflow: hidden;
 	position: relative;
@@ -37,10 +40,14 @@ body {
 	-webkit-font-smoothing: antialiased;
 	transition: grid-template-columns $compact-dur $ease;
 
-	// Compact (mid-run) and the startup front (deck tucked away until the postcard
-	// is flipped): the deck collapses to nothing so the stage fills the width.
-	&.is-compact,
-	&.is-deck-hidden {
+	// Shown: the deck takes its column back (startup card flipped, or a run live).
+	&.is-deck-shown {
+		grid-template-columns: $deck-width 1fr;
+	}
+
+	// Compact re-collapses the deck mid-run even though it is "shown" (the
+	// readouts move to the top pill); the extra class wins on specificity.
+	&.is-deck-shown.is-compact {
 		grid-template-columns: 0 1fr;
 	}
 
@@ -70,14 +77,22 @@ body {
 	color: var(--text);
 	background: var(--deck-bg);
 	box-shadow: 2px 0 8px -5px rgba(0, 20, 40, 0.14);
+	// Tucked off-screen by default (see the grid note above), so the startup
+	// front paints with no deck and no slide-out flash on load.
+	transform: translateX(-100%);
+	pointer-events: none;
 	transition: transform $compact-dur $ease;
 
-	// Compact (and the startup front): slide fully out to the left, in step with
-	// the column collapse. The translation magnitude tracks the column width, so
-	// the deck's right edge stays flush with the stage's left edge — no gap, no
-	// overlap, no reflow.
-	.wp-block-bsb-cockpit.is-compact &,
-	.wp-block-bsb-cockpit.is-deck-hidden & {
+	// Shown: slide in, in step with the column expanding. The translation
+	// magnitude tracks the column width, so the deck's right edge stays flush
+	// with the stage's left edge — no gap, no overlap, no reflow.
+	.wp-block-bsb-cockpit.is-deck-shown & {
+		transform: translateX(0);
+		pointer-events: auto;
+	}
+
+	// Compact re-tucks the deck mid-run even while shown (extra class wins).
+	.wp-block-bsb-cockpit.is-deck-shown.is-compact & {
 		transform: translateX(-100%);
 		pointer-events: none;
 	}

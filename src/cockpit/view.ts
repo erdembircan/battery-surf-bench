@@ -398,15 +398,16 @@ store( 'bsb/cockpit', {
 		},
 
 		/**
-		 * Whether the control deck is tucked away off-screen. At session start the
-		 * deck is hidden so the postcard stands alone; flipping the startup card to
-		 * its back slides the deck in. The deck is always present while a run is
-		 * live (it carries the readouts pill).
+		 * Whether the control deck is slid into view. The deck is hidden by
+		 * default (the stylesheet's base state), so at session start the postcard
+		 * stands alone with no hydration flash; this reveal class is added once a
+		 * run is live (the deck carries the readouts pill) or the startup card is
+		 * flipped to its back.
 		 */
-		get isDeckHidden(): boolean {
+		get isDeckShown(): boolean {
 			const { running, idleFlipped } = getContext< CockpitContext >();
 
-			return ! running && ! idleFlipped;
+			return running || idleFlipped;
 		},
 
 		/**

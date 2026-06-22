@@ -41,9 +41,9 @@ final class CockpitViewTest extends TestCase {
 		$this->assertStringContainsString( 'data-wp-init---wake-lock="callbacks.initWakeLock"', $markup );
 		$this->assertStringContainsString( 'data-wp-watch---run-activity="callbacks.syncRunActivity"', $markup );
 		$this->assertStringContainsString( 'data-wp-class--is-compact="state.isCompact"', $markup );
-		// The deck is tucked away at session start (and on the startup front),
-		// bound to the deck-hidden state the client view derives.
-		$this->assertStringContainsString( 'data-wp-class--is-deck-hidden="state.isDeckHidden"', $markup );
+		// The deck is hidden by default (the stylesheet's base state) and revealed
+		// by the client adding this class once a run is live or the card is flipped.
+		$this->assertStringContainsString( 'data-wp-class--is-deck-shown="state.isDeckShown"', $markup );
 		$this->assertStringContainsString( 'class="wp-block-bsb-cockpit"', $markup );
 		$this->assertStringContainsString( 'data-wp-context=\'{"activeIndex":0}\'', $markup );
 		$this->assertStringContainsString( 'data-wp-bind--src="state.currentSrc"', $markup );

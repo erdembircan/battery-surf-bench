@@ -69,7 +69,7 @@ interface CockpitConfig {
 		isIdle: boolean;
 		isRunning: boolean;
 		isIdleFlipped: boolean;
-		isDeckHidden: boolean;
+		isDeckShown: boolean;
 		isCompact: boolean;
 		isStartBlocked: boolean;
 		rate10Display: string;
@@ -1175,7 +1175,7 @@ describe( 'bsb/cockpit view store', () => {
 			expect( mocks.context.endReason ).toBe( '' );
 			expect( mocks.context.flipped ).toBe( false );
 			expect( mocks.context.idleFlipped ).toBe( false );
-			expect( mocks.config?.state.isDeckHidden ).toBe( true );
+			expect( mocks.config?.state.isDeckShown ).toBe( false );
 			expect( mocks.context.running ).toBe( false );
 		} );
 
@@ -1191,28 +1191,28 @@ describe( 'bsb/cockpit view store', () => {
 		} );
 
 		it( 'turns the startup card and reveals the deck when flipped', () => {
-			// At session start: front shown, deck tucked away.
+			// At session start: front shown, deck tucked away (not shown).
 			expect( mocks.config?.state.isIdleFlipped ).toBe( false );
-			expect( mocks.config?.state.isDeckHidden ).toBe( true );
+			expect( mocks.config?.state.isDeckShown ).toBe( false );
 
 			// Flip to the how-it-works back: deck slides in (coupled).
 			mocks.config?.actions.toggleIdleFlip();
 			expect( mocks.context.idleFlipped ).toBe( true );
 			expect( mocks.config?.state.isIdleFlipped ).toBe( true );
-			expect( mocks.config?.state.isDeckHidden ).toBe( false );
+			expect( mocks.config?.state.isDeckShown ).toBe( true );
 
 			// Flip back to the front: deck tucks away again.
 			mocks.config?.actions.toggleIdleFlip();
 			expect( mocks.config?.state.isIdleFlipped ).toBe( false );
-			expect( mocks.config?.state.isDeckHidden ).toBe( true );
+			expect( mocks.config?.state.isDeckShown ).toBe( false );
 		} );
 
 		it( 'keeps the deck present while a run is live regardless of the flip', () => {
 			mocks.context.running = true;
 			mocks.context.idleFlipped = false;
 
-			// The deck carries the readouts pill mid-run, so it is never hidden.
-			expect( mocks.config?.state.isDeckHidden ).toBe( false );
+			// The deck carries the readouts pill mid-run, so it is always shown.
+			expect( mocks.config?.state.isDeckShown ).toBe( true );
 		} );
 
 		it( 'formats the elapsed run clock for the summary', () => {

@@ -96,12 +96,14 @@ test.describe( 'Cockpit dashboard route', () => {
 			page.locator( '.bsb-cockpit__postcard-heading' )
 		).toHaveText( /how this run works/i );
 
-		// At session start the control deck is tucked away (slid off-screen) so the
-		// postcard stands alone; the root reflects the deck-hidden state the client
-		// derives. Flipping the startup card to its back slides the deck in.
+		// At session start the control deck is tucked away (the stylesheet's
+		// default) so the postcard stands alone with no hydration flash — the
+		// reveal class is absent until a run is live or the startup card is
+		// flipped. The deck markup itself is still present (off-screen).
 		await expect(
-			page.locator( '.wp-block-bsb-cockpit.is-deck-hidden' )
-		).toBeAttached();
+			page.locator( '.wp-block-bsb-cockpit.is-deck-shown' )
+		).toHaveCount( 0 );
+		await expect( page.locator( '.bsb-cockpit__deck' ) ).toBeAttached();
 
 		// The viewport ships hidden and the benchmarked page is NOT fetched while
 		// idle — the iframe src stays empty until surfing starts.
