@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Compact bar — project name placements</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" />
+<style>
+  @font-face {
+    font-family: 'Anton';
+    src: url('https://cdn.jsdelivr.net/fontsource/fonts/anton@latest/latin-400-normal.woff2') format('woff2');
+    font-weight: 400; font-display: swap;
+  }
+  @font-face {
+    font-family: 'Hanken Grotesk';
+    src: url('https://cdn.jsdelivr.net/fontsource/fonts/hanken-grotesk@latest/latin-700-normal.woff2') format('woff2');
+    font-weight: 700; font-display: swap;
+  }
+  @font-face {
+    font-family: 'Hanken Grotesk';
+    src: url('https://cdn.jsdelivr.net/fontsource/fonts/hanken-grotesk@latest/latin-600-normal.woff2') format('woff2');
+    font-weight: 600; font-display: swap;
+  }
+  @font-face {
+    font-family: 'Space Mono';
+    src: url('https://cdn.jsdelivr.net/fontsource/fonts/space-mono@latest/latin-700-normal.woff2') format('woff2');
+    font-weight: 700; font-display: swap;
+  }
+
+  :root {
+    --grad: linear-gradient(150deg, #2f9bb3 0%, #1c7e96 100%);
+    --grad-dusk: linear-gradient(160deg, #0e4150 0%, #06222f 100%);
+    --ink: #eafaff;
+    --dot: #ffce5c;
+    --dot-dusk: #ffce5c;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: 'Hanken Grotesk', system-ui, sans-serif;
+    background: #f3fafd;
+    color: #1f3a5f;
+    padding: 40px 28px 80px;
+  }
+  h1 { font-family: 'Anton', sans-serif; font-weight: 400; letter-spacing: .01em; font-size: 2rem; text-transform: uppercase; margin: 0 0 6px; }
+  .lede { color: #5b7488; max-width: 70ch; margin: 0 0 36px; line-height: 1.5; }
+  .variant { margin: 0 0 44px; }
+  .variant > h2 {
+    font-size: .72rem; font-weight: 700; letter-spacing: .16em; text-transform: uppercase;
+    color: #2f9bb3; margin: 0 0 4px;
+  }
+  .variant > p { color: #5b7488; font-size: .9rem; margin: 0 0 14px; max-width: 80ch; line-height: 1.45; }
+
+  /* ── faithful compact pill shell ───────────────────────────── */
+  .stage { max-width: 1000px; }
+  .topbar {
+    color: var(--ink);
+    background: var(--grad);
+    box-shadow: 0 18px 36px -16px rgba(28,126,150,.55), 0 6px 14px -8px rgba(0,0,0,.2);
+    overflow: hidden;
+    position: relative;
+  }
+  .topbar.dusk { background: var(--grad-dusk); box-shadow: 0 18px 36px -16px rgba(0,0,0,.5); }
+  .status {
+    position: relative; z-index: 1;
+    display: flex; flex-direction: row; align-items: center;
+    gap: 1.2rem; min-height: 5.5rem; padding: .6rem 1.3rem;
+  }
+
+  .head { flex: 0 0 auto; display: flex; align-items: center; gap: .55rem; }
+  .dot { width: .55rem; height: .55rem; border-radius: 50%; background: var(--dot); box-shadow: 0 0 12px var(--dot); flex: 0 0 auto; }
+  .status-text { font-size: .7rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; white-space: nowrap; }
+  .clock { font-family: 'Space Mono', monospace; }
+
+  .readouts { display: flex; flex: 1 1 auto; flex-wrap: wrap; justify-content: center; align-items: flex-start; gap: .8rem 2.2rem; min-width: 0; }
+  .stat { text-align: center; }
+  .stat__label { display: block; font-size: .56rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; opacity: .72; margin-bottom: .15rem; }
+  .stat__value { font-family: 'Space Mono', monospace; font-size: 1.05rem; line-height: 1; }
+  .stat__value--lg { font-size: 1.5rem; }
+  .stat__unit { font-size: .62rem; opacity: .7; }
+
+  .ctrl { flex: 0 0 auto; display: flex; align-items: center; gap: .5rem; }
+  .btn { width: 2.2rem; height: 2.2rem; border-radius: 50%; border: 1px solid rgba(255,255,255,.35); background: rgba(255,255,255,.12); color: var(--ink); display: grid; place-items: center; cursor: pointer; font-size: 1rem; }
+  .btn.stop { width: auto; padding: 0 .9rem; border-radius: 999px; font-weight: 700; font-size: .7rem; letter-spacing: .1em; text-transform: uppercase; background: rgba(255,122,92,.92); border-color: transparent; }
+
+  /* ── the wordmark, shared base ─────────────────────────────── */
+  .brand { font-family: 'Anton', sans-serif; font-weight: 400; text-transform: uppercase; line-height: .92; letter-spacing: .01em; white-space: nowrap; }
+  .divider { width: 1px; align-self: stretch; margin: .9rem 0; background: rgba(255,255,255,.22); flex: 0 0 auto; }
+
+  /* V1 — single-line lockup, far left */
+  .v1 .brand { font-size: 1.45rem; }
+
+  /* V2 — two-line stacked lockup */
+  .v2 .brand { font-size: 1.15rem; }
+  .v2 .brand b { display: block; font-weight: 400; }
+
+  /* V3 — brand over status eyebrow */
+  .v3 .lockup { display: flex; flex-direction: column; gap: .2rem; }
+  .v3 .brand { font-size: 1.25rem; }
+  .v3 .eyebrow { display: flex; align-items: center; gap: .4rem; font-size: .58rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; opacity: .85; }
+  .v3 .dot { width: .42rem; height: .42rem; }
+
+  /* V4 — centered watermark behind readouts */
+  .v4 .watermark { position: absolute; inset: 0; display: grid; place-items: center; z-index: 0; pointer-events: none; }
+  .v4 .watermark .brand { font-size: 3.4rem; color: #fff; opacity: .07; letter-spacing: .08em; }
+
+  /* V5 — chip */
+  .v5 .brand { font-size: 1rem; padding: .34rem .7rem; border-radius: 8px; background: rgba(255,255,255,.13); box-shadow: inset 0 0 0 1px rgba(255,255,255,.18); letter-spacing: .04em; }
+
+  .note { font-size: .78rem; color: #8aa0ad; margin-top: 8px; }
+</style>
+</head>
+<body>
+  <h1>Compact bar — project name</h1>
+  <p class="lede">Five ways to surface <b>Battery&nbsp;Surf&nbsp;Bench</b> inside the compact top pill. No logo — wordmark only, set in <b>Anton</b> (the deck title face) so it reads as the same brand. Each row is the real compact bar at full width; the last two repeat in the dusk (dark) palette. Pick a direction and I'll wire it into the SCSS + view.</p>
+
+  <!-- V1 -->
+  <div class="variant v1">
+    <h2>1 · Left lockup + divider</h2>
+    <p>Wordmark anchored far left on one line, a hairline divider separating it from the live status. Cleanest read, but eats horizontal room — fine on wide screens, tight when readouts wrap.</p>
+    <div class="stage">
+      <div class="topbar"><div class="status">
+        <span class="brand">Battery&nbsp;Surf&nbsp;Bench</span>
+        <span class="divider"></span>
+        <span class="head"><span class="dot"></span><span class="status-text">Surfing&nbsp;·&nbsp;<span class="clock">02:14</span>&nbsp;elapsed</span></span>
+        <span class="readouts">
+          <span class="stat"><span class="stat__label">Battery</span><span class="stat__value stat__value--lg">63%</span></span>
+          <span class="stat"><span class="stat__label">Time to empty</span><span class="stat__value">7:41</span></span>
+          <span class="stat"><span class="stat__label">Rate 10m</span><span class="stat__value">8.2<span class="stat__unit">%/h</span></span></span>
+          <span class="stat"><span class="stat__label">Session</span><span class="stat__value">7.6<span class="stat__unit">%/h</span></span></span>
+        </span>
+        <span class="ctrl"><button class="btn stop">Stop</button><button class="btn">⌄</button><button class="btn">♪</button></span>
+      </div></div>
+    </div>
+  </div>
+
+  <!-- V2 -->
+  <div class="variant v2">
+    <h2>2 · Two-line stacked lockup</h2>
+    <p>Same anchor, broken to two short lines so the wordmark stays bold without stealing width. Echoes the deck header's stacked title/subtitle feel.</p>
+    <div class="stage">
+      <div class="topbar"><div class="status">
+        <span class="brand">Battery&nbsp;Surf&nbsp;<b>Bench</b></span>
+        <span class="divider"></span>
+        <span class="head"><span class="dot"></span><span class="status-text">Surfing&nbsp;·&nbsp;<span class="clock">02:14</span>&nbsp;elapsed</span></span>
+        <span class="readouts">
+          <span class="stat"><span class="stat__label">Battery</span><span class="stat__value stat__value--lg">63%</span></span>
+          <span class="stat"><span class="stat__label">Time to empty</span><span class="stat__value">7:41</span></span>
+          <span class="stat"><span class="stat__label">Rate 10m</span><span class="stat__value">8.2<span class="stat__unit">%/h</span></span></span>
+          <span class="stat"><span class="stat__label">Session</span><span class="stat__value">7.6<span class="stat__unit">%/h</span></span></span>
+        </span>
+        <span class="ctrl"><button class="btn stop">Stop</button><button class="btn">⌄</button><button class="btn">♪</button></span>
+      </div></div>
+    </div>
+  </div>
+
+  <!-- V3 -->
+  <div class="variant v3">
+    <h2>3 · Brand over status eyebrow</h2>
+    <p>Wordmark on top, the live "surfing · elapsed" line demoted to a small eyebrow under it. Zero extra width — it reuses the left column the status line already occupies. My pick for density.</p>
+    <div class="stage">
+      <div class="topbar"><div class="status">
+        <span class="lockup">
+          <span class="brand">Battery&nbsp;Surf&nbsp;Bench</span>
+          <span class="eyebrow"><span class="dot"></span>Surfing&nbsp;·&nbsp;<span class="clock">02:14</span>&nbsp;elapsed</span>
+        </span>
+        <span class="readouts">
+          <span class="stat"><span class="stat__label">Battery</span><span class="stat__value stat__value--lg">63%</span></span>
+          <span class="stat"><span class="stat__label">Time to empty</span><span class="stat__value">7:41</span></span>
+          <span class="stat"><span class="stat__label">Rate 10m</span><span class="stat__value">8.2<span class="stat__unit">%/h</span></span></span>
+          <span class="stat"><span class="stat__label">Session</span><span class="stat__value">7.6<span class="stat__unit">%/h</span></span></span>
+        </span>
+        <span class="ctrl"><button class="btn stop">Stop</button><button class="btn">⌄</button><button class="btn">♪</button></span>
+      </div></div>
+    </div>
+  </div>
+
+  <!-- V4 -->
+  <div class="variant v4">
+    <h2>4 · Centered watermark</h2>
+    <p>Wordmark blown up and dropped to ~7% opacity behind the readouts — present as texture, never competing with the numbers. Subtle; can vanish on bright displays.</p>
+    <div class="stage">
+      <div class="topbar"><div class="status">
+        <span class="watermark"><span class="brand">Battery&nbsp;Surf&nbsp;Bench</span></span>
+        <span class="head"><span class="dot"></span><span class="status-text">Surfing&nbsp;·&nbsp;<span class="clock">02:14</span>&nbsp;elapsed</span></span>
+        <span class="readouts">
+          <span class="stat"><span class="stat__label">Battery</span><span class="stat__value stat__value--lg">63%</span></span>
+          <span class="stat"><span class="stat__label">Time to empty</span><span class="stat__value">7:41</span></span>
+          <span class="stat"><span class="stat__label">Rate 10m</span><span class="stat__value">8.2<span class="stat__unit">%/h</span></span></span>
+          <span class="stat"><span class="stat__label">Session</span><span class="stat__value">7.6<span class="stat__unit">%/h</span></span></span>
+        </span>
+        <span class="ctrl"><button class="btn stop">Stop</button><button class="btn">⌄</button><button class="btn">♪</button></span>
+      </div></div>
+    </div>
+  </div>
+
+  <!-- V5 -->
+  <div class="variant v5">
+    <h2>5 · Inset chip</h2>
+    <p>Wordmark in a soft glassy chip at far left — a contained badge, smaller type, sits apart from the status line. Most "labelled", least like part of the data.</p>
+    <div class="stage">
+      <div class="topbar"><div class="status">
+        <span class="brand">Battery&nbsp;Surf&nbsp;Bench</span>
+        <span class="head"><span class="dot"></span><span class="status-text">Surfing&nbsp;·&nbsp;<span class="clock">02:14</span>&nbsp;elapsed</span></span>
+        <span class="readouts">
+          <span class="stat"><span class="stat__label">Battery</span><span class="stat__value stat__value--lg">63%</span></span>
+          <span class="stat"><span class="stat__label">Time to empty</span><span class="stat__value">7:41</span></span>
+          <span class="stat"><span class="stat__label">Rate 10m</span><span class="stat__value">8.2<span class="stat__unit">%/h</span></span></span>
+          <span class="stat"><span class="stat__label">Session</span><span class="stat__value">7.6<span class="stat__unit">%/h</span></span></span>
+        </span>
+        <span class="ctrl"><button class="btn stop">Stop</button><button class="btn">⌄</button><button class="btn">♪</button></span>
+      </div></div>
+    </div>
+  </div>
+
+  <!-- dusk repeats -->
+  <div class="variant v3">
+    <h2>3 · Eyebrow — dusk palette</h2>
+    <div class="stage">
+      <div class="topbar dusk"><div class="status">
+        <span class="lockup">
+          <span class="brand">Battery&nbsp;Surf&nbsp;Bench</span>
+          <span class="eyebrow"><span class="dot"></span>Surfing&nbsp;·&nbsp;<span class="clock">02:14</span>&nbsp;elapsed</span>
+        </span>
+        <span class="readouts">
+          <span class="stat"><span class="stat__label">Battery</span><span class="stat__value stat__value--lg">63%</span></span>
+          <span class="stat"><span class="stat__label">Time to empty</span><span class="stat__value">7:41</span></span>
+          <span class="stat"><span class="stat__label">Rate 10m</span><span class="stat__value">8.2<span class="stat__unit">%/h</span></span></span>
+          <span class="stat"><span class="stat__label">Session</span><span class="stat__value">7.6<span class="stat__unit">%/h</span></span></span>
+        </span>
+        <span class="ctrl"><button class="btn stop">Stop</button><button class="btn">⌄</button><button class="btn">♪</button></span>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="variant v1">
+    <h2>1 · Left lockup — dusk palette</h2>
+    <div class="stage">
+      <div class="topbar dusk"><div class="status">
+        <span class="brand">Battery&nbsp;Surf&nbsp;Bench</span>
+        <span class="divider"></span>
+        <span class="head"><span class="dot"></span><span class="status-text">Surfing&nbsp;·&nbsp;<span class="clock">02:14</span>&nbsp;elapsed</span></span>
+        <span class="readouts">
+          <span class="stat"><span class="stat__label">Battery</span><span class="stat__value stat__value--lg">63%</span></span>
+          <span class="stat"><span class="stat__label">Time to empty</span><span class="stat__value">7:41</span></span>
+          <span class="stat"><span class="stat__label">Rate 10m</span><span class="stat__value">8.2<span class="stat__unit">%/h</span></span></span>
+          <span class="stat"><span class="stat__label">Session</span><span class="stat__value">7.6<span class="stat__unit">%/h</span></span></span>
+        </span>
+        <span class="ctrl"><button class="btn stop">Stop</button><button class="btn">⌄</button><button class="btn">♪</button></span>
+      </div></div>
+    </div>
+  </div>
+
+  <p class="note">Mockup only — not wired into the build. Anton / Hanken Grotesk / Space Mono pulled from jsDelivr, matching the production faces.</p>
+</body>
+</html>

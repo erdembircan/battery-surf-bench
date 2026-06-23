@@ -1421,8 +1421,39 @@ body {
 		border-radius: 0;
 	}
 
+	// Left column — the project wordmark over the live status line, paired as one
+	// lockup so the name costs no horizontal room of its own (it reuses the column
+	// the status line already occupies).
+	.bsb-cockpit__lockup {
+		flex: 0 0 auto;
+		display: flex;
+		flex-direction: column;
+		gap: 0.2rem;
+	}
+
+	.bsb-cockpit__brandmark {
+		font-family: theme.$font-display;
+		font-size: 1.25rem;
+		line-height: 0.92;
+		letter-spacing: 0.01em;
+		text-transform: uppercase;
+		white-space: nowrap;
+		color: var(--status-ink);
+	}
+
+	// The status line drops to a small eyebrow beneath the wordmark.
 	.bsb-deck__status-head {
 		flex: 0 0 auto;
+	}
+
+	.bsb-deck__status-text {
+		font-size: 0.58rem;
+		opacity: 0.85;
+	}
+
+	.bsb-deck__status-dot {
+		width: 0.42rem;
+		height: 0.42rem;
 	}
 
 	// Middle column: centred as a group; the only part that wraps when squeezed.

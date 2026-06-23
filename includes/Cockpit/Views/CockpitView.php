@@ -213,17 +213,21 @@ class CockpitView implements View {
 CELLS;
 		$odometer_cells  = str_repeat( $bsb_digit_cells, 3 );
 
-		// The live readouts — status line, the four metrics and the parallax
-		// waves. Built once and rendered in two places: the deck's vertical pill
-		// (normal) and the stage's horizontal top pill (compact). Both bind to the
-		// same store getters, so the readings stay in lock-step.
-		$pill_inner = <<<INNER
+		// The live readouts, split so the same bindings render in two places: the
+		// deck's vertical pill (normal) and the stage's horizontal top pill
+		// (compact). The status line ("surfing · elapsed") is broken out from the
+		// metrics + parallax waves so the compact bar can pair it with the project
+		// wordmark in a left-hand lockup, while the deck pill stacks them as before.
+		// Both bind to the same store getters, so the readings stay in lock-step.
+		$status_head = <<<HEAD
 <div class="bsb-deck__status-head">
 				<span class="bsb-deck__status-dot" aria-hidden="true"></span>
 				<span class="bsb-deck__status-text">{$surfing_label} &middot; <span class="bsb-deck__clock" data-wp-text="state.runClock"></span> <span data-wp-bind--hidden="state.isModeDuration">{$elapsed_label}</span><span data-wp-bind--hidden="state.isModeTargetDrop">{$remaining_label}</span></span>
 			</div>
+HEAD;
 
-			<div class="bsb-deck__readouts">
+		$pill_body = <<<BODY
+<div class="bsb-deck__readouts">
 				<div class="bsb-stat bsb-stat--battery" data-wp-class--is-charging="state.isCharging">
 					<span class="bsb-stat__label">{$battery_label}</span>
 					<span class="bsb-stat__value bsb-stat__value--lg" data-wp-style--color="state.batteryColor"><span data-wp-text="state.batteryDisplay"></span>%<span class="bsb-stat__bolt" aria-hidden="true"></span></span>
@@ -251,7 +255,7 @@ CELLS;
 				<span class="bsb-deck__wave bsb-deck__wave--mid"></span>
 				<span class="bsb-deck__wave bsb-deck__wave--front"></span>
 			</span>
-INNER;
+BODY;
 
 		// The startup flip postcard: its picture front greets the visitor with the
 		// deck tucked away; flipping it (actions.toggleIdleFlip) turns to the written
@@ -395,7 +399,8 @@ HTML;
 			</div>
 
 			<div class="bsb-deck__status">
-			{$pill_inner}
+			{$status_head}
+			{$pill_body}
 			</div>
 			</div>
 		</div>
@@ -413,7 +418,11 @@ HTML;
 	<div class="bsb-cockpit__stage">
 		<div class="bsb-cockpit__topbar">
 			<div class="bsb-deck__status">
-			{$pill_inner}
+				<div class="bsb-cockpit__lockup">
+					<span class="bsb-cockpit__brandmark">{$brand_title}</span>
+				{$status_head}
+				</div>
+			{$pill_body}
 				<div class="bsb-deck__readout-ctrl">
 					<button type="button" class="bsb-deck__readout-stop" data-wp-on--click="actions.toggleRun">{$stop_label}</button>
 					<button type="button" class="bsb-deck__expand" data-wp-on--click="actions.toggleCompact" aria-label="{$expand_label}"></button>
