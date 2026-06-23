@@ -236,6 +236,27 @@ describe( 'datetime format', () => {
 	} );
 } );
 
+describe( 'optional format', () => {
+	it( 'shows the number when the value applies to the run', () => {
+		const { container } = renderCell( descriptor( 'optional' ), {
+			value: 30,
+		} );
+		expect( container ).toHaveTextContent( '30' );
+	} );
+
+	it( 'shows an em dash when the field does not apply (zero)', () => {
+		const { container } = renderCell( descriptor( 'optional' ), {
+			value: 0,
+		} );
+		expect( container ).toHaveTextContent( EM_DASH );
+	} );
+
+	it( 'shows an em dash when the value is absent', () => {
+		const { container } = renderCell( descriptor( 'optional' ), {} );
+		expect( container ).toHaveTextContent( EM_DASH );
+	} );
+} );
+
 describe( 'enumerated text without an explicit format', () => {
 	const enumerated = descriptor( 'text', {
 		elements: [ { value: 'wifi', label: 'Wi-Fi' } ],

@@ -39,6 +39,7 @@ const META = {
 	startLevel: 'bsb_start_level',
 	endLevel: 'bsb_end_level',
 	droppedPct: 'bsb_dropped_pct',
+	elapsedMinutes: 'bsb_elapsed_minutes',
 	rate10: 'bsb_rate_10',
 	rateSession: 'bsb_rate_session',
 	secondsToEmpty: 'bsb_seconds_to_empty',
@@ -66,6 +67,8 @@ export interface SessionUploadInput {
 	reason: RunEndReason;
 	/** The configuration the run was started with. */
 	config: UploadConfig;
+	/** How long the run actually lasted, in whole minutes. */
+	elapsedMinutes: number;
 	/** The run-length-encoded sample log. */
 	samples: readonly RleSample[];
 	/** Wall-clock time (ms since epoch) the run started, or null if unknown. */
@@ -163,35 +166,43 @@ export const buildSessionPayload = (
 	const startedAt = toIso( input.startedAtWall ?? input.endedAtWall );
 	const endedAt = toIso( input.endedAtWall );
 
-	return {
-		status: 'publish',
-		meta: {
-			[ META.status ]: statusFor( input.reason ),
-			[ META.mode ]: modeFor( input.config ),
-			[ META.startedAt ]: startedAt,
-			[ META.endedAt ]: endedAt,
-			[ META.startLevel ]: summary.startLevel,
-			[ META.endLevel ]: summary.endLevel,
-			[ META.droppedPct ]: summary.droppedPct,
-			// A statistic the run could not compute is stored as zero: WordPress
-			// REST single meta cannot hold a null, and zero is no valid reading
-			// for these quantities, so it marks the unmeasurable case.
-			[ META.rate10 ]: summary.rate10 ?? 0,
-			[ META.rateSession ]: summary.rateSession ?? 0,
-			[ META.secondsToEmpty ]: summary.secondsToEmpty ?? 0,
-			[ META.configMode ]: input.config.mode,
-			[ META.configDurationMinutes ]: input.config.durationMinutes,
-			[ META.configBaseline ]: input.config.baseline,
-			[ META.configTargetPercent ]: input.config.targetPercent,
-			[ META.ua ]: input.userAgent,
-			[ META.samples ]: input.samples.map( ( sample ) => ( {
-				t: sample.t,
-				level: sample.level,
-				charging: sample.charging,
-				count: sample.count,
-			} ) ),
-		},
+	const meta: Record< string, unknown > = {
+		[ META.status ]: statusFor( input.reason ),
+		[ META.mode ]: modeFor( input.config ),
+		[ META.startedAt ]: startedAt,
+		[ META.endedAt ]: endedAt,
+		[ META.startLevel ]: summary.startLevel,
+		[ META.endLevel ]: summary.endLevel,
+		[ META.droppedPct ]: summary.droppedPct,
+		[ META.elapsedMinutes ]: input.elapsedMinutes,
+		// A statistic the run could not compute is stored as zero: WordPress
+		// REST single meta cannot hold a null, and zero is no valid reading
+		// for these quantities, so it marks the unmeasurable case.
+		[ META.rate10 ]: summary.rate10 ?? 0,
+		[ META.rateSession ]: summary.rateSession ?? 0,
+		[ META.secondsToEmpty ]: summary.secondsToEmpty ?? 0,
+		[ META.configMode ]: input.config.mode,
+		[ META.configBaseline ]: input.config.baseline,
+		[ META.ua ]: input.userAgent,
+		[ META.samples ]: input.samples.map( ( sample ) => ( {
+			t: sample.t,
+			level: sample.level,
+			charging: sample.charging,
+			count: sample.count,
+		} ) ),
 	};
+
+	// Persist only the goal that bounds this run: a target-drop run has no fixed
+	// duration, and a duration run (baseline included) has no target. The other
+	// stays unset so the listing shows it as not applicable rather than echoing
+	// an unused default the run never honoured.
+	if ( input.config.mode === 'targetDrop' ) {
+		meta[ META.configTargetPercent ] = input.config.targetPercent;
+	} else {
+		meta[ META.configDurationMinutes ] = input.config.durationMinutes;
+	}
+
+	return { status: 'publish', meta };
 };
 
 /**

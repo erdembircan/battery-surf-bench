@@ -327,6 +327,16 @@ class SessionSchema {
 			// valid reading for these quantities — a 0 %/h drain or 0s-to-empty —
 			// so it serves as the unmeasurable marker without fighting the meta API.
 			array(
+				'key'            => 'elapsed_minutes',
+				'rest_type'      => 'integer',
+				'label'          => 'Elapsed (min)',
+				'format'         => 'text',
+				'default'        => self::NO_DEFAULT,
+				'sanitize'       => array( self::class, 'sanitize_elapsed' ),
+				'elements'       => array(),
+				'default_column' => true,
+			),
+			array(
 				'key'            => 'dropped_pct',
 				'rest_type'      => 'number',
 				'label'          => 'Dropped',
@@ -393,7 +403,7 @@ class SessionSchema {
 				'group'          => self::CONFIG_GROUP,
 				'rest_type'      => 'integer',
 				'label'          => 'Duration (min)',
-				'format'         => 'text',
+				'format'         => 'optional',
 				'default'        => self::NO_DEFAULT,
 				'sanitize'       => array( self::class, 'sanitize_minutes' ),
 				'elements'       => array(),
@@ -416,7 +426,7 @@ class SessionSchema {
 				'group'          => self::CONFIG_GROUP,
 				'rest_type'      => 'integer',
 				'label'          => 'Target (%)',
-				'format'         => 'text',
+				'format'         => 'optional',
 				'default'        => self::NO_DEFAULT,
 				'sanitize'       => array( self::class, 'sanitize_percent' ),
 				'elements'       => array(),
@@ -505,6 +515,18 @@ class SessionSchema {
 	 * @return int The clamped seconds.
 	 */
 	public static function sanitize_seconds( $value ): int {
+		return (int) max( 0, (int) round( (float) $value ) );
+	}
+
+	/**
+	 * Clamps a raw elapsed run length to a non-negative whole number of minutes —
+	 * how long the run actually lasted, unsnapped (unlike the configured
+	 * duration), since a run can be cut short at any moment.
+	 *
+	 * @param mixed $value Raw meta value.
+	 * @return int The clamped elapsed minutes.
+	 */
+	public static function sanitize_elapsed( $value ): int {
 		return (int) max( 0, (int) round( (float) $value ) );
 	}
 

@@ -45,6 +45,20 @@ function asDateTime( value: unknown ): string {
 }
 
 /**
+ * Formats an optional whole-number value: the number when it is a positive
+ * count, or an em dash when it is absent or zero — the marker for a field that
+ * does not apply to the run (a target for a duration run, or a duration for a
+ * target-drop run; only the goal that bounds a run is recorded).
+ *
+ * @param value The raw meta value.
+ * @return The number as text, or an em dash when not applicable.
+ */
+function asOptional( value: unknown ): string {
+	const num = Number( value );
+	return Number.isFinite( num ) && num > 0 ? String( num ) : '—';
+}
+
+/**
  * Resolves an enumerated value to its human label from the descriptor.
  *
  * @param value      The raw meta value.
@@ -182,6 +196,13 @@ function toField( descriptor: SessionFieldDescriptor ): Field< SessionRecord > {
 				...base,
 				render: ( { item } ) => (
 					<LevelBar value={ metaValue( item, descriptor ) } />
+				),
+			};
+		case 'optional':
+			return {
+				...base,
+				render: ( { item } ) => (
+					<>{ asOptional( metaValue( item, descriptor ) ) }</>
 				),
 			};
 		default:

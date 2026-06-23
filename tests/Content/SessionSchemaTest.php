@@ -186,7 +186,7 @@ final class SessionSchemaTest extends TestCase {
 	public function test_derived_statistics_are_registered_meta(): void {
 		$metas = $this->schema()->metas();
 
-		foreach ( array( 'dropped_pct', 'rate_10', 'rate_session', 'seconds_to_empty' ) as $field ) {
+		foreach ( array( 'dropped_pct', 'elapsed_minutes', 'rate_10', 'rate_session', 'seconds_to_empty' ) as $field ) {
 			$this->assertArrayHasKey( self::PREFIX . $field, $metas );
 		}
 	}
@@ -224,7 +224,7 @@ final class SessionSchemaTest extends TestCase {
 	public function test_configuration_and_statistics_are_listed(): void {
 		$listed = array_column( $this->schema()->fields(), 'key' );
 
-		foreach ( array( 'config_duration_minutes', 'config_target_percent', 'dropped_pct', 'rate_10', 'rate_session', 'seconds_to_empty' ) as $field ) {
+		foreach ( array( 'config_duration_minutes', 'config_target_percent', 'dropped_pct', 'elapsed_minutes', 'rate_10', 'rate_session', 'seconds_to_empty' ) as $field ) {
 			$this->assertContains( self::PREFIX . $field, $listed );
 		}
 	}
@@ -291,6 +291,16 @@ final class SessionSchemaTest extends TestCase {
 		$this->assertSame( 7200, SessionSchema::sanitize_seconds( 7200.4 ) );
 		$this->assertSame( 0, SessionSchema::sanitize_seconds( -10 ) );
 		$this->assertSame( 0, SessionSchema::sanitize_seconds( null ) );
+	}
+
+	/**
+	 * The elapsed run length is a non-negative whole number of minutes, kept
+	 * unsnapped since a run can be cut short at any moment.
+	 */
+	public function test_sanitize_elapsed_clamps_to_non_negative_whole(): void {
+		$this->assertSame( 27, SessionSchema::sanitize_elapsed( 26.6 ) );
+		$this->assertSame( 0, SessionSchema::sanitize_elapsed( -4 ) );
+		$this->assertSame( 13, SessionSchema::sanitize_elapsed( 13 ) );
 	}
 
 	/**
