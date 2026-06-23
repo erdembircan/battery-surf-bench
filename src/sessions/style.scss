@@ -1,64 +1,358 @@
 /**
- * Screen-level styling for the benchmark sessions listing.
+ * Coastal restyle of the benchmark sessions listing.
  *
- * The DataViews grid brings its own styles; this layers on the richer cells
- * (status badges, battery-level bars) the listing renders. Every colour is a CSS
- * custom property with a sensible default, so once a shared front-end dashboard
- * design system exists it can restyle this listing by overriding these tokens —
- * no changes to the components or this file needed.
+ * The screen is a DataViews grid mounted into a full-bleed "deck" that covers
+ * the whole admin content area, dropping the stock wp-admin chrome so the
+ * listing reads like the cockpit (Coastal Daybreak — light only; dark dropped).
+ * DataViews owns the table, selection, bulk-actions footer, density, sorting,
+ * filtering, pagination and the empty state; this stylesheet only re-skins its
+ * DOM (`.dataviews-*`) and the surrounding shell — no behaviour is reimplemented.
+ *
+ * The shell is a flex column the height of the viewport; DataViews' own
+ * `.dataviews-wrapper` is the single scroll region inside it, so the brand
+ * header stays put, the column headers and the pagination/bulk footer stay
+ * sticky (DataViews already pins them), and only the rows scroll.
+ *
+ * `@use`-ing the shared theme also emits its `@font-face` rules, so Anton,
+ * Hanken Grotesk and Space Mono load on the admin screen.
  */
 
-#bsb-sessions-app {
-	margin-top: 1rem;
+@use '../styles/theme' as theme;
 
-	/* Status badge. */
+// The shared theme ships only Space Mono 700 (all the cockpit needs); this
+// screen also shows it at a regular weight, so the numeric readouts read as
+// plain mono data and only the start/end battery levels stand out in bold.
+@font-face {
+	font-family: 'Space Mono';
+	font-style: normal;
+	font-weight: 400;
+	font-display: swap;
+	src: url('https://cdn.jsdelivr.net/fontsource/fonts/space-mono@latest/latin-400-normal.woff2')
+		format('woff2');
+}
+
+// ── Full-bleed: drop the wp-admin chrome around the deck ─────────────────────
+// This stylesheet is enqueued only on the sessions screen, so these admin-wide
+// selectors are safe to target unscoped — they never reach another screen.
+#wpcontent {
+	padding-left: 0;
+}
+
+#wpbody-content {
+	padding-bottom: 0;
+}
+
+#wpfooter {
+	display: none;
+}
+
+// ── The deck shell ───────────────────────────────────────────────────────────
+.bsb-sessions {
+	// Retint every WordPress component accent (selection checkboxes, focus
+	// rings, primary buttons, active pagination) to coastal teal in one move,
+	// instead of overriding each control: WP's components read these tokens.
+	--wp-admin-theme-color: #{theme.$coastal-teal};
+	--wp-admin-theme-color--rgb: 47, 155, 179;
+	--wp-admin-theme-color-darker-10: #2a8ba0;
+	--wp-admin-theme-color-darker-20: #{theme.$coastal-teal-deep};
+
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+	height: calc(100vh - 32px); // below the admin bar
+	overflow: hidden;
+	font-family: theme.$font-ui;
+	color: theme.$coastal-navy;
+	background:
+		radial-gradient(120% 50% at 50% -6%, #fff 0%, #{theme.$coastal-sky-0} 38%, transparent 66%),
+		linear-gradient(180deg, #{theme.$coastal-sky-1} 0%, #fff 46%);
+
+	@media screen and (max-width: 782px) {
+		height: calc(100vh - 46px); // the admin bar is taller on small screens
+	}
+}
+
+// ── Brand header ─────────────────────────────────────────────────────────────
+.bsb-sessions__head {
+	display: flex;
+	flex: 0 0 auto;
+	align-items: center;
+	gap: 1rem;
+	padding: 1.1rem 1.5rem;
+	border-bottom: 1px solid theme.$coastal-line;
+}
+
+// Solid surfer mark tinted teal — the same menu-icon the cockpit deck masks.
+.bsb-sessions__mark {
+	flex: 0 0 auto;
+	height: 2.9rem;
+	aspect-ratio: 1;
+	background: theme.$coastal-teal;
+	mask: url('../../assets/images/menu-icon.svg') center / contain no-repeat;
+	-webkit-mask: url('../../assets/images/menu-icon.svg') center / contain no-repeat;
+}
+
+.bsb-sessions__wordmark {
+	display: flex;
+	flex-direction: column;
+	gap: 0.15rem;
+	margin-right: auto;
+	min-width: 0;
+}
+
+.bsb-sessions__title {
+	margin: 0;
+	padding: 0;
+	font-family: theme.$font-display;
+	font-size: 1.5rem;
+	font-weight: 400;
+	line-height: 0.96;
+	letter-spacing: 0.01em;
+	text-transform: uppercase;
+	color: theme.$coastal-navy;
+}
+
+.bsb-sessions__subtitle {
+	font-size: 0.62rem;
+	font-weight: 700;
+	letter-spacing: 0.42em;
+	text-transform: uppercase;
+	color: theme.$coastal-teal;
+}
+
+.bsb-sessions__cockpit {
+	display: inline-flex;
+	flex: 0 0 auto;
+	align-items: center;
+	gap: 0.45rem;
+	padding: 0.5rem 0.9rem;
+	border-radius: 10px;
+	background: linear-gradient(150deg, #{theme.$coastal-teal} 0%, #{theme.$coastal-teal-deep} 100%);
+	color: #fff;
+	font-size: 0.82rem;
+	font-weight: 700;
+	line-height: 1.2;
+	text-decoration: none;
+	box-shadow: 0 6px 14px -6px #{rgba(theme.$coastal-teal-deep, 0.6)};
+
+	&:hover,
+	&:focus {
+		color: #fff;
+	}
+
+	&:focus-visible {
+		outline: 2px solid theme.$coastal-coral;
+		outline-offset: 2px;
+	}
+}
+
+.bsb-sessions__cockpit-icon {
+	width: 1rem;
+	height: 1rem;
+}
+
+// ── DataViews host ───────────────────────────────────────────────────────────
+#bsb-sessions-app {
+	display: flex;
+	flex: 1 1 auto;
+	min-height: 0;
+}
+
+.bsb-sessions .dataviews-wrapper {
+	flex: 1 1 auto;
+	min-height: 0;
+	background: transparent;
+	color: theme.$coastal-navy;
+}
+
+// Top control row (search / filters / view options) — coastal, sits on the deck.
+.bsb-sessions {
+	.dataviews__view-actions,
+	.dataviews-filters__container {
+		padding-inline: 1.5rem;
+		background: transparent;
+		border-bottom: 1px solid theme.$coastal-line;
+	}
+
+	// Search field.
+	.dataviews-search {
+		.components-input-control__container input,
+		input[type='search'] {
+			border-radius: 10px;
+		}
+	}
+}
+
+// ── Table ────────────────────────────────────────────────────────────────────
+.bsb-sessions {
+	.dataviews-view-table {
+		color: theme.$coastal-navy;
+	}
+
+	// Column header row — opaque so it cleanly covers rows scrolling beneath it.
+	.dataviews-view-table thead th {
+		background: #fff;
+		border-bottom: 2px solid theme.$coastal-line;
+		color: theme.$coastal-teal;
+		font-size: 0.62rem;
+		font-weight: 700;
+		letter-spacing: 0.14em;
+	}
+
+	.dataviews-view-table thead {
+		z-index: 3; // above row content and the selection wash
+	}
+
+	.dataviews-view-table-header-button,
+	.dataviews-view-table-header-button:not(:hover) {
+		color: theme.$coastal-teal;
+	}
+
+	// Body cells.
+	.dataviews-view-table tbody td {
+		border-bottom: 1px solid theme.$coastal-line;
+		color: theme.$coastal-navy;
+	}
+
+	// Zebra + hover, in coastal tints.
+	.dataviews-view-table tbody tr:nth-child(even) td {
+		background: #{rgba(theme.$coastal-aqua, 0.07)};
+	}
+
+	.dataviews-view-table tbody tr:hover td,
+	.dataviews-view-table tbody tr.is-hovered td {
+		background: #{rgba(theme.$coastal-teal, 0.08)};
+	}
+
+	// Selected row — teal wash plus a left accent bar on the checkbox cell.
+	.dataviews-view-table tbody tr.is-selected td {
+		background: #{rgba(theme.$coastal-teal, 0.12)};
+	}
+
+	.dataviews-view-table tbody tr.is-selected:hover td {
+		background: #{rgba(theme.$coastal-teal, 0.16)};
+	}
+
+	.dataviews-view-table tbody tr.is-selected td.dataviews-view-table__checkbox-column {
+		box-shadow: inset 3px 0 0 theme.$coastal-teal;
+	}
+
+	// The session identifier (title field renders `#<id>`) reads as plain data.
+	.dataviews-title-field {
+		font-family: theme.$font-mono;
+		font-weight: 400;
+		color: theme.$coastal-navy;
+	}
+}
+
+// ── Footer (pagination + bulk-actions) ───────────────────────────────────────
+.bsb-sessions {
+	.dataviews-footer {
+		background: theme.$coastal-surface;
+		border-top: 1px solid theme.$coastal-line;
+	}
+
+	.dataviews-bulk-actions-footer__item-count {
+		color: theme.$coastal-navy;
+		font-weight: 700;
+	}
+}
+
+// ── Empty state ──────────────────────────────────────────────────────────────
+.bsb-sessions {
+	.dataviews-no-results {
+		flex-direction: column;
+		gap: 0.9rem;
+		color: theme.$coastal-ink-soft;
+		font-size: 0.95rem;
+
+		// A faded surfer mark above the "No results" copy.
+		&::before {
+			content: '';
+			width: 4.5rem;
+			height: 4.5rem;
+			background: theme.$coastal-aqua;
+			opacity: 0.7;
+			mask: url('../../assets/images/menu-icon.svg') center / contain no-repeat;
+			-webkit-mask: url('../../assets/images/menu-icon.svg') center / contain no-repeat;
+		}
+	}
+}
+
+// ── Field renderers (used inside table cells) ────────────────────────────────
+#bsb-sessions-app {
+	// Status badge.
 	.bsb-badge {
 		display: inline-flex;
 		align-items: center;
-		padding: 2px 10px;
-		border-radius: 9999px;
-		font-size: 11px;
-		font-weight: 600;
-		line-height: 1.7;
-		background: var( --bsb-badge-bg, #e0e0e0 );
-		color: var( --bsb-badge-fg, #1e1e1e );
+		gap: 0.35rem;
+		padding: 0.18rem 0.6rem 0.18rem 0.5rem;
+		border-radius: 999px;
+		font-size: 0.7rem;
+		font-weight: 700;
+		line-height: 1.6;
+	}
+
+	.bsb-badge__dot {
+		width: 0.42rem;
+		height: 0.42rem;
+		border-radius: 50%;
+		background: currentColor;
 	}
 
 	.bsb-badge--finished {
-		--bsb-badge-bg: #d3f0db;
-		--bsb-badge-fg: #0a6b2e;
+		background: #{rgba(theme.$coastal-teal, 0.14)};
+		color: theme.$coastal-teal-deep;
+
+		.bsb-badge__dot {
+			background: theme.$coastal-teal;
+		}
 	}
 
 	.bsb-badge--running {
-		--bsb-badge-bg: #d8e7fb;
-		--bsb-badge-fg: #0b4ea2;
+		background: #{rgba(theme.$coastal-teal, 0.16)};
+		color: theme.$coastal-teal-deep;
+
+		.bsb-badge__dot {
+			background: theme.$coastal-sun;
+			animation: bsb-badge-pulse 1.4s ease-in-out infinite;
+		}
 	}
 
 	.bsb-badge--stopped {
-		--bsb-badge-bg: #fbe7c6;
-		--bsb-badge-fg: #8a5a00;
+		background: #{rgba(theme.$coastal-sun, 0.22)};
+		color: #8a5a00;
+
+		.bsb-badge__dot {
+			background: theme.$coastal-sun;
+		}
 	}
 
 	.bsb-badge--aborted {
-		--bsb-badge-bg: #fbdcdc;
-		--bsb-badge-fg: #a3160b;
+		background: #{rgba(theme.$coastal-coral, 0.16)};
+		color: theme.$coastal-coral-deep;
+
+		.bsb-badge__dot {
+			background: theme.$coastal-coral;
+		}
 	}
 
-	/* Battery level: mini bar + percentage. */
+	// Battery level: mini bar + percentage.
 	.bsb-level {
 		display: inline-flex;
 		align-items: center;
-		gap: 8px;
-		min-width: 96px;
+		gap: 0.55rem;
+		min-width: 116px;
 	}
 
 	.bsb-level__track {
 		position: relative;
 		flex: 1;
-		height: 6px;
-		border-radius: 9999px;
-		background: var( --bsb-level-track, #e6e6e6 );
+		height: 7px;
+		border-radius: 999px;
+		background: #dbe9ef;
 		overflow: hidden;
+		box-shadow: inset 0 1px 2px #{rgba(theme.$coastal-navy, 0.12)};
 	}
 
 	.bsb-level__fill {
@@ -68,40 +362,50 @@
 	}
 
 	.bsb-level__fill--high {
-		background: var( --bsb-level-high, #2fa84f );
+		background: linear-gradient(90deg, #{theme.$coastal-teal}, #{theme.$coastal-aqua});
 	}
 
 	.bsb-level__fill--mid {
-		background: var( --bsb-level-mid, #e0a526 );
+		background: linear-gradient(90deg, #e8a93a, #{theme.$coastal-sun});
 	}
 
 	.bsb-level__fill--low {
-		background: var( --bsb-level-low, #d63638 );
+		background: linear-gradient(90deg, #{theme.$coastal-coral-deep}, #{theme.$coastal-coral});
 	}
 
 	.bsb-level__pct {
-		min-width: 34px;
-		font-variant-numeric: tabular-nums;
+		min-width: 2.4rem;
 		text-align: right;
+		font-family: theme.$font-mono;
+		font-weight: 700;
+		font-variant-numeric: tabular-nums;
+		color: theme.$coastal-navy;
 	}
 
-	/* Zebra striping for the table layout. Applied to the cells of even data
-	 * rows so the row's own hover/selected background still layers on top, and
-	 * themeable via the same token mechanism as the badges and bars. */
-	.dataviews-view-table tbody tr:nth-child( even ):not( .is-selected ) td {
-		background-color: var( --bsb-row-stripe, #f6f7f7 );
+	// Numeric readouts (elapsed, dropped, rates, time-to-empty) — plain mono,
+	// regular weight; only the start/end battery levels are emphasised in bold.
+	.bsb-num {
+		font-family: theme.$font-mono;
+		font-weight: 400;
+		font-size: 0.9em;
+		font-variant-numeric: tabular-nums;
+		color: theme.$coastal-navy;
+	}
+}
+
+@keyframes bsb-badge-pulse {
+	0%,
+	100% {
+		box-shadow: 0 0 0 0 #{rgba(theme.$coastal-sun, 0.6)};
 	}
 
-	/* Top toolbar (search, filters, view options). By default it has no
-	 * background and sits flat on the gray admin page; give it the same surface
-	 * and a separating border as the footer so the toolbar, table and footer
-	 * read as one card. Themeable via the same token mechanism. */
-	.dataviews__view-actions,
-	.dataviews-filters__container {
-		background-color: var( --bsb-toolbar-bg, #fff );
+	50% {
+		box-shadow: 0 0 0 4px #{rgba(theme.$coastal-sun, 0)};
 	}
+}
 
-	.dataviews__view-actions {
-		border-bottom: 1px solid var( --bsb-toolbar-border, #f0f0f0 );
+@media (prefers-reduced-motion: reduce) {
+	#bsb-sessions-app .bsb-badge--running .bsb-badge__dot {
+		animation: none;
 	}
 }

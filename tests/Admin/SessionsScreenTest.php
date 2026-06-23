@@ -145,10 +145,10 @@ final class SessionsScreenTest extends TestCase {
 	}
 
 	/**
-	 * The screen renders a heading, a cockpit link, and the container the bundle
-	 * mounts into.
+	 * The screen renders the brand header (title and subtitle), a cockpit link,
+	 * and the container the bundle mounts into.
 	 */
-	public function test_render_outputs_heading_cockpit_link_and_mount_point(): void {
+	public function test_render_outputs_brand_header_cockpit_link_and_mount_point(): void {
 		Functions\when( 'home_url' )->justReturn( 'https://example.test/' );
 		Functions\when( 'add_query_arg' )->alias(
 			static fn ( string $key, string $value, string $url ): string => $url . '?' . $key . '=' . $value
@@ -159,7 +159,9 @@ final class SessionsScreenTest extends TestCase {
 		$this->screen()->render();
 		$output = (string) ob_get_clean();
 
-		$this->assertStringContainsString( 'Benchmark Sessions', $output );
+		$this->assertStringContainsString( '<div class="bsb-sessions">', $output );
+		$this->assertStringContainsString( 'Sessions', $output );
+		$this->assertStringContainsString( 'Benchmark log', $output );
 		$this->assertStringContainsString( 'id="bsb-sessions-app"', $output );
 		$this->assertStringContainsString( 'https://example.test/?bsbSession=cockpit', $output );
 		$this->assertStringContainsString( 'Open Cockpit', $output );

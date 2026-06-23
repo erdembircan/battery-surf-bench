@@ -146,6 +146,13 @@ describe( 'status format', () => {
 		expect( container ).toContainElement( badge );
 	} );
 
+	it( 'carries a status dot the stylesheet can tint and pulse', () => {
+		const { container } = renderCell( status, { bsb_status: 'finished' } );
+		expect(
+			container.querySelector( '.bsb-badge .bsb-badge__dot' )
+		).not.toBeNull();
+	} );
+
 	it( 'falls back to the raw value when no element matches', () => {
 		renderCell( status, { bsb_status: 'paused' } );
 		expect( screen.getByText( 'paused' ) ).toHaveClass(
@@ -286,6 +293,15 @@ describe( 'rate format', () => {
 		expect(
 			renderCell( descriptor( 'rate' ), {} ).container
 		).toHaveTextContent( EM_DASH );
+	} );
+
+	it( 'wraps the numeric readout so the stylesheet can set it mono', () => {
+		const { container } = renderCell( descriptor( 'rate' ), {
+			value: 24.5,
+		} );
+		expect( container.querySelector( '.bsb-num' ) ).toHaveTextContent(
+			'24.5%/h'
+		);
 	} );
 } );
 

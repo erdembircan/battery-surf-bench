@@ -33,10 +33,24 @@ test.describe( 'Benchmark sessions screen', () => {
 
 		await page.goto( '/wp-admin/admin.php?page=bsb-sessions' );
 
-		// The screen chrome renders, confirming the menu page is reachable.
+		// The coastal shell renders full-bleed around the grid.
+		await expect( page.locator( '.bsb-sessions' ) ).toBeVisible();
+
+		// The brand header carries the wordmark title and subtitle.
 		await expect(
-			page.getByRole( 'heading', { name: 'Benchmark Sessions' } )
+			page.getByRole( 'heading', { name: 'Sessions' } )
 		).toBeVisible();
+		await expect( page.locator( '.bsb-sessions__subtitle' ) ).toHaveText(
+			'Benchmark log'
+		);
+
+		// The header's Open Cockpit link points at the cockpit route.
+		const cockpitLink = page.getByRole( 'link', { name: 'Open Cockpit' } );
+		await expect( cockpitLink ).toBeVisible();
+		await expect( cockpitLink ).toHaveAttribute(
+			'href',
+			/bsbSession=cockpit/
+		);
 
 		// The bundle mounts DataViews into the screen container. Its presence
 		// proves the script booted and the private-API unlock succeeded.

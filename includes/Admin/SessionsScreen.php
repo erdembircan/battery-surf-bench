@@ -125,7 +125,7 @@ class SessionsScreen implements Manager {
 	}
 
 	/**
-	 * Renders the screen: a wrapped heading, a link that opens the cockpit
+	 * Renders the screen: the coastal brand header, a link that opens the cockpit
 	 * dashboard, and the container the bundle mounts the DataViews grid into. The
 	 * markup itself lives in {@see SessionsScreenView}; this only prepares the
 	 * dynamic, already-escaped values and prints the finished view.
@@ -137,7 +137,8 @@ class SessionsScreen implements Manager {
 
 		$markup = ( new SessionsScreenView() )->render(
 			array(
-				'heading'       => __( 'Benchmark Sessions', 'battery-surf-bench' ),
+				'title'         => __( 'Sessions', 'battery-surf-bench' ),
+				'subtitle'      => __( 'Benchmark log', 'battery-surf-bench' ),
 				'cockpit_url'   => $cockpit_url,
 				'cockpit_label' => __( 'Open Cockpit', 'battery-surf-bench' ),
 			)

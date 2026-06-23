@@ -177,6 +177,7 @@ describe( 'SessionsApp trash action', () => {
 			id: string;
 			isDestructive?: boolean;
 			supportsBulk?: boolean;
+			icon?: unknown;
 			callback: ( items: SessionRecord[] ) => Promise< void >;
 		} >;
 		return actions.find( ( action ) => action.id === 'trash' )!;
@@ -187,6 +188,13 @@ describe( 'SessionsApp trash action', () => {
 		const action = trashAction();
 		expect( action.isDestructive ).toBe( true );
 		expect( action.supportsBulk ).toBe( true );
+	} );
+
+	it( 'carries an icon so DataViews shows it in the bulk-actions footer', () => {
+		renderApp();
+		// DataViews only renders a bulk action when it has an icon, so the
+		// icon is part of the action's observable contract here.
+		expect( trashAction().icon ).toBeTruthy();
 	} );
 
 	it( 'deletes every selected session through core-data', async () => {
