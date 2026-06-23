@@ -47,6 +47,9 @@ final class FlipPostcardTest extends TestCase {
 		// The card binds the flipped class to the consumer's field and carries the
 		// modifier.
 		$this->assertStringContainsString( 'class="bsb-flipcard bsb-flipcard--idle" data-wp-class--is-flipped="state.isIdleFlipped"', $markup );
+		// The turning element is an inner wrapper (the outer card owns the
+		// perspective; the inner holds the 3D rotation), so the faces nest inside it.
+		$this->assertStringContainsString( 'class="bsb-flipcard__inner"', $markup );
 		// Both faces, with the given contents placed verbatim.
 		$this->assertStringContainsString( 'class="bsb-flipcard__face bsb-flipcard__face--front"', $markup );
 		$this->assertStringContainsString( 'class="bsb-flipcard__face bsb-flipcard__face--back"', $markup );
