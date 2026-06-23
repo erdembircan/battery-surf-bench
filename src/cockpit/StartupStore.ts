@@ -26,12 +26,15 @@ export const startupStore: StorePart = {
 		 * default (the stylesheet's base state), so at session start the postcard
 		 * stands alone with no hydration flash; this reveal class is added once a
 		 * run is live (the deck carries the readouts pill) or the startup card is
-		 * flipped to its back.
+		 * flipped to its back. When the Battery Status API is unsupported the deck
+		 * stays away even when the card is flipped to the warning — there is no run
+		 * to configure.
 		 */
 		get isDeckShown(): boolean {
-			const { running, idleFlipped } = getContext< CockpitContext >();
+			const { running, idleFlipped, batterySupported } =
+				getContext< CockpitContext >();
 
-			return running || idleFlipped;
+			return running || ( idleFlipped && batterySupported );
 		},
 	},
 	actions: {

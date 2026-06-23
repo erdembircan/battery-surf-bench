@@ -64,6 +64,29 @@ final class FrankedStampTest extends TestCase {
 	}
 
 	/**
+	 * A caller can letter a fixed, non-reactive postmark server-side (the
+	 * unsupported-browser warning) by passing the lower arc, value and unit, and
+	 * recolour it with a modifier class — instead of leaving them for the watch.
+	 */
+	public function test_render_letters_a_fixed_postmark_with_a_modifier(): void {
+		$markup = ( new FrankedStamp() )->render(
+			array(
+				'brand'    => 'BATTERY · SURF · BENCH',
+				'arc'      => '· NOT SUPPORTED ·',
+				'val'      => 'NO',
+				'unit'     => 'BATTERY',
+				'modifier' => 'bsb-frank--warning',
+			)
+		);
+
+		$this->assertStringContainsString( 'class="bsb-frank bsb-frank--warning"', $markup );
+		$this->assertStringContainsString( '· NOT SUPPORTED ·', $markup );
+		// The centre value and unit are painted into their text nodes.
+		$this->assertStringContainsString( '>NO</text>', $markup );
+		$this->assertStringContainsString( '>BATTERY</text>', $markup );
+	}
+
+	/**
 	 * The view escapes the brand it is handed, so consumers pass a raw, translated
 	 * string rather than escaping ahead of the view.
 	 */

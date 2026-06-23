@@ -53,15 +53,22 @@ class FlipPostcard implements View {
 		$flip_state  = esc_attr( isset( $data['flip_state'] ) ? (string) $data['flip_state'] : '' );
 		$modifier    = isset( $data['modifier'] ) ? ' ' . esc_attr( (string) $data['modifier'] ) : '';
 
+		// The outer card owns the 3D perspective on a card-sized wrapper; the inner
+		// element is the one that turns (it holds preserve-3d and the flip rotation).
+		// Perspective on this tight wrapper — rather than a larger ancestor — is part
+		// of what lets Safari backface-cull the away face (the faces also isolate
+		// their stacking contexts; see the stylesheet).
 		return <<<HTML
 <div class="bsb-flipcard{$modifier}" data-wp-class--is-flipped="{$flip_state}">
-	<div class="bsb-flipcard__face bsb-flipcard__face--front">
-		{$front}
-		<button type="button" class="bsb-flipcard__flip" data-wp-on--click="{$flip_action}"><span class="bsb-flipcard__flip-icon" aria-hidden="true"></span>{$flip_label}</button>
-	</div>
-	<div class="bsb-flipcard__face bsb-flipcard__face--back">
-		{$back}
-		<button type="button" class="bsb-flipcard__flip bsb-flipcard__flip--paper" data-wp-on--click="{$flip_action}"><span class="bsb-flipcard__flip-icon" aria-hidden="true"></span>{$flip_label}</button>
+	<div class="bsb-flipcard__inner">
+		<div class="bsb-flipcard__face bsb-flipcard__face--front">
+			{$front}
+			<button type="button" class="bsb-flipcard__flip" data-wp-on--click="{$flip_action}"><span class="bsb-flipcard__flip-icon" aria-hidden="true"></span>{$flip_label}</button>
+		</div>
+		<div class="bsb-flipcard__face bsb-flipcard__face--back">
+			{$back}
+			<button type="button" class="bsb-flipcard__flip bsb-flipcard__flip--paper" data-wp-on--click="{$flip_action}"><span class="bsb-flipcard__flip-icon" aria-hidden="true"></span>{$flip_label}</button>
+		</div>
 	</div>
 </div>
 HTML;

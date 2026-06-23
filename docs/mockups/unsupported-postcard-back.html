@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Startup postcard — unsupported warning on the flip side</title>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Caveat:wght@600;700&family=Hanken+Grotesk:wght@400;600;700&family=Pacifico&family=Space+Mono:wght@700&display=swap" rel="stylesheet" />
+<style>
+  /* Coastal Daybreak (light) — same postcard tokens as startup-postcard-flip /
+     run-summary-flip, so the shared card reads identical. Dark disabled (#20). */
+  :root {
+    --foam:#ffffff; --surface:#f1f7fa; --line:#e1edf2; --navy:#1f3a5f; --ink-soft:#5b7488;
+    --teal:#2f9bb3; --teal-deep:#1f7d93; --aqua:#5fd0e0; --sun:#ffc857; --amber:#ef8f3c;
+    --stage-sky:
+      radial-gradient(120% 70% at 50% -10%, rgba(255,200,87,.34) 0%, rgba(255,200,87,0) 55%),
+      linear-gradient(180deg,#eaf6fb 0%,#dcf0f6 60%,#cfe9f2 100%);
+    --card:#ffffff; --paper:#fffaf0; --paper-ink:#3a4a57; --paper-line:#e7ddc7;
+    --stamp-edge:#dfe4e8; --stamp-rule:rgba(120,138,150,.3);
+    /* permanent-block coral (not the recoverable amber of plugged-in) */
+    --coral:#ff6b5e; --coral-deep:#ef5a3a; --warn-ink:#8a2616; --warn-soft:#fff1ec; --warn-line:#f6c6b6;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; padding:1.2rem; font-family:'Hanken Grotesk',sans-serif; color:var(--navy); background:var(--surface); }
+  h1.pt { font-family:'Anton'; font-weight:400; font-size:1.3rem; margin:0 0 .15rem; }
+  p.sub { margin:0 0 1rem; color:var(--ink-soft); font-size:.84rem; max-width:980px; line-height:1.5; }
+  .ctl { display:flex; flex-wrap:wrap; gap:.45rem 1.2rem; align-items:center; padding:.7rem 1rem; margin-bottom:1rem; border-radius:12px; background:color-mix(in srgb,var(--navy) 6%,transparent); font-size:.83rem; }
+  .ctl strong { font-size:.6rem; letter-spacing:.16em; text-transform:uppercase; color:var(--ink-soft); }
+  .ctl label { display:inline-flex; align-items:center; gap:.3rem; cursor:pointer; }
+  .ctl .hint { color:var(--ink-soft); font-size:.78rem; }
+
+  /* the stage — postcard alone, deck NEVER reveals (nothing is runnable) */
+  .cockpit { position:relative; overflow:hidden; height:660px; border-radius:18px; box-shadow:0 20px 54px rgba(0,0,0,.22); }
+  .stage { position:absolute; inset:0; background:var(--stage-sky); display:grid; place-items:center; }
+
+  .sun { position:absolute; z-index:0; width:210px; height:210px; border-radius:50%; top:-50px; right:-44px;
+    background:radial-gradient(circle at 50% 50%, var(--sun) 0%, color-mix(in srgb,var(--sun) 70%,var(--amber)) 60%, transparent 72%); animation:bob 7s ease-in-out infinite; }
+  @keyframes bob { 0%,100%{ transform:translateY(0);} 50%{ transform:translateY(10px);} }
+  .waves { position:absolute; inset-inline:0; bottom:0; height:120px; z-index:1; }
+  .waves i { position:absolute; inset-inline:-10%; bottom:0; height:120px; background-repeat:repeat-x; background-size:280px 100%; animation:drift linear infinite; }
+  .waves i:nth-child(1){ opacity:.5; animation-duration:13s; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='280' height='120' viewBox='0 0 280 120' preserveAspectRatio='none'%3E%3Cpath d='M0 64 q 70 -26 140 0 t 140 0 V120 H0 Z' fill='%235fd0e0' fill-opacity='.22'/%3E%3C/svg%3E"); }
+  .waves i:nth-child(2){ opacity:.7; animation-duration:9s; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='280' height='120' viewBox='0 0 280 120' preserveAspectRatio='none'%3E%3Cpath d='M0 78 q 70 -22 140 0 t 140 0 V120 H0 Z' fill='%232f9bb3' fill-opacity='.28'/%3E%3C/svg%3E"); }
+  .waves i:nth-child(3){ animation-duration:6s; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='280' height='120' viewBox='0 0 280 120' preserveAspectRatio='none'%3E%3Cpath d='M0 92 q 70 -18 140 0 t 140 0 V120 H0 Z' fill='%231f7d93' fill-opacity='.38'/%3E%3C/svg%3E"); }
+  @keyframes drift { from{ transform:translateX(0);} to{ transform:translateX(-280px);} }
+
+  /* flip card — identical mechanics to startup-postcard-flip */
+  .scene { position:relative; z-index:2; width:min(620px,90%); aspect-ratio:1.62/1; perspective:1800px; }
+  .scene.enter { animation:postcardIn .8s cubic-bezier(.2,.8,.25,1) both; }
+  @keyframes postcardIn { 0%{ opacity:0; transform:translateY(46px) scale(.9) rotate(2deg);} 100%{ opacity:1; transform:translateY(0) scale(1) rotate(0);} }
+  @media (prefers-reduced-motion:reduce){ .scene.enter{ animation:none; } }
+  .card3d { position:relative; width:100%; height:100%; transform-style:preserve-3d; transition:transform .75s cubic-bezier(.2,.7,.2,1); cursor:pointer; transform:rotate(-1.4deg); }
+  .card3d.flipped { transform:rotate(-1.4deg) rotateY(180deg); }
+  .face { position:absolute; inset:0; backface-visibility:hidden; -webkit-backface-visibility:hidden; border-radius:14px; overflow:hidden;
+    box-shadow:0 26px 60px rgba(0,0,0,.32); border:1px solid var(--paper-line); background:var(--paper); }
+  .face.back { transform:rotateY(180deg); }
+
+  /* front = the picture side (illustrated logo postcard) */
+  .pic { position:absolute; inset:0; overflow:hidden; background-color:#0c3346; }
+  .picPhoto { position:absolute; inset:0; background:linear-gradient(180deg,#ff9e5e 0%,#ffc857 40%,#7fd9d2 72%,#2f9bb3 100%); }
+  .picMark { position:absolute; inset:0; background:linear-gradient(155deg,#0a4f8f 0%,#1c83c9 48%,#5fc7f0 100%); filter:drop-shadow(0 6px 14px rgba(6,40,70,.4));
+    -webkit-mask:url('/assets/images/icon.svg') center/56% no-repeat; mask:url('/assets/images/icon.svg') center/56% no-repeat; }
+  .pic::before { content:''; position:absolute; inset:0; background:linear-gradient(180deg, rgba(0,0,0,.34) 0%, rgba(0,0,0,0) 30%, rgba(0,0,0,0) 62%, rgba(0,0,0,.3) 100%); }
+  .greet { position:absolute; left:1.7rem; top:1.8rem; font-family:'Pacifico',cursive; font-size:2rem; line-height:1.02; color:#fff; transform:rotate(-7deg); transform-origin:left center; text-shadow:0 2px 10px rgba(0,0,0,.5); }
+  .greet small { display:block; font-size:.62em; opacity:.92; margin-top:.1em; padding-left:1.4em; }
+
+  .flipBadge { position:absolute; right:1rem; bottom:1rem; display:inline-flex; align-items:center; gap:.4rem;
+    padding:.38rem .7rem .38rem .6rem; border-radius:999px; color:#fff; font-size:.7rem; font-weight:700; letter-spacing:.04em;
+    background:rgba(255,255,255,.15); border:1px solid rgba(255,255,255,.32); backdrop-filter:blur(5px); -webkit-backdrop-filter:blur(5px);
+    text-shadow:0 1px 4px rgba(0,0,0,.4); box-shadow:0 4px 14px rgba(0,0,0,.18); }
+  .flipBadge svg { width:.95rem; height:.95rem; animation:wig 3s ease-in-out infinite; }
+  @keyframes wig { 0%,86%,100%{ transform:rotate(0);} 93%{ transform:rotate(-32deg);} }
+  .flipBadge.onPaper { color:var(--paper-ink); text-shadow:none; backdrop-filter:none; -webkit-backdrop-filter:none; box-shadow:none;
+    background:color-mix(in srgb,var(--paper-ink) 8%,transparent); border-color:color-mix(in srgb,var(--paper-ink) 22%,transparent); }
+
+  /* franked stamp + cancellation postmark — the real shared component (see
+     startup-postcard-flip / run-summary). Two parts: the perforated postage
+     stamp, and the askew cancellation postmark stamped over it. The postmark is
+     normally grey (summary "run done"); here it is RED and marks the run as
+     blocked, carrying the unsupported wording. Sits on the BACK (warning side). */
+  .frank { position:absolute; z-index:3; top:1.2rem; right:1.4rem; overflow:visible; --stamp-w:50px; --stamp-h:60px; --cancel-d:72px; }
+  .stamp { position:relative; width:var(--stamp-w); height:var(--stamp-h); background:var(--stamp-edge); --r:3.1px; --sp:10px;
+    -webkit-mask:
+      radial-gradient(var(--r) at 50% 0,#0000 96%,#000) repeat-x 50% 0/var(--sp) 100%,
+      radial-gradient(var(--r) at 50% 100%,#0000 96%,#000) repeat-x 50% 100%/var(--sp) 100%,
+      radial-gradient(var(--r) at 0 50%,#0000 96%,#000) repeat-y 0 50%/100% var(--sp),
+      radial-gradient(var(--r) at 100% 50%,#0000 96%,#000) repeat-y 100% 50%/100% var(--sp);
+    -webkit-mask-composite:source-in,source-in,source-in;
+    mask:
+      radial-gradient(var(--r) at 50% 0,#0000 96%,#000) repeat-x 50% 0/var(--sp) 100%,
+      radial-gradient(var(--r) at 50% 100%,#0000 96%,#000) repeat-x 50% 100%/var(--sp) 100%,
+      radial-gradient(var(--r) at 0 50%,#0000 96%,#000) repeat-y 0 50%/100% var(--sp),
+      radial-gradient(var(--r) at 100% 50%,#0000 96%,#000) repeat-y 100% 50%/100% var(--sp);
+    mask-composite:intersect; }
+  .stamp::before { content:''; position:absolute; inset:3px; background:var(--paper); border:1px solid var(--stamp-rule); border-radius:2px; }
+  .cancel { position:absolute; z-index:1; --pm-ink:rgba(206,46,30,.82); width:var(--cancel-d); height:var(--cancel-d);
+    top:calc((var(--stamp-h) - var(--cancel-d)) / 2 - 8px); left:calc((var(--stamp-w) - var(--cancel-d)) / 2 + 7px); transform:rotate(-12deg); }
+  .pm { width:100%; height:100%; display:block; overflow:visible; }
+  .pm text { font-family:'Space Mono',monospace; font-weight:700; fill:var(--pm-ink); }
+  .pm .ring { fill:none; stroke:var(--pm-ink); }
+  .pm .arc { font-size:7.4px; letter-spacing:.3px; }
+  .pm .big { font-family:'Anton'; font-weight:400; font-size:17px; letter-spacing:.4px; }
+  .pm .lab { font-size:6.4px; letter-spacing:1.6px; }
+  .pm .bar { stroke:var(--pm-ink); stroke-width:2.2; fill:none; stroke-linecap:round; opacity:.85; }
+
+  /* BACK = the warning (replaces the how-it-works note on this same paper) */
+  .back .inner { position:absolute; inset:0; padding:1.6rem 1.8rem; display:flex; flex-direction:column; }
+  .warnHead h3 { font-family:'Caveat'; font-weight:700; font-size:2.1rem; line-height:.86; color:var(--paper-ink); margin:0; }
+  .warnHead .sig { font-family:'Caveat'; font-size:1.12rem; color:var(--coral-deep); display:block; margin-top:.15rem; }
+  .divide { height:1px; background:repeating-linear-gradient(90deg,var(--paper-line) 0 8px, transparent 8px 14px); margin:1rem 0 .9rem; }
+  .warnBody { font-size:.92rem; line-height:1.5; color:var(--paper-ink); margin:0; max-width:92%; }
+  .warnBody b { color:var(--warn-ink); }
+  .browsers { margin-top:.9rem; display:flex; align-items:center; gap:.6rem; padding:.7rem .9rem; border-radius:11px;
+    background:var(--warn-soft); border:1px solid var(--warn-line); color:var(--warn-ink); font-size:.82rem; font-weight:600; }
+  .browsers .ic { flex:none; width:1.1rem; height:1.1rem; background:currentColor;
+    -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 3a15 15 0 0 0 0 18M12 3a15 15 0 0 1 0 18M3 12h18'/%3E%3C/svg%3E") center/contain no-repeat;
+    mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 3a15 15 0 0 0 0 18M12 3a15 15 0 0 1 0 18M3 12h18'/%3E%3C/svg%3E") center/contain no-repeat; }
+
+  body.bare { padding:0; }
+  body.bare h1.pt, body.bare p.sub, body.bare .ctl { display:none; }
+  body.bare .cockpit { height:100vh; border-radius:0; box-shadow:none; }
+</style>
+</head>
+<body>
+  <h1 class="pt">Startup postcard — the warning lives on the flip side</h1>
+  <p class="sub">Same startup flip postcard. Front is the usual greeting (the "See why" badge invites the flip); <b>flipping it reveals the unsupported warning instead of the how-it-works note</b>, and the deck never slides in (no run is possible). The warning back is franked with the real postmark — normally grey, here <b>red</b> to mark the run blocked. Click the card to flip. Serve from the repo root for the brand mark.</p>
+
+  <div class="ctl">
+    <span class="hint">click the postcard to flip →</span>
+  </div>
+
+  <div class="cockpit" id="cockpit">
+    <div class="stage">
+      <div class="sun"></div>
+      <div class="waves"><i></i><i></i><i></i></div>
+      <div class="scene"><div class="card3d" id="card"></div></div>
+    </div>
+  </div>
+
+<script>
+  const flipIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></svg>`;
+  const card = document.getElementById('card');
+  const scene = document.querySelector('.scene');
+
+  // The cancellation postmark — the real shared component, recoloured red and
+  // re-lettered for the unsupported state: the brand arc on top, NOT SUPPORTED
+  // below, the centre marks NO BATTERY.
+  function cancellation(){
+    const Rm = 40.5;
+    const bars = [-15,-5,5,15].map(y=>`<path class="bar" d="M-58 ${y} q 13 -5 26 0 t 26 0"/>`).join('');
+    return `<svg class="pm" width="100%" height="100%" viewBox="-60 -60 120 120">
+      <defs><path id="aT" d="M${-Rm} 0 A${Rm} ${Rm} 0 0 1 ${Rm} 0"/><path id="aB" d="M${Rm} 0 A${Rm} ${Rm} 0 0 1 ${-Rm} 0"/></defs>
+      ${bars}
+      <circle class="ring" cx="0" cy="0" r="47" stroke-width="2.2"/><circle class="ring" cx="0" cy="0" r="34" stroke-width="1"/>
+      <text class="arc" text-anchor="middle" dominant-baseline="central"><textPath href="#aT" startOffset="50%">BATTERY · SURF · BENCH</textPath></text>
+      <text class="arc" text-anchor="middle" dominant-baseline="central"><textPath href="#aB" startOffset="50%">· NOT SUPPORTED ·</textPath></text>
+      <text class="big" x="0" y="-3" text-anchor="middle" dominant-baseline="central">NO</text>
+      <text class="lab" x="0" y="11" text-anchor="middle" dominant-baseline="central">BATTERY</text>
+    </svg>`;
+  }
+
+  function render(){
+    const wasFlipped = card.classList.contains('flipped');
+    card.innerHTML = `
+      <div class="face front">
+        <div class="pic">
+          <div class="picPhoto"></div>
+          <div class="picMark"></div>
+          <div class="greet">Greetings from<small>Battery Surf Bench</small></div>
+        </div>
+        <div class="flipBadge">${flipIcon} See why</div>
+      </div>
+      <div class="face back">
+        <div class="frank"><div class="stamp"></div><div class="cancel">${cancellation()}</div></div>
+        <div class="inner">
+          <div class="warnHead">
+            <h3>No battery to surf</h3>
+            <span class="sig">this browser keeps it hidden.</span>
+          </div>
+          <div class="divide"></div>
+          <p class="warnBody"><b>This browser can't read your battery level,</b> so a battery benchmark can't run here. Nothing is wrong with your device.</p>
+          <div class="browsers"><span class="ic"></span>Open Battery Surf Bench in <b>&nbsp;Chrome or Edge&nbsp;</b> to start a run.</div>
+        </div>
+        <div class="flipBadge onPaper">${flipIcon} Flip back</div>
+      </div>`;
+    if (wasFlipped) card.classList.add('flipped');
+  }
+
+  card.addEventListener('click', () => card.classList.toggle('flipped'));
+
+  function playEnter(){ scene.classList.remove('enter'); void scene.offsetWidth; scene.classList.add('enter'); }
+
+  // deep-link for screenshots: ?flipped=1 &bare=1 &noenter=1
+  const q = new URLSearchParams(location.search);
+  if (q.get('bare') === '1') document.body.classList.add('bare');
+  render();
+  if (q.get('flipped') === '1') card.classList.add('flipped');
+  if (q.get('noenter') !== '1') playEnter();
+</script>
+</body>
+</html>

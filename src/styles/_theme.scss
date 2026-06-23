@@ -150,6 +150,10 @@ $speaker-on-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/s
 // A muted speaker (waves replaced by a cross), masked onto the toggle when off.
 $speaker-off-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M11 5 6 9H2v6h4l5 4z'/%3E%3Cline x1='22' y1='9' x2='16' y2='15'/%3E%3Cline x1='16' y1='9' x2='22' y2='15'/%3E%3C/svg%3E");
 
+// A globe, masked onto the unsupported-browser warning's "open in Chrome or
+// Edge" hint on the startup postcard's back.
+$globe-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 3a15 15 0 0 0 0 18M12 3a15 15 0 0 1 0 18M3 12h18'/%3E%3C/svg%3E");
+
 // ── Reusable surface primitives ─────────────────────────────────────────────
 // Shared declaration sets driven by the theme tokens. `@extend` these (rather
 // than `@include`) so the declarations are emitted once and every extending

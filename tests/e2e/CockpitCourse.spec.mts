@@ -99,8 +99,19 @@ test.describe( 'Cockpit dashboard route', () => {
 				.first()
 		).toBeAttached();
 		await expect(
-			page.locator( '.bsb-cockpit__postcard-heading' )
+			page.locator(
+				'.bsb-cockpit__postcard-side--guide .bsb-cockpit__postcard-heading'
+			)
 		).toHaveText( /how this run works/i );
+
+		// The back's other side carries the unsupported-browser warning, shipped
+		// hidden: Chromium has the Battery Status API, so the cockpit stays
+		// supported and the guide shows, the warning stays away. The warning is
+		// franked with the red postmark variant.
+		await expect(
+			page.locator( '.bsb-cockpit__postcard-side--warning' )
+		).toBeHidden();
+		await expect( page.locator( '.bsb-frank--warning' ) ).toBeAttached();
 
 		// At session start the control deck is tucked away (the stylesheet's
 		// default) so the postcard stands alone with no hydration flash — the

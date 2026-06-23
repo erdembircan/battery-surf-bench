@@ -1147,9 +1147,8 @@ body {
 	place-items: center;
 	padding: 2.2rem;
 	background: var(--idle-sky);
-	// The 3D perspective belongs on the parent of the rotating card, so the
-	// startup flip reads as a turn — the same context the summary gives its card.
-	perspective: 1800px;
+	// The 3D perspective lives on the card wrapper itself (.bsb-flipcard); this
+	// element only centres the card.
 }
 
 // The card sails up and settles into its tilt when it appears — the startup card
@@ -1169,7 +1168,9 @@ body {
 	}
 	100% {
 		opacity: 1;
-		transform: rotate(-1.4deg);
+		// Ends at identity — the resting tilt lives on .bsb-flipcard__inner now, so
+		// the entrance only carries the sail-up, not the tilt.
+		transform: translateY(0) scale(1) rotate(0deg);
 	}
 }
 
@@ -1360,6 +1361,59 @@ body {
 		display: block;
 		font-weight: 700;
 	}
+}
+
+// The postcard back holds two sides — the how-it-works guide and the
+// unsupported-browser warning — each filling the face; the client shows one and
+// hides the other on the Battery Status API check (the guide ships visible).
+.bsb-cockpit__postcard-side {
+	position: absolute;
+	inset: 0;
+}
+
+// The warning side: same paper, coral accents, replacing the guide where the
+// Battery Status API is missing and no run can be benchmarked.
+.bsb-cockpit__postcard-note--warning .bsb-cockpit__postcard-subtitle {
+	color: theme.$coastal-coral-deep;
+}
+
+.bsb-cockpit__postcard-body {
+	margin: 0;
+	font-family: theme.$font-ui;
+	font-size: 0.9rem;
+	line-height: 1.5;
+	color: var(--paper-ink);
+
+	b {
+		color: theme.$coastal-coral-deep;
+		font-weight: 700;
+	}
+}
+
+// The supporting-browser hint, sat right under the body: a soft coral pill with
+// a globe glyph pointing the visitor to Chrome or Edge.
+.bsb-cockpit__postcard-browsers {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	margin: 0.9rem 0 0;
+	padding: 0.7rem 0.9rem;
+	border-radius: 11px;
+	background: rgba(theme.$coastal-coral, 0.12);
+	border: 1px solid rgba(theme.$coastal-coral-deep, 0.3);
+	font-family: theme.$font-ui;
+	font-size: 0.82rem;
+	font-weight: 600;
+	color: var(--paper-ink);
+}
+
+.bsb-cockpit__postcard-globe {
+	flex: none;
+	width: 1.1rem;
+	height: 1.1rem;
+	background: theme.$coastal-coral-deep;
+	-webkit-mask: theme.$globe-icon center / contain no-repeat;
+	mask: theme.$globe-icon center / contain no-repeat;
 }
 
 // a blank, light, hand-stuck postage stamp: just a perforated (scalloped) edge
@@ -1645,9 +1699,8 @@ body {
 	padding: 2.4rem;
 	// Same sunlit sky as the idle screen (no waves — those live on the info pill).
 	background: var(--idle-sky);
-	// The 3D perspective belongs on the parent of the rotating card, not the card
-	// itself, so the flip actually reads as a turn.
-	perspective: 1800px;
+	// The 3D perspective lives on the card wrapper itself (.bsb-flipcard); this
+	// overlay only centres the card.
 
 	&[hidden] {
 		display: none;
@@ -1659,15 +1712,24 @@ body {
 // wired once here; the startup postcard (inside .bsb-cockpit__idle) and the run
 // summary (overlaid by .bsb-summary) both reuse this shell — only the face
 // contents and the bound store field (idleFlipped vs flipped) differ.
+// The outer card sizes the postcard and owns the 3D perspective on a card-sized
+// wrapper (not a larger ancestor); the inner element is the one that turns.
 .bsb-flipcard {
 	position: relative;
 	width: min(680px, 94%);
 	aspect-ratio: 1.62 / 1;
+	perspective: 1800px;
+}
+
+.bsb-flipcard__inner {
+	position: relative;
+	width: 100%;
+	height: 100%;
 	transform: rotate(-1.4deg);
 	transform-style: preserve-3d;
 	transition: transform 0.75s cubic-bezier(0.2, 0.7, 0.2, 1);
 
-	&.is-flipped {
+	.bsb-flipcard.is-flipped & {
 		transform: rotate(-1.4deg) rotateY(180deg);
 	}
 }
@@ -1682,6 +1744,13 @@ body {
 	box-shadow: 0 26px 60px rgba(0, 0, 0, 0.32);
 	backface-visibility: hidden;
 	-webkit-backface-visibility: hidden;
+	// Isolate each face into its own stacking context so the z-index'd / blended
+	// descendants inside it (the photo's scrim + vignette + mark, the glassy flip
+	// badge) are contained and culled WITH the face when it turns away. Without
+	// this, Safari paints those descendant stacking contexts independently of the
+	// backface-hidden face, so they bleed through the other side (Chrome culls them
+	// with the face regardless, so the bug only showed in Safari).
+	isolation: isolate;
 
 	&--back {
 		transform: rotateY(180deg);
@@ -2046,4 +2115,10 @@ body {
 .bsb-frank__unit {
 	font-size: 6.4px;
 	letter-spacing: 2px;
+}
+
+// The unsupported-browser warning franks its back with a red postmark (the grey
+// summary cancellation recoloured) so the blocked state reads at a glance.
+.bsb-frank--warning {
+	--cancel-ink: #{rgba(theme.$coastal-coral-deep, 0.9)};
 }
