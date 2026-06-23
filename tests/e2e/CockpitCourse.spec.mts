@@ -72,6 +72,12 @@ test.describe( 'Cockpit dashboard route', () => {
 			)
 		).toBeAttached();
 
+		// The compact top pill carries the project wordmark in its left-hand
+		// lockup, paired with the live status line.
+		await expect(
+			page.locator( '.bsb-cockpit__topbar .bsb-cockpit__brandmark' )
+		).toHaveText( /battery surf bench/i );
+
 		// Duration mode is the default, so the target-drop field ships hidden in
 		// the server markup — it must not flash in before hydration hides it.
 		await expect( page.locator( '.bsb-field--target' ) ).toBeHidden();
