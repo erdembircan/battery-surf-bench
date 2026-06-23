@@ -54,6 +54,11 @@ export interface CockpitContext {
 	targetPercent: number;
 	batteryLevel: number | null;
 	batteryCharging: boolean;
+	// Whether the Battery Status API is present. Seeded true and set false on
+	// hydration where the browser lacks the API (Safari, Firefox): a benchmark
+	// has no battery data to measure, so the cockpit locks and the startup
+	// postcard's back turns to the unsupported warning.
+	batterySupported: boolean;
 	rate10: number | null;
 	rateSession: number | null;
 	secondsToEmpty: number | null;

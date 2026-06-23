@@ -31,6 +31,7 @@ interface CockpitContext {
 	targetPercent: number;
 	batteryLevel: number | null;
 	batteryCharging: boolean;
+	batterySupported: boolean;
 	rate10: number | null;
 	rateSession: number | null;
 	secondsToEmpty: number | null;
@@ -70,6 +71,7 @@ interface CockpitConfig {
 		batteryDisplay: string;
 		batteryColor: string;
 		isCharging: boolean;
+		isBatteryUnsupported: boolean;
 		isIdle: boolean;
 		isRunning: boolean;
 		isIdleFlipped: boolean;
@@ -150,6 +152,7 @@ const baseContext = (): CockpitContext => ( {
 	targetPercent: 20,
 	batteryLevel: null,
 	batteryCharging: false,
+	batterySupported: true,
 	rate10: null,
 	rateSession: null,
 	secondsToEmpty: null,
@@ -563,6 +566,17 @@ describe( 'bsb/cockpit view store', () => {
 
 			expect( mocks.config?.state.isStartBlocked ).toBe( false );
 		} );
+
+		it( 'refuses to start where the Battery Status API is unsupported', () => {
+			// The deck is locked away when unsupported, but the action is guarded
+			// too: a forced or tampered call must not start a run with no battery
+			// data to measure.
+			mocks.context.batterySupported = false;
+
+			mocks.config?.actions.toggleRun();
+
+			expect( mocks.context.running ).toBe( false );
+		} );
 	} );
 
 	describe( 'surfing indicator', () => {
@@ -798,11 +812,17 @@ describe( 'bsb/cockpit view store', () => {
 			cleanup();
 		} );
 
-		it( 'no-ops where the Battery Status API is unavailable', () => {
+		it( 'flags the cockpit unsupported where the Battery Status API is unavailable', () => {
+			// Supported by default so a normal browser is never locked.
+			expect( mocks.config?.state.isBatteryUnsupported ).toBe( false );
+
 			const cleanup = mocks.config?.callbacks.initBattery();
 			cleanup?.();
 
 			expect( mocks.context.batteryLevel ).toBeNull();
+			// No API → flag unsupported so the view locks the cockpit.
+			expect( mocks.context.batterySupported ).toBe( false );
+			expect( mocks.config?.state.isBatteryUnsupported ).toBe( true );
 		} );
 	} );
 
@@ -1271,6 +1291,15 @@ describe( 'bsb/cockpit view store', () => {
 
 			// The deck carries the readouts pill mid-run, so it is always shown.
 			expect( mocks.config?.state.isDeckShown ).toBe( true );
+		} );
+
+		it( 'keeps the deck hidden when the unsupported warning is flipped open', () => {
+			mocks.context.batterySupported = false;
+			mocks.context.idleFlipped = true;
+
+			// The card can turn to the warning back, but with no run possible the
+			// deck never slides in.
+			expect( mocks.config?.state.isDeckShown ).toBe( false );
 		} );
 
 		it( 'formats the elapsed run clock for the summary', () => {

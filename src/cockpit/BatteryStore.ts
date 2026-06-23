@@ -41,6 +41,16 @@ export const batteryStore: StorePart = {
 		get isCharging(): boolean {
 			return getContext< CockpitContext >().batteryCharging;
 		},
+
+		/**
+		 * Whether the Battery Status API is missing, so no run can be benchmarked
+		 * (there is no battery data to measure). Locks the cockpit: the deck stays
+		 * tucked away, the startup postcard's back turns to the unsupported
+		 * warning, and the run control refuses to start.
+		 */
+		get isBatteryUnsupported(): boolean {
+			return ! getContext< CockpitContext >().batterySupported;
+		},
 	},
 	callbacks: {
 		/**
@@ -73,11 +83,17 @@ export const batteryStore: StorePart = {
 				}
 			 ).getBattery?.bind( navigator );
 
+			const context = getContext< CockpitContext >();
+
 			if ( ! provider ) {
+				// No Battery Status API (Safari, Firefox): flag the cockpit
+				// unsupported so the view locks every control and turns the
+				// startup postcard's back to the warning. Leaves the readouts at
+				// their em-dash idle state.
+				context.batterySupported = false;
 				return () => undefined;
 			}
 
-			const context = getContext< CockpitContext >();
 			const instance = instanceFor();
 
 			const monitor = new BatteryMonitor( {

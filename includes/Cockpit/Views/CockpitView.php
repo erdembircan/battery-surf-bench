@@ -76,10 +76,18 @@ class CockpitView implements View {
 	 *     @type string $idle_step2_text   Translated body of idle step 2.
 	 *     @type string $idle_step3_title  Translated title of idle step 3.
 	 *     @type string $idle_step3_text   Translated body of idle step 3.
-	 *     @type string $idle_notice_title Translated title of the keep-awake notice.
-	 *     @type string $idle_notice_text  Translated body of the keep-awake notice.
-	 *     @type string $measured_label    Translated legend label for the measured drain series.
-	 *     @type string $projected_label   Translated legend label for the 100→0 projection.
+	 *     @type string $idle_notice_title    Translated title of the keep-awake notice.
+	 *     @type string $idle_notice_text     Translated body of the keep-awake notice.
+	 *     @type string $unsupported_heading  Translated heading on the unsupported-browser warning back.
+	 *     @type string $unsupported_subtitle Translated subtitle under the unsupported heading.
+	 *     @type string $unsupported_lead     Translated lead clause (bold) of the unsupported body.
+	 *     @type string $unsupported_body     Translated remainder of the unsupported body.
+	 *     @type string $unsupported_browsers Translated "open in Chrome or Edge" hint.
+	 *     @type string $unsupported_arc      Translated lower-arc label of the warning postmark.
+	 *     @type string $unsupported_mark     Translated centre value of the warning postmark.
+	 *     @type string $unsupported_unit     Translated centre unit of the warning postmark.
+	 *     @type string $measured_label       Translated legend label for the measured drain series.
+	 *     @type string $projected_label      Translated legend label for the 100→0 projection.
 	 * }
 	 * @return string The block's HTML.
 	 */
@@ -126,6 +134,14 @@ class CockpitView implements View {
 		$idle_step3_text     = isset( $data['idle_step3_text'] ) ? (string) $data['idle_step3_text'] : '';
 		$idle_notice_title   = isset( $data['idle_notice_title'] ) ? (string) $data['idle_notice_title'] : '';
 		$idle_notice_text    = isset( $data['idle_notice_text'] ) ? (string) $data['idle_notice_text'] : '';
+		$unsupported_head    = isset( $data['unsupported_heading'] ) ? (string) $data['unsupported_heading'] : '';
+		$unsupported_sub     = isset( $data['unsupported_subtitle'] ) ? (string) $data['unsupported_subtitle'] : '';
+		$unsupported_lead    = isset( $data['unsupported_lead'] ) ? (string) $data['unsupported_lead'] : '';
+		$unsupported_body    = isset( $data['unsupported_body'] ) ? (string) $data['unsupported_body'] : '';
+		$unsupported_browse  = isset( $data['unsupported_browsers'] ) ? (string) $data['unsupported_browsers'] : '';
+		$unsupported_arc     = isset( $data['unsupported_arc'] ) ? (string) $data['unsupported_arc'] : '';
+		$unsupported_mark    = isset( $data['unsupported_mark'] ) ? (string) $data['unsupported_mark'] : '';
+		$unsupported_unit    = isset( $data['unsupported_unit'] ) ? (string) $data['unsupported_unit'] : '';
 		$dropped_label       = isset( $data['dropped_label'] ) ? (string) $data['dropped_label'] : '';
 		$pts_label           = isset( $data['pts_label'] ) ? (string) $data['pts_label'] : '';
 		$elapsed_run_label   = isset( $data['elapsed_run_label'] ) ? (string) $data['elapsed_run_label'] : '';
@@ -150,6 +166,18 @@ class CockpitView implements View {
 		);
 		$frank       = ( new FrankedStamp() )->render( array( 'brand' => $summary_brand ) );
 		$frank_blank = ( new FrankedStamp() )->render( array( 'cancel_enabled' => false ) );
+		// The unsupported-browser warning franks its back with the same postmark,
+		// recoloured red and lettered server-side (a fixed, non-reactive stamp,
+		// unlike the summary's, which a watch paints).
+		$frank_warning = ( new FrankedStamp() )->render(
+			array(
+				'brand'    => $summary_brand,
+				'arc'      => $unsupported_arc,
+				'val'      => $unsupported_mark,
+				'unit'     => $unsupported_unit,
+				'modifier' => 'bsb-frank--warning',
+			)
+		);
 
 		// This view owns its markup, so it escapes every value it interpolates:
 		// text slots with esc_html(), attribute slots with esc_attr(). The wrapper
@@ -198,6 +226,11 @@ class CockpitView implements View {
 		$idle_step3_text     = esc_html( $idle_step3_text );
 		$idle_notice_title   = esc_html( $idle_notice_title );
 		$idle_notice_text    = esc_html( $idle_notice_text );
+		$unsupported_head    = esc_html( $unsupported_head );
+		$unsupported_sub     = esc_html( $unsupported_sub );
+		$unsupported_lead    = esc_html( $unsupported_lead );
+		$unsupported_body    = esc_html( $unsupported_body );
+		$unsupported_browse  = esc_html( $unsupported_browse );
 		$dropped_label       = esc_html( $dropped_label );
 		$pts_label           = esc_html( $pts_label );
 		$elapsed_run_label   = esc_html( $elapsed_run_label );
@@ -259,20 +292,36 @@ BODY;
 
 		// The startup flip postcard: its picture front greets the visitor with the
 		// deck tucked away; flipping it (actions.toggleIdleFlip) turns to the written
-		// "how this run works" back and slides the deck in. Built on the shared
-		// FlipPostcard shell with a blank (uncancelled) stamp.
+		// back. The back carries two sides toggled by the Battery Status API check:
+		// the "how this run works" guide (the deck slides in behind it) and, where
+		// the API is unsupported, a warning that locks the cockpit (the deck stays
+		// away). The guide ships visible and the warning hidden; the client swaps
+		// them on hydration only where the API is missing, so a supported browser
+		// never sees the warning and there is no flash.
 		$idle_back = <<<HTML
-{$frank_blank}
-		<div class="bsb-cockpit__postcard-note">
-			<h2 class="bsb-cockpit__postcard-heading">{$idle_heading}</h2>
-			<p class="bsb-cockpit__postcard-subtitle">{$idle_subtitle}</p>
-			<span class="bsb-cockpit__postcard-divide" aria-hidden="true"></span>
-			<ol class="bsb-cockpit__postcard-steps">
-				<li><span class="bsb-cockpit__postcard-num">1</span><span class="bsb-cockpit__postcard-step"><b>{$idle_step1_title}</b>{$idle_step1_text}</span></li>
-				<li><span class="bsb-cockpit__postcard-num">2</span><span class="bsb-cockpit__postcard-step"><b>{$idle_step2_title}</b>{$idle_step2_text}</span></li>
-				<li><span class="bsb-cockpit__postcard-num">3</span><span class="bsb-cockpit__postcard-step"><b>{$idle_step3_title}</b>{$idle_step3_text}</span></li>
-			</ol>
-			<p class="bsb-cockpit__postcard-notice"><b>{$idle_notice_title}</b>{$idle_notice_text}</p>
+<div class="bsb-cockpit__postcard-side bsb-cockpit__postcard-side--guide" data-wp-bind--hidden="state.isBatteryUnsupported">
+			{$frank_blank}
+			<div class="bsb-cockpit__postcard-note">
+				<h2 class="bsb-cockpit__postcard-heading">{$idle_heading}</h2>
+				<p class="bsb-cockpit__postcard-subtitle">{$idle_subtitle}</p>
+				<span class="bsb-cockpit__postcard-divide" aria-hidden="true"></span>
+				<ol class="bsb-cockpit__postcard-steps">
+					<li><span class="bsb-cockpit__postcard-num">1</span><span class="bsb-cockpit__postcard-step"><b>{$idle_step1_title}</b>{$idle_step1_text}</span></li>
+					<li><span class="bsb-cockpit__postcard-num">2</span><span class="bsb-cockpit__postcard-step"><b>{$idle_step2_title}</b>{$idle_step2_text}</span></li>
+					<li><span class="bsb-cockpit__postcard-num">3</span><span class="bsb-cockpit__postcard-step"><b>{$idle_step3_title}</b>{$idle_step3_text}</span></li>
+				</ol>
+				<p class="bsb-cockpit__postcard-notice"><b>{$idle_notice_title}</b>{$idle_notice_text}</p>
+			</div>
+		</div>
+		<div class="bsb-cockpit__postcard-side bsb-cockpit__postcard-side--warning" hidden data-wp-bind--hidden="!state.isBatteryUnsupported">
+			{$frank_warning}
+			<div class="bsb-cockpit__postcard-note bsb-cockpit__postcard-note--warning">
+				<h2 class="bsb-cockpit__postcard-heading">{$unsupported_head}</h2>
+				<p class="bsb-cockpit__postcard-subtitle">{$unsupported_sub}</p>
+				<span class="bsb-cockpit__postcard-divide" aria-hidden="true"></span>
+				<p class="bsb-cockpit__postcard-body"><b>{$unsupported_lead}</b>{$unsupported_body}</p>
+				<p class="bsb-cockpit__postcard-browsers"><span class="bsb-cockpit__postcard-globe" aria-hidden="true"></span>{$unsupported_browse}</p>
+			</div>
 		</div>
 HTML;
 		$idle_card = ( new FlipPostcard() )->render(

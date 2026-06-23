@@ -109,7 +109,8 @@ export const runStore: StorePart = {
 		 * and opens in the compact stage view (the user can expand to the full
 		 * dashboard mid-run); stopping returns the cockpit to its idle, ready
 		 * state with the controls back. Starting is refused while the device is
-		 * plugged in — a benchmark must run on battery.
+		 * plugged in or where the Battery Status API is unsupported — a benchmark
+		 * must run on a draining battery it can read.
 		 */
 		toggleRun(): void {
 			const context = getContext< CockpitContext >();
@@ -120,7 +121,12 @@ export const runStore: StorePart = {
 				return;
 			}
 
-			if ( context.batteryCharging ) {
+			// A run needs battery data to measure. Refuse to start when the
+			// Battery Status API is unsupported (the deck is locked away, but the
+			// action is guarded too against a forced or tampered call) or while
+			// the device is plugged in — a benchmark must run on a draining
+			// battery.
+			if ( ! context.batterySupported || context.batteryCharging ) {
 				return;
 			}
 

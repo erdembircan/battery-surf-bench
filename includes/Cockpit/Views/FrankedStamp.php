@@ -17,13 +17,17 @@ defined( 'ABSPATH' ) || exit;
  * A reusable franked stamp: a perforated postage stamp with — when enabled — a
  * round cancellation postmark stamped over it, deliberately askew. The component
  * is absolutely-positioned so it never pushes the layout it sits on. The
- * cancellation's verdict text (the lower arc, value and unit) is left empty here
- * and painted by the store's `renderSummary` watch, since the Interactivity
- * runtime cannot process directives inside SVG during server render.
+ * cancellation's verdict text (the lower arc, value and unit) is left empty by
+ * default and painted by the store's `renderSummary` watch, since the
+ * Interactivity runtime cannot process directives inside SVG during server
+ * render; a caller that needs a fixed, non-reactive postmark (e.g. the
+ * unsupported-browser warning) can pass `arc`/`val`/`unit` to letter it
+ * server-side instead.
  *
  * The cancellation is gated by `cancel_enabled`: the end-of-run summary franks
  * its stamp (a cancelled postmark reads as "this run is done"), while the
- * pre-run startup postcard shows a blank, uncancelled stamp.
+ * pre-run startup postcard shows a blank, uncancelled stamp. A `modifier` class
+ * (e.g. `bsb-frank--warning`) recolours the postmark for distinct states.
  */
 class FrankedStamp implements View {
 
@@ -36,12 +40,21 @@ class FrankedStamp implements View {
 	 *     @type string $brand          Raw upper curved label (the view escapes it).
 	 *     @type bool   $cancel_enabled Whether to stamp the cancellation postmark over the
 	 *                                  stamp. Defaults to true; pass false for a blank stamp.
+	 *     @type string $arc            Raw lower curved label for a fixed postmark; left empty
+	 *                                  (painted by the summary watch) when omitted.
+	 *     @type string $val            Raw centre value for a fixed postmark; empty when omitted.
+	 *     @type string $unit           Raw centre unit label for a fixed postmark; empty when omitted.
+	 *     @type string $modifier       Optional extra class on the stamp (e.g. `bsb-frank--warning`).
 	 * }
 	 * @return string The franked-stamp markup.
 	 */
 	public function render( array $data = array() ): string {
 		$brand          = esc_html( isset( $data['brand'] ) ? (string) $data['brand'] : '' );
 		$cancel_enabled = ! isset( $data['cancel_enabled'] ) || (bool) $data['cancel_enabled'];
+		$arc            = esc_html( isset( $data['arc'] ) ? (string) $data['arc'] : '' );
+		$val            = esc_html( isset( $data['val'] ) ? (string) $data['val'] : '' );
+		$unit           = esc_html( isset( $data['unit'] ) ? (string) $data['unit'] : '' );
+		$modifier       = isset( $data['modifier'] ) ? ' ' . esc_attr( (string) $data['modifier'] ) : '';
 
 		// The cancellation postmark — only stamped when enabled. A blank stamp
 		// (startup postcard) is the bare perforated stamp with no postmark over it.
@@ -61,16 +74,16 @@ class FrankedStamp implements View {
 			<circle class="bsb-frank__ring" cx="0" cy="0" r="47"></circle>
 			<circle class="bsb-frank__ring" cx="0" cy="0" r="34"></circle>
 			<text class="bsb-frank__arc" text-anchor="middle" dominant-baseline="central"><textPath href="#bsb-frank-top" startOffset="50%">{$brand}</textPath></text>
-			<text class="bsb-frank__arc" text-anchor="middle" dominant-baseline="central"><textPath class="bsb-frank__arc-text" href="#bsb-frank-bot" startOffset="50%"></textPath></text>
-			<text class="bsb-frank__val" x="0" y="-3" text-anchor="middle" dominant-baseline="central"></text>
-			<text class="bsb-frank__unit" x="0" y="11" text-anchor="middle" dominant-baseline="central"></text>
+			<text class="bsb-frank__arc" text-anchor="middle" dominant-baseline="central"><textPath class="bsb-frank__arc-text" href="#bsb-frank-bot" startOffset="50%">{$arc}</textPath></text>
+			<text class="bsb-frank__val" x="0" y="-3" text-anchor="middle" dominant-baseline="central">{$val}</text>
+			<text class="bsb-frank__unit" x="0" y="11" text-anchor="middle" dominant-baseline="central">{$unit}</text>
 		</svg>
 	</span>
 HTML;
 		}
 
 		return <<<HTML
-<span class="bsb-frank" aria-hidden="true">
+<span class="bsb-frank{$modifier}" aria-hidden="true">
 	<span class="bsb-frank__stamp"></span>
 	{$cancel}
 </span>

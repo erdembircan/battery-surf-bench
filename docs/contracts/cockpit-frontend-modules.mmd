@@ -26,7 +26,7 @@ classDiagram
     class RunStore {
         <<module>>
         state: currentSrc, run/idle/compact, clock & rate readouts
-        actions: toggleRun, toggleCompact
+        actions: toggleRun (refuses unsupported/charging), toggleCompact
         callbacks: syncRunActivity, initWakeLock
     }
 
@@ -45,8 +45,8 @@ classDiagram
 
     class BatteryStore {
         <<module>>
-        state: batteryDisplay, batteryColor, isCharging
-        callbacks: initBattery
+        state: batteryDisplay, batteryColor, isCharging, isBatteryUnsupported
+        callbacks: initBattery (flags unsupported when API absent)
     }
 
     class SoundStore {
@@ -65,7 +65,7 @@ classDiagram
 
     class StartupStore {
         <<module>>
-        state: isIdleFlipped, isDeckShown
+        state: isIdleFlipped, isDeckShown (stays hidden when unsupported)
         actions: toggleIdleFlip
     }
 
