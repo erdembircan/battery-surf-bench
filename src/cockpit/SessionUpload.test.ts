@@ -152,6 +152,7 @@ describe( 'buildSessionPayload', () => {
 		expect( meta.bsb_config_duration_minutes ).toBe( 30 );
 		expect( meta.bsb_config_baseline ).toBe( false );
 		expect( meta.bsb_config_target_percent ).toBe( 70 );
+		expect( meta.bsb_ua ).toBe( 'TestAgent/1.0' );
 		expect( meta.bsb_samples ).toEqual( samples() );
 	} );
 
@@ -171,12 +172,6 @@ describe( 'buildSessionPayload', () => {
 		expect( payload.meta.bsb_seconds_to_empty ).toBe( 0 );
 	} );
 
-	it( 'titles the record with the ISO start time', () => {
-		const payload = buildSessionPayload( input() ) as SessionPayload;
-
-		expect( payload.title ).toContain( '2026-06-23T10:00:00.000Z' );
-	} );
-
 	it( 'falls back to the end time when the start stamp is missing', () => {
 		const payload = buildSessionPayload(
 			input( { startedAtWall: null } )
@@ -190,7 +185,6 @@ describe( 'buildSessionPayload', () => {
 
 describe( 'postSession', () => {
 	const payload: SessionPayload = {
-		title: 'Battery run',
 		status: 'publish',
 		meta: { bsb_status: 'finished' },
 	};

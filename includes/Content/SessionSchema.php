@@ -21,9 +21,10 @@ defined( 'ABSPATH' ) || exit;
  * The shape mirrors the session record the cockpit produces while benchmarking:
  * the run mode and lifecycle status, its battery levels, the user agent the run
  * was captured on, the derived drain statistics, the configuration the run used,
- * and the run-length-encoded sample log. Identity and result scalars are listed
- * as the listing's columns; the configuration (namespaced under `config`), the
- * derived statistics and the bulky sample log are registered as meta but kept
+ * and the run-length-encoded sample log. The identity and result scalars, the
+ * run length / target, and the derived statistics are listed as columns; the
+ * remaining configuration (the `config_mode` and `config_baseline`, redundant
+ * with the listed mode) and the bulky sample log are registered as meta but kept
  * off the listing (`listed => false`) — they ride the same REST record without
  * cluttering the grid.
  */
@@ -329,12 +330,11 @@ class SessionSchema {
 				'key'            => 'dropped_pct',
 				'rest_type'      => 'number',
 				'label'          => 'Dropped',
-				'format'         => 'percent',
+				'format'         => 'text',
 				'default'        => self::NO_DEFAULT,
 				'sanitize'       => array( self::class, 'sanitize_drop' ),
 				'elements'       => array(),
-				'default_column' => false,
-				'listed'         => false,
+				'default_column' => true,
 			),
 			array(
 				'key'            => 'rate_10',
@@ -344,8 +344,7 @@ class SessionSchema {
 				'default'        => self::NO_DEFAULT,
 				'sanitize'       => array( self::class, 'sanitize_rate' ),
 				'elements'       => array(),
-				'default_column' => false,
-				'listed'         => false,
+				'default_column' => true,
 			),
 			array(
 				'key'            => 'rate_session',
@@ -355,8 +354,7 @@ class SessionSchema {
 				'default'        => self::NO_DEFAULT,
 				'sanitize'       => array( self::class, 'sanitize_rate' ),
 				'elements'       => array(),
-				'default_column' => false,
-				'listed'         => false,
+				'default_column' => true,
 			),
 			array(
 				'key'            => 'seconds_to_empty',
@@ -366,8 +364,7 @@ class SessionSchema {
 				'default'        => self::NO_DEFAULT,
 				'sanitize'       => array( self::class, 'sanitize_seconds' ),
 				'elements'       => array(),
-				'default_column' => false,
-				'listed'         => false,
+				'default_column' => true,
 			),
 			// Run configuration, namespaced under `config`. Surf speed is
 			// deliberately absent: it drives playback, not the drain calculations,
@@ -395,13 +392,12 @@ class SessionSchema {
 				'key'            => 'duration_minutes',
 				'group'          => self::CONFIG_GROUP,
 				'rest_type'      => 'integer',
-				'label'          => 'Config duration',
+				'label'          => 'Duration (min)',
 				'format'         => 'text',
 				'default'        => self::NO_DEFAULT,
 				'sanitize'       => array( self::class, 'sanitize_minutes' ),
 				'elements'       => array(),
-				'default_column' => false,
-				'listed'         => false,
+				'default_column' => true,
 			),
 			array(
 				'key'            => 'baseline',
@@ -419,13 +415,12 @@ class SessionSchema {
 				'key'            => 'target_percent',
 				'group'          => self::CONFIG_GROUP,
 				'rest_type'      => 'integer',
-				'label'          => 'Config target',
+				'label'          => 'Target (%)',
 				'format'         => 'text',
 				'default'        => self::NO_DEFAULT,
 				'sanitize'       => array( self::class, 'sanitize_percent' ),
 				'elements'       => array(),
-				'default_column' => false,
-				'listed'         => false,
+				'default_column' => true,
 			),
 			// The run-length-encoded sample log: one plateau record per battery
 			// level/charging step. Stored whole as an array meta — WordPress

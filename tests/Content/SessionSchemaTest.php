@@ -206,15 +206,26 @@ final class SessionSchemaTest extends TestCase {
 	}
 
 	/**
-	 * The configuration, derived statistics and sample log are persisted but kept
-	 * off the listing: none of them surface as a DataViews column, so the grid
-	 * shows only the session's identity and result scalars.
+	 * The redundant configuration scalars and the bulky sample log are persisted
+	 * but kept off the listing, so the grid is not cluttered by them.
 	 */
 	public function test_persisted_only_fields_are_not_listed(): void {
 		$listed = array_column( $this->schema()->fields(), 'key' );
 
-		foreach ( array( 'config_mode', 'config_duration_minutes', 'config_baseline', 'config_target_percent', 'dropped_pct', 'rate_10', 'rate_session', 'seconds_to_empty', 'samples' ) as $field ) {
+		foreach ( array( 'config_mode', 'config_baseline', 'samples' ) as $field ) {
 			$this->assertNotContains( self::PREFIX . $field, $listed );
+		}
+	}
+
+	/**
+	 * The run length and target and the derived statistics are listed as columns,
+	 * so the grid surfaces the configuration and results a run produced.
+	 */
+	public function test_configuration_and_statistics_are_listed(): void {
+		$listed = array_column( $this->schema()->fields(), 'key' );
+
+		foreach ( array( 'config_duration_minutes', 'config_target_percent', 'dropped_pct', 'rate_10', 'rate_session', 'seconds_to_empty' ) as $field ) {
+			$this->assertContains( self::PREFIX . $field, $listed );
 		}
 	}
 

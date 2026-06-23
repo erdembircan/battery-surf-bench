@@ -46,6 +46,7 @@ const META = {
 	configDurationMinutes: 'bsb_config_duration_minutes',
 	configBaseline: 'bsb_config_baseline',
 	configTargetPercent: 'bsb_config_target_percent',
+	ua: 'bsb_ua',
 	samples: 'bsb_samples',
 } as const;
 
@@ -77,7 +78,6 @@ export interface SessionUploadInput {
 
 /** The session record POSTed to the post type's REST collection. */
 export interface SessionPayload {
-	title: string;
 	status: 'publish';
 	meta: Record< string, unknown >;
 }
@@ -139,15 +139,14 @@ const toIso = ( ms: number ): string => new Date( ms ).toISOString();
 
 /**
  * Shapes a finished run into the REST body the `bsb_session` collection accepts:
- * a generated title, a published status, and the full meta record (identity and
- * result scalars, the derived statistics — zero where the run could not compute
- * them, since WordPress REST single meta cannot store a null — the run
- * configuration, and the sample log). Returns null when the run logged no
- * samples, since there is nothing meaningful to persist.
+ * a published status and the full meta record (identity and result scalars, the
+ * derived statistics — zero where the run could not compute them, since
+ * WordPress REST single meta cannot store a null — the run configuration, the
+ * user agent, and the sample log). Returns null when the run logged no samples,
+ * since there is nothing meaningful to persist.
  *
- * The title is a plain, untranslated `Battery run · <ISO start>`: it labels a
- * stored data record (sortable, stable across locales), not UI chrome, so it is
- * intentionally not run through `@wordpress/i18n`.
+ * No title is sent: a session is identified by its post id in the listing, so
+ * the record carries no generated title.
  *
  * @param input The frozen run, its end reason, configuration, samples and stamps.
  * @return The REST request body, or null when there is nothing to persist.
@@ -165,7 +164,6 @@ export const buildSessionPayload = (
 	const endedAt = toIso( input.endedAtWall );
 
 	return {
-		title: `Battery run · ${ startedAt }`,
 		status: 'publish',
 		meta: {
 			[ META.status ]: statusFor( input.reason ),
@@ -185,6 +183,7 @@ export const buildSessionPayload = (
 			[ META.configDurationMinutes ]: input.config.durationMinutes,
 			[ META.configBaseline ]: input.config.baseline,
 			[ META.configTargetPercent ]: input.config.targetPercent,
+			[ META.ua ]: input.userAgent,
 			[ META.samples ]: input.samples.map( ( sample ) => ( {
 				t: sample.t,
 				level: sample.level,

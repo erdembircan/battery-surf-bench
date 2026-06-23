@@ -19,7 +19,6 @@ const COLLECTION = '/wp-json/wp/v2/bsb_session';
 
 /** A representative finished-run record, matching the cockpit's upload shape. */
 const sessionBody = {
-	title: 'Battery run · 2026-06-23T10:00:00.000Z',
 	status: 'publish',
 	meta: {
 		bsb_status: 'finished',
@@ -36,6 +35,7 @@ const sessionBody = {
 		bsb_config_duration_minutes: 30,
 		bsb_config_baseline: true,
 		bsb_config_target_percent: 70,
+		bsb_ua: 'Mozilla/5.0 (Playwright) BatterySurfBench/1.0',
 		bsb_samples: [
 			{ t: 0, level: 0.82, charging: false, count: 1 },
 			{ t: 600000, level: 0.7, charging: false, count: 3 },
@@ -81,6 +81,11 @@ test.describe( 'Benchmark session persistence', () => {
 		expect( meta.bsb_config_mode ).toBe( 'targetDrop' );
 		expect( meta.bsb_config_baseline ).toBe( true );
 		expect( meta.bsb_config_target_percent ).toBe( 70 );
+
+		// The user agent the run was captured on persists.
+		expect( meta.bsb_ua ).toBe(
+			'Mozilla/5.0 (Playwright) BatterySurfBench/1.0'
+		);
 
 		// A statistic the run could not compute is stored as zero (WordPress REST
 		// single meta cannot hold a null), and round-trips intact.
