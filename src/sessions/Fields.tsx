@@ -45,17 +45,23 @@ function asDateTime( value: unknown ): string {
 }
 
 /**
- * Formats an optional whole-number value: the number when it is a positive
- * count, or an em dash when it is absent or zero — the marker for a field that
- * does not apply to the run (a target for a duration run, or a duration for a
- * target-drop run; only the goal that bounds a run is recorded).
+ * Formats a numeric value with its unit of measure. An absent value reads as an
+ * em dash; when `optional`, a zero does too — the marker for a figure that does
+ * not apply to the run or that a run could not measure (a target on a duration
+ * run, a drain rate too short to compute). A genuine zero (a drop of 0%) keeps
+ * its value when not `optional`.
  *
- * @param value The raw meta value.
- * @return The number as text, or an em dash when not applicable.
+ * @param value    The raw meta value.
+ * @param unit     The unit suffix to append (e.g. `%`, `%/h`).
+ * @param optional Whether a zero should render as an em dash rather than `0`.
+ * @return The value with its unit, or an em dash.
  */
-function asOptional( value: unknown ): string {
+function withUnit( value: unknown, unit: string, optional: boolean ): string {
 	const num = Number( value );
-	return Number.isFinite( num ) && num > 0 ? String( num ) : '—';
+	if ( ! Number.isFinite( num ) || ( optional && num <= 0 ) ) {
+		return '—';
+	}
+	return `${ num }${ unit }`;
 }
 
 /**
@@ -224,11 +230,39 @@ function toField( descriptor: SessionFieldDescriptor ): Field< SessionRecord > {
 					<LevelBar value={ metaValue( item, descriptor ) } />
 				),
 			};
-		case 'optional':
+		case 'percentText':
 			return {
 				...base,
 				render: ( { item } ) => (
-					<>{ asOptional( metaValue( item, descriptor ) ) }</>
+					<>
+						{ withUnit(
+							metaValue( item, descriptor ),
+							'%',
+							false
+						) }
+					</>
+				),
+			};
+		case 'percentOptional':
+			return {
+				...base,
+				render: ( { item } ) => (
+					<>
+						{ withUnit( metaValue( item, descriptor ), '%', true ) }
+					</>
+				),
+			};
+		case 'rate':
+			return {
+				...base,
+				render: ( { item } ) => (
+					<>
+						{ withUnit(
+							metaValue( item, descriptor ),
+							'%/h',
+							true
+						) }
+					</>
 				),
 			};
 		case 'runtime':

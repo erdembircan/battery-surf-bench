@@ -11,7 +11,9 @@ export type SessionFieldFormat =
 	| 'status'
 	| 'datetime'
 	| 'percent'
-	| 'optional'
+	| 'percentText'
+	| 'percentOptional'
+	| 'rate'
 	| 'runtime';
 
 /**

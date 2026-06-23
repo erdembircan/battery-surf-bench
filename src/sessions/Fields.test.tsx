@@ -236,24 +236,56 @@ describe( 'datetime format', () => {
 	} );
 } );
 
-describe( 'optional format', () => {
-	it( 'shows the number when the value applies to the run', () => {
-		const { container } = renderCell( descriptor( 'optional' ), {
-			value: 30,
-		} );
-		expect( container ).toHaveTextContent( '30' );
-	} );
-
-	it( 'shows an em dash when the field does not apply (zero)', () => {
-		const { container } = renderCell( descriptor( 'optional' ), {
-			value: 0,
-		} );
-		expect( container ).toHaveTextContent( EM_DASH );
+describe( 'percentText format', () => {
+	it( 'appends a percent sign, keeping a genuine zero', () => {
+		expect(
+			renderCell( descriptor( 'percentText' ), { value: 12 } ).container
+		).toHaveTextContent( '12%' );
+		expect(
+			renderCell( descriptor( 'percentText' ), { value: 0 } ).container
+		).toHaveTextContent( '0%' );
 	} );
 
 	it( 'shows an em dash when the value is absent', () => {
-		const { container } = renderCell( descriptor( 'optional' ), {} );
-		expect( container ).toHaveTextContent( EM_DASH );
+		expect(
+			renderCell( descriptor( 'percentText' ), {} ).container
+		).toHaveTextContent( EM_DASH );
+	} );
+} );
+
+describe( 'percentOptional format', () => {
+	it( 'appends a percent sign when the value applies', () => {
+		expect(
+			renderCell( descriptor( 'percentOptional' ), { value: 70 } )
+				.container
+		).toHaveTextContent( '70%' );
+	} );
+
+	it( 'shows an em dash when not applicable (zero or absent)', () => {
+		expect(
+			renderCell( descriptor( 'percentOptional' ), { value: 0 } )
+				.container
+		).toHaveTextContent( EM_DASH );
+		expect(
+			renderCell( descriptor( 'percentOptional' ), {} ).container
+		).toHaveTextContent( EM_DASH );
+	} );
+} );
+
+describe( 'rate format', () => {
+	it( 'appends percent-per-hour when measured', () => {
+		expect(
+			renderCell( descriptor( 'rate' ), { value: 24.5 } ).container
+		).toHaveTextContent( '24.5%/h' );
+	} );
+
+	it( 'shows an em dash when unmeasured (zero or absent)', () => {
+		expect(
+			renderCell( descriptor( 'rate' ), { value: 0 } ).container
+		).toHaveTextContent( EM_DASH );
+		expect(
+			renderCell( descriptor( 'rate' ), {} ).container
+		).toHaveTextContent( EM_DASH );
 	} );
 } );
 
