@@ -19,6 +19,8 @@
  * - {@link ./SoundStore}    — the finish-chime preference and toggle.
  * - {@link ./SummaryStore}  — the end-of-run report card and its painter.
  * - {@link ./StartupStore}  — the session-start postcard and deck reveal.
+ * - {@link ./ToastStore}    — the bottom notification pill (upload error /
+ *   view-only notice), its queue and lifecycle.
  *
  * The heavy lifting lives below the slices in dedicated, unit-tested domains
  * (theme, target maths, config normalization, formatting, battery acquisition,
@@ -39,6 +41,7 @@ import { batteryStore } from './BatteryStore';
 import { soundStore } from './SoundStore';
 import { summaryStore } from './SummaryStore';
 import { startupStore } from './StartupStore';
+import { toastStore } from './ToastStore';
 
 // Re-exported so the run-state singleton can be reset between tests through the
 // store's entry module, without the tests reaching into its private home.
@@ -53,6 +56,7 @@ store(
 		batteryStore,
 		soundStore,
 		summaryStore,
-		startupStore
+		startupStore,
+		toastStore
 	)
 );

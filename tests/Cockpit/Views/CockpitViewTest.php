@@ -53,16 +53,31 @@ final class CockpitViewTest extends TestCase {
 	/**
 	 * The viewport iframe is covered by an interaction shield so the benchmarked
 	 * page is shown but cannot be interacted with. The shield is a sibling of the
-	 * iframe inside a shared positioned wrapper and is hidden from assistive tech,
-	 * and a "view only" chip names the state to sighted users.
+	 * iframe inside a shared positioned wrapper and is hidden from assistive tech;
+	 * the view-only state is now surfaced by the toast raised on pointer entry,
+	 * which the wrapper wires through `pointerenter`.
 	 */
 	public function test_render_shields_the_viewport_from_interaction(): void {
 		$markup = $this->render();
 
 		$this->assertStringContainsString( 'class="bsb-cockpit__viewport-wrap"', $markup );
 		$this->assertStringContainsString( 'class="bsb-cockpit__shield" aria-hidden="true"', $markup );
-		$this->assertStringContainsString( 'class="bsb-cockpit__shield-badge"', $markup );
-		$this->assertStringContainsString( 'View only while the run is surfing', $markup );
+		$this->assertStringContainsString( 'data-wp-on--pointerenter="actions.viewportEnter"', $markup );
+	}
+
+	/**
+	 * The bottom notification toast is rendered as one bound pill: hidden until a
+	 * toast is raised, its kind/phase driving the variant and animation classes,
+	 * with a dismiss control and an `animationend` hook driving its lifecycle.
+	 */
+	public function test_render_includes_the_notification_toast(): void {
+		$markup = $this->render();
+
+		$this->assertStringContainsString( 'class="bsb-cockpit__toast-layer"', $markup );
+		$this->assertStringContainsString( 'data-wp-bind--hidden="!state.hasToast"', $markup );
+		$this->assertStringContainsString( 'data-wp-class--is-error="state.isToastError"', $markup );
+		$this->assertStringContainsString( 'data-wp-on--animationend="callbacks.onToastAnimationEnd"', $markup );
+		$this->assertStringContainsString( 'data-wp-on--click="actions.dismissToast"', $markup );
 	}
 
 	/**
@@ -334,53 +349,53 @@ final class CockpitViewTest extends TestCase {
 	private function render(): string {
 		return ( new CockpitView() )->render(
 			array(
-				'wrapper'            => 'class="wp-block-bsb-cockpit"',
-				'context'            => 'data-wp-context=\'{"activeIndex":0}\'',
-				'brand_title'        => 'Battery Surf Bench',
-				'brand_subtitle'     => 'Cockpit',
-				'mode_label'         => 'Mode',
-				'duration_mode'      => 'Duration',
-				'target_drop_mode'   => 'Target drop',
-				'duration_label'     => 'Run duration',
-				'minutes_label'      => 'min',
-				'decrease_label'     => 'Decrease duration',
-				'increase_label'     => 'Increase duration',
-				'target_label'       => 'Stop at battery',
-				'target_aria'        => 'Target battery percentage',
-				'baseline_label'     => 'Baseline calibration',
-				'speed_label'        => 'Speed',
-				'battery_label'      => 'Battery',
-				'rate10_label'       => 'Rate · 10 min',
-				'rate_session_label' => 'Rate · session',
-				'tte_label'          => '100% → 0%',
-				'target_short_label' => 'Target',
-				'surfing_label'      => 'Surfing',
-				'elapsed_label'      => 'elapsed',
-				'remaining_label'    => 'left',
-				'start_label'        => 'Start',
-				'stop_label'         => 'Stop',
-				'plugged_label'      => 'Plugged in',
-				'compact_label'      => 'Compact the dashboard',
-				'expand_label'       => 'Expand the dashboard',
-				'viewport_title'     => 'Surf viewport',
-				'shield_label'       => 'View only while the run is surfing',
-				'greeting_lead'      => 'Greetings from',
-				'idle_heading'       => 'How this run works',
-				'idle_subtitle'      => 'a controlled, repeatable battery run.',
-				'idle_step1_title'   => 'Set the session',
-				'idle_step1_text'    => 'Pick a run length, or a battery % to stop at.',
-				'idle_step2_title'   => 'Drop in',
-				'idle_step2_text'    => 'Hit Start. The charger unplugs and the run begins on its own.',
-				'idle_step3_title'   => 'Watch the slope',
-				'idle_step3_text'    => 'It runs hands-free while the battery drains; you just watch the numbers.',
-				'idle_notice_title'  => 'Keep the laptop open',
-				'idle_notice_text'   => 'The wake lock keeps the screen on; do not close the lid.',
-				'dropped_label'      => 'Dropped',
-				'pts_label'          => 'pts',
-				'elapsed_run_label'  => 'Elapsed',
-				'new_run_label'      => 'New run',
-				'flip_label'         => 'Flip',
-				'summary_brand'      => 'BATTERY · SURF · BENCH',
+				'wrapper'             => 'class="wp-block-bsb-cockpit"',
+				'context'             => 'data-wp-context=\'{"activeIndex":0}\'',
+				'brand_title'         => 'Battery Surf Bench',
+				'brand_subtitle'      => 'Cockpit',
+				'mode_label'          => 'Mode',
+				'duration_mode'       => 'Duration',
+				'target_drop_mode'    => 'Target drop',
+				'duration_label'      => 'Run duration',
+				'minutes_label'       => 'min',
+				'decrease_label'      => 'Decrease duration',
+				'increase_label'      => 'Increase duration',
+				'target_label'        => 'Stop at battery',
+				'target_aria'         => 'Target battery percentage',
+				'baseline_label'      => 'Baseline calibration',
+				'speed_label'         => 'Speed',
+				'battery_label'       => 'Battery',
+				'rate10_label'        => 'Rate · 10 min',
+				'rate_session_label'  => 'Rate · session',
+				'tte_label'           => '100% → 0%',
+				'target_short_label'  => 'Target',
+				'surfing_label'       => 'Surfing',
+				'elapsed_label'       => 'elapsed',
+				'remaining_label'     => 'left',
+				'start_label'         => 'Start',
+				'stop_label'          => 'Stop',
+				'plugged_label'       => 'Plugged in',
+				'compact_label'       => 'Compact the dashboard',
+				'expand_label'        => 'Expand the dashboard',
+				'viewport_title'      => 'Surf viewport',
+				'toast_dismiss_label' => 'Dismiss',
+				'greeting_lead'       => 'Greetings from',
+				'idle_heading'        => 'How this run works',
+				'idle_subtitle'       => 'a controlled, repeatable battery run.',
+				'idle_step1_title'    => 'Set the session',
+				'idle_step1_text'     => 'Pick a run length, or a battery % to stop at.',
+				'idle_step2_title'    => 'Drop in',
+				'idle_step2_text'     => 'Hit Start. The charger unplugs and the run begins on its own.',
+				'idle_step3_title'    => 'Watch the slope',
+				'idle_step3_text'     => 'It runs hands-free while the battery drains; you just watch the numbers.',
+				'idle_notice_title'   => 'Keep the laptop open',
+				'idle_notice_text'    => 'The wake lock keeps the screen on; do not close the lid.',
+				'dropped_label'       => 'Dropped',
+				'pts_label'           => 'pts',
+				'elapsed_run_label'   => 'Elapsed',
+				'new_run_label'       => 'New run',
+				'flip_label'          => 'Flip',
+				'summary_brand'       => 'BATTERY · SURF · BENCH',
 			)
 		);
 	}

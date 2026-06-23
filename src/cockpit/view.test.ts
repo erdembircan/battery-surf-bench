@@ -47,6 +47,10 @@ interface CockpitContext {
 	summaryDropped: string;
 	hasGraph: boolean;
 	graphJson: string;
+	toastKind: '' | 'error' | 'notice';
+	toastText: string;
+	toastPhase: '' | 'entering' | 'holding' | 'leaving';
+	toastStrings: { error: string; notice: string };
 }
 
 interface CockpitConfig {
@@ -85,6 +89,14 @@ interface CockpitConfig {
 		summarySig: string;
 		summaryElapsed: string;
 		isSoundOn: boolean;
+		hasToast: boolean;
+		isToastError: boolean;
+		isToastNotice: boolean;
+		toastMessage: string;
+		toastRole: string;
+		isToastEntering: boolean;
+		isToastHolding: boolean;
+		isToastLeaving: boolean;
 	};
 	actions: {
 		selectMode: () => void;
@@ -101,6 +113,8 @@ interface CockpitConfig {
 		toggleFlip: () => void;
 		toggleIdleFlip: () => void;
 		newRun: () => void;
+		dismissToast: () => void;
+		viewportEnter: () => void;
 	};
 	callbacks: {
 		initBattery: () => () => void;
@@ -109,6 +123,7 @@ interface CockpitConfig {
 		syncRunActivity: () => void;
 		rollDuration: () => void;
 		renderSummary: () => void;
+		onToastAnimationEnd: () => void;
 	};
 }
 
@@ -148,6 +163,10 @@ const baseContext = (): CockpitContext => ( {
 	summaryDropped: '',
 	hasGraph: false,
 	graphJson: '',
+	toastKind: '',
+	toastText: '',
+	toastPhase: '',
+	toastStrings: { error: 'Upload failed', notice: 'View only' },
 } );
 
 const mocks = vi.hoisted( () => ( {
@@ -163,6 +182,10 @@ vi.mock( '@wordpress/interactivity', () => ( {
 	},
 	getContext: () => mocks.context,
 	getElement: () => ( { ref: mocks.element } ),
+	// The end-of-run upload reads its REST access through `getConfig`; returning
+	// an empty config makes the upload a no-op here, so these store tests never
+	// reach the network while ending a run.
+	getConfig: () => ( {} ),
 } ) );
 
 import { __resetInstance } from './view';
@@ -942,6 +965,13 @@ describe( 'bsb/cockpit view store', () => {
 			expect( mocks.context.running ).toBe( false );
 			expect( mocks.context.endReason ).toBe( 'targetDrop' );
 
+			// The reading that reached the target is recorded BEFORE the stop, so
+			// the frozen summary reflects the final drop instead of discarding it
+			// (which left a 80 → 80, nothing-dropped, no-rates summary).
+			expect( mocks.context.summaryBatteryEnd ).toBe( '75' );
+			expect( mocks.context.summaryDropped ).not.toBe( '—' );
+			expect( mocks.context.summaryDropped ).not.toBe( '0' );
+
 			cleanup();
 		} );
 
@@ -1447,6 +1477,43 @@ describe( 'bsb/cockpit view store', () => {
 			expect( audio.played() ).toBe( false );
 
 			vi.useRealTimers();
+		} );
+	} );
+
+	describe( 'toast', () => {
+		it( 'raises the view-only notice on viewport entry, once per run', () => {
+			mocks.context.running = true;
+
+			mocks.config!.actions.viewportEnter();
+			expect( mocks.context.toastKind ).toBe( 'notice' );
+			expect( mocks.config!.state.isToastNotice ).toBe( true );
+			expect( mocks.config!.state.toastMessage ).toBe( 'View only' );
+			expect( mocks.context.toastPhase ).toBe( 'entering' );
+
+			// Run the notice through its lifecycle to a clean close.
+			mocks.config!.callbacks.onToastAnimationEnd();
+			expect( mocks.context.toastPhase ).toBe( 'holding' );
+			mocks.config!.actions.dismissToast();
+			expect( mocks.context.toastPhase ).toBe( 'leaving' );
+			mocks.config!.callbacks.onToastAnimationEnd();
+			expect( mocks.context.toastKind ).toBe( '' );
+
+			// Already shown this run: a second entry does not raise it again.
+			mocks.config!.actions.viewportEnter();
+			expect( mocks.context.toastKind ).toBe( '' );
+		} );
+
+		it( 'ignores viewport entry when no run is live', () => {
+			mocks.context.running = false;
+			mocks.config!.actions.viewportEnter();
+			expect( mocks.context.toastKind ).toBe( '' );
+		} );
+
+		it( 'reports the assertive role for an error toast', () => {
+			mocks.context.toastKind = 'error';
+			expect( mocks.config!.state.hasToast ).toBe( true );
+			expect( mocks.config!.state.isToastError ).toBe( true );
+			expect( mocks.config!.state.toastRole ).toBe( 'alert' );
 		} );
 	} );
 } );

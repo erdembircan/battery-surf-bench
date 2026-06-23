@@ -7,9 +7,11 @@
  */
 
 import { type CockpitContext, type RunEndReason } from './CockpitContext';
-import { type InstanceState } from './RunInstance';
+import { type InstanceState, wallNow } from './RunInstance';
 import { RunSession } from './RunSession';
 import { buildGraph, type GraphViewport, type GraphModel } from './DrainGraph';
+import { buildSessionPayload, postSession } from './SessionUpload';
+import { enqueueToast } from './Toasts';
 
 /**
  * The summary drain graph's drawing viewport (SVG user units). A wide, short
@@ -86,6 +88,52 @@ const freezeSummary = (
 };
 
 /**
+ * Persists the just-ended run to the server (fire-and-forget). Builds the REST
+ * payload from the frozen session — the summary, the configuration the run used,
+ * its samples, the wall-clock stamps and the user agent — and POSTs it through
+ * the session post type's own endpoint. Skipped when the run logged no samples
+ * (nothing meaningful to store). The upload is fire-and-forget, but its outcome
+ * is awaited just enough to surface a failure: if the run was not persisted, an
+ * error toast is raised (it may appear after the summary is already up, which is
+ * why the toast layer is independent of the summary).
+ *
+ * @param context  The reactive cockpit context to read the configuration from.
+ * @param instance The per-instance run state holding the session and start stamp.
+ * @param reason   Why the run ended, mapped to the session's lifecycle status.
+ */
+const persistSession = (
+	context: CockpitContext,
+	instance: InstanceState,
+	reason: RunEndReason
+): void => {
+	const payload = buildSessionPayload( {
+		summary: instance.session.summary(),
+		reason,
+		config: {
+			mode: context.mode,
+			durationMinutes: context.durationMinutes,
+			baseline: context.baseline,
+			targetPercent: context.targetPercent,
+		},
+		samples: instance.session.samples(),
+		elapsedSeconds: context.elapsed,
+		startedAtWall: instance.startedAtWall,
+		endedAtWall: wallNow(),
+		userAgent: navigator.userAgent,
+	} );
+
+	if ( ! payload ) {
+		return;
+	}
+
+	void postSession( payload ).then( ( ok ) => {
+		if ( ! ok ) {
+			enqueueToast( context, instance, 'error' );
+		}
+	} );
+};
+
+/**
  * Ends a live run, returning the cockpit to its idle, ready state: the run
  * stops and the calculation session is wound up. The single place a run is torn
  * down, whether by the stop control, by plugging in, or by the duration
@@ -103,6 +151,10 @@ const freezeSummary = (
  * sounds the finish chime when enabled; a manual stop or a charger interrupt
  * stays silent.
  *
+ * Ending also persists the run: the frozen session is uploaded to the server
+ * (fire-and-forget) so every cause of a run ending records the session, with no
+ * separate save step.
+ *
  * @param context  The reactive cockpit context to mark ended.
  * @param instance The per-instance run state to wind up.
  * @param reason   Why the run ended, recorded for the summary's verdict.
@@ -113,6 +165,7 @@ export const stopRun = (
 	reason: RunEndReason
 ): void => {
 	freezeSummary( context, instance );
+	persistSession( context, instance, reason );
 	context.running = false;
 	context.ended = true;
 	context.endReason = reason;

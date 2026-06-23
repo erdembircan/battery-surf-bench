@@ -9,7 +9,7 @@
 import { getContext } from '@wordpress/interactivity';
 import { type CockpitContext } from './CockpitContext';
 import { type StorePart } from './StoreParts';
-import { instanceFor, now } from './RunInstance';
+import { instanceFor, now, wallNow } from './RunInstance';
 import { applyReadouts, stopRun } from './RunLifecycle';
 import { normalizeDuration, normalizeMode, normalizeSpeed } from './RunConfig';
 import { clampTarget, targetCap } from './TargetControl';
@@ -146,6 +146,8 @@ export const runStore: StorePart = {
 			context.ended = false;
 			context.endReason = '';
 			context.flipped = false;
+			// Re-arm the once-per-run view-only notice for this run.
+			instance.noticeShownThisRun = false;
 			context.running = true;
 
 			// Unlock audio under this click (a user gesture) so a default-on run
@@ -154,6 +156,7 @@ export const runStore: StorePart = {
 				instance.chime?.prime();
 			}
 
+			instance.startedAtWall = wallNow();
 			instance.session.start( now() );
 			if ( instance.lastReading ) {
 				instance.session.record(

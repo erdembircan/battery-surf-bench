@@ -114,12 +114,11 @@ test.describe( 'Cockpit dashboard route', () => {
 			page.locator( 'iframe.bsb-cockpit__viewport' )
 		).not.toHaveAttribute( 'src', /bsbSessionPage/ );
 
-		// The interaction shield and "view only" chip remain in the markup — they
-		// govern the viewport once a run starts; their behaviour is unit-covered.
+		// The interaction shield remains in the markup — it governs the viewport
+		// once a run starts; its behaviour is unit-covered. The view-only state is
+		// surfaced by the notification toast, present but hidden until raised.
 		await expect( page.locator( '.bsb-cockpit__shield' ) ).toBeAttached();
-		await expect(
-			page.locator( '.bsb-cockpit__shield-badge' )
-		).toBeAttached();
+		await expect( page.locator( '.bsb-cockpit__toast' ) ).toBeHidden();
 
 		// The run-summary flip card is present but hidden until a run ends, with
 		// its flip control and report wired to the store. It reuses the same shared

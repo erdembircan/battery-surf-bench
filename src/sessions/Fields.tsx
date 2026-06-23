@@ -45,6 +45,56 @@ function asDateTime( value: unknown ): string {
 }
 
 /**
+ * Formats a numeric value with its unit of measure. An absent value reads as an
+ * em dash; when `optional`, a zero does too — the marker for a figure that does
+ * not apply to the run or that a run could not measure (a target on a duration
+ * run, a drain rate too short to compute). A genuine zero (a drop of 0%) keeps
+ * its value when not `optional`.
+ *
+ * @param value    The raw meta value.
+ * @param unit     The unit suffix to append (e.g. `%`, `%/h`).
+ * @param optional Whether a zero should render as an em dash rather than `0`.
+ * @return The value with its unit, or an em dash.
+ */
+function withUnit( value: unknown, unit: string, optional: boolean ): string {
+	const num = Number( value );
+	if ( ! Number.isFinite( num ) || ( optional && num <= 0 ) ) {
+		return '—';
+	}
+	return `${ num }${ unit }`;
+}
+
+/**
+ * Formats a duration in seconds (the stored base unit) as a human-readable span:
+ * seconds under a minute (`45s`), minutes under an hour (`20m`), hours and
+ * minutes above it (`8h 4m`, or just `8h` on the hour). An em dash marks the
+ * not-applicable / unmeasurable case the cockpit stores as zero.
+ *
+ * @param value The raw seconds meta value.
+ * @return The formatted duration, or an em dash when zero or absent.
+ */
+function asRuntime( value: unknown ): string {
+	const raw = Number( value );
+	if ( ! Number.isFinite( raw ) || raw <= 0 ) {
+		return '—';
+	}
+	// Floor throughout, matching the cockpit's H:MM time-to-empty readout
+	// (`formatTimeToEmpty`), so the same projection reads identically in the live
+	// deck and in this listing rather than rounding up to the next minute.
+	const seconds = Math.floor( raw );
+	if ( seconds < 60 ) {
+		return `${ seconds }s`;
+	}
+	const minutes = Math.floor( seconds / 60 );
+	if ( minutes < 60 ) {
+		return `${ minutes }m`;
+	}
+	const hours = Math.floor( minutes / 60 );
+	const rest = minutes % 60;
+	return rest > 0 ? `${ hours }h ${ rest }m` : `${ hours }h`;
+}
+
+/**
  * Resolves an enumerated value to its human label from the descriptor.
  *
  * @param value      The raw meta value.
@@ -182,6 +232,48 @@ function toField( descriptor: SessionFieldDescriptor ): Field< SessionRecord > {
 				...base,
 				render: ( { item } ) => (
 					<LevelBar value={ metaValue( item, descriptor ) } />
+				),
+			};
+		case 'percentText':
+			return {
+				...base,
+				render: ( { item } ) => (
+					<>
+						{ withUnit(
+							metaValue( item, descriptor ),
+							'%',
+							false
+						) }
+					</>
+				),
+			};
+		case 'percentOptional':
+			return {
+				...base,
+				render: ( { item } ) => (
+					<>
+						{ withUnit( metaValue( item, descriptor ), '%', true ) }
+					</>
+				),
+			};
+		case 'rate':
+			return {
+				...base,
+				render: ( { item } ) => (
+					<>
+						{ withUnit(
+							metaValue( item, descriptor ),
+							'%/h',
+							true
+						) }
+					</>
+				),
+			};
+		case 'runtime':
+			return {
+				...base,
+				render: ( { item } ) => (
+					<>{ asRuntime( metaValue( item, descriptor ) ) }</>
 				),
 			};
 		default:

@@ -159,6 +159,91 @@ final class SessionSchemaTest extends TestCase {
 	}
 
 	/**
+	 * The run configuration is registered as meta under the `config` group, so a
+	 * finished run's settings ride the same REST record without colliding with the
+	 * identity scalars (e.g. the run's `mode` and the configured `config_mode`).
+	 */
+	public function test_configuration_is_registered_under_the_config_group(): void {
+		$metas = $this->schema()->metas();
+
+		foreach ( array( 'config_mode', 'config_duration', 'config_baseline', 'config_target_percent' ) as $field ) {
+			$this->assertArrayHasKey( self::PREFIX . $field, $metas );
+		}
+	}
+
+	/**
+	 * Surf speed drives playback, not the drain calculations, so it is no part of
+	 * the stored session record — no configuration meta persists it.
+	 */
+	public function test_speed_is_not_persisted(): void {
+		$this->assertArrayNotHasKey( self::PREFIX . 'config_speed', $this->schema()->metas() );
+	}
+
+	/**
+	 * The derived end-of-run statistics are registered as meta so the figures
+	 * survive without recomputation.
+	 */
+	public function test_derived_statistics_are_registered_meta(): void {
+		$metas = $this->schema()->metas();
+
+		foreach ( array( 'dropped_pct', 'elapsed', 'rate_10', 'rate_session', 'time_to_empty' ) as $field ) {
+			$this->assertArrayHasKey( self::PREFIX . $field, $metas );
+		}
+	}
+
+	/**
+	 * The sample log is registered as an array meta with an element schema, which
+	 * is what lets the native REST endpoint accept and validate the bulk log
+	 * without a bespoke controller.
+	 */
+	public function test_samples_register_as_an_array_meta_with_an_item_schema(): void {
+		$samples = $this->schema()->metas()[ self::PREFIX . 'samples' ];
+
+		$this->assertSame( 'array', $samples['type'] );
+		$this->assertSame( 'array', $samples['show_in_rest']['schema']['type'] );
+		$this->assertSame( 'object', $samples['show_in_rest']['schema']['items']['type'] );
+		$this->assertArrayHasKey( 'level', $samples['show_in_rest']['schema']['items']['properties'] );
+	}
+
+	/**
+	 * The redundant configuration scalars and the bulky sample log are persisted
+	 * but kept off the listing, so the grid is not cluttered by them.
+	 */
+	public function test_persisted_only_fields_are_not_listed(): void {
+		$listed = array_column( $this->schema()->fields(), 'key' );
+
+		foreach ( array( 'config_mode', 'config_baseline', 'samples' ) as $field ) {
+			$this->assertNotContains( self::PREFIX . $field, $listed );
+		}
+	}
+
+	/**
+	 * The run length and target and the derived statistics are listed as columns,
+	 * so the grid surfaces the configuration and results a run produced.
+	 */
+	public function test_configuration_and_statistics_are_listed(): void {
+		$listed = array_column( $this->schema()->fields(), 'key' );
+
+		foreach ( array( 'config_duration', 'config_target_percent', 'dropped_pct', 'elapsed', 'rate_10', 'rate_session', 'time_to_empty' ) as $field ) {
+			$this->assertContains( self::PREFIX . $field, $listed );
+		}
+	}
+
+	/**
+	 * The configured mode constrains its REST values to the cockpit's run modes,
+	 * preserving the uppercase letter in `targetDrop` that `sanitize_key` would
+	 * have stripped.
+	 */
+	public function test_config_mode_constrains_its_rest_values(): void {
+		$mode = $this->schema()->metas()[ self::PREFIX . 'config_mode' ];
+
+		$this->assertSame(
+			array( 'duration', 'targetDrop' ),
+			$mode['show_in_rest']['schema']['enum']
+		);
+	}
+
+	/**
 	 * Battery levels are clamped to the 0..1 fraction the cockpit reports,
 	 * guarding the meta against out-of-range writes.
 	 */
@@ -166,6 +251,98 @@ final class SessionSchemaTest extends TestCase {
 		$this->assertSame( 1.0, SessionSchema::sanitize_level( 2 ) );
 		$this->assertSame( 0.0, SessionSchema::sanitize_level( -0.5 ) );
 		$this->assertSame( 0.5, SessionSchema::sanitize_level( 0.5 ) );
+	}
+
+	/**
+	 * Percentages are clamped to a whole 0..100, guarding the configured target
+	 * battery against out-of-range writes.
+	 */
+	public function test_sanitize_percent_clamps_to_whole_0_100(): void {
+		$this->assertSame( 100, SessionSchema::sanitize_percent( 140 ) );
+		$this->assertSame( 0, SessionSchema::sanitize_percent( -5 ) );
+		$this->assertSame( 45, SessionSchema::sanitize_percent( 45.4 ) );
+	}
+
+	/**
+	 * The drop is clamped to the 0..100 points a run can fall, rounded to two
+	 * decimals.
+	 */
+	public function test_sanitize_drop_clamps_and_rounds(): void {
+		$this->assertSame( 100.0, SessionSchema::sanitize_drop( 150 ) );
+		$this->assertSame( 0.0, SessionSchema::sanitize_drop( -1 ) );
+		$this->assertSame( 12.35, SessionSchema::sanitize_drop( 12.3456 ) );
+	}
+
+	/**
+	 * Drain rates are clamped non-negative and rounded to a tenth; an
+	 * unmeasurable rate stores zero.
+	 */
+	public function test_sanitize_rate_clamps_and_rounds(): void {
+		$this->assertSame( 18.5, SessionSchema::sanitize_rate( 18.46 ) );
+		$this->assertSame( 0.0, SessionSchema::sanitize_rate( -3 ) );
+		$this->assertSame( 0.0, SessionSchema::sanitize_rate( null ) );
+	}
+
+	/**
+	 * The projected runtime is a non-negative whole number of seconds; an
+	 * unprojectable runtime stores zero.
+	 */
+	public function test_sanitize_seconds_clamps_to_non_negative_whole(): void {
+		$this->assertSame( 7200, SessionSchema::sanitize_seconds( 7200.4 ) );
+		$this->assertSame( 0, SessionSchema::sanitize_seconds( -10 ) );
+		$this->assertSame( 0, SessionSchema::sanitize_seconds( null ) );
+	}
+
+	/**
+	 * The elapsed run length is a non-negative whole number of seconds, unbounded
+	 * above since a run can be cut short or run long at any moment.
+	 */
+	public function test_sanitize_elapsed_clamps_to_non_negative_whole(): void {
+		$this->assertSame( 27, SessionSchema::sanitize_elapsed( 26.6 ) );
+		$this->assertSame( 0, SessionSchema::sanitize_elapsed( -4 ) );
+		$this->assertSame( 1500, SessionSchema::sanitize_elapsed( 1500 ) );
+	}
+
+	/**
+	 * The configured run length is clamped to the supported 300..14400 second
+	 * range (5 to 240 minutes) and stored in whole seconds.
+	 */
+	public function test_sanitize_duration_clamps_to_second_range(): void {
+		$this->assertSame( 1800, SessionSchema::sanitize_duration( 1800 ) );
+		$this->assertSame( 300, SessionSchema::sanitize_duration( 60 ) );
+		$this->assertSame( 14400, SessionSchema::sanitize_duration( 99999 ) );
+	}
+
+	/**
+	 * The sample log drops malformed entries and clamps each surviving plateau,
+	 * so a tampered or partial log cannot poison the stored record.
+	 */
+	public function test_sanitize_samples_drops_malformed_and_clamps(): void {
+		$clean = SessionSchema::sanitize_samples(
+			array(
+				array(
+					't'        => -50,
+					'level'    => 2,
+					'charging' => 1,
+					'count'    => 0,
+				),
+				'not-an-array',
+				array( 'level' => 0.5 ),
+			)
+		);
+
+		$this->assertCount( 1, $clean );
+		$this->assertSame( 0.0, $clean[0]['t'] );
+		$this->assertSame( 1.0, $clean[0]['level'] );
+		$this->assertTrue( $clean[0]['charging'] );
+		$this->assertSame( 1, $clean[0]['count'] );
+	}
+
+	/**
+	 * A non-array sample log sanitizes to an empty log rather than erroring.
+	 */
+	public function test_sanitize_samples_rejects_a_non_array(): void {
+		$this->assertSame( array(), SessionSchema::sanitize_samples( 'nonsense' ) );
 	}
 
 	/**

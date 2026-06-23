@@ -236,6 +236,107 @@ describe( 'datetime format', () => {
 	} );
 } );
 
+describe( 'percentText format', () => {
+	it( 'appends a percent sign, keeping a genuine zero', () => {
+		expect(
+			renderCell( descriptor( 'percentText' ), { value: 12 } ).container
+		).toHaveTextContent( '12%' );
+		expect(
+			renderCell( descriptor( 'percentText' ), { value: 0 } ).container
+		).toHaveTextContent( '0%' );
+	} );
+
+	it( 'shows an em dash when the value is absent', () => {
+		expect(
+			renderCell( descriptor( 'percentText' ), {} ).container
+		).toHaveTextContent( EM_DASH );
+	} );
+} );
+
+describe( 'percentOptional format', () => {
+	it( 'appends a percent sign when the value applies', () => {
+		expect(
+			renderCell( descriptor( 'percentOptional' ), { value: 70 } )
+				.container
+		).toHaveTextContent( '70%' );
+	} );
+
+	it( 'shows an em dash when not applicable (zero or absent)', () => {
+		expect(
+			renderCell( descriptor( 'percentOptional' ), { value: 0 } )
+				.container
+		).toHaveTextContent( EM_DASH );
+		expect(
+			renderCell( descriptor( 'percentOptional' ), {} ).container
+		).toHaveTextContent( EM_DASH );
+	} );
+} );
+
+describe( 'rate format', () => {
+	it( 'appends percent-per-hour when measured', () => {
+		expect(
+			renderCell( descriptor( 'rate' ), { value: 24.5 } ).container
+		).toHaveTextContent( '24.5%/h' );
+	} );
+
+	it( 'shows an em dash when unmeasured (zero or absent)', () => {
+		expect(
+			renderCell( descriptor( 'rate' ), { value: 0 } ).container
+		).toHaveTextContent( EM_DASH );
+		expect(
+			renderCell( descriptor( 'rate' ), {} ).container
+		).toHaveTextContent( EM_DASH );
+	} );
+} );
+
+describe( 'runtime format', () => {
+	it( 'shows seconds when under a minute', () => {
+		const { container } = renderCell( descriptor( 'runtime' ), {
+			value: 45,
+		} );
+		expect( container ).toHaveTextContent( '45s' );
+	} );
+
+	it( 'shows minutes when under an hour', () => {
+		const { container } = renderCell( descriptor( 'runtime' ), {
+			value: 1200,
+		} );
+		expect( container ).toHaveTextContent( '20m' );
+	} );
+
+	it( 'floors the minute, matching the cockpit H:MM readout', () => {
+		// 2h 59.5m: the deck floors to 2:59, so the listing must too (not 3h).
+		const { container } = renderCell( descriptor( 'runtime' ), {
+			value: 10770,
+		} );
+		expect( container ).toHaveTextContent( '2h 59m' );
+	} );
+
+	it( 'shows hours and minutes when over an hour', () => {
+		const { container } = renderCell( descriptor( 'runtime' ), {
+			value: 29040,
+		} );
+		expect( container ).toHaveTextContent( '8h 4m' );
+	} );
+
+	it( 'drops the minutes on a whole hour', () => {
+		const { container } = renderCell( descriptor( 'runtime' ), {
+			value: 14400,
+		} );
+		expect( container ).toHaveTextContent( '4h' );
+		expect( container ).not.toHaveTextContent( '4h 0m' );
+	} );
+
+	it( 'shows an em dash when not projected (zero or absent)', () => {
+		expect(
+			renderCell( descriptor( 'runtime' ), { value: 0 } ).container
+		).toHaveTextContent( EM_DASH );
+		expect(
+			renderCell( descriptor( 'runtime' ), {} ).container
+		).toHaveTextContent( EM_DASH );
+	} );
+} );
+
 describe( 'enumerated text without an explicit format', () => {
 	const enumerated = descriptor( 'text', {
 		elements: [ { value: 'wifi', label: 'Wi-Fi' } ],
