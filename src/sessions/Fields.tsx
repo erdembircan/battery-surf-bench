@@ -59,18 +59,21 @@ function asOptional( value: unknown ): string {
 }
 
 /**
- * Formats a projected runtime in seconds as a human duration: minutes under an
- * hour (`20m`), hours and minutes above it (`8h 4m`, or just `8h` on the hour).
- * An em dash marks the unmeasurable case the cockpit stores as zero — a run too
- * short to project a runtime.
+ * Formats a duration in seconds (the stored base unit) as a human-readable span:
+ * seconds under a minute (`45s`), minutes under an hour (`20m`), hours and
+ * minutes above it (`8h 4m`, or just `8h` on the hour). An em dash marks the
+ * not-applicable / unmeasurable case the cockpit stores as zero.
  *
  * @param value The raw seconds meta value.
- * @return The formatted runtime, or an em dash when not projected.
+ * @return The formatted duration, or an em dash when zero or absent.
  */
 function asRuntime( value: unknown ): string {
-	const seconds = Number( value );
+	const seconds = Math.round( Number( value ) );
 	if ( ! Number.isFinite( seconds ) || seconds <= 0 ) {
 		return '—';
+	}
+	if ( seconds < 60 ) {
+		return `${ seconds }s`;
 	}
 	const minutes = Math.round( seconds / 60 );
 	if ( minutes < 60 ) {

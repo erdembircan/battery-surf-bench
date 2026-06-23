@@ -258,6 +258,13 @@ describe( 'optional format', () => {
 } );
 
 describe( 'runtime format', () => {
+	it( 'shows seconds when under a minute', () => {
+		const { container } = renderCell( descriptor( 'runtime' ), {
+			value: 45,
+		} );
+		expect( container ).toHaveTextContent( '45s' );
+	} );
+
 	it( 'shows minutes when under an hour', () => {
 		const { container } = renderCell( descriptor( 'runtime' ), {
 			value: 1200,

@@ -73,7 +73,7 @@ const input = (
 		targetPercent: 70,
 	},
 	samples: samples(),
-	elapsedMinutes: 25,
+	elapsedSeconds: 1500,
 	startedAtWall: Date.parse( '2026-06-23T10:00:00.000Z' ),
 	endedAtWall: Date.parse( '2026-06-23T10:30:00.000Z' ),
 	userAgent: 'TestAgent/1.0',
@@ -146,10 +146,10 @@ describe( 'buildSessionPayload', () => {
 		expect( meta.bsb_start_level ).toBe( 0.82 );
 		expect( meta.bsb_end_level ).toBe( 0.7 );
 		expect( meta.bsb_dropped_pct ).toBe( 12 );
-		expect( meta.bsb_elapsed_minutes ).toBe( 25 );
+		expect( meta.bsb_elapsed ).toBe( 1500 );
 		expect( meta.bsb_rate_10 ).toBe( 24.5 );
 		expect( meta.bsb_rate_session ).toBe( 22.1 );
-		expect( meta.bsb_seconds_to_empty ).toBe( 14400 );
+		expect( meta.bsb_time_to_empty ).toBe( 14400 );
 		expect( meta.bsb_config_mode ).toBe( 'duration' );
 		expect( meta.bsb_config_baseline ).toBe( false );
 		expect( meta.bsb_ua ).toBe( 'TestAgent/1.0' );
@@ -167,7 +167,7 @@ describe( 'buildSessionPayload', () => {
 				},
 			} )
 		) as SessionPayload;
-		expect( duration.meta.bsb_config_duration_minutes ).toBe( 30 );
+		expect( duration.meta.bsb_config_duration ).toBe( 1800 );
 		expect( duration.meta.bsb_config_target_percent ).toBeUndefined();
 
 		const target = buildSessionPayload(
@@ -181,7 +181,7 @@ describe( 'buildSessionPayload', () => {
 			} )
 		) as SessionPayload;
 		expect( target.meta.bsb_config_target_percent ).toBe( 70 );
-		expect( target.meta.bsb_config_duration_minutes ).toBeUndefined();
+		expect( target.meta.bsb_config_duration ).toBeUndefined();
 	} );
 
 	it( 'stores zero for statistics a short run could not compute', () => {
@@ -197,7 +197,7 @@ describe( 'buildSessionPayload', () => {
 
 		expect( payload.meta.bsb_rate_10 ).toBe( 0 );
 		expect( payload.meta.bsb_rate_session ).toBe( 0 );
-		expect( payload.meta.bsb_seconds_to_empty ).toBe( 0 );
+		expect( payload.meta.bsb_time_to_empty ).toBe( 0 );
 	} );
 
 	it( 'falls back to the end time when the start stamp is missing', () => {

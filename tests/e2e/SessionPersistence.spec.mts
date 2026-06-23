@@ -28,10 +28,10 @@ const sessionBody = {
 		bsb_start_level: 0.82,
 		bsb_end_level: 0.7,
 		bsb_dropped_pct: 12,
-		bsb_elapsed_minutes: 27,
+		bsb_elapsed: 1623,
 		bsb_rate_10: 24.5,
 		bsb_rate_session: 0,
-		bsb_seconds_to_empty: 0,
+		bsb_time_to_empty: 0,
 		bsb_config_mode: 'targetDrop',
 		// A target-drop run records only its target, not a fixed duration.
 		bsb_config_baseline: true,
@@ -76,7 +76,7 @@ test.describe( 'Benchmark session persistence', () => {
 		expect( meta.bsb_status ).toBe( 'finished' );
 		expect( meta.bsb_mode ).toBe( 'target' );
 		expect( meta.bsb_dropped_pct ).toBe( 12 );
-		expect( meta.bsb_elapsed_minutes ).toBe( 27 );
+		expect( meta.bsb_elapsed ).toBe( 1623 );
 
 		// The configuration persists under its namespaced keys, the uppercase in
 		// `targetDrop` intact (a `sanitize_key` would have mangled it).
@@ -85,7 +85,7 @@ test.describe( 'Benchmark session persistence', () => {
 		expect( meta.bsb_config_target_percent ).toBe( 70 );
 		// A target-drop run records no fixed duration, so it reads back as the
 		// not-applicable zero.
-		expect( meta.bsb_config_duration_minutes ).toBe( 0 );
+		expect( meta.bsb_config_duration ).toBe( 0 );
 
 		// The user agent the run was captured on persists.
 		expect( meta.bsb_ua ).toBe(
@@ -95,7 +95,7 @@ test.describe( 'Benchmark session persistence', () => {
 		// A statistic the run could not compute is stored as zero (WordPress REST
 		// single meta cannot hold a null), and round-trips intact.
 		expect( meta.bsb_rate_session ).toBe( 0 );
-		expect( meta.bsb_seconds_to_empty ).toBe( 0 );
+		expect( meta.bsb_time_to_empty ).toBe( 0 );
 
 		// The typed sample log survives schema validation whole.
 		expect( meta.bsb_samples ).toHaveLength( 2 );

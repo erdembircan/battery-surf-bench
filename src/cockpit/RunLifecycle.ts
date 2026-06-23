@@ -113,7 +113,7 @@ const persistSession = (
 			targetPercent: context.targetPercent,
 		},
 		samples: instance.session.samples(),
-		elapsedMinutes: Math.round( context.elapsed / 60 ),
+		elapsedSeconds: context.elapsed,
 		startedAtWall: instance.startedAtWall,
 		endedAtWall: wallNow(),
 		userAgent: navigator.userAgent,

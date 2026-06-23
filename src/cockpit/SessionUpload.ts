@@ -39,12 +39,12 @@ const META = {
 	startLevel: 'bsb_start_level',
 	endLevel: 'bsb_end_level',
 	droppedPct: 'bsb_dropped_pct',
-	elapsedMinutes: 'bsb_elapsed_minutes',
+	elapsed: 'bsb_elapsed',
 	rate10: 'bsb_rate_10',
 	rateSession: 'bsb_rate_session',
-	secondsToEmpty: 'bsb_seconds_to_empty',
+	timeToEmpty: 'bsb_time_to_empty',
 	configMode: 'bsb_config_mode',
-	configDurationMinutes: 'bsb_config_duration_minutes',
+	configDuration: 'bsb_config_duration',
 	configBaseline: 'bsb_config_baseline',
 	configTargetPercent: 'bsb_config_target_percent',
 	ua: 'bsb_ua',
@@ -67,8 +67,8 @@ export interface SessionUploadInput {
 	reason: RunEndReason;
 	/** The configuration the run was started with. */
 	config: UploadConfig;
-	/** How long the run actually lasted, in whole minutes. */
-	elapsedMinutes: number;
+	/** How long the run actually lasted, in whole seconds. */
+	elapsedSeconds: number;
 	/** The run-length-encoded sample log. */
 	samples: readonly RleSample[];
 	/** Wall-clock time (ms since epoch) the run started, or null if unknown. */
@@ -174,13 +174,13 @@ export const buildSessionPayload = (
 		[ META.startLevel ]: summary.startLevel,
 		[ META.endLevel ]: summary.endLevel,
 		[ META.droppedPct ]: summary.droppedPct,
-		[ META.elapsedMinutes ]: input.elapsedMinutes,
+		[ META.elapsed ]: input.elapsedSeconds,
 		// A statistic the run could not compute is stored as zero: WordPress
 		// REST single meta cannot hold a null, and zero is no valid reading
 		// for these quantities, so it marks the unmeasurable case.
 		[ META.rate10 ]: summary.rate10 ?? 0,
 		[ META.rateSession ]: summary.rateSession ?? 0,
-		[ META.secondsToEmpty ]: summary.secondsToEmpty ?? 0,
+		[ META.timeToEmpty ]: summary.secondsToEmpty ?? 0,
 		[ META.configMode ]: input.config.mode,
 		[ META.configBaseline ]: input.config.baseline,
 		[ META.ua ]: input.userAgent,
@@ -199,7 +199,8 @@ export const buildSessionPayload = (
 	if ( input.config.mode === 'targetDrop' ) {
 		meta[ META.configTargetPercent ] = input.config.targetPercent;
 	} else {
-		meta[ META.configDurationMinutes ] = input.config.durationMinutes;
+		// The cockpit's stepper is in minutes; store the base unit of seconds.
+		meta[ META.configDuration ] = input.config.durationMinutes * 60;
 	}
 
 	return { status: 'publish', meta };

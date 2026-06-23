@@ -166,7 +166,7 @@ final class SessionSchemaTest extends TestCase {
 	public function test_configuration_is_registered_under_the_config_group(): void {
 		$metas = $this->schema()->metas();
 
-		foreach ( array( 'config_mode', 'config_duration_minutes', 'config_baseline', 'config_target_percent' ) as $field ) {
+		foreach ( array( 'config_mode', 'config_duration', 'config_baseline', 'config_target_percent' ) as $field ) {
 			$this->assertArrayHasKey( self::PREFIX . $field, $metas );
 		}
 	}
@@ -186,7 +186,7 @@ final class SessionSchemaTest extends TestCase {
 	public function test_derived_statistics_are_registered_meta(): void {
 		$metas = $this->schema()->metas();
 
-		foreach ( array( 'dropped_pct', 'elapsed_minutes', 'rate_10', 'rate_session', 'seconds_to_empty' ) as $field ) {
+		foreach ( array( 'dropped_pct', 'elapsed', 'rate_10', 'rate_session', 'time_to_empty' ) as $field ) {
 			$this->assertArrayHasKey( self::PREFIX . $field, $metas );
 		}
 	}
@@ -224,7 +224,7 @@ final class SessionSchemaTest extends TestCase {
 	public function test_configuration_and_statistics_are_listed(): void {
 		$listed = array_column( $this->schema()->fields(), 'key' );
 
-		foreach ( array( 'config_duration_minutes', 'config_target_percent', 'dropped_pct', 'elapsed_minutes', 'rate_10', 'rate_session', 'seconds_to_empty' ) as $field ) {
+		foreach ( array( 'config_duration', 'config_target_percent', 'dropped_pct', 'elapsed', 'rate_10', 'rate_session', 'time_to_empty' ) as $field ) {
 			$this->assertContains( self::PREFIX . $field, $listed );
 		}
 	}
@@ -294,23 +294,23 @@ final class SessionSchemaTest extends TestCase {
 	}
 
 	/**
-	 * The elapsed run length is a non-negative whole number of minutes, kept
-	 * unsnapped since a run can be cut short at any moment.
+	 * The elapsed run length is a non-negative whole number of seconds, unbounded
+	 * above since a run can be cut short or run long at any moment.
 	 */
 	public function test_sanitize_elapsed_clamps_to_non_negative_whole(): void {
 		$this->assertSame( 27, SessionSchema::sanitize_elapsed( 26.6 ) );
 		$this->assertSame( 0, SessionSchema::sanitize_elapsed( -4 ) );
-		$this->assertSame( 13, SessionSchema::sanitize_elapsed( 13 ) );
+		$this->assertSame( 1500, SessionSchema::sanitize_elapsed( 1500 ) );
 	}
 
 	/**
-	 * The run length is snapped to the supported 5..240 minute range, rounded to
-	 * the nearest five minutes the cockpit's stepper offers.
+	 * The configured run length is clamped to the supported 300..14400 second
+	 * range (5 to 240 minutes) and stored in whole seconds.
 	 */
-	public function test_sanitize_minutes_snaps_and_clamps(): void {
-		$this->assertSame( 30, SessionSchema::sanitize_minutes( 31 ) );
-		$this->assertSame( 5, SessionSchema::sanitize_minutes( 1 ) );
-		$this->assertSame( 240, SessionSchema::sanitize_minutes( 9000 ) );
+	public function test_sanitize_duration_clamps_to_second_range(): void {
+		$this->assertSame( 1800, SessionSchema::sanitize_duration( 1800 ) );
+		$this->assertSame( 300, SessionSchema::sanitize_duration( 60 ) );
+		$this->assertSame( 14400, SessionSchema::sanitize_duration( 99999 ) );
 	}
 
 	/**

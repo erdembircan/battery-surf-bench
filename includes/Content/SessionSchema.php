@@ -327,10 +327,10 @@ class SessionSchema {
 			// valid reading for these quantities — a 0 %/h drain or 0s-to-empty —
 			// so it serves as the unmeasurable marker without fighting the meta API.
 			array(
-				'key'            => 'elapsed_minutes',
+				'key'            => 'elapsed',
 				'rest_type'      => 'integer',
-				'label'          => 'Elapsed (min)',
-				'format'         => 'text',
+				'label'          => 'Elapsed',
+				'format'         => 'runtime',
 				'default'        => self::NO_DEFAULT,
 				'sanitize'       => array( self::class, 'sanitize_elapsed' ),
 				'elements'       => array(),
@@ -367,7 +367,7 @@ class SessionSchema {
 				'default_column' => true,
 			),
 			array(
-				'key'            => 'seconds_to_empty',
+				'key'            => 'time_to_empty',
 				'rest_type'      => 'integer',
 				'label'          => '100% → 0%',
 				'format'         => 'runtime',
@@ -399,13 +399,13 @@ class SessionSchema {
 				'listed'         => false,
 			),
 			array(
-				'key'            => 'duration_minutes',
+				'key'            => 'duration',
 				'group'          => self::CONFIG_GROUP,
 				'rest_type'      => 'integer',
-				'label'          => 'Duration (min)',
-				'format'         => 'optional',
+				'label'          => 'Duration',
+				'format'         => 'runtime',
 				'default'        => self::NO_DEFAULT,
-				'sanitize'       => array( self::class, 'sanitize_minutes' ),
+				'sanitize'       => array( self::class, 'sanitize_duration' ),
 				'elements'       => array(),
 				'default_column' => true,
 			),
@@ -507,8 +507,8 @@ class SessionSchema {
 	}
 
 	/**
-	 * Clamps a raw projected runtime to a non-negative whole number of seconds. A
-	 * run that could not project the runtime stores zero (see the
+	 * Clamps a raw projected time-to-empty to a non-negative whole number of
+	 * seconds. A run that could not project it stores zero (see the
 	 * derived-statistics note above).
 	 *
 	 * @param mixed $value Raw meta value.
@@ -519,28 +519,28 @@ class SessionSchema {
 	}
 
 	/**
-	 * Clamps a raw elapsed run length to a non-negative whole number of minutes —
-	 * how long the run actually lasted, unsnapped (unlike the configured
-	 * duration), since a run can be cut short at any moment.
+	 * Clamps a raw elapsed run length to a non-negative whole number of seconds —
+	 * how long the run actually lasted, unbounded above (unlike the configured
+	 * duration), since a run can be cut short or run long at any moment.
 	 *
 	 * @param mixed $value Raw meta value.
-	 * @return int The clamped elapsed minutes.
+	 * @return int The clamped elapsed seconds.
 	 */
 	public static function sanitize_elapsed( $value ): int {
 		return (int) max( 0, (int) round( (float) $value ) );
 	}
 
 	/**
-	 * Snaps a raw run length to the supported 5..240 minute range, rounded to the
-	 * nearest five minutes the cockpit's duration stepper offers.
+	 * Clamps a raw configured run length to the supported 300..14400 second range
+	 * (5 to 240 minutes), stored in seconds as the base time unit. Whole seconds;
+	 * not snapped to the stepper's minute granularity, so finer future steps store
+	 * losslessly.
 	 *
 	 * @param mixed $value Raw meta value.
-	 * @return int The snapped run length in minutes.
+	 * @return int The clamped run length in seconds.
 	 */
-	public static function sanitize_minutes( $value ): int {
-		$snapped = (int) ( round( (float) $value / 5 ) * 5 );
-
-		return (int) max( 5, min( 240, $snapped ) );
+	public static function sanitize_duration( $value ): int {
+		return (int) max( 300, min( 14400, (int) round( (float) $value ) ) );
 	}
 
 	/**
