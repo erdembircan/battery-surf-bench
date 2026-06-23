@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Sessions listing — coastal restyle</title>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Hanken+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+<style>
+  /* ── Coastal Daybreak tokens (light only — dark dropped) ───────────────── */
+  :root {
+    --sky-0: #f3fafd; --sky-1: #e7f6ff;
+    --aqua: #9ad9ea; --teal: #2f9bb3; --teal-deep: #1c7e96;
+    --navy: #1f3a5f; --ink-soft: #5b7488;
+    --coral: #ff7a5c; --coral-deep: #ef5a3a; --sun: #ffce5c;
+    --surface: #f1f7fa; --line: #e1edf2;
+    --label: rgba(31,58,95,0.62);
+    --accent-grad: linear-gradient(150deg, #2f9bb3 0%, #1c7e96 100%);
+    --accent-soft: rgba(47,155,179,0.08);
+    --surface-shadow: rgba(31,58,95,0.08);
+    /* The real frontend deck brand mark (cockpit masks this same file). */
+    --surfer: url('/assets/images/menu-icon.svg');
+    --font-display: 'Anton', 'Arial Narrow', sans-serif;
+    --font-ui: 'Hanken Grotesk', ui-sans-serif, system-ui, sans-serif;
+    --font-mono: 'Space Mono', ui-monospace, menlo, monospace;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+
+  /* Fake wp-admin chrome so the card reads in context. */
+  body { margin: 0; font-family: var(--font-ui); color: var(--navy);
+    background: #f0f0f1; -webkit-font-smoothing: antialiased; }
+  .wpwrap { display: flex; min-height: 100vh; }
+  .wpsidebar { width: 160px; flex: 0 0 auto; background: #1d2327; }
+  .wpsidebar .item { color: #c3c4c7; font-size: 13px; padding: 9px 12px; border-bottom: 1px solid #2c3338; }
+  .wpsidebar .item.active { background: var(--teal-deep); color: #fff; font-weight: 600; }
+  /* The coastal surface covers the whole admin content area — no floating card,
+     no wp-admin gray showing through. Full-bleed, fixed to the viewport height:
+     the brand header + toolbar + column headers stay sticky on top, the
+     pagination stays sticky at the bottom, and ONLY the listing rows scroll. */
+  .wpmain { flex: 1; padding: 0; min-width: 0; display: flex; height: 100vh; }
+  .deck {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+    background:
+      radial-gradient(120% 50% at 50% -6%, #fff 0%, var(--sky-0) 38%, transparent 66%),
+      linear-gradient(180deg, var(--sky-1) 0%, #fff 46%);
+    position: relative;
+  }
+  .deck__head, .toolbar, .deck__foot { flex: 0 0 auto; }
+  /* The one scroll region. Column headers stick to its top as rows scroll. */
+  .tablewrap { flex: 1 1 auto; overflow: auto; }
+
+  /* Brand header (mirrors the cockpit deck header). */
+  .deck__head { display: flex; align-items: center; gap: 1rem; padding: 1.25rem 1.5rem 1.15rem; border-bottom: 1px solid var(--line); }
+  /* Brand mark — solid surfer tinted teal, no chip, sized to the wordmark
+     height. Exactly the cockpit's .bsb-deck__mark treatment. */
+  .mark { flex: 0 0 auto; height: 2.9rem; aspect-ratio: 1; background: var(--teal);
+    -webkit-mask: var(--surfer) center/contain no-repeat; mask: var(--surfer) center/contain no-repeat; }
+  .wordmark { display: flex; flex-direction: column; gap: 0.18rem; margin-right: auto; }
+  .wordmark .title { font-family: var(--font-display); font-size: 1.5rem; line-height: 0.96; letter-spacing: 0.01em; text-transform: uppercase; color: var(--navy); }
+  .wordmark .subtitle { font-size: 0.62rem; font-weight: 700; letter-spacing: 0.42em; text-transform: uppercase; color: var(--teal); }
+  .count { font-family: var(--font-mono); font-size: 0.72rem; font-weight: 700; color: var(--teal-deep);
+    background: var(--accent-soft); border: 1px solid var(--line); border-radius: 999px; padding: 0.3rem 0.7rem; }
+  /* Open Cockpit — the action that sits by the title on the real screen, folded
+     into the coastal header. Filled teal, mirrors the cockpit accent button. */
+  .btn-cockpit { display: inline-flex; align-items: center; gap: 0.45rem; font-family: var(--font-ui);
+    font-size: 0.82rem; font-weight: 700; color: #fff; background: var(--accent-grad); border: none;
+    border-radius: 10px; padding: 0.5rem 0.9rem; cursor: pointer; box-shadow: 0 6px 14px -6px rgba(28,126,150,0.6); }
+  .btn-cockpit svg { width: 1rem; height: 1rem; }
+
+  /* ── Toolbar (search · filters · view options) ─────────────────────────── */
+  .toolbar { display: flex; align-items: center; gap: 0.6rem; padding: 0.85rem 1.5rem; background: var(--surface); border-bottom: 1px solid var(--line); }
+  .search { position: relative; flex: 0 1 280px; }
+  .search input { width: 100%; font-family: var(--font-ui); font-size: 0.85rem; color: var(--navy);
+    padding: 0.5rem 0.75rem 0.5rem 2.1rem; border: 1px solid var(--line); border-radius: 10px; background: #fff; outline: none; }
+  .search input::placeholder { color: var(--ink-soft); }
+  .search input:focus { border-color: var(--teal); box-shadow: 0 0 0 3px var(--accent-soft); }
+  .search svg { position: absolute; left: 0.7rem; top: 50%; transform: translateY(-50%); width: 1rem; height: 1rem; color: var(--ink-soft); }
+  .chip { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.8rem; font-weight: 600; color: var(--teal-deep);
+    padding: 0.45rem 0.8rem; border: 1px solid var(--line); border-radius: 10px; background: #fff; cursor: pointer; }
+  .chip svg { width: 0.9rem; height: 0.9rem; }
+  .chip.active { background: var(--accent-soft); border-color: var(--teal); }
+  .toolbar .spacer { margin-left: auto; }
+
+  /* Bulk-selection bar — replaces search/filters while rows are selected. */
+  .toolbar:not(.has-selection) .selbar { display: none; }
+  .toolbar.has-selection .search,
+  .toolbar.has-selection .chip { display: none; }
+  .selbar { display: inline-flex; align-items: center; gap: 0.7rem; }
+  .selbar .n { font-size: 0.85rem; color: var(--navy); }
+  .selbar .n b { font-family: var(--font-mono); color: var(--teal-deep); }
+  .bulk-wrap { position: relative; }
+  .bulk { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.8rem; font-weight: 600; color: var(--teal-deep);
+    padding: 0.45rem 0.8rem; border: 1px solid var(--teal); border-radius: 10px; background: #fff; cursor: pointer; }
+  .bulk svg { width: 0.85rem; height: 0.85rem; }
+  .bulk-menu { position: absolute; top: calc(100% + 6px); left: 0; min-width: 12rem; z-index: 20;
+    background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 0.35rem; box-shadow: 0 14px 32px -14px var(--surface-shadow); }
+  .bulk-menu button { display: flex; align-items: center; gap: 0.6rem; width: 100%; text-align: left; font-size: 0.84rem;
+    color: var(--coral-deep); background: none; border: none; border-radius: 8px; padding: 0.5rem 0.6rem; cursor: pointer; }
+  .bulk-menu button svg { width: 1rem; height: 1rem; }
+  .bulk-menu button:hover { background: rgba(255,122,92,0.1); }
+  .selbar .clear { font-size: 0.8rem; font-weight: 600; color: var(--ink-soft); background: none; border: none; cursor: pointer; }
+  .selbar .clear:hover { color: var(--navy); text-decoration: underline; }
+  .ibtn { width: 2.15rem; height: 2.15rem; border: 1px solid var(--line); border-radius: 10px; background: #fff;
+    display: grid; place-items: center; color: var(--navy); cursor: pointer; }
+  .ibtn svg { width: 1.1rem; height: 1.1rem; }
+  .ibtn:hover { background: var(--accent-soft); border-color: var(--teal); color: var(--teal-deep); }
+
+  /* ── Table ─────────────────────────────────────────────────────────────── */
+  .tablewrap { overflow-x: auto; }
+  /* `separate` (not `collapse`) so the sticky header stays fully opaque — with
+     collapsed borders a scrolled row bleeds through the header's border edge. */
+  table { width: 100%; border-collapse: separate; border-spacing: 0; min-width: 1360px; }
+  thead th.act, tbody td.act { text-align: center; }
+  /* Leading selection column — coastal-tinted native checkbox. */
+  thead th.sel, tbody td.sel { width: 1px; padding-left: 1.2rem; padding-right: 0.4rem; }
+  .check { width: 1.05rem; height: 1.05rem; accent-color: var(--teal); cursor: pointer; vertical-align: middle; }
+  /* Selected row — teal wash + a left accent bar, wins over zebra/hover. */
+  tbody tr:has(.check:checked) td { background: rgba(47,155,179,0.12); }
+  tbody tr:has(.check:checked) td.sel { box-shadow: inset 3px 0 0 var(--teal); }
+  thead th {
+    font-size: 0.62rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--teal); text-align: left; padding: 0.8rem 0.9rem; white-space: nowrap;
+    background: #fff; border-bottom: 2px solid var(--line); position: sticky; top: 0; z-index: 3;
+  }
+  thead th.num { text-align: right; }
+  thead th .sortable { display: inline-flex; align-items: center; gap: 0.3rem; cursor: pointer; }
+  thead th .sortable svg { width: 0.7rem; height: 0.7rem; opacity: 0.5; }
+  thead th.sorted { color: var(--teal-deep); }
+  thead th.sorted .sortable svg { opacity: 1; }
+
+  tbody td { padding: 0.7rem 0.9rem; font-size: 0.84rem; border-bottom: 1px solid var(--line); white-space: nowrap; vertical-align: middle; }
+  tbody td.num { text-align: right; font-family: var(--font-mono); font-size: 0.78rem; color: var(--navy); font-variant-numeric: tabular-nums; }
+  tbody td.muted { color: var(--ink-soft); }
+  /* Sessions have no human title — the identifier is the CPT id. */
+  tbody td .session-id { font-family: var(--font-mono); font-weight: 700; font-size: 0.82rem; color: var(--navy); }
+  tbody td .session-id .hash { color: var(--teal); }
+  tbody tr:nth-child(even) td { background: rgba(154,217,234,0.07); }
+  tbody tr:hover td { background: var(--accent-soft); }
+  .dash { color: var(--ink-soft); }
+
+  /* Status badge — coastal. */
+  .badge-status { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.18rem 0.6rem 0.18rem 0.5rem;
+    border-radius: 999px; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.02em; }
+  .badge-status .dot { width: 0.42rem; height: 0.42rem; border-radius: 50%; }
+  .badge-status--finished { background: rgba(47,155,179,0.14); color: var(--teal-deep); }
+  .badge-status--finished .dot { background: var(--teal); }
+  .badge-status--running { background: rgba(47,155,179,0.16); color: var(--teal-deep); }
+  .badge-status--running .dot { background: var(--sun); box-shadow: 0 0 0 0 rgba(255,206,92,0.7); animation: pulse 1.4s ease-in-out infinite; }
+  .badge-status--stopped { background: rgba(255,206,92,0.22); color: #8a5a00; }
+  .badge-status--stopped .dot { background: var(--sun); }
+  .badge-status--aborted { background: rgba(255,122,92,0.16); color: var(--coral-deep); }
+  .badge-status--aborted .dot { background: var(--coral); }
+  @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(255,206,92,0.6); } 50% { box-shadow: 0 0 0 4px rgba(255,206,92,0); } }
+
+  /* Actions cell — per-row trash, ghost until hovered. */
+  .actbtn { width: 1.85rem; height: 1.85rem; border: 1px solid transparent; border-radius: 8px; background: transparent;
+    color: var(--ink-soft); display: grid; place-items: center; cursor: pointer; }
+  .actbtn svg { width: 1rem; height: 1rem; }
+  tbody tr:hover .actbtn { color: var(--coral-deep); border-color: var(--line); background: #fff; }
+
+  /* Coastal "No results" empty state. */
+  .empty { flex: 1 1 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.9rem; text-align: center; padding: 2rem; }
+  .empty .mark-lg { width: 4.5rem; height: 4.5rem; background: var(--aqua);
+    -webkit-mask: var(--surfer) center/contain no-repeat; mask: var(--surfer) center/contain no-repeat; opacity: 0.7; }
+  .empty h2 { font-family: var(--font-display); font-size: 1.5rem; text-transform: uppercase; color: var(--navy); margin: 0; letter-spacing: 0.01em; }
+  .empty p { margin: 0; font-size: 0.9rem; color: var(--ink-soft); max-width: 24rem; }
+
+  /* Review-only affordance to flip populated ⇄ empty (not part of the design). */
+  .review-toggle { position: fixed; bottom: 12px; left: 50%; transform: translateX(-50%); z-index: 50; display: flex; gap: 4px;
+    background: rgba(255,255,255,0.85); border: 1px solid var(--line); border-radius: 8px; padding: 3px; backdrop-filter: blur(4px); }
+  .review-toggle button { font: 600 11px var(--font-ui); color: var(--ink-soft); background: none; border: none; border-radius: 6px; padding: 4px 8px; cursor: pointer; }
+  .review-toggle button.on { background: var(--teal); color: #fff; }
+
+  /* Mode pill — quieter. */
+  .pill-mode { font-size: 0.72rem; font-weight: 600; color: var(--ink-soft);
+    background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 0.15rem 0.55rem; }
+
+  /* Battery level bar — coastal. */
+  .level { display: inline-flex; align-items: center; gap: 0.55rem; min-width: 116px; }
+  .level__track { position: relative; flex: 1; height: 7px; border-radius: 999px; background: #dbe9ef; overflow: hidden; box-shadow: inset 0 1px 2px rgba(31,58,95,0.12); }
+  .level__fill { display: block; height: 100%; border-radius: inherit; }
+  .level__fill--high { background: linear-gradient(90deg, var(--teal), var(--aqua)); }
+  .level__fill--mid { background: linear-gradient(90deg, #e8a93a, var(--sun)); }
+  .level__fill--low { background: linear-gradient(90deg, var(--coral-deep), var(--coral)); }
+  .level__pct { min-width: 2.4rem; text-align: right; font-family: var(--font-mono); font-size: 0.76rem; font-weight: 700; color: var(--navy); }
+
+  /* ── Footer / pagination ───────────────────────────────────────────────── */
+  .deck__foot { display: flex; align-items: center; gap: 0.6rem; padding: 0.85rem 1.5rem; background: var(--surface); border-top: 1px solid var(--line); position: relative; z-index: 1; }
+  .deck__foot .info { font-size: 0.78rem; color: var(--ink-soft); margin-right: auto; }
+  .pagebtn { width: 2rem; height: 2rem; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--navy);
+    display: grid; place-items: center; cursor: pointer; }
+  .pagebtn svg { width: 0.95rem; height: 0.95rem; }
+  .pagebtn:disabled { opacity: 0.4; cursor: default; }
+  .pagebtn:not(:disabled):hover { background: var(--accent-soft); border-color: var(--teal); }
+  .pagenum { font-family: var(--font-mono); font-size: 0.78rem; font-weight: 700; color: var(--navy); padding: 0 0.5rem; }
+
+  /* page intro */
+  .intro { max-width: 760px; margin: 0 0 16px; font-size: 0.84rem; color: var(--ink-soft); }
+  .intro b { color: var(--navy); }
+</style>
+</head>
+<body>
+<div class="review-toggle">
+  <button id="rt-data" class="on">Populated</button>
+  <button id="rt-empty">No results</button>
+</div>
+<div class="wpwrap">
+  <nav class="wpsidebar">
+    <div class="item">Dashboard</div>
+    <div class="item">Posts</div>
+    <div class="item active">Surf Bench</div>
+    <div class="item">Sessions</div>
+    <div class="item">Settings</div>
+  </nav>
+
+  <main class="wpmain">
+    <div class="deck">
+      <!-- brand header -->
+      <header class="deck__head">
+        <span class="mark"></span>
+        <span class="wordmark">
+          <span class="title">Sessions</span>
+          <span class="subtitle">Benchmark log</span>
+        </span>
+        <button class="btn-cockpit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/><path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"/></svg>Open Cockpit</button>
+      </header>
+
+      <!-- toolbar -->
+      <div class="toolbar" id="toolbar">
+        <div class="selbar">
+          <span class="n"><b id="sel-count">0</b> selected</span>
+          <div class="bulk-wrap">
+            <button class="bulk" id="bulk-btn">Bulk actions<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
+            <div class="bulk-menu" id="bulk-menu" hidden>
+              <button id="bulk-trash"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>Move to Trash</button>
+            </div>
+          </div>
+          <button class="clear" id="sel-clear">Clear selection</button>
+        </div>
+        <label class="search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+          <input type="text" placeholder="Search sessions" />
+        </label>
+        <button class="chip active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>Status</button>
+        <button class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add filter</button>
+        <span class="spacer" style="margin-left:auto"></span>
+        <button class="ibtn" aria-label="Sort"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5h10M11 9h7M11 13h4M3 17l3 3 3-3M6 18V4"/></svg></button>
+        <button class="ibtn" aria-label="Density"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+        <button class="ibtn" aria-label="View options"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
+      </div>
+
+      <!-- table -->
+      <div class="tablewrap">
+        <table>
+          <thead>
+            <tr>
+              <th class="sel"><input type="checkbox" class="check" aria-label="Select all" /></th>
+              <th><span class="sortable">Session</span></th>
+              <th>Status</th>
+              <th>Mode</th>
+              <th class="sorted"><span class="sortable">Started<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span></th>
+              <th>Start level</th>
+              <th>End level</th>
+              <th class="num">Elapsed</th>
+              <th class="num">Dropped</th>
+              <th class="num">Rate · 10 min</th>
+              <th class="num">Rate · session</th>
+              <th class="num">100% → 0%</th>
+              <th class="num">Duration</th>
+              <th class="num">Target</th>
+              <th class="act">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+
+      <!-- coastal empty state (No results) -->
+      <div class="empty" id="empty" hidden>
+        <span class="mark-lg"></span>
+        <h2>No sessions yet</h2>
+        <p>Run a benchmark from the cockpit and your saved sessions will surface here.</p>
+        <button class="btn-cockpit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/><path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"/></svg>Open Cockpit</button>
+      </div>
+
+      <!-- footer (no wave decoration) -->
+      <div class="deck__foot">
+        <span class="info">1–25 of 128</span>
+        <button class="pagebtn" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/></svg></button>
+        <button class="pagebtn" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+        <span class="pagenum">1 / 6</span>
+        <button class="pagebtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
+        <button class="pagebtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="13 17 18 12 13 7"/><polyline points="6 17 11 12 6 7"/></svg></button>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+  const dash = '<span class="dash">—</span>';
+  function lvl(p) {
+    if (p == null) return dash;
+    const tone = p >= 60 ? 'high' : p >= 25 ? 'mid' : 'low';
+    return `<span class="level"><span class="level__track"><span class="level__fill level__fill--${tone}" style="width:${p}%"></span></span><span class="level__pct">${p}%</span></span>`;
+  }
+  function status(s) {
+    const labels = { finished: 'Finished', running: 'Running', stopped: 'Stopped', aborted: 'Aborted' };
+    return `<span class="badge-status badge-status--${s}"><span class="dot"></span>${labels[s]}</span>`;
+  }
+  // dur = configured run length (duration mode), tgt = configured stop-at drop
+  // (target mode); the other reads em-dash, mirroring the real per-mode config.
+  const templates = [
+    { s: 'finished', mode: 'Duration', start: 92, end: 78, el: '1h 0m', drop: '14%', r10: '12%/h', rs: '14%/h', tte: '5h 34m', dur: '60m', tgt: null },
+    { s: 'running',  mode: 'Target drop', start: 88, end: 81, el: '24m', drop: '7%', r10: '17%/h', rs: '17%/h', tte: '4h 46m', dur: null, tgt: '15%' },
+    { s: 'finished', mode: 'Target drop', start: 100, end: 70, el: '1h 12m', drop: '30%', r10: '24%/h', rs: '25%/h', tte: '2h 48m', dur: null, tgt: '30%' },
+    { s: 'stopped',  mode: 'Duration', start: 64, end: 59, el: '18m', drop: '5%', r10: '16%/h', rs: '16%/h', tte: '3h 41m', dur: '90m', tgt: null },
+    { s: 'finished', mode: 'Duration', start: 47, end: 33, el: '45m', drop: '14%', r10: '18%/h', rs: '19%/h', tte: '1h 44m', dur: '45m', tgt: null },
+    { s: 'aborted',  mode: 'Target drop', start: 21, end: 19, el: '8m', drop: '2%', r10: null, rs: null, tte: null, dur: null, tgt: '20%' },
+    { s: 'finished', mode: 'Duration', start: 78, end: 61, el: '1h 0m', drop: '17%', r10: '16%/h', rs: '17%/h', tte: '3h 35m', dur: '60m', tgt: null },
+    { s: 'finished', mode: 'Target drop', start: 96, end: 76, el: '58m', drop: '20%', r10: '20%/h', rs: '21%/h', tte: '3h 37m', dur: null, tgt: '25%' },
+  ];
+  const times = ['9:14 AM','8:40 AM','7:02 PM','3:21 PM','11:55 AM','9:30 AM','6:48 PM','7:15 AM'];
+  const days = ['Jun 23, 2026','Jun 22, 2026','Jun 21, 2026','Jun 20, 2026','Jun 19, 2026','Jun 18, 2026','Jun 17, 2026'];
+  // Many mock rows so the body scrolls under the sticky header/footer.
+  const data = Array.from({ length: 42 }, (_, i) => {
+    const t = templates[i % templates.length];
+    return { ...t, id: 412 - i, when: `${days[Math.floor(i / 6) % days.length]}, ${times[i % times.length]}` };
+  });
+  document.getElementById('rows').innerHTML = data.map((r) => `
+    <tr>
+      <td class="sel"><input type="checkbox" class="check" aria-label="Select session #${r.id}" /></td>
+      <td><span class="session-id"><span class="hash">#</span>${r.id}</span></td>
+      <td>${status(r.s)}</td>
+      <td><span class="pill-mode">${r.mode}</span></td>
+      <td class="muted">${r.when}</td>
+      <td>${lvl(r.start)}</td>
+      <td>${lvl(r.end)}</td>
+      <td class="num">${r.el}</td>
+      <td class="num">${r.drop}</td>
+      <td class="num">${r.r10 ?? dash}</td>
+      <td class="num">${r.rs ?? dash}</td>
+      <td class="num">${r.tte ?? dash}</td>
+      <td class="num">${r.dur ?? dash}</td>
+      <td class="num">${r.tgt ?? dash}</td>
+      <td class="act"><button class="actbtn" aria-label="Trash"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button></td>
+    </tr>`).join('');
+
+  // Review-only: flip between the populated table and the No-results state.
+  const tableWrap = document.querySelector('.tablewrap');
+  const foot = document.querySelector('.deck__foot');
+  const empty = document.getElementById('empty');
+  const btnData = document.getElementById('rt-data');
+  const btnEmpty = document.getElementById('rt-empty');
+  function show(populated) {
+    tableWrap.hidden = !populated; foot.hidden = !populated; empty.hidden = populated;
+    btnData.classList.toggle('on', populated); btnEmpty.classList.toggle('on', !populated);
+  }
+  btnData.addEventListener('click', () => show(true));
+  btnEmpty.addEventListener('click', () => show(false));
+
+  // Selection + bulk-actions behaviour (mirrors a normal WP/DataViews listing).
+  const toolbar = document.getElementById('toolbar');
+  const selAll = document.querySelector('thead .check');
+  const rowChecks = () => Array.from(document.querySelectorAll('tbody .check'));
+  const selCount = document.getElementById('sel-count');
+  const bulkBtn = document.getElementById('bulk-btn');
+  const bulkMenu = document.getElementById('bulk-menu');
+  function syncSelection() {
+    const checks = rowChecks();
+    const n = checks.filter((c) => c.checked).length;
+    selCount.textContent = n;
+    toolbar.classList.toggle('has-selection', n > 0);
+    if (n === 0) bulkMenu.hidden = true;
+    selAll.checked = n > 0 && n === checks.length;
+    selAll.indeterminate = n > 0 && n < checks.length;
+  }
+  document.querySelector('tbody').addEventListener('change', (e) => {
+    if (e.target.classList.contains('check')) syncSelection();
+  });
+  selAll.addEventListener('change', () => {
+    rowChecks().forEach((c) => { c.checked = selAll.checked; });
+    syncSelection();
+  });
+  bulkBtn.addEventListener('click', () => { bulkMenu.hidden = !bulkMenu.hidden; });
+  document.getElementById('bulk-trash').addEventListener('click', () => {
+    bulkMenu.hidden = true;
+    rowChecks().forEach((c) => { c.checked = false; });
+    syncSelection();
+  });
+  document.getElementById('sel-clear').addEventListener('click', () => {
+    rowChecks().forEach((c) => { c.checked = false; });
+    syncSelection();
+  });
+  syncSelection();
+</script>
+</body>
+</html>
