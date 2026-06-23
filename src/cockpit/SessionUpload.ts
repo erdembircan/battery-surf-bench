@@ -210,21 +210,23 @@ export const buildSessionPayload = (
 
 /**
  * POSTs a session record to the post type's REST collection, gated by the
- * `wp_rest` nonce the PHP route minted for the authorized administrator. No-ops
- * when the REST config is absent (the route did not seed it) — the cockpit still
- * shows its summary. Any network or HTTP failure is logged and swallowed so a
- * persistence error never breaks the end-of-run UI.
+ * `wp_rest` nonce the PHP route minted for the authorized administrator. Returns
+ * whether the run was actually persisted, so the caller can surface a failure
+ * to the user. A failure is logged and swallowed (never thrown) so it cannot
+ * break the end-of-run UI. When the REST config is absent (the route did not
+ * seed it) nothing is attempted and `true` is returned — that is a
+ * misconfiguration, not a connectivity failure to alarm the user about.
  *
  * @param payload The session record to persist.
- * @return A promise that resolves once the upload attempt settles.
+ * @return A promise resolving to whether the session was persisted.
  */
 export const postSession = async (
 	payload: SessionPayload
-): Promise< void > => {
+): Promise< boolean > => {
 	const config = getConfig( 'bsb/cockpit' ) as Partial< RestConfig >;
 
 	if ( ! config.restUrl || ! config.restNonce ) {
-		return;
+		return true;
 	}
 
 	try {
@@ -243,9 +245,13 @@ export const postSession = async (
 			console.error(
 				`[bsb] session upload failed: ${ response.status }`
 			);
+			return false;
 		}
+
+		return true;
 	} catch ( error ) {
 		// eslint-disable-next-line no-console
 		console.error( '[bsb] session upload error', error );
+		return false;
 	}
 };

@@ -69,10 +69,31 @@ classDiagram
         actions: toggleIdleFlip
     }
 
+    class ToastStore {
+        <<module>>
+        state: hasToast, isToastError/Notice, toastMessage, toastRole, phase flags
+        actions: dismissToast, viewportEnter
+        callbacks: onToastAnimationEnd
+    }
+
     %% --- Shared seam between slices.
     class CockpitContext {
         <<types>>
-        CockpitContext, RunEndReason, ReasonText
+        CockpitContext, RunEndReason, ReasonText, ToastKind, ToastPhase
+    }
+
+    class Toasts {
+        <<module>>
+        +enqueueToast(ctx, instance, ToastKind) void
+        +finishToast(ctx, instance) void
+        +TOAST_HOLD_MS
+    }
+
+    class ToastQueue {
+        +enqueue(ToastKind) void
+        +next() ToastKind|null
+        +size: number
+        +clear() void
     }
 
     class RunInstance {
@@ -206,6 +227,7 @@ classDiagram
     CockpitView --> SoundStore : composes
     CockpitView --> SummaryStore : composes
     CockpitView --> StartupStore : composes
+    CockpitView --> ToastStore : composes
 
     %% Slices share the run state, lifecycle seam and reactive context.
     RunStore ..> CockpitContext : reads/writes
@@ -215,6 +237,7 @@ classDiagram
     SoundStore ..> CockpitContext : reads/writes
     SummaryStore ..> CockpitContext : reads/writes
     StartupStore ..> CockpitContext : reads/writes
+    ToastStore ..> CockpitContext : reads/writes
 
     RunStore --> RunLifecycle : ends runs
     BatteryStore --> RunLifecycle : ends runs (charger/target)
@@ -223,6 +246,14 @@ classDiagram
     BatteryStore --> RunInstance : run state
     SoundStore --> RunInstance : chime state
     SummaryStore --> RunInstance : auto-flip timer
+    ToastStore --> RunInstance : toast queue & timer
+    RunStore --> RunInstance : re-arms notice on run start
+
+    %% Toast queue & lifecycle.
+    ToastStore --> Toasts : enqueues / advances
+    RunLifecycle --> Toasts : raises error toast on failed upload
+    Toasts ..> CockpitContext : writes current toast
+    RunInstance --> ToastQueue : creates & owns (composition)
 
     %% Slice → focused domain delegation.
     RunStore --> RunConfig : normalizes config

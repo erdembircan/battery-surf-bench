@@ -11,6 +11,7 @@ import { type InstanceState, wallNow } from './RunInstance';
 import { RunSession } from './RunSession';
 import { buildGraph, type GraphViewport, type GraphModel } from './DrainGraph';
 import { buildSessionPayload, postSession } from './SessionUpload';
+import { enqueueToast } from './Toasts';
 
 /**
  * The summary drain graph's drawing viewport (SVG user units). A wide, short
@@ -91,8 +92,10 @@ const freezeSummary = (
  * payload from the frozen session — the summary, the configuration the run used,
  * its samples, the wall-clock stamps and the user agent — and POSTs it through
  * the session post type's own endpoint. Skipped when the run logged no samples
- * (nothing meaningful to store); any failure is swallowed inside
- * {@link postSession}, so persistence never disturbs the end-of-run UI.
+ * (nothing meaningful to store). The upload is fire-and-forget, but its outcome
+ * is awaited just enough to surface a failure: if the run was not persisted, an
+ * error toast is raised (it may appear after the summary is already up, which is
+ * why the toast layer is independent of the summary).
  *
  * @param context  The reactive cockpit context to read the configuration from.
  * @param instance The per-instance run state holding the session and start stamp.
@@ -123,7 +126,11 @@ const persistSession = (
 		return;
 	}
 
-	void postSession( payload );
+	void postSession( payload ).then( ( ok ) => {
+		if ( ! ok ) {
+			enqueueToast( context, instance, 'error' );
+		}
+	} );
 };
 
 /**

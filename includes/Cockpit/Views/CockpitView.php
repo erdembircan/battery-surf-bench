@@ -66,7 +66,7 @@ class CockpitView implements View {
 	 *     @type string $expand_label      Translated accessible label for the expand control.
 	 *     @type string $sound_label       Translated accessible label for the finish-sound toggle.
 	 *     @type string $viewport_title    Translated title for the viewport iframe.
-	 *     @type string $shield_label      Translated "view only" chip text over the viewport.
+	 *     @type string $toast_dismiss_label Translated accessible label for the toast's dismiss button.
 	 *     @type string $greeting_lead     Translated "Greetings from" line of the idle postcard.
 	 *     @type string $idle_heading      Translated heading on the idle postcard back.
 	 *     @type string $idle_subtitle     Translated subtitle under the idle heading.
@@ -84,55 +84,55 @@ class CockpitView implements View {
 	 * @return string The block's HTML.
 	 */
 	public function render( array $data = array() ): string {
-		$wrapper            = isset( $data['wrapper'] ) ? (string) $data['wrapper'] : '';
-		$context            = isset( $data['context'] ) ? (string) $data['context'] : '';
-		$brand_title        = isset( $data['brand_title'] ) ? (string) $data['brand_title'] : '';
-		$brand_subtitle     = isset( $data['brand_subtitle'] ) ? (string) $data['brand_subtitle'] : '';
-		$mode_label         = isset( $data['mode_label'] ) ? (string) $data['mode_label'] : '';
-		$duration_mode      = isset( $data['duration_mode'] ) ? (string) $data['duration_mode'] : '';
-		$target_drop_mode   = isset( $data['target_drop_mode'] ) ? (string) $data['target_drop_mode'] : '';
-		$duration_label     = isset( $data['duration_label'] ) ? (string) $data['duration_label'] : '';
-		$minutes_label      = isset( $data['minutes_label'] ) ? (string) $data['minutes_label'] : '';
-		$decrease_label     = isset( $data['decrease_label'] ) ? (string) $data['decrease_label'] : '';
-		$increase_label     = isset( $data['increase_label'] ) ? (string) $data['increase_label'] : '';
-		$target_label       = isset( $data['target_label'] ) ? (string) $data['target_label'] : '';
-		$target_aria        = isset( $data['target_aria'] ) ? (string) $data['target_aria'] : '';
-		$baseline_label     = isset( $data['baseline_label'] ) ? (string) $data['baseline_label'] : '';
-		$speed_label        = isset( $data['speed_label'] ) ? (string) $data['speed_label'] : '';
-		$battery_label      = isset( $data['battery_label'] ) ? (string) $data['battery_label'] : '';
-		$rate10_label       = isset( $data['rate10_label'] ) ? (string) $data['rate10_label'] : '';
-		$rate_session_label = isset( $data['rate_session_label'] ) ? (string) $data['rate_session_label'] : '';
-		$tte_label          = isset( $data['tte_label'] ) ? (string) $data['tte_label'] : '';
-		$target_short_label = isset( $data['target_short_label'] ) ? (string) $data['target_short_label'] : '';
-		$surfing_label      = isset( $data['surfing_label'] ) ? (string) $data['surfing_label'] : '';
-		$elapsed_label      = isset( $data['elapsed_label'] ) ? (string) $data['elapsed_label'] : '';
-		$remaining_label    = isset( $data['remaining_label'] ) ? (string) $data['remaining_label'] : '';
-		$start_label        = isset( $data['start_label'] ) ? (string) $data['start_label'] : '';
-		$stop_label         = isset( $data['stop_label'] ) ? (string) $data['stop_label'] : '';
-		$plugged_label      = isset( $data['plugged_label'] ) ? (string) $data['plugged_label'] : '';
-		$compact_label      = isset( $data['compact_label'] ) ? (string) $data['compact_label'] : '';
-		$expand_label       = isset( $data['expand_label'] ) ? (string) $data['expand_label'] : '';
-		$sound_label        = isset( $data['sound_label'] ) ? (string) $data['sound_label'] : '';
-		$viewport_title     = isset( $data['viewport_title'] ) ? (string) $data['viewport_title'] : '';
-		$shield_label       = isset( $data['shield_label'] ) ? (string) $data['shield_label'] : '';
-		$greeting_lead      = isset( $data['greeting_lead'] ) ? (string) $data['greeting_lead'] : '';
-		$idle_heading       = isset( $data['idle_heading'] ) ? (string) $data['idle_heading'] : '';
-		$idle_subtitle      = isset( $data['idle_subtitle'] ) ? (string) $data['idle_subtitle'] : '';
-		$idle_step1_title   = isset( $data['idle_step1_title'] ) ? (string) $data['idle_step1_title'] : '';
-		$idle_step1_text    = isset( $data['idle_step1_text'] ) ? (string) $data['idle_step1_text'] : '';
-		$idle_step2_title   = isset( $data['idle_step2_title'] ) ? (string) $data['idle_step2_title'] : '';
-		$idle_step2_text    = isset( $data['idle_step2_text'] ) ? (string) $data['idle_step2_text'] : '';
-		$idle_step3_title   = isset( $data['idle_step3_title'] ) ? (string) $data['idle_step3_title'] : '';
-		$idle_step3_text    = isset( $data['idle_step3_text'] ) ? (string) $data['idle_step3_text'] : '';
-		$idle_notice_title  = isset( $data['idle_notice_title'] ) ? (string) $data['idle_notice_title'] : '';
-		$idle_notice_text   = isset( $data['idle_notice_text'] ) ? (string) $data['idle_notice_text'] : '';
-		$dropped_label      = isset( $data['dropped_label'] ) ? (string) $data['dropped_label'] : '';
-		$pts_label          = isset( $data['pts_label'] ) ? (string) $data['pts_label'] : '';
-		$elapsed_run_label  = isset( $data['elapsed_run_label'] ) ? (string) $data['elapsed_run_label'] : '';
-		$new_run_label      = isset( $data['new_run_label'] ) ? (string) $data['new_run_label'] : '';
-		$summary_brand      = isset( $data['summary_brand'] ) ? (string) $data['summary_brand'] : '';
-		$measured_label     = isset( $data['measured_label'] ) ? (string) $data['measured_label'] : '';
-		$projected_label    = isset( $data['projected_label'] ) ? (string) $data['projected_label'] : '';
+		$wrapper             = isset( $data['wrapper'] ) ? (string) $data['wrapper'] : '';
+		$context             = isset( $data['context'] ) ? (string) $data['context'] : '';
+		$brand_title         = isset( $data['brand_title'] ) ? (string) $data['brand_title'] : '';
+		$brand_subtitle      = isset( $data['brand_subtitle'] ) ? (string) $data['brand_subtitle'] : '';
+		$mode_label          = isset( $data['mode_label'] ) ? (string) $data['mode_label'] : '';
+		$duration_mode       = isset( $data['duration_mode'] ) ? (string) $data['duration_mode'] : '';
+		$target_drop_mode    = isset( $data['target_drop_mode'] ) ? (string) $data['target_drop_mode'] : '';
+		$duration_label      = isset( $data['duration_label'] ) ? (string) $data['duration_label'] : '';
+		$minutes_label       = isset( $data['minutes_label'] ) ? (string) $data['minutes_label'] : '';
+		$decrease_label      = isset( $data['decrease_label'] ) ? (string) $data['decrease_label'] : '';
+		$increase_label      = isset( $data['increase_label'] ) ? (string) $data['increase_label'] : '';
+		$target_label        = isset( $data['target_label'] ) ? (string) $data['target_label'] : '';
+		$target_aria         = isset( $data['target_aria'] ) ? (string) $data['target_aria'] : '';
+		$baseline_label      = isset( $data['baseline_label'] ) ? (string) $data['baseline_label'] : '';
+		$speed_label         = isset( $data['speed_label'] ) ? (string) $data['speed_label'] : '';
+		$battery_label       = isset( $data['battery_label'] ) ? (string) $data['battery_label'] : '';
+		$rate10_label        = isset( $data['rate10_label'] ) ? (string) $data['rate10_label'] : '';
+		$rate_session_label  = isset( $data['rate_session_label'] ) ? (string) $data['rate_session_label'] : '';
+		$tte_label           = isset( $data['tte_label'] ) ? (string) $data['tte_label'] : '';
+		$target_short_label  = isset( $data['target_short_label'] ) ? (string) $data['target_short_label'] : '';
+		$surfing_label       = isset( $data['surfing_label'] ) ? (string) $data['surfing_label'] : '';
+		$elapsed_label       = isset( $data['elapsed_label'] ) ? (string) $data['elapsed_label'] : '';
+		$remaining_label     = isset( $data['remaining_label'] ) ? (string) $data['remaining_label'] : '';
+		$start_label         = isset( $data['start_label'] ) ? (string) $data['start_label'] : '';
+		$stop_label          = isset( $data['stop_label'] ) ? (string) $data['stop_label'] : '';
+		$plugged_label       = isset( $data['plugged_label'] ) ? (string) $data['plugged_label'] : '';
+		$compact_label       = isset( $data['compact_label'] ) ? (string) $data['compact_label'] : '';
+		$expand_label        = isset( $data['expand_label'] ) ? (string) $data['expand_label'] : '';
+		$sound_label         = isset( $data['sound_label'] ) ? (string) $data['sound_label'] : '';
+		$viewport_title      = isset( $data['viewport_title'] ) ? (string) $data['viewport_title'] : '';
+		$toast_dismiss_label = isset( $data['toast_dismiss_label'] ) ? (string) $data['toast_dismiss_label'] : '';
+		$greeting_lead       = isset( $data['greeting_lead'] ) ? (string) $data['greeting_lead'] : '';
+		$idle_heading        = isset( $data['idle_heading'] ) ? (string) $data['idle_heading'] : '';
+		$idle_subtitle       = isset( $data['idle_subtitle'] ) ? (string) $data['idle_subtitle'] : '';
+		$idle_step1_title    = isset( $data['idle_step1_title'] ) ? (string) $data['idle_step1_title'] : '';
+		$idle_step1_text     = isset( $data['idle_step1_text'] ) ? (string) $data['idle_step1_text'] : '';
+		$idle_step2_title    = isset( $data['idle_step2_title'] ) ? (string) $data['idle_step2_title'] : '';
+		$idle_step2_text     = isset( $data['idle_step2_text'] ) ? (string) $data['idle_step2_text'] : '';
+		$idle_step3_title    = isset( $data['idle_step3_title'] ) ? (string) $data['idle_step3_title'] : '';
+		$idle_step3_text     = isset( $data['idle_step3_text'] ) ? (string) $data['idle_step3_text'] : '';
+		$idle_notice_title   = isset( $data['idle_notice_title'] ) ? (string) $data['idle_notice_title'] : '';
+		$idle_notice_text    = isset( $data['idle_notice_text'] ) ? (string) $data['idle_notice_text'] : '';
+		$dropped_label       = isset( $data['dropped_label'] ) ? (string) $data['dropped_label'] : '';
+		$pts_label           = isset( $data['pts_label'] ) ? (string) $data['pts_label'] : '';
+		$elapsed_run_label   = isset( $data['elapsed_run_label'] ) ? (string) $data['elapsed_run_label'] : '';
+		$new_run_label       = isset( $data['new_run_label'] ) ? (string) $data['new_run_label'] : '';
+		$summary_brand       = isset( $data['summary_brand'] ) ? (string) $data['summary_brand'] : '';
+		$measured_label      = isset( $data['measured_label'] ) ? (string) $data['measured_label'] : '';
+		$projected_label     = isset( $data['projected_label'] ) ? (string) $data['projected_label'] : '';
 
 		// Shared postcard components, rendered once and placed in both the startup
 		// postcard and the run-summary card so the illustration and the stamp are a
@@ -157,53 +157,53 @@ class CockpitView implements View {
 		// and stay as-is, as do the composed child-view markups above. `mode_label`
 		// and `speed_label` appear in both a text slot and an aria-label, so each
 		// also gets an attribute-escaped variant.
-		$mode_label_attr    = esc_attr( $mode_label );
-		$speed_label_attr   = esc_attr( $speed_label );
-		$brand_title        = esc_html( $brand_title );
-		$brand_subtitle     = esc_html( $brand_subtitle );
-		$mode_label         = esc_html( $mode_label );
-		$duration_mode      = esc_html( $duration_mode );
-		$target_drop_mode   = esc_html( $target_drop_mode );
-		$duration_label     = esc_html( $duration_label );
-		$minutes_label      = esc_html( $minutes_label );
-		$decrease_label     = esc_attr( $decrease_label );
-		$increase_label     = esc_attr( $increase_label );
-		$target_label       = esc_html( $target_label );
-		$target_aria        = esc_attr( $target_aria );
-		$baseline_label     = esc_html( $baseline_label );
-		$speed_label        = esc_html( $speed_label );
-		$battery_label      = esc_html( $battery_label );
-		$rate10_label       = esc_html( $rate10_label );
-		$rate_session_label = esc_html( $rate_session_label );
-		$tte_label          = esc_html( $tte_label );
-		$target_short_label = esc_html( $target_short_label );
-		$surfing_label      = esc_html( $surfing_label );
-		$elapsed_label      = esc_html( $elapsed_label );
-		$remaining_label    = esc_html( $remaining_label );
-		$start_label        = esc_html( $start_label );
-		$stop_label         = esc_html( $stop_label );
-		$plugged_label      = esc_html( $plugged_label );
-		$compact_label      = esc_attr( $compact_label );
-		$expand_label       = esc_attr( $expand_label );
-		$sound_label        = esc_attr( $sound_label );
-		$viewport_title     = esc_attr( $viewport_title );
-		$shield_label       = esc_html( $shield_label );
-		$idle_heading       = esc_html( $idle_heading );
-		$idle_subtitle      = esc_html( $idle_subtitle );
-		$idle_step1_title   = esc_html( $idle_step1_title );
-		$idle_step1_text    = esc_html( $idle_step1_text );
-		$idle_step2_title   = esc_html( $idle_step2_title );
-		$idle_step2_text    = esc_html( $idle_step2_text );
-		$idle_step3_title   = esc_html( $idle_step3_title );
-		$idle_step3_text    = esc_html( $idle_step3_text );
-		$idle_notice_title  = esc_html( $idle_notice_title );
-		$idle_notice_text   = esc_html( $idle_notice_text );
-		$dropped_label      = esc_html( $dropped_label );
-		$pts_label          = esc_html( $pts_label );
-		$elapsed_run_label  = esc_html( $elapsed_run_label );
-		$new_run_label      = esc_html( $new_run_label );
-		$measured_label     = esc_html( $measured_label );
-		$projected_label    = esc_html( $projected_label );
+		$mode_label_attr     = esc_attr( $mode_label );
+		$speed_label_attr    = esc_attr( $speed_label );
+		$brand_title         = esc_html( $brand_title );
+		$brand_subtitle      = esc_html( $brand_subtitle );
+		$mode_label          = esc_html( $mode_label );
+		$duration_mode       = esc_html( $duration_mode );
+		$target_drop_mode    = esc_html( $target_drop_mode );
+		$duration_label      = esc_html( $duration_label );
+		$minutes_label       = esc_html( $minutes_label );
+		$decrease_label      = esc_attr( $decrease_label );
+		$increase_label      = esc_attr( $increase_label );
+		$target_label        = esc_html( $target_label );
+		$target_aria         = esc_attr( $target_aria );
+		$baseline_label      = esc_html( $baseline_label );
+		$speed_label         = esc_html( $speed_label );
+		$battery_label       = esc_html( $battery_label );
+		$rate10_label        = esc_html( $rate10_label );
+		$rate_session_label  = esc_html( $rate_session_label );
+		$tte_label           = esc_html( $tte_label );
+		$target_short_label  = esc_html( $target_short_label );
+		$surfing_label       = esc_html( $surfing_label );
+		$elapsed_label       = esc_html( $elapsed_label );
+		$remaining_label     = esc_html( $remaining_label );
+		$start_label         = esc_html( $start_label );
+		$stop_label          = esc_html( $stop_label );
+		$plugged_label       = esc_html( $plugged_label );
+		$compact_label       = esc_attr( $compact_label );
+		$expand_label        = esc_attr( $expand_label );
+		$sound_label         = esc_attr( $sound_label );
+		$viewport_title      = esc_attr( $viewport_title );
+		$toast_dismiss_label = esc_attr( $toast_dismiss_label );
+		$idle_heading        = esc_html( $idle_heading );
+		$idle_subtitle       = esc_html( $idle_subtitle );
+		$idle_step1_title    = esc_html( $idle_step1_title );
+		$idle_step1_text     = esc_html( $idle_step1_text );
+		$idle_step2_title    = esc_html( $idle_step2_title );
+		$idle_step2_text     = esc_html( $idle_step2_text );
+		$idle_step3_title    = esc_html( $idle_step3_title );
+		$idle_step3_text     = esc_html( $idle_step3_text );
+		$idle_notice_title   = esc_html( $idle_notice_title );
+		$idle_notice_text    = esc_html( $idle_notice_text );
+		$dropped_label       = esc_html( $dropped_label );
+		$pts_label           = esc_html( $pts_label );
+		$elapsed_run_label   = esc_html( $elapsed_run_label );
+		$new_run_label       = esc_html( $new_run_label );
+		$measured_label      = esc_html( $measured_label );
+		$projected_label     = esc_html( $projected_label );
 
 		// Each duration-odometer wheel is a strip of 0–9 repeated three times; the
 		// client store (rollDuration) slides it to roll the digit. Built here so
@@ -424,15 +424,22 @@ HTML;
 		<div class="bsb-cockpit__idle" data-wp-bind--hidden="state.isRunning">
 			{$idle_card}
 		</div>
-		<div class="bsb-cockpit__viewport-wrap" hidden data-wp-bind--hidden="state.isIdle">
+		<div class="bsb-cockpit__viewport-wrap" hidden data-wp-bind--hidden="state.isIdle" data-wp-on--pointerenter="actions.viewportEnter">
 			<iframe class="bsb-cockpit__viewport" title="{$viewport_title}" data-wp-bind--src="state.currentSrc"></iframe>
 			<div class="bsb-cockpit__shield" aria-hidden="true"></div>
-			<p class="bsb-cockpit__shield-badge">{$shield_label}</p>
 		</div>
 	</div>
 
 	<div class="bsb-summary" hidden data-wp-bind--hidden="!state.isEnded" data-wp-watch="callbacks.renderSummary">
 		{$summary_card}
+	</div>
+
+	<div class="bsb-cockpit__toast-layer">
+		<div class="bsb-cockpit__toast" hidden role="status" data-wp-bind--hidden="!state.hasToast" data-wp-bind--role="state.toastRole" data-wp-class--is-error="state.isToastError" data-wp-class--is-notice="state.isToastNotice" data-wp-class--is-entering="state.isToastEntering" data-wp-class--is-holding="state.isToastHolding" data-wp-class--is-leaving="state.isToastLeaving" data-wp-on--animationend="callbacks.onToastAnimationEnd">
+			<span class="bsb-cockpit__toast-icon" aria-hidden="true"></span>
+			<span class="bsb-cockpit__toast-msg" data-wp-text="state.toastMessage"></span>
+			<button type="button" class="bsb-cockpit__toast-close" data-wp-on--click="actions.dismissToast" aria-label="{$toast_dismiss_label}"></button>
+		</div>
 	</div>
 </div>
 HTML;

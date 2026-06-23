@@ -146,6 +146,8 @@ export const runStore: StorePart = {
 			context.ended = false;
 			context.endReason = '';
 			context.flipped = false;
+			// Re-arm the once-per-run view-only notice for this run.
+			instance.noticeShownThisRun = false;
 			context.running = true;
 
 			// Unlock audio under this click (a user gesture) so a default-on run

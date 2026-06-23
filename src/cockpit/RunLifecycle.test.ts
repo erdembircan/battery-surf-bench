@@ -12,6 +12,7 @@ import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { type CockpitContext } from './CockpitContext';
 import { type InstanceState } from './RunInstance';
 import { RunSession } from './RunSession';
+import { ToastQueue } from './Toasts';
 
 interface RestConfig {
 	restUrl: string;
@@ -49,6 +50,10 @@ const context = (): CockpitContext =>
 		summaryDropped: '',
 		hasGraph: false,
 		graphJson: '',
+		toastKind: '',
+		toastText: '',
+		toastPhase: '',
+		toastStrings: { error: 'Upload failed', notice: 'View only' },
 	} ) as unknown as CockpitContext;
 
 /**
@@ -66,6 +71,9 @@ const instance = ( session: RunSession ): InstanceState =>
 		chime: null,
 		startedAtWall: Date.parse( '2026-06-23T10:00:00.000Z' ),
 		idleFlipTimer: null,
+		toasts: new ToastQueue(),
+		toastTimer: null,
+		noticeShownThisRun: false,
 	} ) as InstanceState;
 
 describe( 'stopRun persistence', () => {
@@ -101,5 +109,38 @@ describe( 'stopRun persistence', () => {
 		stopRun( context(), instance( new RunSession() ), 'stopped' );
 
 		expect( globalThis.fetch ).not.toHaveBeenCalled();
+	} );
+
+	it( 'raises an error toast when the upload fails', async () => {
+		globalThis.fetch = vi
+			.fn()
+			.mockResolvedValue( { ok: false, status: 503 } as Response );
+
+		const session = new RunSession();
+		session.start( 0 );
+		session.record( 0, 0.82, false );
+		session.record( 600000, 0.7, false );
+		const ctx = context();
+
+		stopRun( ctx, instance( session ), 'duration' );
+
+		// The upload is fire-and-forget; let its promise settle.
+		await vi.waitFor( () => expect( ctx.toastKind ).toBe( 'error' ) );
+		expect( ctx.toastText ).toBe( 'Upload failed' );
+		expect( ctx.toastPhase ).toBe( 'entering' );
+	} );
+
+	it( 'does not toast when the upload succeeds', async () => {
+		const session = new RunSession();
+		session.start( 0 );
+		session.record( 0, 0.82, false );
+		session.record( 600000, 0.7, false );
+		const ctx = context();
+
+		stopRun( ctx, instance( session ), 'duration' );
+
+		await Promise.resolve();
+		await Promise.resolve();
+		expect( ctx.toastKind ).toBe( '' );
 	} );
 } );

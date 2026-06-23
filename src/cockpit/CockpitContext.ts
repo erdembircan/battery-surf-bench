@@ -21,6 +21,12 @@ export type RunEndReason =
 	| 'stopped'
 	| 'plugged';
 
+/** Which kind of toast is showing — an upload error or the view-only notice. */
+export type ToastKind = 'error' | 'notice';
+
+/** The toast pill's animation phase; empty when no toast is showing. */
+export type ToastPhase = '' | 'entering' | 'holding' | 'leaving';
+
 /** The translated wording shown on the summary for a given end reason. */
 export interface ReasonText {
 	/** Handwritten verdict heading, e.g. "The run is in.". */
@@ -65,4 +71,13 @@ export interface CockpitContext {
 	// The drain-graph draw model, serialised so it lands in reactive context; the
 	// summary painter parses it back to redraw the chart.
 	graphJson: string;
+	// The toast pill: the kind on screen (empty when none), its resolved message,
+	// and its animation phase. The pending queue lives off-context in the
+	// per-instance state; only the one showing rides the reactive context.
+	toastKind: ToastKind | '';
+	toastText: string;
+	toastPhase: ToastPhase;
+	// Translated toast messages by kind, seeded by the server so the strings stay
+	// localizable; the queue resolves the current message from here.
+	toastStrings: Record< ToastKind, string >;
 }

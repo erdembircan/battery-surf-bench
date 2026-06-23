@@ -9,6 +9,7 @@ import { BatteryMonitor, type BatteryReading } from './BatteryMonitor';
 import { ScreenWakeLock } from './WakeLock';
 import { RunSession } from './RunSession';
 import { FinishChime } from './FinishChime';
+import { ToastQueue } from './Toasts';
 
 /** Per-instance calculation state, kept off the reactive context and keyed by it. */
 export interface InstanceState {
@@ -37,6 +38,16 @@ export interface InstanceState {
 	 * any prior pending flip and the timeout can be cleared if a run starts first.
 	 */
 	idleFlipTimer: number | null;
+	/** Pending toasts behind the one showing; the showing one rides the context. */
+	toasts: ToastQueue;
+	/** The showing toast's hold timeout id, or null when none is on screen. */
+	toastTimer: number | null;
+	/**
+	 * Whether the view-only notice has already shown during the current run.
+	 * Gates it to once per run so moving the cursor over the viewport cannot
+	 * machine-gun the toast; re-armed when a run starts.
+	 */
+	noticeShownThisRun: boolean;
 }
 
 /**
@@ -55,6 +66,9 @@ const runInstance: InstanceState = {
 	chime: null,
 	startedAtWall: null,
 	idleFlipTimer: null,
+	toasts: new ToastQueue(),
+	toastTimer: null,
+	noticeShownThisRun: false,
 };
 
 /**
@@ -73,6 +87,9 @@ export const __resetInstance = (): void => {
 	runInstance.clock = null;
 	runInstance.chime = null;
 	runInstance.startedAtWall = null;
+	runInstance.toasts = new ToastQueue();
+	runInstance.toastTimer = null;
+	runInstance.noticeShownThisRun = false;
 };
 
 /**

@@ -255,13 +255,13 @@ describe( 'postSession', () => {
 		expect( globalThis.fetch ).not.toHaveBeenCalled();
 	} );
 
-	it( 'swallows a network failure rather than throwing', async () => {
+	it( 'reports failure (not a throw) on a network error', async () => {
 		globalThis.fetch = vi.fn().mockRejectedValue( new Error( 'offline' ) );
 		const error = vi
 			.spyOn( console, 'error' )
 			.mockImplementation( () => undefined );
 
-		await expect( postSession( payload ) ).resolves.toBeUndefined();
+		await expect( postSession( payload ) ).resolves.toBe( false );
 		expect( error ).toHaveBeenCalled();
 	} );
 
