@@ -108,19 +108,14 @@ describe( 'buildFields', () => {
 		expect( field.elements ).toEqual( elements );
 	} );
 
-	it( 'lets the search box match the session id and enumerated columns', () => {
-		const [ title ] = buildFields( [] );
-		expect( title.enableGlobalSearch ).toBe( true );
-
+	it( 'limits enumerated filters to the "is any" operator for a clean IN query', () => {
 		const elements = [ { value: 'finished', label: 'Finished' } ];
 		expect(
-			fieldFor( descriptor( 'status', { elements } ) ).enableGlobalSearch
-		).toBe( true );
+			fieldFor( descriptor( 'status', { elements } ) ).filterBy
+		).toEqual( { operators: [ 'isAny' ] } );
 
-		// A plain (non-enumerated) numeric column stays out of global search.
-		expect( fieldFor( descriptor( 'rate' ) ).enableGlobalSearch ).toBe(
-			undefined
-		);
+		// A plain (non-enumerated) column carries no filter operators.
+		expect( fieldFor( descriptor( 'rate' ) ).filterBy ).toBe( undefined );
 	} );
 } );
 

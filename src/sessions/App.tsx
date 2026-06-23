@@ -1,13 +1,13 @@
 /**
  * The benchmark sessions listing, built on DataViews.
  *
- * DataViews is a controlled renderer: this component owns the data and the view
- * state and re-derives the rows whenever either changes. The sessions come
- * straight from the post type's REST endpoint through core-data, with every
- * datum already present under `meta` — so the fields read it by dot-path and no
- * bespoke data plumbing is needed. Sorting, filtering and pagination run on the
- * client via `filterSortAndPaginate`, which suits the modest number of sessions
- * a benchmarking tool accumulates.
+ * DataViews is a controlled renderer: it owns no data of its own and emits the
+ * view config (page, sort, search, filters) through `onChangeView`. This
+ * component turns that config into a REST query and lets core-data fetch only
+ * the current page from the server — so sorting, filtering, searching and
+ * pagination run in the database and the whole dataset is reachable, however
+ * large it grows. The server side that teaches the REST collection to order,
+ * filter and search by meta lives in `SessionRestQuery`.
  */
 
 // Import the default `@wordpress/dataviews` build, not its self-contained
@@ -16,7 +16,7 @@
 // `wp-components`, `wp-compose`, `wp-primitives` (etc.) handles WordPress
 // enqueues — keeping the screen bundle ~120 KiB instead of bundling the whole
 // of `@wordpress/components` and shipping ~1.7 MiB. Do not switch this to `/wp`.
-import { DataViews, filterSortAndPaginate } from '@wordpress/dataviews';
+import { DataViews } from '@wordpress/dataviews';
 import type { Action, View } from '@wordpress/dataviews';
 import { useEntityRecords, store as coreStore } from '@wordpress/core-data';
 import { useDispatch } from '@wordpress/data';
@@ -48,10 +48,15 @@ const trashIcon = (
 );
 
 /**
- * The number of sessions fetched in one request. The client owns sorting and
- * filtering, so the whole working set is pulled once.
+ * Strips the `meta.` prefix a DataViews field id carries, yielding the bare
+ * meta key the REST query orders and filters by.
+ *
+ * @param field The field id (e.g. `meta.bsb_status`).
+ * @return The bare key (e.g. `bsb_status`).
  */
-const FETCH_SIZE = 100;
+function metaKey( field: string ): string {
+	return field.replace( /^meta\./, '' );
+}
 
 /**
  * Builds the initial view: a table sorted by most recent start, showing the
@@ -75,6 +80,44 @@ function initialView( config: SessionsConfig ): View {
 }
 
 /**
+ * Translates the DataViews view config into REST query args the server uses to
+ * page, order, filter and search the collection. `orderby` is sent as a meta
+ * key (or `id` for the session column), each active filter as its meta-key
+ * parameter, and the search box as free text — all resolved server-side by
+ * the `SessionRestQuery` manager.
+ *
+ * @param view The current view config.
+ * @return The REST query args.
+ */
+function viewToQuery( view: View ): Record< string, unknown > {
+	const query: Record< string, unknown > = {
+		status: 'any',
+		_fields: 'id,title,status,date,meta',
+		page: view.page ?? 1,
+		per_page: view.perPage ?? 25,
+	};
+
+	if ( view.search ) {
+		query.search = view.search;
+	}
+
+	if ( view.sort?.field ) {
+		query.orderby =
+			view.sort.field === 'title' ? 'id' : metaKey( view.sort.field );
+		query.order = view.sort.direction ?? 'desc';
+	}
+
+	for ( const filter of view.filters ?? [] ) {
+		const value = Array.isArray( filter.value )
+			? filter.value
+			: [ filter.value ];
+		query[ metaKey( filter.field ) ] = value;
+	}
+
+	return query;
+}
+
+/**
  * Renders the sessions DataViews screen.
  *
  * @param props        Component props.
@@ -88,21 +131,19 @@ export function SessionsApp( { config }: { config: SessionsConfig } ) {
 	);
 	const [ view, setView ] = useState< View >( () => initialView( config ) );
 
-	const { records, isResolving } = useEntityRecords< SessionRecord >(
-		'postType',
-		config.postType,
-		{
-			per_page: FETCH_SIZE,
-			status: 'any',
-			_fields: 'id,title,status,date,meta',
-		}
-	);
+	const query = useMemo( () => viewToQuery( view ), [ view ] );
+
+	const { records, isResolving, totalItems, totalPages } =
+		useEntityRecords< SessionRecord >( 'postType', config.postType, query );
 
 	const { deleteEntityRecord } = useDispatch( coreStore );
 
-	const { data, paginationInfo } = useMemo(
-		() => filterSortAndPaginate( records ?? [], view, fields ),
-		[ records, view, fields ]
+	const paginationInfo = useMemo(
+		() => ( {
+			totalItems: totalItems ?? 0,
+			totalPages: totalPages ?? 0,
+		} ),
+		[ totalItems, totalPages ]
 	);
 
 	const actions = useMemo< Action< SessionRecord >[] >(
@@ -132,32 +173,30 @@ export function SessionsApp( { config }: { config: SessionsConfig } ) {
 
 	// The brand header (rendered by PHP, outside this root) carries the running
 	// total. DataViews' pagination only reports "Page X of Y" and its footer
-	// counts the current page, so the live grand total is portalled into the
-	// header slot here — keeping it correct after a delete, where a server-
-	// rendered number would go stale.
-	const total = records?.length;
+	// counts the current page, so the server's total for the current query is
+	// portalled into the header slot here — live, and correct after a delete.
 	const countSlot =
 		typeof document !== 'undefined'
 			? document.querySelector( '.bsb-sessions__count' )
 			: null;
 	const countLabel =
-		total === undefined
+		totalItems === null || totalItems === undefined
 			? null
 			: sprintf(
 					/* translators: %s: number of benchmark sessions. */
 					_n(
 						'%s session',
 						'%s sessions',
-						total,
+						totalItems,
 						'battery-surf-bench'
 					),
-					total
+					String( totalItems )
 			  );
 
 	return (
 		<>
 			<DataViews< SessionRecord >
-				data={ data }
+				data={ records ?? [] }
 				fields={ fields }
 				view={ view }
 				onChangeView={ setView }

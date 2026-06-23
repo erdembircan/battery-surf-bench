@@ -12,6 +12,7 @@ use ErdemBircan\BatterySurfBench\Admin\SessionsScreen;
 use ErdemBircan\BatterySurfBench\Cockpit\Cockpit;
 use ErdemBircan\BatterySurfBench\Cockpit\Views\CockpitDashboard;
 use ErdemBircan\BatterySurfBench\Cockpit\CoursePagesSource;
+use ErdemBircan\BatterySurfBench\Content\SessionRestQuery;
 use ErdemBircan\BatterySurfBench\Content\SessionSchema;
 use ErdemBircan\BatterySurfBench\Content\SessionType;
 use ErdemBircan\BatterySurfBench\Course\CourseCatalog;
@@ -110,6 +111,7 @@ class BatterySurfBench {
 				$schema,
 				$this->registry->get( 'capability' )
 			),
+			new SessionRestQuery( $schema ),
 			new SessionsScreen(
 				$this->registry->get( 'admin_menu.slug' ),
 				$this->registry->get( 'session.screen_slug' ),

@@ -81,14 +81,27 @@ const records: SessionRecord[] = [
  * @param overrides.records     The records the store resolves to; omit the key
  *                              to use the defaults, pass `undefined` for unresolved.
  * @param overrides.isResolving Whether the store reports a fetch in flight.
+ * @param overrides.totalItems  The collection total the store reports.
+ * @param overrides.totalPages  The page count the store reports.
  * @return The captured DataViews props.
  */
 function renderApp(
-	overrides: { records?: SessionRecord[]; isResolving?: boolean } = {}
+	overrides: {
+		records?: SessionRecord[];
+		isResolving?: boolean;
+		totalItems?: number | null;
+		totalPages?: number | null;
+	} = {}
 ) {
+	const resolved = 'records' in overrides ? overrides.records : records;
 	hooks.useEntityRecords.mockReturnValue( {
-		records: 'records' in overrides ? overrides.records : records,
+		records: resolved,
 		isResolving: overrides.isResolving ?? false,
+		totalItems:
+			'totalItems' in overrides
+				? overrides.totalItems
+				: resolved?.length ?? null,
+		totalPages: 'totalPages' in overrides ? overrides.totalPages : 1,
 	} );
 	render( <SessionsApp config={ config } /> );
 	return hooks.dataViewsProps!;
@@ -99,17 +112,30 @@ beforeEach( () => {
 } );
 
 describe( 'SessionsApp data fetching', () => {
-	it( 'queries the configured post type for the whole working set', () => {
+	it( 'queries the server for one page, derived from the view config', () => {
 		renderApp();
+		// The server orders, filters, searches and paginates — the client just
+		// translates the view into query args, so the whole dataset is reachable.
 		expect( hooks.useEntityRecords ).toHaveBeenCalledWith(
 			'postType',
 			'bsb_session',
 			{
-				per_page: 100,
 				status: 'any',
 				_fields: 'id,title,status,date,meta',
+				page: 1,
+				per_page: 25,
+				orderby: 'bsb_started_at',
+				order: 'desc',
 			}
 		);
+	} );
+
+	it( 'passes the server totals through as the grid pagination info', () => {
+		const props = renderApp( { totalItems: 87, totalPages: 4 } );
+		expect( props.paginationInfo ).toEqual( {
+			totalItems: 87,
+			totalPages: 4,
+		} );
 	} );
 
 	it( 'reflects the store resolving state as the grid loading flag', () => {
@@ -124,10 +150,9 @@ describe( 'SessionsApp data fetching', () => {
 } );
 
 describe( 'SessionsApp rows', () => {
-	it( 'shows the sessions most-recent-start first by default', () => {
+	it( 'passes the fetched page straight to the grid (the server orders it)', () => {
 		const props = renderApp();
-		const rows = props.data as SessionRecord[];
-		expect( rows.map( ( row ) => row.id ) ).toEqual( [ 2, 1 ] );
+		expect( props.data ).toBe( records );
 	} );
 
 	it( 'identifies each row by its post id as a string', () => {
@@ -231,23 +256,25 @@ describe( 'SessionsApp session total', () => {
 		return slot;
 	}
 
-	it( 'fills the header slot with the live record total', () => {
+	it( 'fills the header slot with the server total, not the page length', () => {
 		const slot = addCountSlot();
-		renderApp();
-		expect( slot.textContent ).toBe( '2 sessions' );
+		// Two records on the page, but the collection holds 87 — the header
+		// reports the grand total the pagination footer omits.
+		renderApp( { totalItems: 87 } );
+		expect( slot.textContent ).toBe( '87 sessions' );
 		slot.remove();
 	} );
 
-	it( 'reflects a smaller set after a record is removed', () => {
+	it( 'singularises a lone session', () => {
 		const slot = addCountSlot();
-		renderApp( { records: [ records[ 0 ] ] } );
+		renderApp( { totalItems: 1 } );
 		expect( slot.textContent ).toBe( '1 session' );
 		slot.remove();
 	} );
 
-	it( 'leaves the slot empty until the records resolve', () => {
+	it( 'leaves the slot empty until the total resolves', () => {
 		const slot = addCountSlot();
-		renderApp( { records: undefined } );
+		renderApp( { totalItems: null } );
 		expect( slot.textContent ).toBe( '' );
 		slot.remove();
 	} );
