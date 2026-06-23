@@ -59,6 +59,29 @@ function asOptional( value: unknown ): string {
 }
 
 /**
+ * Formats a projected runtime in seconds as a human duration: minutes under an
+ * hour (`20m`), hours and minutes above it (`8h 4m`, or just `8h` on the hour).
+ * An em dash marks the unmeasurable case the cockpit stores as zero — a run too
+ * short to project a runtime.
+ *
+ * @param value The raw seconds meta value.
+ * @return The formatted runtime, or an em dash when not projected.
+ */
+function asRuntime( value: unknown ): string {
+	const seconds = Number( value );
+	if ( ! Number.isFinite( seconds ) || seconds <= 0 ) {
+		return '—';
+	}
+	const minutes = Math.round( seconds / 60 );
+	if ( minutes < 60 ) {
+		return `${ minutes }m`;
+	}
+	const hours = Math.floor( minutes / 60 );
+	const rest = minutes % 60;
+	return rest > 0 ? `${ hours }h ${ rest }m` : `${ hours }h`;
+}
+
+/**
  * Resolves an enumerated value to its human label from the descriptor.
  *
  * @param value      The raw meta value.
@@ -203,6 +226,13 @@ function toField( descriptor: SessionFieldDescriptor ): Field< SessionRecord > {
 				...base,
 				render: ( { item } ) => (
 					<>{ asOptional( metaValue( item, descriptor ) ) }</>
+				),
+			};
+		case 'runtime':
+			return {
+				...base,
+				render: ( { item } ) => (
+					<>{ asRuntime( metaValue( item, descriptor ) ) }</>
 				),
 			};
 		default:

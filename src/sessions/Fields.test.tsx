@@ -257,6 +257,39 @@ describe( 'optional format', () => {
 	} );
 } );
 
+describe( 'runtime format', () => {
+	it( 'shows minutes when under an hour', () => {
+		const { container } = renderCell( descriptor( 'runtime' ), {
+			value: 1200,
+		} );
+		expect( container ).toHaveTextContent( '20m' );
+	} );
+
+	it( 'shows hours and minutes when over an hour', () => {
+		const { container } = renderCell( descriptor( 'runtime' ), {
+			value: 29040,
+		} );
+		expect( container ).toHaveTextContent( '8h 4m' );
+	} );
+
+	it( 'drops the minutes on a whole hour', () => {
+		const { container } = renderCell( descriptor( 'runtime' ), {
+			value: 14400,
+		} );
+		expect( container ).toHaveTextContent( '4h' );
+		expect( container ).not.toHaveTextContent( '4h 0m' );
+	} );
+
+	it( 'shows an em dash when not projected (zero or absent)', () => {
+		expect(
+			renderCell( descriptor( 'runtime' ), { value: 0 } ).container
+		).toHaveTextContent( EM_DASH );
+		expect(
+			renderCell( descriptor( 'runtime' ), {} ).container
+		).toHaveTextContent( EM_DASH );
+	} );
+} );
+
 describe( 'enumerated text without an explicit format', () => {
 	const enumerated = descriptor( 'text', {
 		elements: [ { value: 'wifi', label: 'Wi-Fi' } ],

@@ -11,7 +11,8 @@ export type SessionFieldFormat =
 	| 'status'
 	| 'datetime'
 	| 'percent'
-	| 'optional';
+	| 'optional'
+	| 'runtime';
 
 /**
  * A single selectable value for an enumerated session field, as DataViews

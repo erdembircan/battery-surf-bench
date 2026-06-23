@@ -370,7 +370,7 @@ class SessionSchema {
 				'key'            => 'seconds_to_empty',
 				'rest_type'      => 'integer',
 				'label'          => '100% → 0%',
-				'format'         => 'text',
+				'format'         => 'runtime',
 				'default'        => self::NO_DEFAULT,
 				'sanitize'       => array( self::class, 'sanitize_seconds' ),
 				'elements'       => array(),
