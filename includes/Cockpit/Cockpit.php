@@ -195,8 +195,10 @@ class Cockpit implements Manager {
 
 	/**
 	 * Hands the cockpit's Interactivity store what it needs to persist a finished
-	 * run: the REST root, a `wp_rest` nonce, and the session collection's REST
-	 * base. The cockpit is a script module, so this travels through
+	 * run: the full session-collection REST URL and a `wp_rest` nonce. The backend
+	 * builds the complete endpoint URL (route namespace included) so the client
+	 * never assembles it — if the route ever moves, only this server side changes.
+	 * The cockpit is a script module, so this travels through
 	 * `wp_interactivity_config()` (read client-side with `getConfig()`) rather
 	 * than `wp_localize_script`. Set only on the gated dashboard route, after the
 	 * administrator check, so the nonce is minted for the very user authorized to
@@ -209,9 +211,8 @@ class Cockpit implements Manager {
 		wp_interactivity_config(
 			$this->block_name,
 			array(
-				'restRoot'     => esc_url_raw( rest_url() ),
-				'restNonce'    => wp_create_nonce( 'wp_rest' ),
-				'restPostType' => $this->session_post_type,
+				'restUrl'   => esc_url_raw( rest_url( 'wp/v2/' . $this->session_post_type ) ),
+				'restNonce' => wp_create_nonce( 'wp_rest' ),
 			)
 		);
 	}

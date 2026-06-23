@@ -12,9 +12,10 @@
  * This module is the calculation/transport seam: {@link buildSessionPayload}
  * shapes the REST body from the frozen run and is pure (so it is unit-tested
  * with explicit inputs), and {@link postSession} performs the gated POST. The
- * REST root, the `wp_rest` nonce and the collection's REST base arrive through
- * the Interactivity config the cockpit's PHP route seeds, read with
- * `getConfig()`. A persistence failure is logged and swallowed: a benchmark that
+ * full collection endpoint URL (assembled server-side, so the client never
+ * hard-codes the route) and a `wp_rest` nonce arrive through the Interactivity
+ * config the cockpit's PHP route seeds, read with `getConfig()`. A persistence
+ * failure is logged and swallowed: a benchmark that
  * ran is shown its summary regardless of whether the upload succeeded.
  */
 
@@ -87,9 +88,10 @@ export interface SessionPayload {
 
 /** The REST access details the cockpit's PHP route seeds via `getConfig()`. */
 interface RestConfig {
-	restRoot: string;
+	/** Full session-collection endpoint URL, assembled server-side. */
+	restUrl: string;
+	/** A `wp_rest` nonce proving the request's intent. */
 	restNonce: string;
-	restPostType: string;
 }
 
 /**
@@ -221,14 +223,12 @@ export const postSession = async (
 ): Promise< void > => {
 	const config = getConfig( 'bsb/cockpit' ) as Partial< RestConfig >;
 
-	if ( ! config.restRoot || ! config.restPostType || ! config.restNonce ) {
+	if ( ! config.restUrl || ! config.restNonce ) {
 		return;
 	}
 
-	const url = `${ config.restRoot }wp/v2/${ config.restPostType }`;
-
 	try {
-		const response = await fetch( url, {
+		const response = await fetch( config.restUrl, {
 			method: 'POST',
 			credentials: 'same-origin',
 			headers: {

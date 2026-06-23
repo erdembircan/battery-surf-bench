@@ -22,9 +22,8 @@ import { type RunSummary } from './RunSession';
 import { type RleSample } from './SampleLog';
 
 interface RestConfig {
-	restRoot: string;
+	restUrl: string;
 	restNonce: string;
-	restPostType: string;
 }
 
 const mocks = vi.hoisted( () => ( {
@@ -219,9 +218,8 @@ describe( 'postSession', () => {
 
 	beforeEach( () => {
 		mocks.config = {
-			restRoot: 'https://wp.test/wp-json/',
+			restUrl: 'https://wp.test/wp-json/wp/v2/bsb_session',
 			restNonce: 'nonce-123',
-			restPostType: 'bsb_session',
 		};
 		globalThis.fetch = vi
 			.fn()
