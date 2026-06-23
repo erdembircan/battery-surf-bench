@@ -163,6 +163,10 @@ vi.mock( '@wordpress/interactivity', () => ( {
 	},
 	getContext: () => mocks.context,
 	getElement: () => ( { ref: mocks.element } ),
+	// The end-of-run upload reads its REST access through `getConfig`; returning
+	// an empty config makes the upload a no-op here, so these store tests never
+	// reach the network while ending a run.
+	getConfig: () => ( {} ),
 } ) );
 
 import { __resetInstance } from './view';

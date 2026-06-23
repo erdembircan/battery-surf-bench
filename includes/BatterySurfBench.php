@@ -140,7 +140,8 @@ class BatterySurfBench {
 				$this->registry->get( 'capability' ),
 				new CockpitDashboard(),
 				$this->assets,
-				$this->registry->get( 'cockpit.style' )
+				$this->registry->get( 'cockpit.style' ),
+				$this->registry->get( 'session.post_type' )
 			),
 		);
 	}

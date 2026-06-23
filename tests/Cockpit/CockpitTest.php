@@ -39,6 +39,7 @@ final class CockpitTest extends TestCase {
 	private const CAPABILITY   = 'manage_options';
 	private const STYLE        = 'build/style-cockpit-dashboard.css';
 	private const STYLE_HANDLE = 'bsb-cockpit';
+	private const POST_TYPE    = 'bsb_session';
 
 	/**
 	 * Builds the cockpit manager under test.
@@ -56,7 +57,8 @@ final class CockpitTest extends TestCase {
 			self::CAPABILITY,
 			new CockpitDashboard(),
 			$assets ?? Mockery::mock( Assets::class ),
-			self::STYLE
+			self::STYLE,
+			self::POST_TYPE
 		);
 	}
 

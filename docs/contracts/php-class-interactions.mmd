@@ -75,6 +75,13 @@ classDiagram
         +metas() array
         +fields() array
         +default_columns() array
+        +sanitize_level(mixed)$ float
+        +sanitize_percent(mixed)$ int
+        +sanitize_drop(mixed)$ float
+        +sanitize_rate(mixed)$ float
+        +sanitize_seconds(mixed)$ int
+        +sanitize_minutes(mixed)$ int
+        +sanitize_samples(mixed)$ array
     }
 
     class SessionType {
@@ -131,7 +138,7 @@ classDiagram
     }
 
     class Cockpit {
-        +__construct(string block_dir, string block_name, string source_name, string param, string value, string capability, CockpitDashboard dashboard, Assets assets, string style)
+        +__construct(string block_dir, string block_name, string source_name, string param, string value, string capability, CockpitDashboard dashboard, Assets assets, string style, string session_post_type)
         +register() void
         +register_block() void
         +add_query_var(array vars) array

@@ -20,6 +20,7 @@ use function current_user_can;
 use function do_blocks;
 use function esc_html__;
 use function esc_url;
+use function esc_url_raw;
 use function generate_block_asset_handle;
 use function get_query_var;
 use function home_url;
@@ -27,11 +28,14 @@ use function in_array;
 use function nocache_headers;
 use function register_block_type;
 use function remove_all_actions;
+use function rest_url;
 use function sanitize_key;
 use function sprintf;
+use function wp_create_nonce;
 use function wp_dequeue_script;
 use function wp_dequeue_style;
 use function wp_die;
+use function wp_interactivity_config;
 use function wp_kses_post;
 use function wp_login_url;
 use function wp_script_modules;
@@ -66,6 +70,7 @@ class Cockpit implements Manager {
 	 * @param CockpitDashboard $dashboard  View that renders the standalone dashboard document.
 	 * @param Assets           $assets      Service used to enqueue the dashboard stylesheet.
 	 * @param string           $style       Dashboard stylesheet, relative to the plugin root.
+	 * @param string           $session_post_type Post type sessions are stored as, exposed to the cockpit so it can POST a finished run to that REST collection.
 	 */
 	public function __construct(
 		private string $block_dir,
@@ -76,7 +81,8 @@ class Cockpit implements Manager {
 		private string $capability,
 		private CockpitDashboard $dashboard,
 		private Assets $assets,
-		private string $style
+		private string $style,
+		private string $session_post_type
 	) {
 	}
 
@@ -163,6 +169,7 @@ class Cockpit implements Manager {
 			$this->deny();
 		}
 
+		$this->configure_rest_access();
 		$this->strip_front_end_assets();
 		$this->send_headers();
 		// The dashboard view returns a complete, trusted HTML document — escaped
@@ -184,6 +191,29 @@ class Cockpit implements Manager {
 	 */
 	private function requested_value(): string {
 		return sanitize_key( (string) get_query_var( $this->param ) );
+	}
+
+	/**
+	 * Hands the cockpit's Interactivity store what it needs to persist a finished
+	 * run: the REST root, a `wp_rest` nonce, and the session collection's REST
+	 * base. The cockpit is a script module, so this travels through
+	 * `wp_interactivity_config()` (read client-side with `getConfig()`) rather
+	 * than `wp_localize_script`. Set only on the gated dashboard route, after the
+	 * administrator check, so the nonce is minted for the very user authorized to
+	 * write — the post type's capability map and meta `auth_callback` still gate
+	 * the write server-side; the nonce only proves request intent.
+	 *
+	 * @return void
+	 */
+	private function configure_rest_access(): void {
+		wp_interactivity_config(
+			$this->block_name,
+			array(
+				'restRoot'     => esc_url_raw( rest_url() ),
+				'restNonce'    => wp_create_nonce( 'wp_rest' ),
+				'restPostType' => $this->session_post_type,
+			)
+		);
 	}
 
 	/**

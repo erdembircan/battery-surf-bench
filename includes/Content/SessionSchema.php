@@ -19,11 +19,13 @@ defined( 'ABSPATH' ) || exit;
  * from drifting apart, and means a new datum is added in exactly one place.
  *
  * The shape mirrors the session record the cockpit produces while benchmarking:
- * the run mode and lifecycle status, its battery levels, and the user agent the
- * run was captured on. Each datum is a single scalar so it can be sorted and
- * filtered as its own column. Derived statistics and the run configuration are
- * deliberately excluded here; they are added back as the features that produce
- * them land.
+ * the run mode and lifecycle status, its battery levels, the user agent the run
+ * was captured on, the derived drain statistics, the configuration the run used,
+ * and the run-length-encoded sample log. Identity and result scalars are listed
+ * as the listing's columns; the configuration (namespaced under `config`), the
+ * derived statistics and the bulky sample log are registered as meta but kept
+ * off the listing (`listed => false`) — they ride the same REST record without
+ * cluttering the grid.
  */
 class SessionSchema {
 
@@ -36,6 +38,16 @@ class SessionSchema {
 	 * @var string
 	 */
 	private const NO_DEFAULT = "\0no-default";
+
+	/**
+	 * Group segment that namespaces the run-configuration meta under the prefix,
+	 * yielding keys like `bsb_config_mode`. The configuration the cockpit ran with
+	 * is stored apart from the session's identity and result scalars so the two
+	 * concerns stay legible in the meta table and over REST.
+	 *
+	 * @var string
+	 */
+	private const CONFIG_GROUP = 'config';
 
 	/**
 	 * Stores the post type and the prefix every meta key is namespaced with.
@@ -61,13 +73,14 @@ class SessionSchema {
 	/**
 	 * Builds the post-meta registration arguments keyed by full meta key.
 	 *
-	 * Every field is registered as a single, REST-exposed meta so the post
-	 * type's own REST endpoint surfaces it under `meta` with no bespoke
-	 * controller — the listing screen reads it straight from there. Each entry
-	 * still needs an `auth_callback`; that is policy the {@see SessionType}
-	 * manager owns, so it is intentionally absent here. A default is registered
-	 * only when the field declares one — WordPress rejects a default that does
-	 * not satisfy the meta's schema.
+	 * Every field — listed or not — is registered as a single, REST-exposed meta
+	 * so the post type's own REST endpoint surfaces it under `meta` with no
+	 * bespoke controller: the listing screen reads the scalars straight from
+	 * there, and the cockpit writes the whole record back through the same
+	 * endpoint. Each entry still needs an `auth_callback`; that is policy the
+	 * {@see SessionType} manager owns, so it is intentionally absent here. A
+	 * default is registered only when the field declares one — WordPress rejects
+	 * a default that does not satisfy the meta's schema.
 	 *
 	 * @return array<string, array<string, mixed>> Meta key mapped to its registration args.
 	 */
@@ -86,7 +99,7 @@ class SessionSchema {
 				$args['default'] = $field['default'];
 			}
 
-			$metas[ $this->key( $field['key'] ) ] = $args;
+			$metas[ $this->key( $field['key'], $field['group'] ?? '' ) ] = $args;
 		}
 
 		return $metas;
@@ -99,7 +112,9 @@ class SessionSchema {
 	 * human label, a display format the front end maps to a renderer, and the
 	 * selectable elements for the fields that are enumerations. The screen turns
 	 * these into DataViews fields generically, so the listing never hard-codes
-	 * the session's field names.
+	 * the session's field names. Only fields marked for the listing are described
+	 * here; configuration, derived statistics and the sample log are persisted as
+	 * meta but never surface as columns.
 	 *
 	 * @return array<int, array<string, mixed>> Ordered list of field descriptors.
 	 */
@@ -107,8 +122,12 @@ class SessionSchema {
 		$fields = array();
 
 		foreach ( $this->definitions() as $field ) {
+			if ( false === ( $field['listed'] ?? true ) ) {
+				continue;
+			}
+
 			$descriptor = array(
-				'key'    => $this->key( $field['key'] ),
+				'key'    => $this->key( $field['key'], $field['group'] ?? '' ),
 				'label'  => $field['label'],
 				'format' => $field['format'],
 			);
@@ -134,7 +153,7 @@ class SessionSchema {
 
 		foreach ( $this->definitions() as $field ) {
 			if ( true === $field['default_column'] ) {
-				$columns[] = $this->key( $field['key'] );
+				$columns[] = $this->key( $field['key'], $field['group'] ?? '' );
 			}
 		}
 
@@ -142,24 +161,39 @@ class SessionSchema {
 	}
 
 	/**
-	 * Prefixes a bare field name into its full, namespaced meta key.
+	 * Prefixes a bare field name into its full, namespaced meta key, inserting an
+	 * optional group segment so a configuration field becomes, for example,
+	 * `bsb_config_mode` rather than `bsb_mode`.
 	 *
 	 * @param string $field Bare field name (e.g. `status`).
+	 * @param string $group Optional group segment (e.g. `config`); empty for none.
 	 * @return string The namespaced meta key (e.g. `bsb_status`).
 	 */
-	private function key( string $field ): string {
-		return $this->meta_prefix . $field;
+	private function key( string $field, string $group = '' ): string {
+		$segment = '' !== $group ? $group . '_' : '';
+
+		return $this->meta_prefix . $segment . $field;
 	}
 
 	/**
-	 * Derives a meta field's REST exposure from its definition: an enum schema
-	 * for enumerations, otherwise a bare `true` so WordPress infers it from the
-	 * registered type.
+	 * Derives a meta field's REST exposure from its definition. An array field
+	 * declares its element schema (WordPress requires a schema for array meta);
+	 * an enumeration constrains its values; otherwise a bare `true` lets
+	 * WordPress infer the schema from the registered type.
 	 *
 	 * @param array<string, mixed> $field A single field definition.
 	 * @return array<string, mixed>|bool The `show_in_rest` value for the field.
 	 */
 	private function rest_schema( array $field ) {
+		if ( isset( $field['items'] ) ) {
+			return array(
+				'schema' => array(
+					'type'  => 'array',
+					'items' => $field['items'],
+				),
+			);
+		}
+
 		if ( array() !== $field['elements'] ) {
 			return array(
 				'schema' => array(
@@ -196,7 +230,10 @@ class SessionSchema {
 	 * The declarative session field table both the meta layer and the listing
 	 * derive from. Each row pairs a bare field name with the storage type, the
 	 * sanitizer guarding writes, the display format, any enumerated values, and
-	 * whether the listing shows it as a default column.
+	 * whether the listing shows it as a default column. Rows may also carry a
+	 * `group` segment (namespacing the key), a `listed` flag (false keeps a field
+	 * off the listing while still registering it as meta), and an `items` schema
+	 * (for an array field).
 	 *
 	 * @return array<int, array<string, mixed>> Ordered list of field definitions.
 	 */
@@ -281,6 +318,139 @@ class SessionSchema {
 				'elements'       => array(),
 				'default_column' => false,
 			),
+			// Derived end-of-run statistics. Persisted alongside the raw inputs so
+			// the figures survive without recomputation. A run too short to compute
+			// a rate or projection stores zero: WordPress REST single meta cannot
+			// hold a null (a null write deletes the meta, and an absent numeric
+			// meta reads back as its type's empty value, not null), and zero is no
+			// valid reading for these quantities — a 0 %/h drain or 0s-to-empty —
+			// so it serves as the unmeasurable marker without fighting the meta API.
+			array(
+				'key'            => 'dropped_pct',
+				'rest_type'      => 'number',
+				'label'          => 'Dropped',
+				'format'         => 'percent',
+				'default'        => self::NO_DEFAULT,
+				'sanitize'       => array( self::class, 'sanitize_drop' ),
+				'elements'       => array(),
+				'default_column' => false,
+				'listed'         => false,
+			),
+			array(
+				'key'            => 'rate_10',
+				'rest_type'      => 'number',
+				'label'          => 'Rate · 10 min',
+				'format'         => 'text',
+				'default'        => self::NO_DEFAULT,
+				'sanitize'       => array( self::class, 'sanitize_rate' ),
+				'elements'       => array(),
+				'default_column' => false,
+				'listed'         => false,
+			),
+			array(
+				'key'            => 'rate_session',
+				'rest_type'      => 'number',
+				'label'          => 'Rate · session',
+				'format'         => 'text',
+				'default'        => self::NO_DEFAULT,
+				'sanitize'       => array( self::class, 'sanitize_rate' ),
+				'elements'       => array(),
+				'default_column' => false,
+				'listed'         => false,
+			),
+			array(
+				'key'            => 'seconds_to_empty',
+				'rest_type'      => 'integer',
+				'label'          => '100% → 0%',
+				'format'         => 'text',
+				'default'        => self::NO_DEFAULT,
+				'sanitize'       => array( self::class, 'sanitize_seconds' ),
+				'elements'       => array(),
+				'default_column' => false,
+				'listed'         => false,
+			),
+			// Run configuration, namespaced under `config`. Surf speed is
+			// deliberately absent: it drives playback, not the drain calculations,
+			// so it is no part of the stored session record.
+			array(
+				'key'            => 'mode',
+				'group'          => self::CONFIG_GROUP,
+				'rest_type'      => 'string',
+				'label'          => 'Config mode',
+				'format'         => 'text',
+				'default'        => self::NO_DEFAULT,
+				// Not `sanitize_key`: the cockpit's `targetDrop` mode carries an
+				// uppercase letter that `sanitize_key` would strip, breaking the
+				// enum match. `sanitize_text_field` preserves it; the enum schema
+				// still rejects any value outside the allowed set over REST.
+				'sanitize'       => 'sanitize_text_field',
+				'elements'       => array(
+					'duration'   => 'Duration',
+					'targetDrop' => 'Target drop',
+				),
+				'default_column' => false,
+				'listed'         => false,
+			),
+			array(
+				'key'            => 'duration_minutes',
+				'group'          => self::CONFIG_GROUP,
+				'rest_type'      => 'integer',
+				'label'          => 'Config duration',
+				'format'         => 'text',
+				'default'        => self::NO_DEFAULT,
+				'sanitize'       => array( self::class, 'sanitize_minutes' ),
+				'elements'       => array(),
+				'default_column' => false,
+				'listed'         => false,
+			),
+			array(
+				'key'            => 'baseline',
+				'group'          => self::CONFIG_GROUP,
+				'rest_type'      => 'boolean',
+				'label'          => 'Config baseline',
+				'format'         => 'text',
+				'default'        => self::NO_DEFAULT,
+				'sanitize'       => 'rest_sanitize_boolean',
+				'elements'       => array(),
+				'default_column' => false,
+				'listed'         => false,
+			),
+			array(
+				'key'            => 'target_percent',
+				'group'          => self::CONFIG_GROUP,
+				'rest_type'      => 'integer',
+				'label'          => 'Config target',
+				'format'         => 'text',
+				'default'        => self::NO_DEFAULT,
+				'sanitize'       => array( self::class, 'sanitize_percent' ),
+				'elements'       => array(),
+				'default_column' => false,
+				'listed'         => false,
+			),
+			// The run-length-encoded sample log: one plateau record per battery
+			// level/charging step. Stored whole as an array meta — WordPress
+			// requires the element schema declared below — rather than a separate
+			// table, since nothing reads it mid-run; it is written once at run end.
+			array(
+				'key'            => 'samples',
+				'rest_type'      => 'array',
+				'label'          => 'Samples',
+				'format'         => 'text',
+				'default'        => self::NO_DEFAULT,
+				'sanitize'       => array( self::class, 'sanitize_samples' ),
+				'elements'       => array(),
+				'default_column' => false,
+				'listed'         => false,
+				'items'          => array(
+					'type'       => 'object',
+					'properties' => array(
+						't'        => array( 'type' => 'number' ),
+						'level'    => array( 'type' => 'number' ),
+						'charging' => array( 'type' => 'boolean' ),
+						'count'    => array( 'type' => 'integer' ),
+					),
+				),
+			),
 		);
 	}
 
@@ -295,5 +465,100 @@ class SessionSchema {
 		$level = max( 0.0, min( 1.0, (float) $value ) );
 
 		return round( $level, 4 );
+	}
+
+	/**
+	 * Clamps a raw value to a whole percentage in the 0..100 range, guarding the
+	 * configured target battery against out-of-range writes.
+	 *
+	 * @param mixed $value Raw meta value.
+	 * @return int The clamped percentage.
+	 */
+	public static function sanitize_percent( $value ): int {
+		return (int) max( 0, min( 100, (int) round( (float) $value ) ) );
+	}
+
+	/**
+	 * Clamps a raw drop to the 0..100 percentage points a run can fall, rounded
+	 * to two decimals.
+	 *
+	 * @param mixed $value Raw meta value.
+	 * @return float The clamped drop in percentage points.
+	 */
+	public static function sanitize_drop( $value ): float {
+		return round( max( 0.0, min( 100.0, (float) $value ) ), 2 );
+	}
+
+	/**
+	 * Clamps a raw drain rate to a non-negative figure (a draining battery never
+	 * rises mid-run), rounded to a tenth of a percent per hour. A run that could
+	 * not compute the rate stores zero (see the derived-statistics note above).
+	 *
+	 * @param mixed $value Raw meta value.
+	 * @return float The clamped rate.
+	 */
+	public static function sanitize_rate( $value ): float {
+		return round( max( 0.0, (float) $value ), 1 );
+	}
+
+	/**
+	 * Clamps a raw projected runtime to a non-negative whole number of seconds. A
+	 * run that could not project the runtime stores zero (see the
+	 * derived-statistics note above).
+	 *
+	 * @param mixed $value Raw meta value.
+	 * @return int The clamped seconds.
+	 */
+	public static function sanitize_seconds( $value ): int {
+		return (int) max( 0, (int) round( (float) $value ) );
+	}
+
+	/**
+	 * Snaps a raw run length to the supported 5..240 minute range, rounded to the
+	 * nearest five minutes the cockpit's duration stepper offers.
+	 *
+	 * @param mixed $value Raw meta value.
+	 * @return int The snapped run length in minutes.
+	 */
+	public static function sanitize_minutes( $value ): int {
+		$snapped = (int) ( round( (float) $value / 5 ) * 5 );
+
+		return (int) max( 5, min( 240, $snapped ) );
+	}
+
+	/**
+	 * Validates the run-length-encoded sample log, dropping any malformed entry
+	 * and clamping each surviving plateau to its sane range: a non-negative
+	 * elapsed time, a 0..1 battery level, a boolean charging flag, and a positive
+	 * collapsed-reading count.
+	 *
+	 * @param mixed $value Raw meta value.
+	 * @return array<int, array<string, float|bool|int>> The cleaned sample log.
+	 */
+	public static function sanitize_samples( $value ): array {
+		if ( ! is_array( $value ) ) {
+			return array();
+		}
+
+		$clean = array();
+
+		foreach ( $value as $sample ) {
+			if ( ! is_array( $sample ) ) {
+				continue;
+			}
+
+			if ( ! isset( $sample['t'], $sample['level'], $sample['charging'], $sample['count'] ) ) {
+				continue;
+			}
+
+			$clean[] = array(
+				't'        => max( 0.0, (float) $sample['t'] ),
+				'level'    => self::sanitize_level( $sample['level'] ),
+				'charging' => (bool) $sample['charging'],
+				'count'    => (int) max( 1, (int) $sample['count'] ),
+			);
+		}
+
+		return $clean;
 	}
 }

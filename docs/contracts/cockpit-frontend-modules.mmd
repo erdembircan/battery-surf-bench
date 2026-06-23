@@ -79,6 +79,7 @@ classDiagram
         <<module>>
         +instanceFor() InstanceState
         +now() number
+        +wallNow() number
         +__resetInstance() void
     }
 
@@ -87,6 +88,14 @@ classDiagram
         +stopRun(ctx, instance, RunEndReason) void
         +applyReadouts(ctx, RunSession) void
         +GRAPH_VIEWPORT
+    }
+
+    class SessionUpload {
+        <<module>>
+        +statusFor(RunEndReason) string
+        +modeFor(UploadConfig) string
+        +buildSessionPayload(SessionUploadInput) SessionPayload|null
+        +postSession(SessionPayload) Promise
     }
 
     class RunConfig {
@@ -228,6 +237,12 @@ classDiagram
     SoundStore --> FinishChime : creates & owns (composition)
     SummaryStore --> Format : formats verdict
     SummaryStore --> GraphSvg : paints chart from model
+
+    %% Ending a run persists it: the lifecycle builds the REST payload from the
+    %% frozen session and POSTs it through the session post type's own endpoint,
+    %% reading its REST access from the Interactivity config the PHP route seeds.
+    RunLifecycle --> SessionUpload : persists finished run
+    SessionUpload ..> RunSession : reads RunSummary & samples
 
     %% Run lifecycle & instance own the long-lived calculation objects.
     RunInstance --> RunSession : creates & owns (composition)

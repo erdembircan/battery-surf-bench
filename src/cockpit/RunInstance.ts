@@ -25,6 +25,13 @@ export interface InstanceState {
 	/** The finish chime, or null where Web Audio is absent. */
 	chime: FinishChime | null;
 	/**
+	 * Wall-clock time (ms since the Unix epoch) the run started, or null between
+	 * runs. The session log stamps samples against a monotonic clock, which is
+	 * right for the drain maths but carries no calendar time; this captures the
+	 * real start so the persisted session records when it actually ran.
+	 */
+	startedAtWall: number | null;
+	/**
 	 * The pending auto-flip timeout id after "New run" returns to the startup
 	 * front, or null when none is scheduled. Tracked so a fresh dismissal cancels
 	 * any prior pending flip and the timeout can be cleared if a run starts first.
@@ -46,6 +53,7 @@ const runInstance: InstanceState = {
 	wakeLock: null,
 	clock: null,
 	chime: null,
+	startedAtWall: null,
 	idleFlipTimer: null,
 };
 
@@ -64,6 +72,7 @@ export const __resetInstance = (): void => {
 	runInstance.wakeLock = null;
 	runInstance.clock = null;
 	runInstance.chime = null;
+	runInstance.startedAtWall = null;
 };
 
 /**
@@ -72,3 +81,12 @@ export const __resetInstance = (): void => {
  * @return The current high-resolution timestamp, in milliseconds.
  */
 export const now = (): number => performance.now();
+
+/**
+ * The wall clock the persisted session records its calendar timestamps against.
+ * Kept separate from {@link now} (which is monotonic, for the drain maths) so
+ * the upload can stamp when a run actually ran.
+ *
+ * @return The current time, in milliseconds since the Unix epoch.
+ */
+export const wallNow = (): number => Date.now();
