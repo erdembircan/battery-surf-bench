@@ -304,6 +304,14 @@ describe( 'runtime format', () => {
 		expect( container ).toHaveTextContent( '20m' );
 	} );
 
+	it( 'floors the minute, matching the cockpit H:MM readout', () => {
+		// 2h 59.5m: the deck floors to 2:59, so the listing must too (not 3h).
+		const { container } = renderCell( descriptor( 'runtime' ), {
+			value: 10770,
+		} );
+		expect( container ).toHaveTextContent( '2h 59m' );
+	} );
+
 	it( 'shows hours and minutes when over an hour', () => {
 		const { container } = renderCell( descriptor( 'runtime' ), {
 			value: 29040,

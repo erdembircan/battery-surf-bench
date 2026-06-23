@@ -965,6 +965,13 @@ describe( 'bsb/cockpit view store', () => {
 			expect( mocks.context.running ).toBe( false );
 			expect( mocks.context.endReason ).toBe( 'targetDrop' );
 
+			// The reading that reached the target is recorded BEFORE the stop, so
+			// the frozen summary reflects the final drop instead of discarding it
+			// (which left a 80 → 80, nothing-dropped, no-rates summary).
+			expect( mocks.context.summaryBatteryEnd ).toBe( '75' );
+			expect( mocks.context.summaryDropped ).not.toBe( '—' );
+			expect( mocks.context.summaryDropped ).not.toBe( '0' );
+
 			cleanup();
 		} );
 

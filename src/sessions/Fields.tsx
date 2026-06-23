@@ -74,14 +74,18 @@ function withUnit( value: unknown, unit: string, optional: boolean ): string {
  * @return The formatted duration, or an em dash when zero or absent.
  */
 function asRuntime( value: unknown ): string {
-	const seconds = Math.round( Number( value ) );
-	if ( ! Number.isFinite( seconds ) || seconds <= 0 ) {
+	const raw = Number( value );
+	if ( ! Number.isFinite( raw ) || raw <= 0 ) {
 		return '—';
 	}
+	// Floor throughout, matching the cockpit's H:MM time-to-empty readout
+	// (`formatTimeToEmpty`), so the same projection reads identically in the live
+	// deck and in this listing rather than rounding up to the next minute.
+	const seconds = Math.floor( raw );
 	if ( seconds < 60 ) {
 		return `${ seconds }s`;
 	}
-	const minutes = Math.round( seconds / 60 );
+	const minutes = Math.floor( seconds / 60 );
 	if ( minutes < 60 ) {
 		return `${ minutes }m`;
 	}

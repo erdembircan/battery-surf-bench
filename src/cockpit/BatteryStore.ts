@@ -87,6 +87,21 @@ export const batteryStore: StorePart = {
 					context.batteryLevel = Math.round( reading.level * 100 );
 					context.batteryCharging = reading.charging;
 
+					// Record the draining reading into the live run BEFORE any stop
+					// check, so the reading that reaches the target (or a run's final
+					// reading) is part of the session the summary freezes rather than
+					// discarded by the stop that immediately follows it. Charging
+					// readings are not recorded — plugging in ends the run instead of
+					// logging a charging sample.
+					if ( instance.session.active && ! reading.charging ) {
+						instance.session.record(
+							now(),
+							reading.level,
+							reading.charging
+						);
+						applyReadouts( context, instance.session );
+					}
+
 					// A benchmark must drain the battery: plugging in mid-run ends
 					// the run rather than recording charging samples.
 					if ( reading.charging && context.running ) {
@@ -95,7 +110,8 @@ export const batteryStore: StorePart = {
 
 					// Target-drop run: stop the moment the battery has fallen to
 					// the chosen stop-at level — at the target (75 stops at 75),
-					// not a step past it.
+					// not a step past it. The reading that reaches it is already
+					// recorded above, so the summary reflects the final drop.
 					if (
 						context.running &&
 						context.mode === 'targetDrop' &&
@@ -114,15 +130,6 @@ export const batteryStore: StorePart = {
 						if ( context.targetPercent > cap ) {
 							context.targetPercent = cap;
 						}
-					}
-
-					if ( instance.session.active ) {
-						instance.session.record(
-							now(),
-							reading.level,
-							reading.charging
-						);
-						applyReadouts( context, instance.session );
 					}
 				},
 			} );
