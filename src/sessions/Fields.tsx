@@ -208,6 +208,10 @@ function toField( descriptor: SessionFieldDescriptor ): Field< SessionRecord > {
 
 	if ( descriptor.elements ) {
 		base.elements = descriptor.elements;
+		// Enumerated columns (status, mode) carry short human-meaningful values,
+		// so let the search box match them — without an opted-in field, DataViews'
+		// global search matches nothing.
+		base.enableGlobalSearch = true;
 	}
 
 	switch ( descriptor.format ) {
@@ -315,6 +319,8 @@ export function buildFields(
 		id: 'title',
 		label: 'Session',
 		enableSorting: true,
+		// Searchable so a session can be found by its id (e.g. "23" → #23).
+		enableGlobalSearch: true,
 		getValue: ( { item } ) => item.title?.rendered ?? `#${ item.id }`,
 		render: ( { item } ) => (
 			<>{ item.title?.rendered || `#${ item.id }` }</>

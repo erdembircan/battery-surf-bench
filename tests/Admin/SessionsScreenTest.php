@@ -162,6 +162,8 @@ final class SessionsScreenTest extends TestCase {
 		$this->assertStringContainsString( '<div class="bsb-sessions">', $output );
 		$this->assertStringContainsString( 'Sessions', $output );
 		$this->assertStringContainsString( 'Benchmark log', $output );
+		// The grid bundle fills this slot with the live session total.
+		$this->assertStringContainsString( 'bsb-sessions__count', $output );
 		$this->assertStringContainsString( 'id="bsb-sessions-app"', $output );
 		$this->assertStringContainsString( 'https://example.test/?bsbSession=cockpit', $output );
 		$this->assertStringContainsString( 'Open Cockpit', $output );

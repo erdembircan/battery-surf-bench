@@ -54,6 +54,8 @@ final class SessionsScreenViewTest extends TestCase {
 		$this->assertStringContainsString( '<div class="bsb-sessions">', $output );
 		$this->assertStringContainsString( 'Sessions', $output );
 		$this->assertStringContainsString( 'Benchmark log', $output );
+		// The live total is filled in by the grid bundle; the slot ships empty.
+		$this->assertStringContainsString( 'bsb-sessions__count', $output );
 		$this->assertStringContainsString(
 			'href="https://example.test/?bsbSession=cockpit"',
 			$output

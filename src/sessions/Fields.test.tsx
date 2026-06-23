@@ -107,6 +107,21 @@ describe( 'buildFields', () => {
 		const field = fieldFor( descriptor( 'status', { elements } ) );
 		expect( field.elements ).toEqual( elements );
 	} );
+
+	it( 'lets the search box match the session id and enumerated columns', () => {
+		const [ title ] = buildFields( [] );
+		expect( title.enableGlobalSearch ).toBe( true );
+
+		const elements = [ { value: 'finished', label: 'Finished' } ];
+		expect(
+			fieldFor( descriptor( 'status', { elements } ) ).enableGlobalSearch
+		).toBe( true );
+
+		// A plain (non-enumerated) numeric column stays out of global search.
+		expect( fieldFor( descriptor( 'rate' ) ).enableGlobalSearch ).toBe(
+			undefined
+		);
+	} );
 } );
 
 describe( 'title field', () => {

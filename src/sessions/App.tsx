@@ -20,16 +20,16 @@ import { DataViews, filterSortAndPaginate } from '@wordpress/dataviews';
 import type { Action, View } from '@wordpress/dataviews';
 import { useEntityRecords, store as coreStore } from '@wordpress/core-data';
 import { useDispatch } from '@wordpress/data';
-import { useMemo, useState } from '@wordpress/element';
-import { __ } from '@wordpress/i18n';
+import { createPortal, useMemo, useState } from '@wordpress/element';
+import { __, _n, sprintf } from '@wordpress/i18n';
 import { buildFields } from './Fields';
 import type { SessionRecord, SessionsConfig } from './Types';
 
 /**
- * The trash glyph for the row and bulk Trash action. Supplied inline (rather
- * than from `@wordpress/icons`, which the project does not depend on) because
- * DataViews only renders a bulk action in its selection footer when the action
- * carries an `icon`.
+ * The trash glyph for the row and bulk Trash action — the WordPress standard
+ * trash icon (`@wordpress/icons`' `trash`), inlined because the project does
+ * not depend on that package and DataViews only renders a bulk action in its
+ * selection footer when the action carries an `icon`.
  */
 const trashIcon = (
 	<svg
@@ -37,18 +37,13 @@ const trashIcon = (
 		width="24"
 		height="24"
 		xmlns="http://www.w3.org/2000/svg"
-		fill="none"
-		stroke="currentColor"
-		strokeWidth="2"
-		strokeLinecap="round"
-		strokeLinejoin="round"
 		aria-hidden="true"
 		focusable="false"
 	>
-		<polyline points="3 6 5 6 21 6" />
-		<path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-		<line x1="10" y1="11" x2="10" y2="17" />
-		<line x1="14" y1="11" x2="14" y2="17" />
+		<path
+			fill="currentColor"
+			d="M12 5.5A2.25 2.25 0 0 0 9.878 7h4.244A2.251 2.251 0 0 0 12 5.5ZM12 4a3.751 3.751 0 0 0-3.675 3H5v1.5h1.27l.818 8.997a2.75 2.75 0 0 0 2.739 2.501h4.347a2.75 2.75 0 0 0 2.738-2.5L17.73 8.5H19V7h-3.325A3.751 3.751 0 0 0 12 4Zm4.224 4.5H7.776l.806 8.861a1.25 1.25 0 0 0 1.245 1.137h4.347a1.25 1.25 0 0 0 1.245-1.137l.805-8.861Z"
+		/>
 	</svg>
 );
 
@@ -135,17 +130,46 @@ export function SessionsApp( { config }: { config: SessionsConfig } ) {
 		[ deleteEntityRecord, config.postType ]
 	);
 
+	// The brand header (rendered by PHP, outside this root) carries the running
+	// total. DataViews' pagination only reports "Page X of Y" and its footer
+	// counts the current page, so the live grand total is portalled into the
+	// header slot here — keeping it correct after a delete, where a server-
+	// rendered number would go stale.
+	const total = records?.length;
+	const countSlot =
+		typeof document !== 'undefined'
+			? document.querySelector( '.bsb-sessions__count' )
+			: null;
+	const countLabel =
+		total === undefined
+			? null
+			: sprintf(
+					/* translators: %s: number of benchmark sessions. */
+					_n(
+						'%s session',
+						'%s sessions',
+						total,
+						'battery-surf-bench'
+					),
+					total
+			  );
+
 	return (
-		<DataViews< SessionRecord >
-			data={ data }
-			fields={ fields }
-			view={ view }
-			onChangeView={ setView }
-			actions={ actions }
-			paginationInfo={ paginationInfo }
-			defaultLayouts={ { table: {} } }
-			isLoading={ isResolving }
-			getItemId={ ( item ) => String( item.id ) }
-		/>
+		<>
+			<DataViews< SessionRecord >
+				data={ data }
+				fields={ fields }
+				view={ view }
+				onChangeView={ setView }
+				actions={ actions }
+				paginationInfo={ paginationInfo }
+				defaultLayouts={ { table: {} } }
+				isLoading={ isResolving }
+				getItemId={ ( item ) => String( item.id ) }
+			/>
+			{ countSlot &&
+				countLabel !== null &&
+				createPortal( countLabel, countSlot ) }
+		</>
 	);
 }

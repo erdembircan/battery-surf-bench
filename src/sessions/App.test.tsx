@@ -216,3 +216,39 @@ describe( 'SessionsApp trash action', () => {
 		);
 	} );
 } );
+
+describe( 'SessionsApp session total', () => {
+	/**
+	 * Adds the header count slot the PHP screen renders, so the App can portal
+	 * the live total into it.
+	 *
+	 * @return The injected slot element.
+	 */
+	function addCountSlot(): HTMLElement {
+		const slot = document.createElement( 'span' );
+		slot.className = 'bsb-sessions__count';
+		document.body.appendChild( slot );
+		return slot;
+	}
+
+	it( 'fills the header slot with the live record total', () => {
+		const slot = addCountSlot();
+		renderApp();
+		expect( slot.textContent ).toBe( '2 sessions' );
+		slot.remove();
+	} );
+
+	it( 'reflects a smaller set after a record is removed', () => {
+		const slot = addCountSlot();
+		renderApp( { records: [ records[ 0 ] ] } );
+		expect( slot.textContent ).toBe( '1 session' );
+		slot.remove();
+	} );
+
+	it( 'leaves the slot empty until the records resolve', () => {
+		const slot = addCountSlot();
+		renderApp( { records: undefined } );
+		expect( slot.textContent ).toBe( '' );
+		slot.remove();
+	} );
+} );

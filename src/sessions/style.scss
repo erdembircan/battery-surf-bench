@@ -120,6 +120,15 @@
 	color: theme.$coastal-teal;
 }
 
+// Running total, since the grid's pagination footer shows only the page count.
+.bsb-sessions__count {
+	flex: 0 0 auto;
+	font-family: theme.$font-mono;
+	font-size: 0.8rem;
+	color: theme.$coastal-ink-soft;
+	white-space: nowrap;
+}
+
 .bsb-sessions__cockpit {
 	display: inline-flex;
 	flex: 0 0 auto;
