@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Deck width — current vs slim</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Hanken+Grotesk:wght@400;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+<style>
+/* ── faithful coastal-daybreak tokens (from src/styles/_theme.scss) ───────── */
+:root {
+  --sky-0:#f3fafd; --sky-1:#e7f6ff; --teal:#2f9bb3; --teal-deep:#1c7e96;
+  --navy:#1f3a5f; --ink-soft:#5b7488; --surface:#f1f7fa; --line:#e1edf2;
+  --deck-bg:
+    radial-gradient(120% 70% at 50% -10%, #fff 0%, var(--sky-0) 40%, transparent 70%),
+    linear-gradient(180deg, var(--sky-1) 0%, #fff 60%);
+  --surface-shadow:rgba(31,58,95,.08);
+  --text:var(--navy); --text-strong:var(--navy); --text-soft:var(--ink-soft);
+  --label:rgba(31,58,95,.62);
+  --accent-grad:linear-gradient(150deg,var(--teal) 0%,var(--teal-deep) 100%);
+  --accent-ink:#fff; --accent-shadow:rgba(47,155,179,.4); --accent-soft:rgba(47,155,179,.08);
+  --stepper-btn-bg:#fff; --stepper-btn-ink:var(--teal); --stepper-btn-shadow:rgba(31,58,95,.12);
+  --readout-ink:var(--navy); --unit-ink:var(--teal);
+  --toggle-track:#dce8ee; --toggle-on:var(--teal); --toggle-thumb:#fff;
+  --title-ink:var(--navy); --subtitle-ink:var(--teal);
+  --font-display:'Anton','Oswald','Arial Narrow',sans-serif;
+  --font-ui:'Hanken Grotesk',ui-sans-serif,system-ui,sans-serif;
+  --font-mono:'Space Mono',ui-monospace,menlo,monospace;
+}
+*,*::before,*::after{box-sizing:border-box;}
+html,body{margin:0;height:100%;}
+body{
+  font-family:var(--font-ui); color:var(--navy);
+  background:#dfeaf0;
+  -webkit-font-smoothing:antialiased;
+  padding:28px 24px 60px;
+}
+h1{font-family:var(--font-display);text-transform:uppercase;letter-spacing:.02em;font-size:1.7rem;margin:0 0 4px;}
+.lede{color:var(--ink-soft);max-width:60ch;margin:0 0 26px;font-size:.95rem;line-height:1.5;}
+
+/* width controls */
+.controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:22px;
+  background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 14px;}
+.controls label{font-size:.7rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-soft);}
+.controls input[type=range]{width:220px;}
+.controls .readout{font-family:var(--font-mono);font-weight:700;color:var(--teal-deep);min-width:74px;}
+
+/* each comparison row is a real two-pane cockpit at a fixed demo height */
+.cockpit{
+  --deck-w:372px;
+  display:grid;
+  grid-template-columns:var(--deck-w) 1fr;
+  height:600px;
+  border-radius:18px;
+  overflow:hidden;
+  box-shadow:0 24px 60px -28px rgba(31,58,95,.45);
+  margin-bottom:14px;
+  position:relative;
+}
+.row-meta{display:flex;align-items:baseline;gap:14px;margin:34px 0 12px;}
+.row-meta h2{font-family:var(--font-display);text-transform:uppercase;letter-spacing:.02em;font-size:1.15rem;margin:0;}
+.row-meta .w{font-family:var(--font-mono);font-weight:700;color:var(--teal-deep);font-size:.82rem;}
+.row-meta .delta{font-size:.74rem;font-weight:700;color:#ef5a3a;letter-spacing:.04em;}
+.row-meta .delta.zero{color:var(--ink-soft);}
+
+/* ── deck (faithful to src/cockpit/style.scss) ───────────────────────────── */
+.deck{
+  position:relative;z-index:2;display:flex;flex-direction:column;min-height:0;
+  padding:1.6rem 1.5rem 1.4rem;
+  color:var(--text);background:var(--deck-bg);
+  box-shadow:2px 0 8px -5px rgba(0,20,40,.14);
+  overflow:hidden;
+}
+/* slim variant trims padding a touch so content keeps breathing room */
+.cockpit.slim .deck{padding:1.3rem 1.15rem 1.15rem;}
+
+.brand{display:grid;grid-template-columns:auto 1fr auto;grid-template-rows:auto auto;
+  align-items:stretch;column-gap:1rem;row-gap:.15rem;padding-top:.5rem;padding-bottom:1.5rem;
+  margin-bottom:1.4rem;border-bottom:1px solid var(--line);}
+.brand .mark{grid-area:1/1;align-self:stretch;aspect-ratio:1;min-height:0;
+  background:var(--subtitle-ink);
+  -webkit-mask:url('surfer.svg') no-repeat center/contain;mask:url('surfer.svg') no-repeat center/contain;}
+.brand .title{grid-area:1/2;min-width:0;align-self:center;font-family:var(--font-display);
+  font-size:1.5rem;letter-spacing:.01em;line-height:.98;text-transform:uppercase;color:var(--title-ink);}
+.cockpit.slim .brand .title{font-size:1.28rem;}
+.brand .subtitle{grid-area:2/2;font-size:.62rem;font-weight:700;letter-spacing:.42em;
+  text-transform:uppercase;color:var(--subtitle-ink);}
+.brand .actions{grid-area:1/3;align-self:center;display:flex;gap:.5rem;}
+.iconbtn{width:2.2rem;height:2.2rem;border:1px solid var(--line);border-radius:10px;
+  background:var(--accent-soft);display:grid;place-items:center;cursor:pointer;}
+.cockpit.slim .iconbtn{width:2rem;height:2rem;}
+.iconbtn span{width:1.05rem;height:1.05rem;background:var(--text-soft);border-radius:2px;opacity:.55;}
+
+.body{display:flex;flex-direction:column;gap:1.55rem;flex:1 1 auto;min-height:0;}
+.cockpit.slim .body{gap:1.25rem;}
+.config{display:flex;flex-direction:column;gap:1.55rem;}
+.cockpit.slim .config{gap:1.25rem;}
+.field{display:flex;flex-direction:column;gap:.6rem;}
+.field__label{font-size:.66rem;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:var(--label);}
+
+.seg{border-radius:13px;background:var(--surface);box-shadow:inset 0 1px 3px var(--surface-shadow);
+  display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:.3rem;padding:.3rem;}
+.seg button{appearance:none;cursor:pointer;padding:.62rem .4rem;border:0;border-radius:9px;
+  background:transparent;color:var(--text-soft);font-family:var(--font-ui);font-size:.86rem;font-weight:700;}
+.cockpit.slim .seg button{padding:.52rem .3rem;font-size:.8rem;}
+.seg button.on{color:var(--accent-ink);background:var(--accent-grad);
+  box-shadow:0 4px 12px var(--accent-shadow),inset 0 1px 0 rgba(255,255,255,.4);}
+.seg--speed button{font-family:var(--font-mono);}
+
+.stepper{border-radius:13px;background:var(--surface);box-shadow:inset 0 1px 3px var(--surface-shadow);
+  display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:.5rem;padding:.45rem;}
+.stepper button{cursor:pointer;width:2.4rem;height:2.4rem;border:0;border-radius:10px;
+  background:var(--stepper-btn-bg);color:var(--stepper-btn-ink);font-size:1.4rem;line-height:1;
+  box-shadow:0 1px 4px var(--stepper-btn-shadow);}
+.cockpit.slim .stepper button{width:2.1rem;height:2.1rem;font-size:1.25rem;}
+.stepper .readout{display:flex;align-items:center;justify-content:center;gap:.35rem;}
+.stepper .val{font-family:var(--font-mono);font-size:1.7rem;font-weight:700;color:var(--readout-ink);}
+.cockpit.slim .stepper .val{font-size:1.45rem;}
+.stepper .unit{font-size:.7rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--unit-ink);}
+
+.toggle{display:flex;align-items:center;gap:.75rem;cursor:pointer;}
+.toggle .track{position:relative;width:3.2rem;height:1.7rem;border-radius:999px;background:var(--toggle-on);
+  box-shadow:inset 0 1px 3px var(--surface-shadow);}
+.toggle .thumb{position:absolute;top:.2rem;left:.2rem;width:1.3rem;height:1.3rem;border-radius:50%;
+  background:#fff;box-shadow:0 2px 5px rgba(0,0,0,.25);transform:translateX(1.5rem);}
+.toggle .txt{font-size:.92rem;font-weight:600;color:var(--text);}
+
+.foot{margin-top:auto;padding-top:1.4rem;}
+.run{display:flex;align-items:center;justify-content:center;gap:.7rem;width:100%;padding:1rem;
+  cursor:pointer;border:0;border-radius:14px;background:var(--accent-grad);color:var(--accent-ink);
+  font-family:var(--font-display);font-size:1.18rem;letter-spacing:.08em;text-transform:uppercase;
+  box-shadow:0 8px 20px var(--accent-shadow),inset 0 1px 0 rgba(255,255,255,.3);}
+.run .dot{width:.9rem;height:.9rem;border-radius:3px;background:#fff;}
+
+/* ── stage (placeholder viewport, just to show width-in-context) ──────────── */
+.stage{position:relative;background:
+    radial-gradient(140% 120% at 80% 0%, #d6eef6 0%, #eef7fb 45%, #ffffff 100%);
+  display:grid;place-items:center;}
+.stage .card{width:min(420px,70%);aspect-ratio:3/2;border-radius:18px;background:#fff;
+  box-shadow:0 30px 60px -30px rgba(31,58,95,.4);border:1px solid var(--line);
+  display:grid;place-items:center;color:var(--ink-soft);font-size:.8rem;letter-spacing:.18em;
+  text-transform:uppercase;font-weight:700;}
+.stage .ghost{position:absolute;font-family:var(--font-display);font-size:7rem;color:rgba(47,155,179,.07);
+  text-transform:uppercase;letter-spacing:.04em;pointer-events:none;}
+</style>
+</head>
+<body>
+<h1>Deck width — current vs slim</h1>
+<p class="lede">Same cockpit, three deck widths, each shown beside the surf stage so the
+left-pane footprint reads in real proportion. Current ships at
+<code>clamp(300px, 28vw, 372px)</code>. Drag the slider to test any width live; the
+labelled rows below are fixed reference points. Slim rows also trim padding and type a
+notch so the narrower column doesn’t feel cramped.</p>
+
+<div class="controls">
+  <label for="w">Live width</label>
+  <input id="w" type="range" min="240" max="400" value="372" />
+  <span class="readout" id="wv">372px</span>
+  <span style="color:var(--ink-soft);font-size:.8rem">(applies to the “Live” row)</span>
+</div>
+
+<div class="row-meta">
+  <h2>Live</h2><span class="w" id="lw">372px · 28vw cap</span>
+</div>
+<div class="cockpit" id="live" style="--deck-w:372px;">
+  <!-- deck filled by template below -->
+</div>
+
+<div class="row-meta">
+  <h2>Current</h2><span class="w">clamp(300px, 28vw, 372px) → 372px</span><span class="delta zero">baseline</span>
+</div>
+<div class="cockpit" id="cur" style="--deck-w:372px;"></div>
+
+<div class="row-meta">
+  <h2>Slim</h2><span class="w">clamp(280px, 23vw, 324px) → 324px</span><span class="delta">−48px / −13%</span>
+</div>
+<div class="cockpit slim" id="slim" style="--deck-w:324px;"></div>
+
+<div class="row-meta">
+  <h2>Slimmer</h2><span class="w">clamp(260px, 20vw, 296px) → 296px</span><span class="delta">−76px / −20%</span>
+</div>
+<div class="cockpit slim" id="slimmer" style="--deck-w:296px;"></div>
+
+<script>
+const deckHTML = `
+  <aside class="deck">
+    <header class="brand">
+      <span class="mark"></span>
+      <span class="title">Battery Surf Bench</span>
+      <span class="subtitle">Cockpit</span>
+      <span class="actions">
+        <button class="iconbtn"><span></span></button>
+        <button class="iconbtn"><span></span></button>
+      </span>
+    </header>
+    <div class="body">
+      <div class="config">
+        <section class="field">
+          <span class="field__label">Mode</span>
+          <div class="seg"><button class="on">Duration</button><button>Target drop</button></div>
+        </section>
+        <section class="field">
+          <span class="field__label">Run duration</span>
+          <div class="stepper">
+            <button>−</button>
+            <div class="readout"><span class="val">30</span><span class="unit">min</span></div>
+            <button>+</button>
+          </div>
+        </section>
+        <section class="field">
+          <span class="field__label">Baseline calibration</span>
+          <label class="toggle"><span class="track"><span class="thumb"></span></span><span class="txt">On</span></label>
+        </section>
+        <section class="field">
+          <span class="field__label">Speed</span>
+          <div class="seg seg--speed"><button class="on">1×</button><button>4×</button><button>10×</button></div>
+        </section>
+      </div>
+    </div>
+    <footer class="foot">
+      <button class="run"><span class="dot"></span>Start</button>
+    </footer>
+  </aside>
+  <div class="stage">
+    <span class="ghost">surf</span>
+    <div class="card">viewport</div>
+  </div>`;
+
+for (const id of ['live','cur','slim','slimmer']) {
+  document.getElementById(id).innerHTML = deckHTML;
+}
+
+const slider = document.getElementById('w');
+const live = document.getElementById('live');
+const wv = document.getElementById('wv');
+const lw = document.getElementById('lw');
+slider.addEventListener('input', () => {
+  const v = slider.value + 'px';
+  live.style.setProperty('--deck-w', v);
+  wv.textContent = v;
+  lw.textContent = v;
+  // trim padding/type when narrow, like the slim presets
+  live.classList.toggle('slim', slider.value < 350);
+});
+</script>
+</body>
+</html>

@@ -12,7 +12,7 @@
 
 @use '../styles/theme' as theme;
 
-$deck-width: clamp(300px, 28vw, 372px);
+$deck-width: clamp(280px, 23vw, 324px);
 $ease: cubic-bezier(0.22, 1, 0.36, 1);
 $compact-dur: 0.42s;
 
@@ -72,7 +72,7 @@ body {
 	// re-wrapping word by word) while the grid column animates to zero — it
 	// slides out as a whole instead of being squeezed.
 	min-width: $deck-width;
-	padding: 1.6rem 1.5rem 1.4rem;
+	padding: 1.35rem 1.5rem 1.2rem;
 	overflow: hidden;
 	color: var(--text);
 	background: var(--deck-bg);
@@ -290,7 +290,7 @@ body {
 	min-width: 0;
 	align-self: center;
 	font-family: theme.$font-display;
-	font-size: 1.5rem;
+	font-size: 1.32rem;
 	letter-spacing: 0.01em;
 	line-height: 0.98;
 	text-transform: uppercase;
@@ -405,7 +405,7 @@ body {
 	z-index: 1;
 	display: flex;
 	flex-direction: column;
-	gap: 1.55rem;
+	gap: 1.3rem;
 	flex: 1 1 auto;
 	min-height: 0;
 	// Vertical scroll forces `overflow-x` to compute to `auto`, which would clip
@@ -462,7 +462,7 @@ body {
 .bsb-deck__config {
 	display: flex;
 	flex-direction: column;
-	gap: 1.55rem;
+	gap: 1.3rem;
 }
 
 // Staggered rise of each control as the deck hydrates.
