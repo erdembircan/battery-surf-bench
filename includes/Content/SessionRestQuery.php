@@ -11,6 +11,7 @@ use ErdemBircan\BatterySurfBench\Support\Manager;
 use WP_REST_Request;
 
 use function add_filter;
+use function array_keys;
 use function array_map;
 use function array_merge;
 use function array_unique;
@@ -22,18 +23,18 @@ use function is_string;
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Teaches the default posts REST controller to sort, filter and search the
+ * Teaches the default posts REST controller to sort and filter the
  * `bsb_session` collection by its meta, so the DataViews listing can page
  * through the whole dataset on the server instead of fetching it all and
  * slicing client-side.
  *
- * The grid sends the view config as query args — `orderby` as a meta key,
- * `bsb_status` / `bsb_mode` as filter values, and `search` as free text. This
- * maps each onto `WP_Query`: meta-key ordering ({@see WP_Query} `meta_value` /
- * `meta_value_num`), a `meta_query` `IN` clause per active filter, and a
- * `meta_query` `LIKE` across the enumerated columns for search. The set of
- * sortable keys, numeric keys and filterable columns is derived from the same
- * {@see SessionSchema} that defines the meta, so the two never drift.
+ * The grid sends the view config as query args — `orderby` as a meta key and
+ * `bsb_status` / `bsb_mode` as filter values. This maps each onto `WP_Query`:
+ * meta-key ordering ({@see WP_Query} `meta_value` / `meta_value_num`) and a
+ * `meta_query` `IN` clause per active filter. The set of sortable keys, numeric
+ * keys and filterable columns is derived from the same {@see SessionSchema}
+ * that defines the meta, so the two never drift. There is no free-text search:
+ * every column is numeric or enumerated, so filtering is the right tool.
  */
 class SessionRestQuery implements Manager {
 
@@ -100,8 +101,7 @@ class SessionRestQuery implements Manager {
 
 	/**
 	 * Rewrites the `WP_Query` args for a session collection request: meta-key
-	 * ordering, per-column filters, and a free-text search across the enumerated
-	 * columns.
+	 * ordering and a `meta_query` `IN` clause per active column filter.
 	 *
 	 * @param array<string, mixed> $args    The query args the controller built.
 	 * @param WP_REST_Request      $request The REST request carrying the view config.
@@ -119,7 +119,7 @@ class SessionRestQuery implements Manager {
 
 		$meta_query = array();
 
-		foreach ( $this->filters() as $key => $values ) {
+		foreach ( array_keys( $this->filters() ) as $key ) {
 			$value = $request->get_param( $key );
 			if ( null === $value || array() === $value ) {
 				continue;
@@ -132,26 +132,9 @@ class SessionRestQuery implements Manager {
 			);
 		}
 
-		$search = $request->get_param( 'search' );
-		if ( is_string( $search ) && '' !== $search ) {
-			// Searching meta, not the (empty) post title, so clear the default
-			// title search and match the enumerated columns instead.
-			$args['s'] = '';
-
-			$search_clause = array( 'relation' => 'OR' );
-			foreach ( $this->filters() as $key => $values ) {
-				$search_clause[] = array(
-					'key'     => $key,
-					'value'   => $search,
-					'compare' => 'LIKE',
-				);
-			}
-			$meta_query[] = $search_clause;
-		}
-
 		if ( array() !== $meta_query ) {
-			// Multiple clauses AND together (filters narrow, search narrows).
-			// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- filtering/searching the listing by meta is the feature; no native column holds these values.
+			// Active filters AND together to narrow the set.
+			// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- filtering the listing by meta is the feature; no native column holds these values.
 			$args['meta_query'] = $meta_query;
 		}
 

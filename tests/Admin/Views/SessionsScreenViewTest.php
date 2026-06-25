@@ -62,6 +62,9 @@ final class SessionsScreenViewTest extends TestCase {
 		);
 		$this->assertStringContainsString( 'bsb-sessions__cockpit', $output );
 		$this->assertStringContainsString( 'Open Cockpit', $output );
+		// Opens the cockpit in a new tab, away from the listing.
+		$this->assertStringContainsString( 'target="_blank"', $output );
+		$this->assertStringContainsString( 'rel="noopener noreferrer"', $output );
 		$this->assertStringContainsString( 'id="bsb-sessions-app"', $output );
 	}
 

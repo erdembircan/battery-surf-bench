@@ -130,36 +130,4 @@ final class SessionRestQueryTest extends TestCase {
 			$out['meta_query']
 		);
 	}
-
-	/**
-	 * Search matches the enumerated columns via `LIKE` and abandons the default
-	 * (empty) post-title search.
-	 */
-	public function test_query_searches_enumerated_columns_via_like(): void {
-		$out = $this->manager()->query(
-			array( 's' => 'run' ),
-			$this->request( array( 'search' => 'run' ) )
-		);
-
-		$this->assertSame( '', $out['s'] );
-
-		$search_clause = $out['meta_query'][0];
-		$this->assertSame( 'OR', $search_clause['relation'] );
-		$this->assertContains(
-			array(
-				'key'     => 'bsb_status',
-				'value'   => 'run',
-				'compare' => 'LIKE',
-			),
-			$search_clause
-		);
-		$this->assertContains(
-			array(
-				'key'     => 'bsb_mode',
-				'value'   => 'run',
-				'compare' => 'LIKE',
-			),
-			$search_clause
-		);
-	}
 }

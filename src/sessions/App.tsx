@@ -2,12 +2,14 @@
  * The benchmark sessions listing, built on DataViews.
  *
  * DataViews is a controlled renderer: it owns no data of its own and emits the
- * view config (page, sort, search, filters) through `onChangeView`. This
- * component turns that config into a REST query and lets core-data fetch only
- * the current page from the server — so sorting, filtering, searching and
- * pagination run in the database and the whole dataset is reachable, however
- * large it grows. The server side that teaches the REST collection to order,
- * filter and search by meta lives in `SessionRestQuery`.
+ * view config (page, sort, filters) through `onChangeView`. This component
+ * turns that config into a REST query and lets core-data fetch only the current
+ * page from the server — so sorting, filtering and pagination run in the
+ * database and the whole dataset is reachable, however large it grows. The
+ * server side that teaches the REST collection to order and filter by meta
+ * lives in `SessionRestQuery`. There is no free-text search: every column holds
+ * either a number or an enumerated value, so filtering, not searching, is the
+ * right tool — the search box is disabled.
  */
 
 // Import the default `@wordpress/dataviews` build, not its self-contained
@@ -81,10 +83,9 @@ function initialView( config: SessionsConfig ): View {
 
 /**
  * Translates the DataViews view config into REST query args the server uses to
- * page, order, filter and search the collection. `orderby` is sent as a meta
- * key (or `id` for the session column), each active filter as its meta-key
- * parameter, and the search box as free text — all resolved server-side by
- * the `SessionRestQuery` manager.
+ * page, order and filter the collection. `orderby` is sent as a meta key (or
+ * `id` for the session column) and each active filter as its meta-key
+ * parameter — both resolved server-side by the `SessionRestQuery` manager.
  *
  * @param view The current view config.
  * @return The REST query args.
@@ -96,10 +97,6 @@ function viewToQuery( view: View ): Record< string, unknown > {
 		page: view.page ?? 1,
 		per_page: view.perPage ?? 25,
 	};
-
-	if ( view.search ) {
-		query.search = view.search;
-	}
 
 	if ( view.sort?.field ) {
 		query.orderby =
@@ -205,6 +202,7 @@ export function SessionsApp( { config }: { config: SessionsConfig } ) {
 				defaultLayouts={ { table: {} } }
 				isLoading={ isResolving }
 				getItemId={ ( item ) => String( item.id ) }
+				search={ false }
 			/>
 			{ countSlot &&
 				countLabel !== null &&

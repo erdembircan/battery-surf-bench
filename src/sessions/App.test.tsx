@@ -138,6 +138,10 @@ describe( 'SessionsApp data fetching', () => {
 		} );
 	} );
 
+	it( 'disables the search box — every column is numeric or enumerated', () => {
+		expect( renderApp().search ).toBe( false );
+	} );
+
 	it( 'reflects the store resolving state as the grid loading flag', () => {
 		expect( renderApp( { isResolving: true } ).isLoading ).toBe( true );
 		expect( renderApp( { isResolving: false } ).isLoading ).toBe( false );
