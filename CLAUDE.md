@@ -269,7 +269,9 @@ The mandate, before any work counts as done:
 
 A red step is a stop-and-fix, exactly as a red CI check was. Never report success on a partial or skipped replay.
 
-Each job declares its own setup. If a job needs a tool that isn't installed locally, obtain it the way the workflow's setup steps obtain it (a setup action shows how) or via an equivalent local stand-in such as the tool's official container image — derive the command from the workflow and the relevant project script, not from a copy kept here.
+Each job declares its own setup. If a job needs a tool that isn't installed locally, obtain it the way the workflow's setup steps do, or via the tool's official container image.
+
+In particular, **WP-CLI (`wp`) is not installed locally and won't be — run every `wp` operation through a Docker container** (its official image), not a local binary. That's the standing decision; the actual `wp` subcommand and flags are still derived from the workflow and the project script it runs, never copied here.
 
 ### Squash-Merging — Always Supply Your Own Commit Message
 
