@@ -138,7 +138,12 @@ function StatusBadge( {
 	const label =
 		descriptor.elements?.find( ( element ) => element.value === raw )
 			?.label ?? raw;
-	return <span className={ `bsb-badge bsb-badge--${ raw }` }>{ label }</span>;
+	return (
+		<span className={ `bsb-badge bsb-badge--${ raw }` }>
+			<span className="bsb-badge__dot" aria-hidden="true" />
+			{ label }
+		</span>
+	);
 }
 
 /**
@@ -203,6 +208,9 @@ function toField( descriptor: SessionFieldDescriptor ): Field< SessionRecord > {
 
 	if ( descriptor.elements ) {
 		base.elements = descriptor.elements;
+		// Offer only the "is any of" operator so a filter maps cleanly to a
+		// server-side `IN` over the chosen values (see SessionRestQuery).
+		base.filterBy = { operators: [ 'isAny' ] };
 	}
 
 	switch ( descriptor.format ) {
@@ -238,42 +246,44 @@ function toField( descriptor: SessionFieldDescriptor ): Field< SessionRecord > {
 			return {
 				...base,
 				render: ( { item } ) => (
-					<>
+					<span className="bsb-num">
 						{ withUnit(
 							metaValue( item, descriptor ),
 							'%',
 							false
 						) }
-					</>
+					</span>
 				),
 			};
 		case 'percentOptional':
 			return {
 				...base,
 				render: ( { item } ) => (
-					<>
+					<span className="bsb-num">
 						{ withUnit( metaValue( item, descriptor ), '%', true ) }
-					</>
+					</span>
 				),
 			};
 		case 'rate':
 			return {
 				...base,
 				render: ( { item } ) => (
-					<>
+					<span className="bsb-num">
 						{ withUnit(
 							metaValue( item, descriptor ),
 							'%/h',
 							true
 						) }
-					</>
+					</span>
 				),
 			};
 		case 'runtime':
 			return {
 				...base,
 				render: ( { item } ) => (
-					<>{ asRuntime( metaValue( item, descriptor ) ) }</>
+					<span className="bsb-num">
+						{ asRuntime( metaValue( item, descriptor ) ) }
+					</span>
 				),
 			};
 		default:

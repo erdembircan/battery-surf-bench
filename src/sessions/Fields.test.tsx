@@ -107,6 +107,16 @@ describe( 'buildFields', () => {
 		const field = fieldFor( descriptor( 'status', { elements } ) );
 		expect( field.elements ).toEqual( elements );
 	} );
+
+	it( 'limits enumerated filters to the "is any" operator for a clean IN query', () => {
+		const elements = [ { value: 'finished', label: 'Finished' } ];
+		expect(
+			fieldFor( descriptor( 'status', { elements } ) ).filterBy
+		).toEqual( { operators: [ 'isAny' ] } );
+
+		// A plain (non-enumerated) column carries no filter operators.
+		expect( fieldFor( descriptor( 'rate' ) ).filterBy ).toBe( undefined );
+	} );
 } );
 
 describe( 'title field', () => {
@@ -144,6 +154,13 @@ describe( 'status format', () => {
 		const badge = screen.getByText( 'Finished' );
 		expect( badge ).toHaveClass( 'bsb-badge', 'bsb-badge--finished' );
 		expect( container ).toContainElement( badge );
+	} );
+
+	it( 'carries a status dot the stylesheet can tint and pulse', () => {
+		const { container } = renderCell( status, { bsb_status: 'finished' } );
+		expect(
+			container.querySelector( '.bsb-badge .bsb-badge__dot' )
+		).not.toBeNull();
 	} );
 
 	it( 'falls back to the raw value when no element matches', () => {
@@ -286,6 +303,15 @@ describe( 'rate format', () => {
 		expect(
 			renderCell( descriptor( 'rate' ), {} ).container
 		).toHaveTextContent( EM_DASH );
+	} );
+
+	it( 'wraps the numeric readout so the stylesheet can set it mono', () => {
+		const { container } = renderCell( descriptor( 'rate' ), {
+			value: 24.5,
+		} );
+		expect( container.querySelector( '.bsb-num' ) ).toHaveTextContent(
+			'24.5%/h'
+		);
 	} );
 } );
 
