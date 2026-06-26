@@ -34,7 +34,6 @@ const context = (): CockpitContext =>
 	( {
 		mode: 'duration',
 		durationMinutes: 30,
-		baseline: false,
 		targetPercent: 70,
 		soundEnabled: false,
 		elapsed: 1800,

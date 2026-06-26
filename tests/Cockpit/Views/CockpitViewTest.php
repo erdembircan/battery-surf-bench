@@ -216,18 +216,6 @@ final class CockpitViewTest extends TestCase {
 	}
 
 	/**
-	 * The baseline toggle binds its checked state to context and reports changes
-	 * back through `actions.toggleBaseline`.
-	 */
-	public function test_render_wires_the_baseline_toggle(): void {
-		$markup = $this->render();
-
-		$this->assertStringContainsString( 'data-wp-bind--checked="context.baseline"', $markup );
-		$this->assertStringContainsString( 'data-wp-on--change="actions.toggleBaseline"', $markup );
-		$this->assertStringContainsString( '>Baseline calibration<', $markup );
-	}
-
-	/**
 	 * The speed segmented control names each multiplier, calls
 	 * `actions.selectSpeed`, and reflects the active speed.
 	 */
@@ -385,7 +373,6 @@ final class CockpitViewTest extends TestCase {
 				'increase_label'       => 'Increase duration',
 				'target_label'         => 'Stop at battery',
 				'target_aria'          => 'Target battery percentage',
-				'baseline_label'       => 'Baseline calibration',
 				'speed_label'          => 'Speed',
 				'battery_label'        => 'Battery',
 				'rate10_label'         => 'Rate · 10 min',

@@ -112,7 +112,6 @@ const persistSession = (
 		config: {
 			mode: context.mode,
 			durationMinutes: context.durationMinutes,
-			baseline: context.baseline,
 			targetPercent: context.targetPercent,
 		},
 		samples: instance.session.samples(),

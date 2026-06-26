@@ -40,7 +40,6 @@ class CourseCatalog {
 		'article-2' => 'What Drains a Laptop Battery, Ranked',
 		'video'     => "Watch: Inside a Modern Laptop's Power Path",
 		'links'     => 'News Hub: Energy & Computing',
-		'blank'     => 'Baseline Calibration',
 	);
 
 	/**

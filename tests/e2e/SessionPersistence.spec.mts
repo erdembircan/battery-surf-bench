@@ -34,7 +34,6 @@ const sessionBody = {
 		bsb_time_to_empty: 0,
 		bsb_config_mode: 'targetDrop',
 		// A target-drop run records only its target, not a fixed duration.
-		bsb_config_baseline: true,
 		bsb_config_target_percent: 70,
 		bsb_ua: 'Mozilla/5.0 (Playwright) BatterySurfBench/1.0',
 		bsb_samples: [
@@ -81,7 +80,6 @@ test.describe( 'Benchmark session persistence', () => {
 		// The configuration persists under its namespaced keys, the uppercase in
 		// `targetDrop` intact (a `sanitize_key` would have mangled it).
 		expect( meta.bsb_config_mode ).toBe( 'targetDrop' );
-		expect( meta.bsb_config_baseline ).toBe( true );
 		expect( meta.bsb_config_target_percent ).toBe( 70 );
 		// A target-drop run records no fixed duration, so it reads back as the
 		// not-applicable zero.

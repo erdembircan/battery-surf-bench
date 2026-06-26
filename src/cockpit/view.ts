@@ -11,8 +11,8 @@
  * - {@link ./RunStore}      — the live run: viewport URL, clock and rate
  *   readouts, start/stop, compact deck, and the run-scoped clock / heartbeat /
  *   wake-lock effects.
- * - {@link ./ConfigStore}   — run mode, duration stepper (and its odometer),
- *   baseline toggle and surf speed.
+ * - {@link ./ConfigStore}   — run mode, duration stepper (and its odometer) and
+ *   surf speed.
  * - {@link ./TargetStore}   — the target-drop battery slider.
  * - {@link ./BatteryStore}  — the live battery readouts and the Battery Status
  *   API wiring that feeds the drain-rate calculations.
