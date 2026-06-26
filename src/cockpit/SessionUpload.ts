@@ -46,7 +46,6 @@ const META = {
 	timeToEmpty: 'bsb_time_to_empty',
 	configMode: 'bsb_config_mode',
 	configDuration: 'bsb_config_duration',
-	configBaseline: 'bsb_config_baseline',
 	configTargetPercent: 'bsb_config_target_percent',
 	ua: 'bsb_ua',
 	samples: 'bsb_samples',
@@ -56,7 +55,6 @@ const META = {
 export interface UploadConfig {
 	mode: RunMode;
 	durationMinutes: number;
-	baseline: boolean;
 	targetPercent: number;
 }
 
@@ -116,22 +114,16 @@ export const statusFor = ( reason: RunEndReason ): string => {
 };
 
 /**
- * Maps the run configuration onto the session's top-level mode scalar: a
- * baseline calibration run is `baseline` whatever its timing mode, otherwise the
- * mode follows the timing — `duration` for a fixed length, `target` for a
- * target-drop run. This keeps the listing's mode column populated from the same
+ * Maps the run configuration onto the session's top-level mode scalar: the mode
+ * follows the timing — `duration` for a fixed length, `target` for a target-drop
+ * run. This keeps the listing's mode column populated from the same
  * configuration the run used.
  *
  * @param config The configuration the run was started with.
  * @return The session mode scalar.
  */
-export const modeFor = ( config: UploadConfig ): string => {
-	if ( config.baseline ) {
-		return 'baseline';
-	}
-
-	return config.mode === 'duration' ? 'duration' : 'target';
-};
+export const modeFor = ( config: UploadConfig ): string =>
+	config.mode === 'duration' ? 'duration' : 'target';
 
 /**
  * Formats a wall-clock timestamp as an ISO 8601 string for the session's
@@ -184,7 +176,6 @@ export const buildSessionPayload = (
 		[ META.rateSession ]: summary.rateSession ?? 0,
 		[ META.timeToEmpty ]: summary.secondsToEmpty ?? 0,
 		[ META.configMode ]: input.config.mode,
-		[ META.configBaseline ]: input.config.baseline,
 		[ META.ua ]: input.userAgent,
 		[ META.samples ]: input.samples.map( ( sample ) => ( {
 			t: sample.t,
@@ -195,7 +186,7 @@ export const buildSessionPayload = (
 	};
 
 	// Persist only the goal that bounds this run: a target-drop run has no fixed
-	// duration, and a duration run (baseline included) has no target. The other
+	// duration, and a duration run has no target. The other
 	// stays unset so the listing shows it as not applicable rather than echoing
 	// an unused default the run never honoured.
 	if ( input.config.mode === 'targetDrop' ) {

@@ -45,7 +45,6 @@ export interface CockpitContext {
 	activeIndex: number;
 	mode: RunMode;
 	durationMinutes: number;
-	baseline: boolean;
 	speed: number;
 	running: boolean;
 	compact: boolean;

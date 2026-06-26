@@ -68,7 +68,6 @@ const input = (
 	config: {
 		mode: 'duration',
 		durationMinutes: 30,
-		baseline: false,
 		targetPercent: 70,
 	},
 	samples: samples(),
@@ -96,23 +95,11 @@ describe( 'statusFor', () => {
 } );
 
 describe( 'modeFor', () => {
-	it( 'reports baseline whatever the timing mode', () => {
+	it( 'follows the timing mode', () => {
 		expect(
 			modeFor( {
 				mode: 'duration',
 				durationMinutes: 30,
-				baseline: true,
-				targetPercent: 70,
-			} )
-		).toBe( 'baseline' );
-	} );
-
-	it( 'follows the timing mode otherwise', () => {
-		expect(
-			modeFor( {
-				mode: 'duration',
-				durationMinutes: 30,
-				baseline: false,
 				targetPercent: 70,
 			} )
 		).toBe( 'duration' );
@@ -120,7 +107,6 @@ describe( 'modeFor', () => {
 			modeFor( {
 				mode: 'targetDrop',
 				durationMinutes: 30,
-				baseline: false,
 				targetPercent: 70,
 			} )
 		).toBe( 'target' );
@@ -150,7 +136,6 @@ describe( 'buildSessionPayload', () => {
 		expect( meta.bsb_rate_session ).toBe( 22.1 );
 		expect( meta.bsb_time_to_empty ).toBe( 14400 );
 		expect( meta.bsb_config_mode ).toBe( 'duration' );
-		expect( meta.bsb_config_baseline ).toBe( false );
 		expect( meta.bsb_ua ).toBe( 'TestAgent/1.0' );
 		expect( meta.bsb_samples ).toEqual( samples() );
 	} );
@@ -161,7 +146,6 @@ describe( 'buildSessionPayload', () => {
 				config: {
 					mode: 'duration',
 					durationMinutes: 30,
-					baseline: false,
 					targetPercent: 70,
 				},
 			} )
@@ -174,7 +158,6 @@ describe( 'buildSessionPayload', () => {
 				config: {
 					mode: 'targetDrop',
 					durationMinutes: 30,
-					baseline: false,
 					targetPercent: 70,
 				},
 			} )

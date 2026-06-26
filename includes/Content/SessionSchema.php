@@ -23,8 +23,8 @@ defined( 'ABSPATH' ) || exit;
  * was captured on, the derived drain statistics, the configuration the run used,
  * and the run-length-encoded sample log. The identity and result scalars, the
  * run length / target, and the derived statistics are listed as columns; the
- * remaining configuration (the `config_mode` and `config_baseline`, redundant
- * with the listed mode) and the bulky sample log are registered as meta but kept
+ * remaining configuration (the `config_mode`, redundant with the listed mode)
+ * and the bulky sample log are registered as meta but kept
  * off the listing (`listed => false`) — they ride the same REST record without
  * cluttering the grid.
  */
@@ -265,7 +265,6 @@ class SessionSchema {
 				'elements'       => array(
 					'duration' => 'Duration',
 					'target'   => 'Target',
-					'baseline' => 'Baseline',
 				),
 				'default_column' => true,
 			),
@@ -408,18 +407,6 @@ class SessionSchema {
 				'sanitize'       => array( self::class, 'sanitize_duration' ),
 				'elements'       => array(),
 				'default_column' => true,
-			),
-			array(
-				'key'            => 'baseline',
-				'group'          => self::CONFIG_GROUP,
-				'rest_type'      => 'boolean',
-				'label'          => 'Config baseline',
-				'format'         => 'text',
-				'default'        => self::NO_DEFAULT,
-				'sanitize'       => 'rest_sanitize_boolean',
-				'elements'       => array(),
-				'default_column' => false,
-				'listed'         => false,
 			),
 			array(
 				'key'            => 'target_percent',

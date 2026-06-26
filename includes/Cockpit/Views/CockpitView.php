@@ -17,7 +17,7 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Renders the `bsb/cockpit` block's front-end markup: the Interactivity-driven
  * region split into a control deck and a surf stage. The deck carries the run
- * controls — mode, duration, baseline calibration, speed and a start/stop
+ * controls — mode, duration, speed and a start/stop
  * control — each wired to the client store ({@see src/cockpit/view.ts}). While a
  * run is live the configuration controls give way to the live readouts pill; the
  * stage carries the viewport iframe. The block's server render
@@ -49,7 +49,6 @@ class CockpitView implements View {
 	 *     @type string $increase_label    Translated accessible label for the increase control.
 	 *     @type string $target_label      Translated label for the target-drop field.
 	 *     @type string $target_aria       Translated accessible label for the target slider.
-	 *     @type string $baseline_label    Translated label for the baseline calibration toggle.
 	 *     @type string $speed_label        Translated label for the speed field.
 	 *     @type string $battery_label      Translated label for the battery readout.
 	 *     @type string $rate10_label       Translated label for the 10-minute drain rate.
@@ -105,7 +104,6 @@ class CockpitView implements View {
 		$increase_label      = isset( $data['increase_label'] ) ? (string) $data['increase_label'] : '';
 		$target_label        = isset( $data['target_label'] ) ? (string) $data['target_label'] : '';
 		$target_aria         = isset( $data['target_aria'] ) ? (string) $data['target_aria'] : '';
-		$baseline_label      = isset( $data['baseline_label'] ) ? (string) $data['baseline_label'] : '';
 		$speed_label         = isset( $data['speed_label'] ) ? (string) $data['speed_label'] : '';
 		$battery_label       = isset( $data['battery_label'] ) ? (string) $data['battery_label'] : '';
 		$rate10_label        = isset( $data['rate10_label'] ) ? (string) $data['rate10_label'] : '';
@@ -198,7 +196,6 @@ class CockpitView implements View {
 		$increase_label      = esc_attr( $increase_label );
 		$target_label        = esc_html( $target_label );
 		$target_aria         = esc_attr( $target_aria );
-		$baseline_label      = esc_html( $baseline_label );
 		$speed_label         = esc_html( $speed_label );
 		$battery_label       = esc_html( $battery_label );
 		$rate10_label        = esc_html( $rate10_label );
@@ -427,14 +424,6 @@ HTML;
 					</span>
 					<span class="bsb-target__value" data-wp-text="state.targetDisplay" data-wp-style--color="state.targetColor"></span>
 				</div>
-			</section>
-
-			<section class="bsb-field">
-				<label class="bsb-toggle">
-					<input type="checkbox" class="bsb-toggle__input" data-wp-bind--checked="context.baseline" data-wp-on--change="actions.toggleBaseline" />
-					<span class="bsb-toggle__track"><span class="bsb-toggle__thumb"></span></span>
-					<span class="bsb-toggle__text">{$baseline_label}</span>
-				</label>
 			</section>
 
 			<section class="bsb-field">

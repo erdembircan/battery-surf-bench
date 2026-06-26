@@ -2,8 +2,8 @@
  * Tests for the cockpit Interactivity store.
  *
  * The store's consumer is the block markup: the viewport iframe binds its `src`
- * to `state.currentSrc`, and the control deck binds its mode, duration, baseline,
- * speed and run controls to the rest of the store. These tests stub the
+ * to `state.currentSrc`, and the control deck binds its mode, duration, speed
+ * and run controls to the rest of the store. These tests stub the
  * Interactivity runtime, capture the store definition the module registers, and
  * assert what those derive from (and do to) the per-instance context and the
  * element that triggered each action.
@@ -22,7 +22,6 @@ interface CockpitContext {
 	activeIndex: number;
 	mode: 'duration' | 'targetDrop';
 	durationMinutes: number;
-	baseline: boolean;
 	speed: number;
 	running: boolean;
 	compact: boolean;
@@ -107,7 +106,6 @@ interface CockpitConfig {
 		targetPointerMove: ( event: PointerEvent ) => void;
 		targetPointerUp: () => void;
 		targetKeyDown: ( event: KeyboardEvent ) => void;
-		toggleBaseline: () => void;
 		selectSpeed: () => void;
 		toggleRun: () => void;
 		toggleCompact: () => void;
@@ -143,7 +141,6 @@ const baseContext = (): CockpitContext => ( {
 	activeIndex: 0,
 	mode: 'duration',
 	durationMinutes: 30,
-	baseline: false,
 	speed: 1,
 	running: false,
 	compact: false,
@@ -454,18 +451,6 @@ describe( 'bsb/cockpit view store', () => {
 			mocks.context.targetPercent = 40;
 			mocks.config?.actions.targetKeyDown( key( 'End' ) );
 			expect( mocks.context.targetPercent ).toBe( 80 );
-		} );
-	} );
-
-	describe( 'baseline', () => {
-		it( 'mirrors the checkbox checked state', () => {
-			trigger( {}, true );
-			mocks.config?.actions.toggleBaseline();
-			expect( mocks.context.baseline ).toBe( true );
-
-			trigger( {}, false );
-			mocks.config?.actions.toggleBaseline();
-			expect( mocks.context.baseline ).toBe( false );
 		} );
 	} );
 

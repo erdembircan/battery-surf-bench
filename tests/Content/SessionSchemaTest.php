@@ -166,7 +166,7 @@ final class SessionSchemaTest extends TestCase {
 	public function test_configuration_is_registered_under_the_config_group(): void {
 		$metas = $this->schema()->metas();
 
-		foreach ( array( 'config_mode', 'config_duration', 'config_baseline', 'config_target_percent' ) as $field ) {
+		foreach ( array( 'config_mode', 'config_duration', 'config_target_percent' ) as $field ) {
 			$this->assertArrayHasKey( self::PREFIX . $field, $metas );
 		}
 	}
@@ -212,7 +212,7 @@ final class SessionSchemaTest extends TestCase {
 	public function test_persisted_only_fields_are_not_listed(): void {
 		$listed = array_column( $this->schema()->fields(), 'key' );
 
-		foreach ( array( 'config_mode', 'config_baseline', 'samples' ) as $field ) {
+		foreach ( array( 'config_mode', 'samples' ) as $field ) {
 			$this->assertNotContains( self::PREFIX . $field, $listed );
 		}
 	}

@@ -1,7 +1,7 @@
 /**
  * The run-configuration slice of the cockpit store: the control deck's run mode,
- * duration stepper (with its rolling odometer), baseline toggle and surf speed.
- * Reads and writes the seeded run config on the reactive context, normalising
+ * duration stepper (with its rolling odometer) and surf speed. Reads and writes
+ * the seeded run config on the reactive context, normalising
  * every value through {@link ./RunConfig} so a tampered context cannot push the
  * run outside its supported range.
  */
@@ -92,15 +92,6 @@ export const configStore: StorePart = {
 			context.durationMinutes = normalizeDuration(
 				context.durationMinutes + step
 			);
-		},
-
-		/** Toggles whether a baseline calibration precedes the run. */
-		toggleBaseline(): void {
-			const { ref } = getElement();
-			const checkbox = ref as HTMLInputElement | null;
-
-			getContext< CockpitContext >().baseline =
-				checkbox?.checked ?? false;
 		},
 
 		/** Selects the surf speed named by the triggering control's `data-speed`. */

@@ -195,9 +195,6 @@ $globe-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' v
 	--stepper-btn-shadow: #{rgba($coastal-navy, 0.12)};
 	--readout-ink: #{$coastal-navy};
 	--unit-ink: #{$coastal-teal};
-	--toggle-track: #dce8ee;
-	--toggle-on: linear-gradient(150deg, #59d3a0 0%, #{$coastal-aqua} 100%);
-	--toggle-thumb: #ffffff;
 	--stop-grad: linear-gradient(160deg, #{$coastal-coral} 0%, #{$coastal-coral-deep} 100%);
 	--stop-shadow: #{rgba($coastal-coral-deep, 0.4)};
 	--stop-glyph: #ffffff;
@@ -256,9 +253,6 @@ $globe-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' v
 		--stepper-btn-shadow: transparent;
 		--readout-ink: #ffffff;
 		--unit-ink: #{$dusk-sun};
-		--toggle-track: #{rgba(#031620, 0.6)};
-		--toggle-on: linear-gradient(150deg, #{$dusk-aqua} 0%, #2bbf9e 100%);
-		--toggle-thumb: #{$dusk-foam};
 		--stop-grad: linear-gradient(160deg, #{$dusk-coral} 0%, #{$dusk-coral-deep} 100%);
 		--stop-shadow: #{rgba($dusk-coral-deep, 0.42)};
 		--stop-glyph: #ffffff;
