@@ -14,7 +14,8 @@ export type SessionFieldFormat =
 	| 'percentText'
 	| 'percentOptional'
 	| 'rate'
-	| 'runtime';
+	| 'runtime'
+	| 'browser';
 
 /**
  * A single selectable value for an enumerated session field, as DataViews

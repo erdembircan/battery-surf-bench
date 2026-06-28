@@ -19,7 +19,7 @@ defined( 'ABSPATH' ) || exit;
  * from drifting apart, and means a new datum is added in exactly one place.
  *
  * The shape mirrors the session record the cockpit produces while benchmarking:
- * the run mode and lifecycle status, its battery levels, the user agent the run
+ * the run mode and lifecycle status, its battery levels, the browser the run
  * was captured on, the derived drain statistics, the configuration the run used,
  * and the run-length-encoded sample log. The identity and result scalars, the
  * run length / target, and the derived statistics are listed as columns; the
@@ -308,14 +308,42 @@ class SessionSchema {
 				'elements'       => array(),
 				'default_column' => true,
 			),
+			// The browser the run was captured on, kept as discrete fields — name,
+			// major version and OS — rather than a pre-formatted string, so the
+			// listing decides how they read. Only the name surfaces as a column,
+			// with a `browser` renderer that composes the three for display; the
+			// version and OS are stored and REST-exposed but not listed in their
+			// own right.
 			array(
-				'key'            => 'ua',
+				'key'            => 'ua_browser',
 				'rest_type'      => 'string',
-				'label'          => 'User agent',
+				'label'          => 'Browser',
+				'format'         => 'browser',
+				'default'        => '',
+				'sanitize'       => 'sanitize_text_field',
+				'elements'       => array(),
+				'default_column' => false,
+			),
+			array(
+				'key'            => 'ua_version',
+				'rest_type'      => 'string',
+				'label'          => 'Browser version',
 				'format'         => 'text',
 				'default'        => '',
 				'sanitize'       => 'sanitize_text_field',
 				'elements'       => array(),
+				'listed'         => false,
+				'default_column' => false,
+			),
+			array(
+				'key'            => 'ua_os',
+				'rest_type'      => 'string',
+				'label'          => 'Operating system',
+				'format'         => 'text',
+				'default'        => '',
+				'sanitize'       => 'sanitize_text_field',
+				'elements'       => array(),
+				'listed'         => false,
 				'default_column' => false,
 			),
 			// Derived end-of-run statistics. Persisted alongside the raw inputs so

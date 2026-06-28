@@ -74,7 +74,9 @@ const input = (
 	elapsedSeconds: 1500,
 	startedAtWall: Date.parse( '2026-06-23T10:00:00.000Z' ),
 	endedAtWall: Date.parse( '2026-06-23T10:30:00.000Z' ),
-	userAgent: 'TestAgent/1.0',
+	uaBrowser: 'Chrome',
+	uaVersion: '149',
+	uaOs: 'macOS',
 	...overrides,
 } );
 
@@ -136,7 +138,9 @@ describe( 'buildSessionPayload', () => {
 		expect( meta.bsb_rate_session ).toBe( 22.1 );
 		expect( meta.bsb_time_to_empty ).toBe( 14400 );
 		expect( meta.bsb_config_mode ).toBe( 'duration' );
-		expect( meta.bsb_ua ).toBe( 'TestAgent/1.0' );
+		expect( meta.bsb_ua_browser ).toBe( 'Chrome' );
+		expect( meta.bsb_ua_version ).toBe( '149' );
+		expect( meta.bsb_ua_os ).toBe( 'macOS' );
 		expect( meta.bsb_samples ).toEqual( samples() );
 	} );
 

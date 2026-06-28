@@ -35,7 +35,9 @@ const sessionBody = {
 		bsb_config_mode: 'targetDrop',
 		// A target-drop run records only its target, not a fixed duration.
 		bsb_config_target_percent: 70,
-		bsb_ua: 'Mozilla/5.0 (Playwright) BatterySurfBench/1.0',
+		bsb_ua_browser: 'Chrome',
+		bsb_ua_version: '149',
+		bsb_ua_os: 'macOS',
 		bsb_samples: [
 			{ t: 0, level: 0.82, charging: false, count: 1 },
 			{ t: 600000, level: 0.7, charging: false, count: 3 },
@@ -85,10 +87,10 @@ test.describe( 'Benchmark session persistence', () => {
 		// not-applicable zero.
 		expect( meta.bsb_config_duration ).toBe( 0 );
 
-		// The user agent the run was captured on persists.
-		expect( meta.bsb_ua ).toBe(
-			'Mozilla/5.0 (Playwright) BatterySurfBench/1.0'
-		);
+		// The discrete browser fields the run was captured on persist.
+		expect( meta.bsb_ua_browser ).toBe( 'Chrome' );
+		expect( meta.bsb_ua_version ).toBe( '149' );
+		expect( meta.bsb_ua_os ).toBe( 'macOS' );
 
 		// A statistic the run could not compute is stored as zero (WordPress REST
 		// single meta cannot hold a null), and round-trips intact.

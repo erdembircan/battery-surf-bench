@@ -12,6 +12,7 @@ import { RunSession } from './RunSession';
 import { buildGraph, type GraphViewport, type GraphModel } from './DrainGraph';
 import { buildSessionPayload, postSession } from './SessionUpload';
 import { enqueueToast } from './Toasts';
+import { parseUserAgent } from './UserAgent';
 
 /**
  * The summary drain graph's drawing viewport (SVG user units). A wide, short
@@ -90,7 +91,7 @@ const freezeSummary = (
 /**
  * Persists the just-ended run to the server (fire-and-forget). Builds the REST
  * payload from the frozen session — the summary, the configuration the run used,
- * its samples, the wall-clock stamps and the user agent — and POSTs it through
+ * its samples, the wall-clock stamps and the parsed browser fields — and POSTs it through
  * the session post type's own endpoint. Skipped when the run logged no samples
  * (nothing meaningful to store). The upload is fire-and-forget, but its outcome
  * is awaited just enough to surface a failure: if the run was not persisted, an
@@ -106,6 +107,7 @@ const persistSession = (
 	instance: InstanceState,
 	reason: RunEndReason
 ): void => {
+	const ua = parseUserAgent( navigator.userAgent );
 	const payload = buildSessionPayload( {
 		summary: instance.session.summary(),
 		reason,
@@ -118,7 +120,9 @@ const persistSession = (
 		elapsedSeconds: context.elapsed,
 		startedAtWall: instance.startedAtWall,
 		endedAtWall: wallNow(),
-		userAgent: navigator.userAgent,
+		uaBrowser: ua.browser,
+		uaVersion: ua.version,
+		uaOs: ua.os,
 	} );
 
 	if ( ! payload ) {
