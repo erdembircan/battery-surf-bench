@@ -49,8 +49,6 @@ class SummaryCard implements View {
 	 *     @type string $elapsed_run_label  Raw label for the elapsed-run stat.
 	 *     @type string $measured_label     Raw legend label for the measured drain series.
 	 *     @type string $projected_label    Raw legend label for the 100→0 projection.
-	 *     @type string $started_label      Raw label for the optional "Started" stat; empty omits it.
-	 *     @type string $started_value      Raw value for the optional "Started" stat (the run's start date).
 	 *     @type bool   $start_hidden       Whether the overlay ships `hidden` (raised later by the store).
 	 * }
 	 * @return string The `.bsb-summary` overlay markup with the summary card inside.
@@ -69,22 +67,7 @@ class SummaryCard implements View {
 		$elapsed_run_label  = esc_html( isset( $data['elapsed_run_label'] ) ? (string) $data['elapsed_run_label'] : '' );
 		$measured_label     = esc_html( isset( $data['measured_label'] ) ? (string) $data['measured_label'] : '' );
 		$projected_label    = esc_html( isset( $data['projected_label'] ) ? (string) $data['projected_label'] : '' );
-		$started_label      = isset( $data['started_label'] ) ? (string) $data['started_label'] : '';
-		$started_value      = isset( $data['started_value'] ) ? (string) $data['started_value'] : '';
 		$start_hidden       = ! isset( $data['start_hidden'] ) || (bool) $data['start_hidden'];
-
-		// The optional "Started" stat the detail page adds: a full-width tile under
-		// the grid showing the run's wall-clock start, which the live summary has
-		// no calendar time to show. A static value (not a bound readout), so it is
-		// escaped and placed here rather than painted by the store.
-		$started_stat = '';
-		if ( '' !== $started_label ) {
-			$started_label = esc_html( $started_label );
-			$started_value = esc_html( $started_value );
-			$started_stat  = <<<HTML
-<div class="bsb-stat bsb-stat--wide"><span class="bsb-stat__label">{$started_label}</span><span class="bsb-stat__value">{$started_value}</span></div>
-HTML;
-		}
 
 		$summary_back = <<<HTML
 {$frank}
@@ -106,7 +89,6 @@ HTML;
 				<div class="bsb-stat"><span class="bsb-stat__label">{$battery_label}</span><span class="bsb-stat__value bsb-stat__value--arrow"><span data-wp-text="context.summaryBatteryStart"></span><span class="bsb-stat__arrow" aria-hidden="true"></span><span data-wp-text="context.summaryBatteryEnd"></span></span></div>
 				<div class="bsb-stat"><span class="bsb-stat__label">{$dropped_label}</span><span class="bsb-stat__value"><span data-wp-text="context.summaryDropped"></span><span class="bsb-stat__unit">{$pts_label}</span></span></div>
 				<div class="bsb-stat"><span class="bsb-stat__label">{$elapsed_run_label}</span><span class="bsb-stat__value" data-wp-text="state.summaryElapsed"></span></div>
-				{$started_stat}
 			</div>
 			<div class="bsb-summary__actions">
 				{$footer}

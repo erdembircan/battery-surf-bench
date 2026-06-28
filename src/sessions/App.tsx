@@ -61,6 +61,18 @@ function metaKey( field: string ): string {
 }
 
 /**
+ * Opens a session on its native admin edit screen, where the detail postcard
+ * replaces the editor. The URL is the post's own `post.php` edit link, resolved
+ * relative to the listing screen (both live under `wp-admin/`), so clicking a
+ * row follows the ordinary WordPress flow rather than a bespoke route.
+ *
+ * @param item The session to open.
+ */
+function openSession( item: SessionRecord ): void {
+	window.location.href = `post.php?post=${ item.id }&action=edit`;
+}
+
+/**
  * Builds the initial view: a table sorted by most recent start, showing the
  * columns the schema marks as defaults.
  *
@@ -93,7 +105,7 @@ function initialView( config: SessionsConfig ): View {
 function viewToQuery( view: View ): Record< string, unknown > {
 	const query: Record< string, unknown > = {
 		status: 'any',
-		_fields: 'id,title,status,date,link,meta',
+		_fields: 'id,title,status,date,meta',
 		page: view.page ?? 1,
 		per_page: view.perPage ?? 25,
 	};
@@ -203,6 +215,8 @@ export function SessionsApp( { config }: { config: SessionsConfig } ) {
 				isLoading={ isResolving }
 				getItemId={ ( item ) => String( item.id ) }
 				search={ false }
+				isItemClickable={ () => true }
+				onClickItem={ openSession }
 			/>
 			{ countSlot &&
 				countLabel !== null &&

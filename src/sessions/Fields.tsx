@@ -328,24 +328,12 @@ export function buildFields(
 		label: 'Session',
 		enableSorting: true,
 		getValue: ( { item } ) => item.title?.rendered ?? `#${ item.id }`,
-		render: ( { item } ) => {
-			const label = item.title?.rendered || `#${ item.id }`;
-			// Link the title to the session's detail page when its permalink is
-			// known, opening in a new tab so the listing stays put; fall back to
-			// plain text if the record carried no link.
-			return item.link ? (
-				<a
-					className="bsb-sessions__view"
-					href={ item.link }
-					target="_blank"
-					rel="noreferrer"
-				>
-					{ label }
-				</a>
-			) : (
-				<>{ label }</>
-			);
-		},
+		// Plain label; DataViews wraps the primary (title) cell as the clickable
+		// open target itself (via the screen's `onClickItem`/`isItemClickable`), so
+		// this need not render its own link.
+		render: ( { item } ) => (
+			<>{ item.title?.rendered || `#${ item.id }` }</>
+		),
 	};
 
 	return [ title, ...descriptors.map( toField ) ];

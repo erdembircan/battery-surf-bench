@@ -17,18 +17,8 @@
 
 namespace ErdemBircan\BatterySurfBench;
 
-use ErdemBircan\BatterySurfBench\Content\SessionType;
-
-use function register_activation_hook;
-
 defined( 'ABSPATH' ) || exit;
 
 require_once __DIR__ . '/vendor/autoload.php';
-
-// The session post type carries a rewrite (its single-post permalink), so its
-// rules must be flushed once after activation. The type is not registered yet
-// when this hook fires; it flags a one-shot flush the next `init` performs once
-// the type — and its rewrite rules — exist.
-register_activation_hook( __FILE__, array( SessionType::class, 'activate' ) );
 
 ( new BatterySurfBench( __FILE__ ) )->init();

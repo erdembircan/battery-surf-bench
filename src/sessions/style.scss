@@ -253,17 +253,17 @@
 		color: theme.$coastal-navy;
 	}
 
-	// The title links to the session's detail page. It reads as the same plain
-	// identifier, picking up its colour on hover/focus so the row stays calm but
-	// the link is discoverable.
-	.bsb-sessions__view {
-		color: inherit;
-		text-decoration: none;
+	// DataViews makes the primary (title) cell the clickable open target — the
+	// whole cell content, not just the short id — opening the session's edit
+	// screen. Give that target a pointer and a coastal hover so the row reads as
+	// openable, while the checkbox stays the one thing that selects.
+	.dataviews-title-field--clickable {
+		cursor: pointer;
+		border-radius: 4px;
 
 		&:hover,
-		&:focus {
+		&:focus-visible {
 			color: theme.$coastal-teal;
-			text-decoration: underline;
 		}
 	}
 }

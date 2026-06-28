@@ -12,12 +12,8 @@ use ErdemBircan\BatterySurfBench\Support\Manager;
 use function __;
 use function add_action;
 use function current_user_can;
-use function delete_option;
-use function flush_rewrite_rules;
-use function get_option;
 use function register_post_meta;
 use function register_post_type;
-use function update_option;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -25,46 +21,20 @@ defined( 'ABSPATH' ) || exit;
  * Registers the custom post type benchmark sessions are stored as, together
  * with the post meta that holds each session's data.
  *
- * The post type stays out of the admin menu — the plugin's own DataViews screen
- * owns the listing instead of the default list table — and out of site search,
- * but it is publicly queryable with a rewrite so each session resolves at a
- * native single-post permalink. That permalink is where the session detail route
- * renders its summary postcard; the route gates the view by capability, so the
- * URL stays admin-only despite being queryable. It also exposes REST — the
- * cockpit writes sessions through the post type's own endpoint and the listing
- * reads them back, with the registered meta riding along under `meta` so neither
- * side needs a bespoke controller.
- *
- * Because the type carries a rewrite, its rules must be flushed once after the
- * slug is first registered; activation sets a one-shot flag this manager honours
- * on the next `init`, after the type is registered (see {@see activate()}).
+ * The post type is admin-only: it is kept out of the admin menu — the plugin's
+ * own DataViews screen owns the listing instead of the default list table — and
+ * out of site search and the front end, but it keeps a native admin UI
+ * (`show_ui`), so each session has a native edit screen at its own admin URL.
+ * That edit screen is where {@see SessionDetail} renders the summary postcard in
+ * place of the block editor. It also exposes REST — the cockpit writes sessions
+ * through the post type's own endpoint and the listing reads them back, with the
+ * registered meta riding along under `meta` so neither side needs a bespoke
+ * controller.
  *
  * The data shape itself lives in {@see SessionSchema}; this manager owns only
  * the WordPress registration and the capability policy that guards meta writes.
  */
 class SessionType implements Manager {
-
-	/**
-	 * Option flag set on activation and cleared once its rewrite rules have been
-	 * flushed, so the session permalink's rewrite is registered exactly once
-	 * rather than on every request.
-	 *
-	 * @var string
-	 */
-	private const FLUSH_OPTION = 'bsb_flush_rewrite';
-
-	/**
-	 * Marks the session rewrite rules for a one-time flush on the next request.
-	 * Called from the plugin's activation hook: the post type is not yet
-	 * registered when activation runs, so the flush is deferred to the following
-	 * `init`, where {@see register_post_type()} performs it once the type — and
-	 * therefore its rewrite rules — exist.
-	 *
-	 * @return void
-	 */
-	public static function activate(): void {
-		update_option( self::FLUSH_OPTION, '1' );
-	}
 
 	/**
 	 * Stores the session schema and the capability that guards the post type.
@@ -96,7 +66,6 @@ class SessionType implements Manager {
 	 */
 	public function register_post_type(): void {
 		register_post_type( $this->schema->post_type(), $this->post_type_args() );
-		$this->maybe_flush_rewrite();
 	}
 
 	/**
@@ -125,26 +94,10 @@ class SessionType implements Manager {
 	}
 
 	/**
-	 * Flushes the rewrite rules once when activation has flagged it, then clears
-	 * the flag. Run from {@see register_post_type()} so the session type's rewrite
-	 * rules already exist when the flush rebuilds them; a no-op on every later
-	 * request, so it costs only a single option read.
-	 *
-	 * @return void
-	 */
-	private function maybe_flush_rewrite(): void {
-		if ( ! get_option( self::FLUSH_OPTION ) ) {
-			return;
-		}
-
-		flush_rewrite_rules();
-		delete_option( self::FLUSH_OPTION );
-	}
-
-	/**
-	 * Builds the post type registration arguments: a session content type that is
-	 * reachable over REST, resolves at a native single-post permalink, and is
-	 * gated entirely behind the plugin's capability.
+	 * Builds the post type registration arguments: an admin-only session content
+	 * type that keeps a native edit screen (so each session has its own admin
+	 * URL), is reachable over REST, and is gated entirely behind the plugin's
+	 * capability — with no front end, archive or menu entry.
 	 *
 	 * @return array<string, mixed> The `register_post_type` arguments.
 	 */
@@ -154,24 +107,19 @@ class SessionType implements Manager {
 				'name'          => __( 'Benchmark Sessions', 'battery-surf-bench' ),
 				'singular_name' => __( 'Benchmark Session', 'battery-surf-bench' ),
 			),
-			// Stays out of the admin (the plugin's DataViews screen owns the
-			// listing) and out of site search, but is publicly queryable with a
-			// rewrite so each session resolves at a native single-post permalink
-			// (`get_permalink()`), where the detail route renders its summary
-			// postcard. The route gates that view by capability, so a session URL
-			// is admin-only despite being queryable.
+			// Admin-only: no front end (`public`/`publicly_queryable` off, excluded
+			// from search) and no menu entry (the DataViews screen owns the
+			// listing), but `show_ui` keeps the native edit screen, so each session
+			// has its own admin URL where the detail route renders its postcard.
 			'public'              => false,
-			'show_ui'             => false,
+			'show_ui'             => true,
 			'show_in_menu'        => false,
 			'show_in_rest'        => true,
 			'rest_base'           => $this->schema->post_type(),
 			'exclude_from_search' => true,
-			'publicly_queryable'  => true,
+			'publicly_queryable'  => false,
 			'has_archive'         => false,
-			'rewrite'             => array(
-				'slug'       => 'session',
-				'with_front' => false,
-			),
+			'rewrite'             => false,
 			'hierarchical'        => false,
 			'supports'            => array( 'title', 'custom-fields' ),
 			// Map every capability — meta caps included — directly onto the

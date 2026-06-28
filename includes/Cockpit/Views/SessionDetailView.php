@@ -25,11 +25,10 @@ defined( 'ABSPATH' ) || exit;
  * card to its report back, the same self-reveal "New run" gives the startup card.
  *
  * The card itself is the shared {@see SummaryCard}; this view supplies its
- * picture front, its franked stamp, the extra "Started" stat (the live summary
- * has no calendar start to show), and a footer link back to the listing instead
- * of the live "New run" button. The block render template prepares the raw
- * (translated) values and the seeded context; this view escapes each into its
- * slot and owns the wrapper markup.
+ * picture front, its franked stamp, and a footer link back to the listing
+ * instead of the live "New run" button. The block render template prepares the
+ * raw (translated) values and the seeded context; this view escapes each into
+ * its slot and owns the wrapper markup.
  */
 class SessionDetailView implements View {
 
@@ -53,8 +52,6 @@ class SessionDetailView implements View {
 	 *     @type string $elapsed_run_label  Raw label for the elapsed-run stat.
 	 *     @type string $measured_label     Raw legend label for the measured drain series.
 	 *     @type string $projected_label    Raw legend label for the 100→0 projection.
-	 *     @type string $started_label      Raw label for the "Started" stat.
-	 *     @type string $started_value      Raw value for the "Started" stat (the run's start date).
 	 *     @type string $back_label         Raw label for the back-to-listing link.
 	 *     @type string $back_url           URL of the sessions listing screen.
 	 * }
@@ -103,8 +100,6 @@ class SessionDetailView implements View {
 				'elapsed_run_label'  => $data['elapsed_run_label'] ?? '',
 				'measured_label'     => $data['measured_label'] ?? '',
 				'projected_label'    => $data['projected_label'] ?? '',
-				'started_label'      => $data['started_label'] ?? '',
-				'started_value'      => $data['started_value'] ?? '',
 				// Shown at once (not raised on run end as in the live cockpit), so
 				// the postcard's picture front sails in immediately on load.
 				'start_hidden'       => false,

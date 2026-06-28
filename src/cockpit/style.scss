@@ -16,10 +16,14 @@ $deck-width: clamp(300px, 28vw, 372px);
 $ease: cubic-bezier(0.22, 1, 0.36, 1);
 $compact-dur: 0.42s;
 
-html,
-body {
+// The cockpit dashboard is served as a standalone document, so its own body
+// drops the default margin and fills the viewport. Scoped to that body's class
+// (set by the dashboard view) rather than a bare `html, body` reset, so the same
+// stylesheet can also dress the session detail screen inside wp-admin without
+// disturbing the admin's own body layout.
+body.bsb-cockpit-dashboard {
 	margin: 0;
-	height: 100%;
+	min-height: 100vh;
 }
 
 // ── Theme tokens ─────────────────────────────────────────────────────────────
@@ -1619,18 +1623,28 @@ body {
 	}
 }
 
-// ── Session detail page ───────────────────────────────────────────────────────
-// The standalone page each stored session resolves to at its permalink. It hosts
-// only the run-summary overlay (no deck or stage), so it just needs to carry the
-// theme tokens and fill the viewport: the `.bsb-summary` overlay below paints the
-// sky and centres the postcard against it, exactly as it does over the live
-// cockpit. The cockpit's own wrapper provides these in the dashboard; here this
-// standalone wrapper does.
+// ── Session detail screen ─────────────────────────────────────────────────────
+// The custom display that replaces the editor on a session's native admin edit
+// screen. It hosts only the run-summary overlay (no deck or stage), so it just
+// carries the theme tokens and gives the `.bsb-summary` overlay below a bounded,
+// positioned panel to paint its sky and centre the postcard within — sized as a
+// tall card inside the admin column rather than the whole viewport (the admin
+// chrome renders around it). The cockpit's own wrapper provides these on the
+// live dashboard; here this wrapper does.
 .bsb-session-detail {
 	@include theme.tokens;
 
-	position: relative;
-	height: 100vh;
+	// Fill the admin content panel exactly — the area right of the menu and below
+	// the toolbar — by pinning to the viewport rather than flowing inside
+	// `#wpbody-content` (whose gutters and the trailing footer otherwise leave
+	// gaps and make the page scroll). The left offset tracks the admin menu width
+	// across its states (expanded, folded, off-canvas); the top uses WordPress's
+	// own admin-bar-height custom property, which already switches 32→46px.
+	position: fixed;
+	top: var(--wp-admin--admin-bar--height, 32px);
+	right: 0;
+	bottom: 0;
+	left: 160px;
 	overflow: hidden;
 	font-family: theme.$font-ui;
 	color: var(--text);
@@ -1640,6 +1654,26 @@ body {
 	*::before,
 	*::after {
 		box-sizing: border-box;
+	}
+}
+
+// Menu collapsed by hand (any width).
+.folded .bsb-session-detail {
+	left: 36px;
+}
+
+// WordPress auto-folds the menu to icons between the two admin breakpoints.
+@media screen and (max-width: 960px) {
+	.auto-fold .bsb-session-detail {
+		left: 36px;
+	}
+}
+
+// Below the lower breakpoint the menu slides off-canvas; the panel takes the
+// full width.
+@media screen and (max-width: 782px) {
+	.bsb-session-detail {
+		left: 0;
 	}
 }
 
@@ -1993,21 +2027,31 @@ body {
 }
 
 // The detail page's footer is a link back to the listing rather than the live
-// "New run" button; it wears the same pill, so reset the anchor defaults so it
-// reads as that button, not underlined link text.
+// "New run" button; it wears the same pill. It is an <a>, so wp-admin's global
+// anchor styles tint and underline it on hover and ring it with a box-shadow +
+// outline on focus/click. Scope under the detail wrapper to outweigh those admin
+// rules and pin every interactive state to the resting button look — same ink,
+// no underline, just the button's drop shadow, no focus ring — so it behaves
+// exactly like the cockpit's "New run" button.
 .bsb-summary__back {
 	display: inline-flex;
 	align-items: center;
 	text-decoration: none;
 }
 
-// The detail page's extra "Started" stat spans the grid under the six readouts,
-// a full-width dateline rather than a lonely cell in the three-column flow.
-.bsb-summary__stats .bsb-stat--wide {
-	grid-column: 1 / -1;
-
-	.bsb-stat__value {
-		font-size: 1.05rem;
+.bsb-session-detail .bsb-summary__back {
+	&:hover,
+	&:focus,
+	&:focus-visible,
+	&:active {
+		color: var(--accent-ink);
+		text-decoration: none;
+		// Re-assert the button's own pill radius and drop shadow: wp-admin's
+		// `a:focus` otherwise squares the corners to 2px and replaces the shadow
+		// with its focus ring, which read as a border on click.
+		border-radius: 11px;
+		box-shadow: 0 10px 22px var(--accent-shadow);
+		outline: none;
 	}
 }
 

@@ -87,7 +87,6 @@ classDiagram
 
     class SessionType {
         +__construct(SessionSchema schema, string capability)
-        +activate()$ void
         +register() void
         +register_post_type() void
         +register_meta() void
@@ -95,9 +94,10 @@ classDiagram
     }
 
     class SessionDetail {
-        +__construct(string post_type, string meta_prefix, string capability, string block_name, string screen_slug, CockpitDashboard dashboard, SessionDetailView view, StandaloneChrome chrome)
+        +__construct(string post_type, string meta_prefix, string capability, string block_name, string screen_slug, string style, SessionDetailView view, Assets assets)
         +register() void
-        +maybe_render() void
+        +maybe_render(bool replace, WP_Post post) bool
+        +enqueue(string hook_suffix) void
     }
 
     class StandaloneChrome {
@@ -216,9 +216,8 @@ classDiagram
     SessionType ..|> Manager : implements
     SessionType --> SessionSchema : uses
     SessionDetail ..|> Manager : implements
-    SessionDetail --> CockpitDashboard : uses
     SessionDetail --> SessionDetailView : renders via
-    SessionDetail --> StandaloneChrome : strips via
+    SessionDetail --> Assets : uses
     SessionDetail ..> SummaryReasons : seeds verdict wording
     StandaloneChrome --> Assets : uses
     SessionsScreen ..|> Manager : implements

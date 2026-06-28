@@ -121,7 +121,7 @@ describe( 'SessionsApp data fetching', () => {
 			'bsb_session',
 			{
 				status: 'any',
-				_fields: 'id,title,status,date,link,meta',
+				_fields: 'id,title,status,date,meta',
 				page: 1,
 				per_page: 25,
 				orderby: 'bsb_started_at',

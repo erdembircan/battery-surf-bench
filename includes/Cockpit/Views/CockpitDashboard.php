@@ -10,7 +10,6 @@ namespace ErdemBircan\BatterySurfBench\Cockpit\Views;
 use ErdemBircan\BatterySurfBench\Support\View;
 
 use function esc_attr;
-use function esc_html;
 use function esc_html__;
 use function get_bloginfo;
 use function get_language_attributes;
@@ -36,21 +35,14 @@ class CockpitDashboard implements View {
 	/**
 	 * Renders the dashboard document around the given body markup.
 	 *
-	 * @param array<string, mixed> $data {
-	 *     View data.
-	 *
-	 *     @type string $body  Pre-rendered document body HTML.
-	 *     @type string $title Optional document title; defaults to the cockpit's.
-	 * }
+	 * @param array<string, mixed> $data View data; `body` holds the pre-rendered cockpit body HTML.
 	 * @return string The complete dashboard document.
 	 */
 	public function render( array $data = array() ): string {
 		$body    = isset( $data['body'] ) ? (string) $data['body'] : '';
 		$lang    = get_language_attributes();
 		$charset = esc_attr( get_bloginfo( 'charset' ) );
-		$title   = isset( $data['title'] )
-			? esc_html( (string) $data['title'] )
-			: esc_html__( 'Battery Surf Bench — Cockpit', 'battery-surf-bench' );
+		$title   = esc_html__( 'Battery Surf Bench — Cockpit', 'battery-surf-bench' );
 
 		ob_start();
 		wp_head();
@@ -70,7 +62,7 @@ class CockpitDashboard implements View {
 	<title>{$title}</title>
 	{$head}
 </head>
-<body>
+<body class="bsb-cockpit-dashboard">
 	{$body}
 	{$footer}
 </body>

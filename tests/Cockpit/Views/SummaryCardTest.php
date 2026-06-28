@@ -101,24 +101,4 @@ final class SummaryCardTest extends TestCase {
 			$this->card( array( 'start_hidden' => false ) )
 		);
 	}
-
-	/**
-	 * The "Started" stat is omitted by default (the live summary has no calendar
-	 * start to show) and rendered as a full-width tile with the escaped date when
-	 * a caller supplies it.
-	 */
-	public function test_adds_the_started_stat_only_when_asked(): void {
-		$this->assertStringNotContainsString( 'bsb-stat--wide', $this->card() );
-
-		$markup = $this->card(
-			array(
-				'started_label' => 'Started',
-				'started_value' => 'Jun 28, 2026 · 9:41 AM',
-			)
-		);
-
-		$this->assertStringContainsString( 'bsb-stat--wide', $markup );
-		$this->assertStringContainsString( 'Started', $markup );
-		$this->assertStringContainsString( 'Jun 28, 2026 · 9:41 AM', $markup );
-	}
 }

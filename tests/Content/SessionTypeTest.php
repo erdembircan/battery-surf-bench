@@ -60,14 +60,12 @@ final class SessionTypeTest extends TestCase {
 	}
 
 	/**
-	 * The post type is kept out of the admin menu so the DataViews screen owns the
-	 * listing, but it is publicly queryable with a rewrite so each session resolves
-	 * at a native single-post permalink, and reachable through REST so the screen
-	 * and the cockpit can read and write sessions.
+	 * The post type is admin-only — no front end and no menu entry (the DataViews
+	 * screen owns the listing) — but keeps a native admin UI, so each session has
+	 * its own edit screen, and stays reachable over REST so the screen and the
+	 * cockpit can read and write sessions.
 	 */
-	public function test_registers_a_queryable_rest_enabled_post_type(): void {
-		Functions\when( 'get_option' )->justReturn( false );
-
+	public function test_registers_an_admin_only_rest_enabled_post_type(): void {
 		Functions\expect( 'register_post_type' )
 			->once()
 			->with(
@@ -75,12 +73,10 @@ final class SessionTypeTest extends TestCase {
 				Mockery::on(
 					static function ( $args ) {
 						return true === $args['show_in_rest']
+							&& true === $args['show_ui']
 							&& false === $args['show_in_menu']
 							&& false === $args['public']
-							&& true === $args['publicly_queryable']
-							&& false === $args['has_archive']
-							&& is_array( $args['rewrite'] )
-							&& '' !== ( $args['rewrite']['slug'] ?? '' );
+							&& false === $args['publicly_queryable'];
 					}
 				)
 			);
@@ -97,8 +93,6 @@ final class SessionTypeTest extends TestCase {
 	 * resolve to a plain primitive instead of warning that a post is required.
 	 */
 	public function test_post_type_gates_every_capability_behind_the_plugin_capability(): void {
-		Functions\when( 'get_option' )->justReturn( false );
-
 		Functions\expect( 'register_post_type' )
 			->once()
 			->with(
@@ -175,51 +169,5 @@ final class SessionTypeTest extends TestCase {
 			->andReturn( true );
 
 		$this->assertTrue( $this->type()->can_edit() );
-	}
-
-	/**
-	 * Activation flags a one-time rewrite flush, deferred to the next `init` where
-	 * the type — and so its rewrite rules — will exist.
-	 */
-	public function test_activate_flags_a_rewrite_flush(): void {
-		Functions\expect( 'update_option' )
-			->once()
-			->with( 'bsb_flush_rewrite', '1' );
-
-		SessionType::activate();
-
-		$this->addToAssertionCount( 1 );
-	}
-
-	/**
-	 * When activation flagged a flush, registering the type rebuilds the rewrite
-	 * rules once and clears the flag, so the session permalink works without the
-	 * cost of flushing on every request.
-	 */
-	public function test_register_post_type_flushes_rewrite_once_when_flagged(): void {
-		Functions\when( 'register_post_type' )->justReturn( null );
-		Functions\when( 'get_option' )->justReturn( '1' );
-
-		Functions\expect( 'flush_rewrite_rules' )->once();
-		Functions\expect( 'delete_option' )->once()->with( 'bsb_flush_rewrite' );
-
-		$this->type()->register_post_type();
-
-		$this->addToAssertionCount( 2 );
-	}
-
-	/**
-	 * Without the flag, registering the type never flushes — the flush is a
-	 * one-off, not a per-request cost.
-	 */
-	public function test_register_post_type_does_not_flush_without_the_flag(): void {
-		Functions\when( 'register_post_type' )->justReturn( null );
-		Functions\when( 'get_option' )->justReturn( false );
-
-		Functions\expect( 'flush_rewrite_rules' )->never();
-
-		$this->type()->register_post_type();
-
-		$this->addToAssertionCount( 1 );
 	}
 }
