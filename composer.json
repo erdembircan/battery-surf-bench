@@ -40,6 +40,7 @@
         "lint": "phpcs",
         "lint:fix": "phpcbf",
         "test": "phpunit",
-        "test:coverage": "phpunit --coverage-html coverage"
+        "test:coverage": "phpunit --coverage-html coverage",
+        "zip": "@composer archive --format=zip --dir=zip --file=battery-surf-bench"
     }
 }
