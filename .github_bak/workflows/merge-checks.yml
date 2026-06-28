@@ -111,9 +111,11 @@ jobs:
       # Compile the production assets that the archive bundles from the
       # working tree.
       - run: pnpm build
-      # `composer zip` prunes vendor/ to runtime-only deps and runs
-      # `composer archive`, which packs the working tree applying the
-      # `export-ignore` list in .gitattributes.
+      # Reduce vendor/ to runtime-only deps before archiving -- the caller's
+      # responsibility; `composer zip` only packs whatever is on disk.
+      - run: composer install --no-dev --optimize-autoloader
+      # `composer zip` runs `composer archive`, packing the working tree and
+      # applying the `export-ignore` list in .gitattributes.
       - run: composer zip
       # Commit the rebuilt distributable back to master so the latest plugin
       # archive is always available under zip/. [skip ci] prevents a loop.

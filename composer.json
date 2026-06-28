@@ -41,9 +41,6 @@
         "lint:fix": "phpcbf",
         "test": "phpunit",
         "test:coverage": "phpunit --coverage-html coverage",
-        "zip": [
-            "@composer install --no-dev --optimize-autoloader",
-            "@composer archive --format=zip --dir=zip --file=battery-surf-bench"
-        ]
+        "zip": "@composer archive --format=zip --dir=zip --file=battery-surf-bench"
     }
 }
