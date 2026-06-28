@@ -24,11 +24,10 @@ const AUTO_FLIP_DELAY_MS = 1000;
 
 /**
  * How long the stored-session detail card rests on its picture front before it
- * auto-flips to the report back: its 0.8s appear animation plus a short beat
- * after it settles, so the postcard sails in, lands, then turns to its report on
- * its own — the same self-reveal "New run" gives the startup card.
+ * auto-flips to the report back: the length of its appear animation, so it sails
+ * in, lands, and turns to its report on its own with no extra pause.
  */
-const DETAIL_FLIP_DELAY_MS = 1000;
+const DETAIL_FLIP_DELAY_MS = 800;
 
 /** The summary slice of the `bsb/cockpit` store. */
 export const summaryStore: StorePart = {
