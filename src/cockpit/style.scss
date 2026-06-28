@@ -1619,12 +1619,36 @@ body {
 	}
 }
 
+// ── Session detail page ───────────────────────────────────────────────────────
+// The standalone page each stored session resolves to at its permalink. It hosts
+// only the run-summary overlay (no deck or stage), so it just needs to carry the
+// theme tokens and fill the viewport: the `.bsb-summary` overlay below paints the
+// sky and centres the postcard against it, exactly as it does over the live
+// cockpit. The cockpit's own wrapper provides these in the dashboard; here this
+// standalone wrapper does.
+.bsb-session-detail {
+	@include theme.tokens;
+
+	position: relative;
+	height: 100vh;
+	overflow: hidden;
+	font-family: theme.$font-ui;
+	color: var(--text);
+	-webkit-font-smoothing: antialiased;
+
+	*,
+	*::before,
+	*::after {
+		box-sizing: border-box;
+	}
+}
+
 // ── Run summary — the flip-card report shown when a run ends ──────────────────
-// Overlays the whole cockpit (deck + stage) once `ended` is set. The card flips
-// in 3D between its picture front and its written report back. Built on the same
-// foundations as the stamp/cancellation: a 3D context with two backface-hidden
-// faces, and a franked stamp whose cancellation is centred on the stamp by a
-// shared anchor.
+// Overlays the whole cockpit (deck + stage) once `ended` is set, and is the sole
+// content of the session detail page. The card flips in 3D between its picture
+// front and its written report back. Built on the same foundations as the
+// stamp/cancellation: a 3D context with two backface-hidden faces, and a franked
+// stamp whose cancellation is centred on the stamp by a shared anchor.
 .bsb-summary {
 	position: absolute;
 	inset: 0;
@@ -1966,6 +1990,25 @@ body {
 	text-transform: uppercase;
 	cursor: pointer;
 	box-shadow: 0 10px 22px var(--accent-shadow);
+}
+
+// The detail page's footer is a link back to the listing rather than the live
+// "New run" button; it wears the same pill, so reset the anchor defaults so it
+// reads as that button, not underlined link text.
+.bsb-summary__back {
+	display: inline-flex;
+	align-items: center;
+	text-decoration: none;
+}
+
+// The detail page's extra "Started" stat spans the grid under the six readouts,
+// a full-width dateline rather than a lonely cell in the three-column flow.
+.bsb-summary__stats .bsb-stat--wide {
+	grid-column: 1 / -1;
+
+	.bsb-stat__value {
+		font-size: 1.05rem;
+	}
 }
 
 // ── Franked stamp — a postage stamp with an askew grey cancellation over it ───

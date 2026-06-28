@@ -11,6 +11,7 @@ use ErdemBircan\BatterySurfBench\Support\View;
 
 use function esc_attr;
 use function esc_html;
+use function sprintf;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -140,13 +141,8 @@ class CockpitView implements View {
 		$unsupported_arc     = isset( $data['unsupported_arc'] ) ? (string) $data['unsupported_arc'] : '';
 		$unsupported_mark    = isset( $data['unsupported_mark'] ) ? (string) $data['unsupported_mark'] : '';
 		$unsupported_unit    = isset( $data['unsupported_unit'] ) ? (string) $data['unsupported_unit'] : '';
-		$dropped_label       = isset( $data['dropped_label'] ) ? (string) $data['dropped_label'] : '';
-		$pts_label           = isset( $data['pts_label'] ) ? (string) $data['pts_label'] : '';
-		$elapsed_run_label   = isset( $data['elapsed_run_label'] ) ? (string) $data['elapsed_run_label'] : '';
 		$new_run_label       = isset( $data['new_run_label'] ) ? (string) $data['new_run_label'] : '';
 		$summary_brand       = isset( $data['summary_brand'] ) ? (string) $data['summary_brand'] : '';
-		$measured_label      = isset( $data['measured_label'] ) ? (string) $data['measured_label'] : '';
-		$projected_label     = isset( $data['projected_label'] ) ? (string) $data['projected_label'] : '';
 
 		// Shared postcard components, rendered once and placed in both the startup
 		// postcard and the run-summary card so the illustration and the stamp are a
@@ -228,12 +224,7 @@ class CockpitView implements View {
 		$unsupported_lead    = esc_html( $unsupported_lead );
 		$unsupported_body    = esc_html( $unsupported_body );
 		$unsupported_browse  = esc_html( $unsupported_browse );
-		$dropped_label       = esc_html( $dropped_label );
-		$pts_label           = esc_html( $pts_label );
-		$elapsed_run_label   = esc_html( $elapsed_run_label );
 		$new_run_label       = esc_html( $new_run_label );
-		$measured_label      = esc_html( $measured_label );
-		$projected_label     = esc_html( $projected_label );
 
 		// Each duration-odometer wheel is a strip of 0–9 repeated three times; the
 		// client store (rollDuration) slides it to roll the digit. Built here so
@@ -332,42 +323,30 @@ HTML;
 			)
 		);
 
-		// The run-summary flip card, on the same shell: a franked (cancelled) stamp
-		// and the run report on the back. Flips through actions.toggleFlip.
-		$summary_back = <<<HTML
-{$frank}
-		<div class="bsb-summary__report">
-			<h2 class="bsb-summary__head" data-wp-text="state.summaryHeading"></h2>
-			<p class="bsb-summary__sig" data-wp-text="state.summarySig"></p>
-			<span class="bsb-summary__divide" aria-hidden="true"></span>
-			<div class="bsb-summary__graph" data-wp-bind--hidden="!context.hasGraph">
-				<svg class="bsb-summary__chart" viewBox="0 0 480 90" aria-hidden="true"></svg>
-				<div class="bsb-summary__legend" aria-hidden="true">
-					<span class="bsb-summary__legend-item"><span class="bsb-summary__legend-swatch"></span>{$measured_label}</span>
-					<span class="bsb-summary__legend-item"><span class="bsb-summary__legend-swatch bsb-summary__legend-swatch--fit"></span>{$projected_label}</span>
-				</div>
-			</div>
-			<div class="bsb-summary__stats">
-				<div class="bsb-stat"><span class="bsb-stat__label">{$tte_label}</span><span class="bsb-stat__value" data-wp-text="state.timeToEmptyDisplay"></span></div>
-				<div class="bsb-stat"><span class="bsb-stat__label">{$rate_session_label}</span><span class="bsb-stat__value"><span data-wp-text="state.rateSessionDisplay"></span><span class="bsb-stat__unit">%/h</span></span></div>
-				<div class="bsb-stat"><span class="bsb-stat__label">{$rate10_label}</span><span class="bsb-stat__value"><span data-wp-text="state.rate10Display"></span><span class="bsb-stat__unit">%/h</span></span></div>
-				<div class="bsb-stat"><span class="bsb-stat__label">{$battery_label}</span><span class="bsb-stat__value bsb-stat__value--arrow"><span data-wp-text="context.summaryBatteryStart"></span><span class="bsb-stat__arrow" aria-hidden="true"></span><span data-wp-text="context.summaryBatteryEnd"></span></span></div>
-				<div class="bsb-stat"><span class="bsb-stat__label">{$dropped_label}</span><span class="bsb-stat__value"><span data-wp-text="context.summaryDropped"></span><span class="bsb-stat__unit">{$pts_label}</span></span></div>
-				<div class="bsb-stat"><span class="bsb-stat__label">{$elapsed_run_label}</span><span class="bsb-stat__value" data-wp-text="state.summaryElapsed"></span></div>
-			</div>
-			<div class="bsb-summary__actions">
-				<button type="button" class="bsb-summary__new" data-wp-on--click="actions.newRun">{$new_run_label}</button>
-			</div>
-		</div>
-HTML;
-		$summary_card = ( new FlipPostcard() )->render(
+		// The run-summary flip card, on its shared shell: a franked (cancelled)
+		// stamp and the run report on the back, raised by the `.bsb-summary`
+		// overlay. The same view renders the stored-session detail page's card, so
+		// the two stay identical; here it ships `hidden` (the store raises it on
+		// run end) with the live "New run" button as its footer.
+		$summary = ( new SummaryCard() )->render(
 			array(
-				'front'       => $photo_fill,
-				'back'        => $summary_back,
-				'flip_label'  => $data['flip_label'] ?? '',
-				'flip_action' => 'actions.toggleFlip',
-				'flip_state'  => 'state.isFlipped',
-				'modifier'    => 'bsb-flipcard--summary',
+				'front'              => $photo_fill,
+				'frank'              => $frank,
+				'footer'             => sprintf(
+					'<button type="button" class="bsb-summary__new" data-wp-on--click="actions.newRun">%s</button>',
+					$new_run_label
+				),
+				'flip_label'         => $data['flip_label'] ?? '',
+				'tte_label'          => $data['tte_label'] ?? '',
+				'rate_session_label' => $data['rate_session_label'] ?? '',
+				'rate10_label'       => $data['rate10_label'] ?? '',
+				'battery_label'      => $data['battery_label'] ?? '',
+				'dropped_label'      => $data['dropped_label'] ?? '',
+				'pts_label'          => $data['pts_label'] ?? '',
+				'elapsed_run_label'  => $data['elapsed_run_label'] ?? '',
+				'measured_label'     => $data['measured_label'] ?? '',
+				'projected_label'    => $data['projected_label'] ?? '',
+				'start_hidden'       => true,
 			)
 		);
 
@@ -477,9 +456,7 @@ HTML;
 		</div>
 	</div>
 
-	<div class="bsb-summary" hidden data-wp-bind--hidden="!state.isEnded" data-wp-watch="callbacks.renderSummary">
-		{$summary_card}
-	</div>
+	{$summary}
 
 	<div class="bsb-cockpit__toast-layer">
 		<div class="bsb-cockpit__toast" hidden role="status" data-wp-bind--hidden="!state.hasToast" data-wp-bind--role="state.toastRole" data-wp-class--is-error="state.isToastError" data-wp-class--is-notice="state.isToastNotice" data-wp-class--is-entering="state.isToastEntering" data-wp-class--is-holding="state.isToastHolding" data-wp-class--is-leaving="state.isToastLeaving" data-wp-on--animationend="callbacks.onToastAnimationEnd">

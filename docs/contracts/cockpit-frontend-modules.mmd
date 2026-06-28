@@ -60,7 +60,7 @@ classDiagram
         <<module>>
         state: ended/flipped/reason + verdict readouts
         actions: toggleFlip, newRun
-        callbacks: renderSummary
+        callbacks: renderSummary, initDetail (detail page: builds graph, auto-flips)
     }
 
     class StartupStore {
@@ -273,6 +273,8 @@ classDiagram
     SoundStore --> FinishChime : creates & owns (composition)
     SummaryStore --> Format : formats verdict
     SummaryStore --> GraphSvg : paints chart from model
+    SummaryStore --> DrainGraph : rebuilds detail chart from seeded samples
+    SummaryStore --> RunLifecycle : reads GRAPH_VIEWPORT
 
     %% Ending a run persists it: the lifecycle builds the REST payload from the
     %% frozen session and POSTs it through the session post type's own endpoint,

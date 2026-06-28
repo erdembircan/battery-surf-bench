@@ -14,10 +14,9 @@ use ErdemBircan\BatterySurfBench\Assets;
 use ErdemBircan\BatterySurfBench\Cockpit\Cockpit;
 use ErdemBircan\BatterySurfBench\Cockpit\Views\CockpitDashboard;
 use ErdemBircan\BatterySurfBench\Support\Manager;
+use ErdemBircan\BatterySurfBench\Support\StandaloneChrome;
 use ErdemBircan\BatterySurfBench\Tests\TestCase;
 use Mockery;
-use WP_Scripts;
-use WP_Styles;
 
 use function has_action;
 use function has_filter;
@@ -26,20 +25,20 @@ use function has_filter;
  * The cockpit registers its block and serves the dashboard off a URL parameter
  * — never a seeded page. Its observable contract: register the block from its
  * built directory, declare the dashboard query parameter, opt the `pages`
- * attribute into Block Bindings, and hook the dashboard route. The render-and-
- * exit path is exercised end-to-end in the Playground, not here.
+ * attribute into Block Bindings, and hook the dashboard route. The standalone
+ * strip it delegates to is covered by {@see StandaloneChromeTest}; the render-
+ * and-exit path is exercised end-to-end in the Playground, not here.
  */
 final class CockpitTest extends TestCase {
 
-	private const BLOCK_DIR    = '/plugin/build/cockpit';
-	private const BLOCK_NAME   = 'bsb/cockpit';
-	private const SOURCE       = 'bsb/course-pages';
-	private const PARAM        = 'bsbSession';
-	private const VALUE        = 'cockpit';
-	private const CAPABILITY   = 'manage_options';
-	private const STYLE        = 'build/style-cockpit-dashboard.css';
-	private const STYLE_HANDLE = 'bsb-cockpit';
-	private const POST_TYPE    = 'bsb_session';
+	private const BLOCK_DIR  = '/plugin/build/cockpit';
+	private const BLOCK_NAME = 'bsb/cockpit';
+	private const SOURCE     = 'bsb/course-pages';
+	private const PARAM      = 'bsbSession';
+	private const VALUE      = 'cockpit';
+	private const CAPABILITY = 'manage_options';
+	private const STYLE      = 'build/style-cockpit-dashboard.css';
+	private const POST_TYPE  = 'bsb_session';
 
 	/**
 	 * Builds the cockpit manager under test.
@@ -48,6 +47,8 @@ final class CockpitTest extends TestCase {
 	 * @return Cockpit The manager.
 	 */
 	private function cockpit( ?Assets $assets = null ): Cockpit {
+		$resolved = $assets ?? Mockery::mock( Assets::class );
+
 		return new Cockpit(
 			self::BLOCK_DIR,
 			self::BLOCK_NAME,
@@ -56,9 +57,9 @@ final class CockpitTest extends TestCase {
 			self::VALUE,
 			self::CAPABILITY,
 			new CockpitDashboard(),
-			$assets ?? Mockery::mock( Assets::class ),
-			self::STYLE,
-			self::POST_TYPE
+			$resolved,
+			self::POST_TYPE,
+			new StandaloneChrome( $resolved, self::STYLE )
 		);
 	}
 
@@ -120,107 +121,5 @@ final class CockpitTest extends TestCase {
 		// The Mockery expectation above is the assertion; acknowledge it so
 		// PHPUnit does not flag the test as risky.
 		$this->addToAssertionCount( 1 );
-	}
-
-	/**
-	 * The dashboard enqueues its own stylesheet through the asset service, so the
-	 * stripped document still has the one style it is meant to keep.
-	 */
-	public function test_enqueue_style_enqueues_the_dashboard_stylesheet(): void {
-		$assets = Mockery::mock( Assets::class );
-		$assets->expects( 'enqueue' )->once()->with( self::STYLE )->andReturn( self::STYLE_HANDLE );
-
-		$this->cockpit( $assets )->enqueue_style();
-
-		// The Mockery expectation above is the assertion; acknowledge it so
-		// PHPUnit does not flag the test as risky.
-		$this->addToAssertionCount( 1 );
-	}
-
-	/**
-	 * The asset strip clears every other enqueued style but spares the cockpit's
-	 * own stylesheet, so the theme's CSS is gone while the dashboard keeps its.
-	 */
-	public function test_dequeue_all_assets_spares_the_dashboard_stylesheet(): void {
-		$assets = Mockery::mock( Assets::class );
-		$assets->expects( 'enqueue' )->andReturn( self::STYLE_HANDLE );
-
-		$wp_styles        = new WP_Styles();
-		$wp_styles->queue = array( 'theme-style', self::STYLE_HANDLE, 'another-plugin' );
-
-		$GLOBALS['wp_styles']  = $wp_styles;
-		$GLOBALS['wp_scripts'] = null;
-
-		Functions\expect( 'wp_dequeue_style' )->once()->with( 'theme-style' );
-		Functions\expect( 'wp_dequeue_style' )->once()->with( 'another-plugin' );
-		Functions\expect( 'wp_dequeue_style' )->never()->with( self::STYLE_HANDLE );
-
-		$cockpit = $this->cockpit( $assets );
-		$cockpit->enqueue_style();
-		$cockpit->dequeue_all_assets();
-
-		unset( $GLOBALS['wp_styles'], $GLOBALS['wp_scripts'] );
-
-		// The Mockery expectations above are the assertions; acknowledge them so
-		// PHPUnit does not flag the test as risky.
-		$this->addToAssertionCount( 3 );
-	}
-
-	/**
-	 * By default the asset strip dequeues every classic script, so no theme or
-	 * plugin JS reaches the standalone dashboard.
-	 */
-	public function test_dequeue_all_assets_dequeues_every_script_by_default(): void {
-		$wp_scripts        = new WP_Scripts();
-		$wp_scripts->queue = array( 'theme-script', 'another-plugin' );
-
-		$GLOBALS['wp_styles']  = null;
-		$GLOBALS['wp_scripts'] = $wp_scripts;
-
-		Functions\expect( 'apply_filters' )
-			->once()
-			->with( 'battery_surf_bench_cockpit_spared_script_handles', array() )
-			->andReturn( array() );
-
-		Functions\expect( 'wp_dequeue_script' )->once()->with( 'theme-script' );
-		Functions\expect( 'wp_dequeue_script' )->once()->with( 'another-plugin' );
-
-		$this->cockpit()->dequeue_all_assets();
-
-		unset( $GLOBALS['wp_styles'], $GLOBALS['wp_scripts'] );
-
-		// The Mockery expectations above are the assertions; acknowledge them so
-		// PHPUnit does not flag the test as risky.
-		$this->addToAssertionCount( 3 );
-	}
-
-	/**
-	 * Script handles returned through the `battery_surf_bench_cockpit_spared_script_handles`
-	 * filter survive the strip. Dev tooling (the Playground LiveReload client)
-	 * relies on this so file changes still reload the cockpit in place.
-	 */
-	public function test_dequeue_all_assets_spares_filtered_script_handles(): void {
-		$wp_scripts        = new WP_Scripts();
-		$wp_scripts->queue = array( 'theme-script', 'bsb-live-reload', 'another-plugin' );
-
-		$GLOBALS['wp_styles']  = null;
-		$GLOBALS['wp_scripts'] = $wp_scripts;
-
-		Functions\expect( 'apply_filters' )
-			->once()
-			->with( 'battery_surf_bench_cockpit_spared_script_handles', array() )
-			->andReturn( array( 'bsb-live-reload' ) );
-
-		Functions\expect( 'wp_dequeue_script' )->once()->with( 'theme-script' );
-		Functions\expect( 'wp_dequeue_script' )->once()->with( 'another-plugin' );
-		Functions\expect( 'wp_dequeue_script' )->never()->with( 'bsb-live-reload' );
-
-		$this->cockpit()->dequeue_all_assets();
-
-		unset( $GLOBALS['wp_styles'], $GLOBALS['wp_scripts'] );
-
-		// The Mockery expectations above are the assertions; acknowledge them so
-		// PHPUnit does not flag the test as risky.
-		$this->addToAssertionCount( 3 );
 	}
 }

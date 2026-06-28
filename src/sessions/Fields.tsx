@@ -328,9 +328,24 @@ export function buildFields(
 		label: 'Session',
 		enableSorting: true,
 		getValue: ( { item } ) => item.title?.rendered ?? `#${ item.id }`,
-		render: ( { item } ) => (
-			<>{ item.title?.rendered || `#${ item.id }` }</>
-		),
+		render: ( { item } ) => {
+			const label = item.title?.rendered || `#${ item.id }`;
+			// Link the title to the session's detail page when its permalink is
+			// known, opening in a new tab so the listing stays put; fall back to
+			// plain text if the record carried no link.
+			return item.link ? (
+				<a
+					className="bsb-sessions__view"
+					href={ item.link }
+					target="_blank"
+					rel="noreferrer"
+				>
+					{ label }
+				</a>
+			) : (
+				<>{ label }</>
+			);
+		},
 	};
 
 	return [ title, ...descriptors.map( toField ) ];

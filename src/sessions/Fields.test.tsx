@@ -141,6 +141,39 @@ describe( 'title field', () => {
 		renderFieldCell( title, item );
 		expect( screen.getByText( '#42' ) ).toBeInTheDocument();
 	} );
+
+	it( 'links the title to the session permalink, opening in a new tab', () => {
+		const title = buildFields( [] )[ 0 ];
+		const item = {
+			id: 7,
+			title: { rendered: 'Morning run' },
+			link: 'https://example.test/session/morning-run/',
+			meta: {},
+		} as SessionRecord;
+
+		renderFieldCell( title, item );
+		const link = screen.getByRole( 'link', { name: 'Morning run' } );
+		expect( link ).toHaveAttribute(
+			'href',
+			'https://example.test/session/morning-run/'
+		);
+		expect( link ).toHaveAttribute( 'target', '_blank' );
+	} );
+
+	it( 'renders the title as plain text when the record carries no link', () => {
+		const title = buildFields( [] )[ 0 ];
+		const item = {
+			id: 7,
+			title: { rendered: 'Morning run' },
+			meta: {},
+		} as SessionRecord;
+
+		renderFieldCell( title, item );
+		expect(
+			screen.queryByRole( 'link', { name: 'Morning run' } )
+		).not.toBeInTheDocument();
+		expect( screen.getByText( 'Morning run' ) ).toBeInTheDocument();
+	} );
 } );
 
 describe( 'status format', () => {

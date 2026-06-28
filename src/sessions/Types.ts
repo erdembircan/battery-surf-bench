@@ -57,6 +57,10 @@ export interface SessionRecord {
 	title?: { rendered?: string };
 	status?: string;
 	date?: string;
+	// The session's native permalink, where its detail postcard renders. The REST
+	// collection exposes it now that the post type is publicly queryable; the
+	// listing links each row's title to it.
+	link?: string;
 	meta: Record< string, unknown >;
 }
 

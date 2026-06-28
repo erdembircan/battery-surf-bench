@@ -93,7 +93,7 @@ function initialView( config: SessionsConfig ): View {
 function viewToQuery( view: View ): Record< string, unknown > {
 	const query: Record< string, unknown > = {
 		status: 'any',
-		_fields: 'id,title,status,date,meta',
+		_fields: 'id,title,status,date,link,meta',
 		page: view.page ?? 1,
 		per_page: view.perPage ?? 25,
 	};

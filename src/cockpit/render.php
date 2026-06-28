@@ -21,6 +21,7 @@
 
 namespace ErdemBircan\BatterySurfBench;
 
+use ErdemBircan\BatterySurfBench\Cockpit\SummaryReasons;
 use ErdemBircan\BatterySurfBench\Cockpit\Views\CockpitView;
 
 use function __;
@@ -80,32 +81,8 @@ $bsb_context = array(
 	'graphJson'           => '',
 	// Translated summary wording, indexed by end reason; the store picks the set
 	// matching how the run ended (kept here so the strings stay translatable).
-	'reasonText'          => array(
-		'duration'   => array(
-			'head' => __( 'The run is in.', 'battery-surf-bench' ),
-			'sig'  => __( 'Ran the full duration.', 'battery-surf-bench' ),
-			'arc'  => __( '· COMPLETED ·', 'battery-surf-bench' ),
-			'unit' => __( 'run', 'battery-surf-bench' ),
-		),
-		'targetDrop' => array(
-			'head' => __( 'Target reached.', 'battery-surf-bench' ),
-			'sig'  => __( 'The battery hit your mark.', 'battery-surf-bench' ),
-			'arc'  => __( '· TARGET MET ·', 'battery-surf-bench' ),
-			'unit' => __( 'reached', 'battery-surf-bench' ),
-		),
-		'stopped'    => array(
-			'head' => __( 'Called it early.', 'battery-surf-bench' ),
-			'sig'  => __( 'You stopped the run.', 'battery-surf-bench' ),
-			'arc'  => __( '· STOPPED ·', 'battery-surf-bench' ),
-			'unit' => __( 'elapsed', 'battery-surf-bench' ),
-		),
-		'plugged'    => array(
-			'head' => __( 'Plugged back in.', 'battery-surf-bench' ),
-			'sig'  => __( 'The charger ended the run.', 'battery-surf-bench' ),
-			'arc'  => __( '· INTERRUPTED ·', 'battery-surf-bench' ),
-			'unit' => __( 'elapsed', 'battery-surf-bench' ),
-		),
-	),
+	// Shared with the stored-session detail page through {@see SummaryReasons}.
+	'reasonText'          => SummaryReasons::text(),
 	// The bottom notification pill: the kind on screen (empty when none), its
 	// resolved message and its animation phase, plus the translated messages the
 	// queue resolves from. Empty until a toast is raised.

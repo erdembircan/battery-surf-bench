@@ -10,12 +10,12 @@ namespace ErdemBircan\BatterySurfBench\Cockpit;
 use ErdemBircan\BatterySurfBench\Assets;
 use ErdemBircan\BatterySurfBench\Cockpit\Views\CockpitDashboard;
 use ErdemBircan\BatterySurfBench\Support\Manager;
+use ErdemBircan\BatterySurfBench\Support\StandaloneChrome;
 
 use function __;
 use function add_action;
 use function add_filter;
 use function add_query_arg;
-use function apply_filters;
 use function current_user_can;
 use function do_blocks;
 use function esc_html__;
@@ -24,21 +24,15 @@ use function esc_url_raw;
 use function generate_block_asset_handle;
 use function get_query_var;
 use function home_url;
-use function in_array;
-use function nocache_headers;
 use function register_block_type;
-use function remove_all_actions;
 use function rest_url;
 use function sanitize_key;
 use function sprintf;
 use function wp_create_nonce;
-use function wp_dequeue_script;
-use function wp_dequeue_style;
 use function wp_die;
 use function wp_interactivity_config;
 use function wp_kses_post;
 use function wp_login_url;
-use function wp_script_modules;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -68,9 +62,9 @@ class Cockpit implements Manager {
 	 * @param string           $value       Value of the parameter that serves the cockpit.
 	 * @param string           $capability  Capability required to open the cockpit.
 	 * @param CockpitDashboard $dashboard  View that renders the standalone dashboard document.
-	 * @param Assets           $assets      Service used to enqueue the dashboard stylesheet.
-	 * @param string           $style       Dashboard stylesheet, relative to the plugin root.
+	 * @param Assets           $assets      Service used to register the view module's translations.
 	 * @param string           $session_post_type Post type sessions are stored as, exposed to the cockpit so it can POST a finished run to that REST collection.
+	 * @param StandaloneChrome $chrome      Strips the front end so the dashboard renders as a clean standalone document.
 	 */
 	public function __construct(
 		private string $block_dir,
@@ -81,18 +75,10 @@ class Cockpit implements Manager {
 		private string $capability,
 		private CockpitDashboard $dashboard,
 		private Assets $assets,
-		private string $style,
-		private string $session_post_type
+		private string $session_post_type,
+		private StandaloneChrome $chrome
 	) {
 	}
-
-	/**
-	 * Handle the dashboard stylesheet was enqueued under, kept so the asset
-	 * strip can spare it. Null until the stylesheet is enqueued.
-	 *
-	 * @var string|null
-	 */
-	private ?string $style_handle = null;
 
 	/**
 	 * Opts the `pages` attribute into Block Bindings, declares the dashboard
@@ -170,8 +156,7 @@ class Cockpit implements Manager {
 		}
 
 		$this->configure_rest_access();
-		$this->strip_front_end_assets();
-		$this->send_headers();
+		$this->chrome->engage();
 		// The dashboard view returns a complete, trusted HTML document — escaped
 		// attributes, do_blocks() output and wp_head()/wp_footer() — that no
 		// WordPress escaping function can be applied to without breaking it.
@@ -215,105 +200,6 @@ class Cockpit implements Manager {
 				'restNonce' => wp_create_nonce( 'wp_rest' ),
 			)
 		);
-	}
-
-	/**
-	 * Strips the dashboard down to a clean slate. Everything hooked to
-	 * `wp_head`/`wp_footer` is removed — theme font preloads, global styles,
-	 * emoji, resource hints and the admin bar — then only the essential asset
-	 * printers are re-added, and every classic style and script is dequeued. The
-	 * Interactivity API script modules live in their own registry, so they are
-	 * re-registered intact via {@see \WP_Script_Modules::add_hooks()} and still
-	 * hydrate the viewport.
-	 *
-	 * @return void
-	 */
-	private function strip_front_end_assets(): void {
-		add_filter( 'show_admin_bar', '__return_false' );
-		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_style' ) );
-		add_action( 'wp_enqueue_scripts', array( $this, 'dequeue_all_assets' ), PHP_INT_MAX );
-
-		remove_all_actions( 'wp_head' );
-		remove_all_actions( 'wp_footer' );
-
-		add_action( 'wp_head', 'wp_enqueue_scripts', 1 );
-		add_action( 'wp_head', 'wp_print_styles', 8 );
-		add_action( 'wp_head', 'wp_print_head_scripts', 9 );
-		add_action( 'wp_footer', 'wp_print_footer_scripts', 20 );
-
-		// Re-register the script-module printers (import map, modules, module
-		// data) core removed with the rest of the head/footer actions.
-		wp_script_modules()->add_hooks();
-	}
-
-	/**
-	 * Enqueues the dashboard stylesheet and records its handle so the asset
-	 * strip can spare it. Hooked ahead of {@see Cockpit::dequeue_all_assets()},
-	 * which would otherwise dequeue it along with everything else.
-	 *
-	 * @return void
-	 */
-	public function enqueue_style(): void {
-		$this->style_handle = $this->assets->enqueue( $this->style );
-	}
-
-	/**
-	 * Dequeues every classic style and script after the theme has enqueued, so
-	 * none print on the dashboard — except the cockpit's own stylesheet, the one
-	 * style the dashboard is meant to keep, and any script handles opted out
-	 * through the `battery_surf_bench_cockpit_spared_script_handles` filter (empty by default;
-	 * dev tooling such as the Playground LiveReload client uses it to survive the
-	 * strip). Script modules are a separate registry and are left untouched.
-	 *
-	 * @return void
-	 */
-	public function dequeue_all_assets(): void {
-		global $wp_styles, $wp_scripts;
-
-		if ( $wp_styles instanceof \WP_Styles ) {
-			foreach ( (array) $wp_styles->queue as $handle ) {
-				if ( $handle === $this->style_handle ) {
-					continue;
-				}
-
-				wp_dequeue_style( $handle );
-			}
-		}
-
-		if ( $wp_scripts instanceof \WP_Scripts ) {
-			/**
-			 * Filters the classic script handles the cockpit dashboard keeps when
-			 * it strips the front end. Empty by default — the standalone dashboard
-			 * wants no classic JS — but dev tooling (e.g. the Playground LiveReload
-			 * client) hooks this so the script survives the strip and file changes
-			 * still reload the cockpit in place.
-			 *
-			 * @param array<int, string> $handles Script handles to spare from the strip.
-			 */
-			$spared = apply_filters( 'battery_surf_bench_cockpit_spared_script_handles', array() );
-
-			foreach ( (array) $wp_scripts->queue as $handle ) {
-				if ( in_array( $handle, $spared, true ) ) {
-					continue;
-				}
-
-				wp_dequeue_script( $handle );
-			}
-		}
-	}
-
-	/**
-	 * Sends no-cache, no-index headers for the plugin-served dashboard.
-	 *
-	 * @return void
-	 */
-	private function send_headers(): void {
-		if ( headers_sent() ) {
-			return;
-		}
-
-		nocache_headers();
-		header( 'X-Robots-Tag: noindex, nofollow', true );
 	}
 
 	/**
