@@ -93,6 +93,24 @@ classDiagram
         +can_edit() bool
     }
 
+    class SessionDetail {
+        +__construct(string post_type, string meta_prefix, string capability, string block_name, string screen_slug, string style, SessionDetailView view, Assets assets)
+        +register() void
+        +maybe_render(bool replace, WP_Post post) bool
+        +enqueue(string hook_suffix) void
+    }
+
+    class StandaloneChrome {
+        +__construct(Assets assets, string style)
+        +engage() void
+        +enqueue_style() void
+        +dequeue_all_assets() void
+    }
+
+    class SummaryReasons {
+        +text()$ array
+    }
+
     class SessionsScreen {
         +__construct(string parent_slug, string page_slug, string capability, string bundle, string style, SessionSchema schema, Assets assets, string cockpit_param, string cockpit_value)
         +register() void
@@ -139,17 +157,23 @@ classDiagram
     }
 
     class Cockpit {
-        +__construct(string block_dir, string block_name, string source_name, string param, string value, string capability, CockpitDashboard dashboard, Assets assets, string style, string session_post_type)
+        +__construct(string block_dir, string block_name, string source_name, string param, string value, string capability, CockpitDashboard dashboard, Assets assets, string session_post_type, StandaloneChrome chrome)
         +register() void
         +register_block() void
         +add_query_var(array vars) array
         +allow_pages_binding(array attributes) array
         +maybe_render() void
-        +enqueue_style() void
-        +dequeue_all_assets() void
     }
 
     class CockpitDashboard {
+        +render(array data) string
+    }
+
+    class SessionDetailView {
+        +render(array data) string
+    }
+
+    class SummaryCard {
         +render(array data) string
     }
 
@@ -182,13 +206,20 @@ classDiagram
     BatterySurfBench --> CourseRouter : creates & owns (composition)
     BatterySurfBench --> CoursePagesSource : creates & owns (composition)
     BatterySurfBench --> Cockpit : creates & owns (composition)
+    BatterySurfBench --> SessionDetail : creates & owns (composition)
     BatterySurfBench --> CockpitDashboard : creates & owns (composition)
+    BatterySurfBench --> StandaloneChrome : creates & owns (composition)
     BatterySurfBench ..> Manager : registers
     I18n ..|> Manager : implements
     Menu ..|> Manager : implements
     Menu --> Assets : uses
     SessionType ..|> Manager : implements
     SessionType --> SessionSchema : uses
+    SessionDetail ..|> Manager : implements
+    SessionDetail --> SessionDetailView : renders via
+    SessionDetail --> Assets : uses
+    SessionDetail ..> SummaryReasons : seeds verdict wording
+    StandaloneChrome --> Assets : uses
     SessionsScreen ..|> Manager : implements
     SessionsScreen --> SessionSchema : uses
     SessionsScreen --> Assets : uses
@@ -204,15 +235,23 @@ classDiagram
     Cockpit ..|> Manager : implements
     Cockpit --> CockpitDashboard : uses
     Cockpit --> Assets : uses
+    Cockpit --> StandaloneChrome : strips via
     Cockpit ..> CockpitView : renders via (block template)
     CockpitDashboard ..|> View : implements
     CockpitView ..|> View : implements
+    SessionDetailView ..|> View : implements
+    SummaryCard ..|> View : implements
     PostcardPhoto ..|> View : implements
     FrankedStamp ..|> View : implements
     FlipPostcard ..|> View : implements
-    CockpitView ..> FlipPostcard : composes (startup + summary)
+    CockpitView ..> FlipPostcard : composes (startup)
     CockpitView ..> PostcardPhoto : composes (startup + summary)
     CockpitView ..> FrankedStamp : composes (startup blank + summary franked)
+    CockpitView ..> SummaryCard : composes (summary)
+    SessionDetailView ..> SummaryCard : composes
+    SessionDetailView ..> PostcardPhoto : composes (front)
+    SessionDetailView ..> FrankedStamp : composes (franked)
+    SummaryCard ..> FlipPostcard : composes (summary)
     Registry ..|> ContainerInterface : implements
     Registry ..> NotFoundException : throws
     NotFoundException --|> InvalidArgumentException : extends

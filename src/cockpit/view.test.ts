@@ -38,6 +38,7 @@ interface CockpitContext {
 	endReason: '' | 'duration' | 'targetDrop' | 'stopped' | 'plugged';
 	flipped: boolean;
 	idleFlipped: boolean;
+	detailSamples?: { t: number; level: number; charging: boolean }[];
 	reasonText: Record<
 		string,
 		{ head: string; sig: string; arc: string; unit: string }
@@ -124,6 +125,7 @@ interface CockpitConfig {
 		rollDuration: () => void;
 		renderSummary: () => void;
 		onToastAnimationEnd: () => void;
+		initDetail: () => void;
 	};
 }
 
@@ -1238,6 +1240,46 @@ describe( 'bsb/cockpit view store', () => {
 			// toggling the user's flip back to the front.
 			vi.advanceTimersByTime( 1000 );
 			expect( mocks.context.idleFlipped ).toBe( true );
+
+			vi.useRealTimers();
+		} );
+
+		it( 'detail init rebuilds the drain graph from seeded samples and auto-flips to the report', () => {
+			vi.useFakeTimers();
+			mocks.context.ended = true;
+			mocks.context.flipped = false;
+			mocks.context.secondsToEmpty = 7200;
+			mocks.context.detailSamples = [
+				{ t: 0, level: 0.9, charging: false },
+				{ t: 600_000, level: 0.8, charging: false },
+			];
+
+			mocks.config?.callbacks.initDetail();
+
+			// The chart is rebuilt client-side from the seeded samples — the server
+			// stores none, since the geometry is TypeScript.
+			expect( mocks.context.hasGraph ).toBe( true );
+			expect( mocks.context.graphJson.length ).toBeGreaterThan( 0 );
+
+			// The card rests on its picture front through the appear animation, then
+			// auto-flips to its report back a beat after it settles.
+			expect( mocks.context.flipped ).toBe( false );
+			vi.advanceTimersByTime( 1300 );
+			expect( mocks.context.flipped ).toBe( true );
+
+			vi.useRealTimers();
+		} );
+
+		it( 'detail init leaves no graph when the run has too few samples to plot', () => {
+			vi.useFakeTimers();
+			mocks.context.detailSamples = [
+				{ t: 0, level: 0.9, charging: false },
+			];
+
+			mocks.config?.callbacks.initDetail();
+
+			expect( mocks.context.hasGraph ).toBe( false );
+			expect( mocks.context.graphJson ).toBe( '' );
 
 			vi.useRealTimers();
 		} );

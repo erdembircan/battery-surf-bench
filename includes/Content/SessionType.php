@@ -21,12 +21,15 @@ defined( 'ABSPATH' ) || exit;
  * Registers the custom post type benchmark sessions are stored as, together
  * with the post meta that holds each session's data.
  *
- * The post type is deliberately headless: it has no public archive and no
- * front-end of its own, and it is kept out of the admin menu so the plugin's
- * own DataViews screen owns the listing instead of the default list table. What
- * it does expose is REST — the cockpit writes sessions through the post type's
- * own endpoint and the listing reads them back, with the registered meta riding
- * along under `meta` so neither side needs a bespoke controller.
+ * The post type is admin-only: it is kept out of the admin menu — the plugin's
+ * own DataViews screen owns the listing instead of the default list table — and
+ * out of site search and the front end, but it keeps a native admin UI
+ * (`show_ui`), so each session has a native edit screen at its own admin URL.
+ * That edit screen is where {@see SessionDetail} renders the summary postcard in
+ * place of the block editor. It also exposes REST — the cockpit writes sessions
+ * through the post type's own endpoint and the listing reads them back, with the
+ * registered meta riding along under `meta` so neither side needs a bespoke
+ * controller.
  *
  * The data shape itself lives in {@see SessionSchema}; this manager owns only
  * the WordPress registration and the capability policy that guards meta writes.
@@ -91,8 +94,10 @@ class SessionType implements Manager {
 	}
 
 	/**
-	 * Builds the post type registration arguments: a headless content type that
-	 * is reachable over REST and gated entirely behind the plugin's capability.
+	 * Builds the post type registration arguments: an admin-only session content
+	 * type that keeps a native edit screen (so each session has its own admin
+	 * URL), is reachable over REST, and is gated entirely behind the plugin's
+	 * capability — with no front end, archive or menu entry.
 	 *
 	 * @return array<string, mixed> The `register_post_type` arguments.
 	 */
@@ -102,13 +107,19 @@ class SessionType implements Manager {
 				'name'          => __( 'Benchmark Sessions', 'battery-surf-bench' ),
 				'singular_name' => __( 'Benchmark Session', 'battery-surf-bench' ),
 			),
+			// Admin-only: no front end (`public`/`publicly_queryable` off, excluded
+			// from search) and no menu entry (the DataViews screen owns the
+			// listing), but `show_ui` keeps the native edit screen, so each session
+			// has its own admin URL where the detail route renders its postcard.
 			'public'              => false,
-			'show_ui'             => false,
+			'show_ui'             => true,
 			'show_in_menu'        => false,
 			'show_in_rest'        => true,
 			'rest_base'           => $this->schema->post_type(),
 			'exclude_from_search' => true,
 			'publicly_queryable'  => false,
+			'has_archive'         => false,
+			'rewrite'             => false,
 			'hierarchical'        => false,
 			'supports'            => array( 'title', 'custom-fields' ),
 			// Map every capability — meta caps included — directly onto the

@@ -60,11 +60,12 @@ final class SessionTypeTest extends TestCase {
 	}
 
 	/**
-	 * The post type is registered headless and over REST: kept out of the admin
-	 * menu so the DataViews screen owns the listing, but reachable through REST
-	 * so that screen and the cockpit can read and write sessions.
+	 * The post type is admin-only — no front end and no menu entry (the DataViews
+	 * screen owns the listing) — but keeps a native admin UI, so each session has
+	 * its own edit screen, and stays reachable over REST so the screen and the
+	 * cockpit can read and write sessions.
 	 */
-	public function test_registers_a_headless_rest_enabled_post_type(): void {
+	public function test_registers_an_admin_only_rest_enabled_post_type(): void {
 		Functions\expect( 'register_post_type' )
 			->once()
 			->with(
@@ -72,8 +73,10 @@ final class SessionTypeTest extends TestCase {
 				Mockery::on(
 					static function ( $args ) {
 						return true === $args['show_in_rest']
+							&& true === $args['show_ui']
 							&& false === $args['show_in_menu']
-							&& false === $args['public'];
+							&& false === $args['public']
+							&& false === $args['publicly_queryable'];
 					}
 				)
 			);

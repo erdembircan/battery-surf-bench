@@ -328,8 +328,14 @@ export function buildFields(
 		label: 'Session',
 		enableSorting: true,
 		getValue: ( { item } ) => item.title?.rendered ?? `#${ item.id }`,
+		// Plain label, tagged with the session id. DataViews makes the title cell
+		// the clickable open target (via the screen's `onClickItem`), and the
+		// screen's row-click handler reads `data-bsb-id` to open the same session
+		// from anywhere else in the row.
 		render: ( { item } ) => (
-			<>{ item.title?.rendered || `#${ item.id }` }</>
+			<span data-bsb-id={ item.id }>
+				{ item.title?.rendered || `#${ item.id }` }
+			</span>
 		),
 	};
 

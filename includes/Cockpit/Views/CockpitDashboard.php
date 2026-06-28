@@ -62,7 +62,7 @@ class CockpitDashboard implements View {
 	<title>{$title}</title>
 	{$head}
 </head>
-<body>
+<body class="bsb-cockpit-dashboard">
 	{$body}
 	{$footer}
 </body>

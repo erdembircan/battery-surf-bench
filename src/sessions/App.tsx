@@ -22,7 +22,14 @@ import { DataViews } from '@wordpress/dataviews';
 import type { Action, View } from '@wordpress/dataviews';
 import { useEntityRecords, store as coreStore } from '@wordpress/core-data';
 import { useDispatch } from '@wordpress/data';
-import { createPortal, useMemo, useState } from '@wordpress/element';
+import {
+	createPortal,
+	useCallback,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+} from '@wordpress/element';
 import { __, _n, sprintf } from '@wordpress/i18n';
 import { buildFields } from './Fields';
 import type { SessionRecord, SessionsConfig } from './Types';
@@ -58,6 +65,28 @@ const trashIcon = (
  */
 function metaKey( field: string ): string {
 	return field.replace( /^meta\./, '' );
+}
+
+/**
+ * The native admin edit-screen URL for a session, where the detail postcard
+ * replaces the editor. Relative to the listing screen (both live under
+ * `wp-admin/`), so opening a session follows the ordinary WordPress flow rather
+ * than a bespoke route.
+ *
+ * @param id The session post id.
+ * @return The edit-screen URL.
+ */
+function sessionEditUrl( id: number ): string {
+	return `post.php?post=${ id }&action=edit`;
+}
+
+/**
+ * Opens a session on its native admin edit screen.
+ *
+ * @param item The session to open.
+ */
+function openSession( item: SessionRecord ): void {
+	window.location.href = sessionEditUrl( item.id );
 }
 
 /**
@@ -168,6 +197,49 @@ export function SessionsApp( { config }: { config: SessionsConfig } ) {
 		[ deleteEntityRecord, config.postType ]
 	);
 
+	// DataViews opens an item from its title cell (onClickItem) but toggles row
+	// selection when the row body is clicked. The maintainer wants the whole row
+	// to open and the checkbox alone to select, so this intercepts row-body
+	// clicks in the capture phase — before DataViews' own row handler runs — and
+	// routes to that session's edit screen, leaving the checkbox, the row actions
+	// and the title button (which opens via onClickItem) to their own controls.
+	const rootRef = useRef< HTMLDivElement >( null );
+
+	const onRowClick = useCallback( ( event: MouseEvent ): void => {
+		const target = event.target as HTMLElement | null;
+
+		if (
+			! target ||
+			target.closest(
+				'.dataviews-view-table__checkbox-column, .dataviews-view-table__actions-column, a, button, input, [role="button"]'
+			)
+		) {
+			return;
+		}
+
+		const row = target.closest( '.dataviews-view-table__row' );
+		const id = row
+			?.querySelector( '[data-bsb-id]' )
+			?.getAttribute( 'data-bsb-id' );
+
+		if ( ! id ) {
+			return;
+		}
+
+		// Stop DataViews' own row-selection handler from also firing.
+		event.stopPropagation();
+		window.location.href = sessionEditUrl( Number( id ) );
+	}, [] );
+
+	useEffect( () => {
+		const root = rootRef.current;
+		if ( ! root ) {
+			return undefined;
+		}
+		root.addEventListener( 'click', onRowClick, true );
+		return () => root.removeEventListener( 'click', onRowClick, true );
+	}, [ onRowClick ] );
+
 	// The brand header (rendered by PHP, outside this root) carries the running
 	// total. DataViews' pagination only reports "Page X of Y" and its footer
 	// counts the current page, so the server's total for the current query is
@@ -191,7 +263,9 @@ export function SessionsApp( { config }: { config: SessionsConfig } ) {
 			  );
 
 	return (
-		<>
+		// `display: contents` so the wrapper carries the row-click listener
+		// without inserting a box that would disturb the screen's layout.
+		<div ref={ rootRef } style={ { display: 'contents' } }>
 			<DataViews< SessionRecord >
 				data={ records ?? [] }
 				fields={ fields }
@@ -203,10 +277,12 @@ export function SessionsApp( { config }: { config: SessionsConfig } ) {
 				isLoading={ isResolving }
 				getItemId={ ( item ) => String( item.id ) }
 				search={ false }
+				isItemClickable={ () => true }
+				onClickItem={ openSession }
 			/>
 			{ countSlot &&
 				countLabel !== null &&
 				createPortal( countLabel, countSlot ) }
-		</>
+		</div>
 	);
 }

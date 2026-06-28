@@ -5,6 +5,7 @@
  */
 
 import { type RunMode } from './RunConfig';
+import { type Sample } from './DrainRate';
 
 /** One surfable course page, as supplied by the `bsb/course-pages` binding. */
 export interface CoursePage {
@@ -84,4 +85,9 @@ export interface CockpitContext {
 	// Translated toast messages by kind, seeded by the server so the strings stay
 	// localizable; the queue resolves the current message from here.
 	toastStrings: Record< ToastKind, string >;
+	// The stored run's samples, seeded by the session detail page so its summary
+	// can rebuild the drain graph client-side (the chart geometry is TS, so the
+	// server cannot precompute it). Absent in the live cockpit, which builds the
+	// graph from its own run log at run end.
+	detailSamples?: Sample[];
 }

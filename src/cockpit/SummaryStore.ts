@@ -10,7 +10,8 @@ import { getContext, getElement } from '@wordpress/interactivity';
 import { type CockpitContext } from './CockpitContext';
 import { type StorePart } from './StoreParts';
 import { instanceFor } from './RunInstance';
-import { type GraphModel } from './DrainGraph';
+import { buildGraph, type GraphModel } from './DrainGraph';
+import { GRAPH_VIEWPORT } from './RunLifecycle';
 import { paintGraph } from './GraphSvg';
 import { formatClock } from './Format';
 
@@ -20,6 +21,13 @@ import { formatClock } from './Format';
  * the return to the start, then the deck slides in on its own.
  */
 const AUTO_FLIP_DELAY_MS = 1000;
+
+/**
+ * How long the stored-session detail card rests on its picture front before it
+ * auto-flips to the report back: the length of its appear animation, so it sails
+ * in, lands, and turns to its report on its own with no extra pause.
+ */
+const DETAIL_FLIP_DELAY_MS = 800;
 
 /** The summary slice of the `bsb/cockpit` store. */
 export const summaryStore: StorePart = {
@@ -146,6 +154,37 @@ export const summaryStore: StorePart = {
 			setText( '.bsb-frank__arc-text', reason?.arc ?? '' );
 			setText( '.bsb-frank__val', value );
 			setText( '.bsb-frank__unit', reason?.unit ?? '' );
+		},
+
+		/**
+		 * Sets up the stored-session detail card. The detail page seeds the frozen
+		 * summary readouts straight onto the context, but the drain chart's geometry
+		 * is client-side TypeScript, so the server seeds the raw samples instead and
+		 * the card builds the graph here — the existing `renderSummary` watch then
+		 * paints it, exactly as a live run's does. Once built, the card auto-flips to
+		 * its report back a beat after the appear animation settles, the same
+		 * self-reveal "New run" gives the startup card. Bound with `data-wp-init` on
+		 * the detail page only; the live cockpit never runs it.
+		 */
+		initDetail(): void {
+			const context = getContext< CockpitContext >();
+			const instance = instanceFor();
+
+			const graph = buildGraph(
+				context.detailSamples ?? [],
+				context.secondsToEmpty,
+				GRAPH_VIEWPORT
+			);
+			context.hasGraph = graph !== null;
+			context.graphJson = graph ? JSON.stringify( graph ) : '';
+
+			if ( instance.idleFlipTimer !== null ) {
+				clearTimeout( instance.idleFlipTimer );
+			}
+			instance.idleFlipTimer = setTimeout( () => {
+				context.flipped = true;
+				instance.idleFlipTimer = null;
+			}, DETAIL_FLIP_DELAY_MS ) as unknown as number;
 		},
 	},
 };

@@ -11,7 +11,9 @@ use ErdemBircan\BatterySurfBench\Admin\Menu;
 use ErdemBircan\BatterySurfBench\Admin\SessionsScreen;
 use ErdemBircan\BatterySurfBench\Cockpit\Cockpit;
 use ErdemBircan\BatterySurfBench\Cockpit\Views\CockpitDashboard;
+use ErdemBircan\BatterySurfBench\Cockpit\Views\SessionDetailView;
 use ErdemBircan\BatterySurfBench\Cockpit\CoursePagesSource;
+use ErdemBircan\BatterySurfBench\Content\SessionDetail;
 use ErdemBircan\BatterySurfBench\Content\SessionRestQuery;
 use ErdemBircan\BatterySurfBench\Content\SessionSchema;
 use ErdemBircan\BatterySurfBench\Content\SessionType;
@@ -19,6 +21,7 @@ use ErdemBircan\BatterySurfBench\Course\CourseCatalog;
 use ErdemBircan\BatterySurfBench\Course\CourseLibrary;
 use ErdemBircan\BatterySurfBench\Course\CourseRouter;
 use ErdemBircan\BatterySurfBench\Support\Manager;
+use ErdemBircan\BatterySurfBench\Support\StandaloneChrome;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -142,8 +145,26 @@ class BatterySurfBench {
 				$this->registry->get( 'capability' ),
 				new CockpitDashboard(),
 				$this->assets,
+				$this->registry->get( 'session.post_type' ),
+				new StandaloneChrome(
+					$this->assets,
+					$this->registry->get( 'cockpit.style' )
+				)
+			),
+			// The session detail screen renders the summary postcard on each
+			// session's native admin edit screen, replacing the editor. It reuses
+			// the cockpit's view module (where the `bsb/cockpit` store is
+			// registered) and the cockpit stylesheet (where the postcard styles
+			// live), seeding the stored run onto the context.
+			new SessionDetail(
+				$this->registry->get( 'session.post_type' ),
+				$this->registry->get( 'session.meta_prefix' ),
+				$this->registry->get( 'capability' ),
+				$this->registry->get( 'cockpit.block_name' ),
+				$this->registry->get( 'session.screen_slug' ),
 				$this->registry->get( 'cockpit.style' ),
-				$this->registry->get( 'session.post_type' )
+				new SessionDetailView(),
+				$this->assets
 			),
 		);
 	}
