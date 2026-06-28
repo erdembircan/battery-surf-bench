@@ -33,6 +33,6 @@ sequenceDiagram
         M->>M: pnpm license:verify
         M->>M: pnpm i18n:make-pot → commit .pot to master (WP-CLI, EndBug/add-and-commit)
         M->>M: pnpm test:e2e (Playwright + WP Playground)
-        M->>M: composer archive → commit zip/ to master (gitattributes export-ignore, EndBug/add-and-commit)
+        M->>M: composer zip → commit zip/ to master (composer archive + gitattributes export-ignore, EndBug/add-and-commit)
         deactivate M
     end

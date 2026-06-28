@@ -108,14 +108,13 @@ jobs:
       - uses: actions/checkout@v6
       - uses: ./.github/actions/setup-php
       - uses: ./.github/actions/setup-node
-      # Compile the production assets that `composer archive` bundles from the
+      # Compile the production assets that the archive bundles from the
       # working tree.
       - run: pnpm build
-      # Reduce vendor/ to runtime-only dependencies so the archive ships no
-      # dev tooling. `composer archive` then packs the working tree, applying
-      # the `export-ignore` list in .gitattributes.
-      - run: composer install --no-dev --optimize-autoloader
-      - run: composer archive --format=zip --dir=zip --file=battery-surf-bench
+      # `composer zip` prunes vendor/ to runtime-only deps and runs
+      # `composer archive`, which packs the working tree applying the
+      # `export-ignore` list in .gitattributes.
+      - run: composer zip
       # Commit the rebuilt distributable back to master so the latest plugin
       # archive is always available under zip/. [skip ci] prevents a loop.
       - uses: EndBug/add-and-commit@v10
