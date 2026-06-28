@@ -246,6 +246,17 @@
 		box-shadow: inset 3px 0 0 theme.$coastal-teal;
 	}
 
+	// The whole row opens its session, so it reads as clickable — bar the
+	// checkbox and actions cells, which keep their own controls.
+	.dataviews-view-table tbody tr {
+		cursor: pointer;
+	}
+
+	.dataviews-view-table tbody td.dataviews-view-table__checkbox-column,
+	.dataviews-view-table tbody td.dataviews-view-table__actions-column {
+		cursor: default;
+	}
+
 	// The session identifier (title field renders `#<id>`) reads as plain data.
 	.dataviews-title-field {
 		font-family: theme.$font-mono;
