@@ -9,6 +9,7 @@ declare( strict_types=1 );
 
 namespace ErdemBircan\BatterySurfBench\Tests\Content;
 
+use Brain\Monkey\Functions;
 use ErdemBircan\BatterySurfBench\Content\SessionSchema;
 use ErdemBircan\BatterySurfBench\Tests\TestCase;
 
@@ -124,6 +125,30 @@ final class SessionSchemaTest extends TestCase {
 			$this->assertArrayHasKey( 'label', $field );
 			$this->assertArrayHasKey( 'format', $field );
 		}
+	}
+
+	/**
+	 * The labels the listing shows — the column headers and the enumerated value
+	 * labels — pass through translation, so the grid localizes for the viewer
+	 * rather than always reading English. The descriptors carry already-translated
+	 * strings (the screen localizes them to DataViews as plain data), so a label
+	 * run through `__()` is the only translation seam.
+	 */
+	public function test_field_and_element_labels_are_translated(): void {
+		Functions\when( '__' )->alias(
+			static fn( string $text ): string => "xx_{$text}"
+		);
+
+		$status = $this->fieldFor( self::PREFIX . 'status' );
+
+		$this->assertSame( 'xx_Status', $status['label'] );
+		$this->assertContains(
+			array(
+				'value' => 'running',
+				'label' => 'xx_Running',
+			),
+			$status['elements']
+		);
 	}
 
 	/**
