@@ -1,21 +1,25 @@
 /**
- * User-agent description — distills a raw `navigator.userAgent` string into a
- * short, human-readable label naming the browser (with major version) and the
- * operating system, e.g. `Chrome 149 · macOS`.
+ * User-agent parsing — reduces a raw `navigator.userAgent` string to the
+ * discrete facts a stored session keeps: the browser name, its major version,
+ * and the operating system.
  *
- * The raw user-agent string is noise in the session listing: long, repetitive
- * boilerplate (`Mozilla/5.0 … AppleWebKit/537.36 (KHTML, like Gecko) …`) that
- * says nothing at a glance about what ran the benchmark. This module is the
- * single place that reduces it to the two facts that matter for a run — which
- * browser, and which OS — so a stored session carries that label instead of the
- * dump. It is a pure function over a string, so it is unit-tested with fixed
- * inputs.
+ * The raw user-agent string is noise: long, repetitive boilerplate
+ * (`Mozilla/5.0 … AppleWebKit/537.36 (KHTML, like Gecko) …`) that says nothing
+ * at a glance about what ran the benchmark. This module is the single place that
+ * extracts the three fields worth keeping, so a session persists structured data
+ * rather than a dump — and never a pre-formatted display string, leaving how
+ * those parts read entirely to the listing. It is a pure function over a string,
+ * so it is unit-tested with fixed inputs.
  */
 
-/** A detected browser: its display name and major version. */
-interface BrowserHit {
-	name: string;
+/** The discrete browser facts parsed from a user-agent string. */
+export interface UserAgentInfo {
+	/** The browser display name (e.g. `Chrome`), or empty when unrecognised. */
+	browser: string;
+	/** The browser major version (e.g. `149`), or empty when unrecognised. */
 	version: string;
+	/** The operating system (e.g. `macOS`), or empty when unrecognised. */
+	os: string;
 }
 
 /**
@@ -38,19 +42,19 @@ const BROWSERS: ReadonlyArray< { name: string; token: RegExp } > = [
 ];
 
 /**
- * Identifies the browser and its major version from a user-agent string.
+ * Identifies the browser name and major version from a user-agent string.
  *
  * @param ua The raw user-agent string.
- * @return The matched browser, or null when none is recognised.
+ * @return The name and version, both empty when none is recognised.
  */
-function findBrowser( ua: string ): BrowserHit | null {
+function findBrowser( ua: string ): { name: string; version: string } {
 	for ( const candidate of BROWSERS ) {
 		const match = ua.match( candidate.token );
 		if ( match ) {
 			return { name: candidate.name, version: match[ 1 ] };
 		}
 	}
-	return null;
+	return { name: '', version: '' };
 }
 
 /**
@@ -59,9 +63,9 @@ function findBrowser( ua: string ): BrowserHit | null {
  * platforms before macOS, so each platform resolves to its most specific label.
  *
  * @param ua The raw user-agent string.
- * @return The OS label, or null when none is recognised.
+ * @return The OS label, or empty when none is recognised.
  */
-function findOs( ua: string ): string | null {
+function findOs( ua: string ): string {
 	if ( /Windows NT/.test( ua ) ) {
 		return 'Windows';
 	}
@@ -80,31 +84,23 @@ function findOs( ua: string ): string | null {
 	if ( /Linux/.test( ua ) ) {
 		return 'Linux';
 	}
-	return null;
+	return '';
 }
 
 /**
- * Distills a raw user-agent string into a short browser-and-OS label. Falls back
- * to whichever half is recognised, and to `Unknown browser` when the string is
- * empty or recognisably nothing.
+ * Parses a raw user-agent string into its discrete browser, version and OS
+ * fields. Each unrecognised field is an empty string, so the caller stores a
+ * known-empty datum rather than guessing.
  *
  * @param ua The raw `navigator.userAgent` string.
- * @return The descriptive label, e.g. `Chrome 149 · macOS`.
+ * @return The discrete browser facts.
  */
-export function describeUserAgent( ua: string ): string {
+export function parseUserAgent( ua: string ): UserAgentInfo {
 	const raw = ua?.trim() ?? '';
 	if ( raw === '' ) {
-		return 'Unknown browser';
+		return { browser: '', version: '', os: '' };
 	}
 
-	const browser = findBrowser( raw );
-	const os = findOs( raw );
-	const browserLabel = browser
-		? `${ browser.name } ${ browser.version }`
-		: null;
-
-	if ( browserLabel && os ) {
-		return `${ browserLabel } · ${ os }`;
-	}
-	return browserLabel ?? os ?? 'Unknown browser';
+	const { name, version } = findBrowser( raw );
+	return { browser: name, version, os: findOs( raw ) };
 }

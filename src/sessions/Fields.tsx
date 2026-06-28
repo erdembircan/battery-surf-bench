@@ -15,6 +15,7 @@
 
 import type { Field } from '@wordpress/dataviews';
 import type { SessionFieldDescriptor, SessionRecord } from './Types';
+import { formatUserAgent } from './UserAgent';
 
 /**
  * Reads a session's raw meta value for a descriptor.
@@ -285,6 +286,14 @@ function toField( descriptor: SessionFieldDescriptor ): Field< SessionRecord > {
 						{ asRuntime( metaValue( item, descriptor ) ) }
 					</span>
 				),
+			};
+		case 'browser':
+			// The browser column reads the sibling version and OS meta too, so the
+			// listing composes the discrete fields the session stores. Sorting
+			// stays on this field's own key (the browser name).
+			return {
+				...base,
+				render: ( { item } ) => <>{ formatUserAgent( item.meta ) }</>,
 			};
 		default:
 			if ( descriptor.elements ) {

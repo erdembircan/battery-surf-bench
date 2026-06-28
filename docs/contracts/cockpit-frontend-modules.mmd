@@ -121,7 +121,7 @@ classDiagram
 
     class UserAgent {
         <<module>>
-        +describeUserAgent(string) string
+        +parseUserAgent(string) UserAgentInfo
     }
 
     class RunConfig {
@@ -278,7 +278,7 @@ classDiagram
     %% frozen session and POSTs it through the session post type's own endpoint,
     %% reading its REST access from the Interactivity config the PHP route seeds.
     RunLifecycle --> SessionUpload : persists finished run
-    RunLifecycle --> UserAgent : describes capture browser
+    RunLifecycle --> UserAgent : parses capture browser fields
     SessionUpload ..> RunSession : reads RunSummary & samples
 
     %% Run lifecycle & instance own the long-lived calculation objects.

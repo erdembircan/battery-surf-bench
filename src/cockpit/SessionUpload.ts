@@ -47,7 +47,9 @@ const META = {
 	configMode: 'bsb_config_mode',
 	configDuration: 'bsb_config_duration',
 	configTargetPercent: 'bsb_config_target_percent',
-	ua: 'bsb_ua',
+	uaBrowser: 'bsb_ua_browser',
+	uaVersion: 'bsb_ua_version',
+	uaOs: 'bsb_ua_os',
 	samples: 'bsb_samples',
 } as const;
 
@@ -74,8 +76,12 @@ export interface SessionUploadInput {
 	startedAtWall: number | null;
 	/** Wall-clock time (ms since epoch) the run ended. */
 	endedAtWall: number;
-	/** The descriptive browser-and-OS label the run was captured on. */
-	userAgent: string;
+	/** The browser name the run was captured on (empty when unrecognised). */
+	uaBrowser: string;
+	/** The browser major version (empty when unrecognised). */
+	uaVersion: string;
+	/** The operating system the run was captured on (empty when unrecognised). */
+	uaOs: string;
 }
 
 /** The session record POSTed to the post type's REST collection. */
@@ -139,7 +145,8 @@ const toIso = ( ms: number ): string => new Date( ms ).toISOString();
  * a published status and the full meta record (identity and result scalars, the
  * derived statistics — zero where the run could not compute them, since
  * WordPress REST single meta cannot store a null — the run configuration, the
- * user agent, and the sample log). Returns null when the run logged no samples,
+ * discrete browser fields, and the sample log). Returns null when the run logged
+ * no samples,
  * since there is nothing meaningful to persist.
  *
  * No title is sent: a session is identified by its post id in the listing, so
@@ -176,7 +183,9 @@ export const buildSessionPayload = (
 		[ META.rateSession ]: summary.rateSession ?? 0,
 		[ META.timeToEmpty ]: summary.secondsToEmpty ?? 0,
 		[ META.configMode ]: input.config.mode,
-		[ META.ua ]: input.userAgent,
+		[ META.uaBrowser ]: input.uaBrowser,
+		[ META.uaVersion ]: input.uaVersion,
+		[ META.uaOs ]: input.uaOs,
 		[ META.samples ]: input.samples.map( ( sample ) => ( {
 			t: sample.t,
 			level: sample.level,

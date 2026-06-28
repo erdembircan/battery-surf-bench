@@ -308,14 +308,42 @@ class SessionSchema {
 				'elements'       => array(),
 				'default_column' => true,
 			),
+			// The browser the run was captured on, kept as discrete fields — name,
+			// major version and OS — rather than a pre-formatted string, so the
+			// listing decides how they read. Only the name surfaces as a column,
+			// with a `browser` renderer that composes the three for display; the
+			// version and OS are stored and REST-exposed but not listed in their
+			// own right.
 			array(
-				'key'            => 'ua',
+				'key'            => 'ua_browser',
 				'rest_type'      => 'string',
 				'label'          => 'Browser',
+				'format'         => 'browser',
+				'default'        => '',
+				'sanitize'       => 'sanitize_text_field',
+				'elements'       => array(),
+				'default_column' => false,
+			),
+			array(
+				'key'            => 'ua_version',
+				'rest_type'      => 'string',
+				'label'          => 'Browser version',
 				'format'         => 'text',
 				'default'        => '',
 				'sanitize'       => 'sanitize_text_field',
 				'elements'       => array(),
+				'listed'         => false,
+				'default_column' => false,
+			),
+			array(
+				'key'            => 'ua_os',
+				'rest_type'      => 'string',
+				'label'          => 'Operating system',
+				'format'         => 'text',
+				'default'        => '',
+				'sanitize'       => 'sanitize_text_field',
+				'elements'       => array(),
+				'listed'         => false,
 				'default_column' => false,
 			),
 			// Derived end-of-run statistics. Persisted alongside the raw inputs so
