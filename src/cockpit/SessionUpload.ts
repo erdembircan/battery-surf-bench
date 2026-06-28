@@ -74,7 +74,7 @@ export interface SessionUploadInput {
 	startedAtWall: number | null;
 	/** Wall-clock time (ms since epoch) the run ended. */
 	endedAtWall: number;
-	/** The user agent the run was captured on. */
+	/** The descriptive browser-and-OS label the run was captured on. */
 	userAgent: string;
 }
 

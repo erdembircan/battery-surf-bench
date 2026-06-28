@@ -119,6 +119,11 @@ classDiagram
         +postSession(SessionPayload) Promise
     }
 
+    class UserAgent {
+        <<module>>
+        +describeUserAgent(string) string
+    }
+
     class RunConfig {
         <<module>>
         +normalizeDuration(number) number
@@ -273,6 +278,7 @@ classDiagram
     %% frozen session and POSTs it through the session post type's own endpoint,
     %% reading its REST access from the Interactivity config the PHP route seeds.
     RunLifecycle --> SessionUpload : persists finished run
+    RunLifecycle --> UserAgent : describes capture browser
     SessionUpload ..> RunSession : reads RunSummary & samples
 
     %% Run lifecycle & instance own the long-lived calculation objects.

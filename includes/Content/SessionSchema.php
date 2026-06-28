@@ -19,7 +19,7 @@ defined( 'ABSPATH' ) || exit;
  * from drifting apart, and means a new datum is added in exactly one place.
  *
  * The shape mirrors the session record the cockpit produces while benchmarking:
- * the run mode and lifecycle status, its battery levels, the user agent the run
+ * the run mode and lifecycle status, its battery levels, the browser the run
  * was captured on, the derived drain statistics, the configuration the run used,
  * and the run-length-encoded sample log. The identity and result scalars, the
  * run length / target, and the derived statistics are listed as columns; the
@@ -311,7 +311,7 @@ class SessionSchema {
 			array(
 				'key'            => 'ua',
 				'rest_type'      => 'string',
-				'label'          => 'User agent',
+				'label'          => 'Browser',
 				'format'         => 'text',
 				'default'        => '',
 				'sanitize'       => 'sanitize_text_field',

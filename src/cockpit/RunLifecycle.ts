@@ -12,6 +12,7 @@ import { RunSession } from './RunSession';
 import { buildGraph, type GraphViewport, type GraphModel } from './DrainGraph';
 import { buildSessionPayload, postSession } from './SessionUpload';
 import { enqueueToast } from './Toasts';
+import { describeUserAgent } from './UserAgent';
 
 /**
  * The summary drain graph's drawing viewport (SVG user units). A wide, short
@@ -118,7 +119,7 @@ const persistSession = (
 		elapsedSeconds: context.elapsed,
 		startedAtWall: instance.startedAtWall,
 		endedAtWall: wallNow(),
-		userAgent: navigator.userAgent,
+		userAgent: describeUserAgent( navigator.userAgent ),
 	} );
 
 	if ( ! payload ) {
