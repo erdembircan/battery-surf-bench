@@ -43,10 +43,23 @@ classDiagram
         video: HTMLIFrameElement|null
     }
 
-    %% --- Trait → behaviour mapping (speed divides only time knobs).
+    %% --- Trait → action MAGNITUDES (speed divides only time magnitudes).
     class Behavior {
         <<module>>
         +behaviorFor(number[], PageType, speed) Behavior
+        returns: dwellMs, scrollDepth, burstPx, burstGapMs, readingPauseMs
+    }
+
+    %% --- Decision core: utility-based action selection (pure, tested).
+    %% Each tick scores the available actions from the traits + context and picks
+    %% one weighted by score — behaviour emerges, no hard-coded branches. Context
+    %% only gates availability (advance at bottom, regress at top, watch/replay on
+    %% video); the trait drives each score (regress ∝ Recall, the whole page).
+    class Decision {
+        <<module>>
+        +scoreActions(SurfContext) ScoredAction[]
+        +selectAction(ScoredAction[], rng) ActionKind
+        ActionKind: advance|dwell|regress|watch|replay
     }
 
     %% --- Motion helpers + the drivers.
@@ -108,13 +121,15 @@ classDiagram
     RunParams --> RunConfig : normalizeSpeed
 
     Surfer --> PageModel : finds targets
-    Surfer --> Behavior : derives behaviour
+    Surfer --> Behavior : action magnitudes
+    Surfer --> Decision : picks each action (utility)
+    Behavior ..> PageModel : reads PageType
+    Decision ..> PageModel : reads PageType
     Surfer --> Scroller : scrolls
     Surfer --> Cursor : creates & owns (composition)
     Surfer --> VideoWatcher : watches/replays
     Surfer --> Bridge : signals page-done
     PageModel --> PageTargets : returns
-    Behavior ..> PageModel : reads PageType
     Scroller --> Easing : eases bursts
     Cursor --> Easing : eases glides
 
