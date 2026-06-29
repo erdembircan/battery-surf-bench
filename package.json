@@ -27,6 +27,11 @@
     "test:e2e:install": "playwright install chromium"
   },
   "devDependencies": {
+    "@fontsource/anton": "^5.2.7",
+    "@fontsource/caveat": "^5.2.8",
+    "@fontsource/hanken-grotesk": "^5.2.8",
+    "@fontsource/pacifico": "^5.2.7",
+    "@fontsource/space-mono": "^5.2.9",
     "@playwright/test": "^1.61.0",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",

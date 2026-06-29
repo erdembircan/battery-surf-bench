@@ -12,6 +12,21 @@ importers:
         specifier: ^4.22.0
         version: 4.22.0(@emotion/is-prop-valid@1.4.0)(@types/react@19.2.17)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
     devDependencies:
+      '@fontsource/anton':
+        specifier: ^5.2.7
+        version: 5.2.7
+      '@fontsource/caveat':
+        specifier: ^5.2.8
+        version: 5.2.8
+      '@fontsource/hanken-grotesk':
+        specifier: ^5.2.8
+        version: 5.2.8
+      '@fontsource/pacifico':
+        specifier: ^5.2.7
+        version: 5.2.7
+      '@fontsource/space-mono':
+        specifier: ^5.2.9
+        version: 5.2.9
       '@playwright/test':
         specifier: ^1.61.0
         version: 1.61.0
@@ -1412,6 +1427,21 @@ packages:
 
   '@floating-ui/utils@0.2.11':
     resolution: {integrity: sha512-RiB/yIh78pcIxl6lLMG0CgBXAZ2Y0eVHqMPYugu+9U0AeT6YBeiJpf7lbdJNIugFP5SIjwNRgo4DhR1Qxi26Gg==}
+
+  '@fontsource/anton@5.2.7':
+    resolution: {integrity: sha512-fiPl7Kx0HC50Ws2uRkNC+QLVK8xPFUB9E+IxFdSA6tbNTZWe7HOq8IxYqkERIzsIBvYj6nrU+7uNMUM9vNLxig==}
+
+  '@fontsource/caveat@5.2.8':
+    resolution: {integrity: sha512-9fUUfFE2IQFKbx+xOcaeQxxmh8iJguEb8z+j1PeueO4UUx+XfT4pRm/B04ZDvFA794/iRxY/IibmP8ZKtIf4rw==}
+
+  '@fontsource/hanken-grotesk@5.2.8':
+    resolution: {integrity: sha512-J/e6hdfNCbyc4WK5hmZtk0zjaIsFx3pvCdPVxY25iYw2C9v1ZggGz4nfHnRjMhcz4WfaadUuwLNtvj8sQ70tkg==}
+
+  '@fontsource/pacifico@5.2.7':
+    resolution: {integrity: sha512-L+YiZn3Lb8rVN15zcLlti62doVxQeFpS+dJmulKkFrUo3dZIAxZLHwXoKaaHm+VVcOTrT/mmKCZqGOIWVmFV2w==}
+
+  '@fontsource/space-mono@5.2.9':
+    resolution: {integrity: sha512-b61faFOHEISQ/pD25G+cfGY9o/WW6lRv6hBQQfpWvEJ4y1V+S4gmth95EVyBE2VL3qDYHeVQ8nBzrplzdXTDDg==}
 
   '@formatjs/ecma402-abstract@2.3.6':
     resolution: {integrity: sha512-HJnTFeRM2kVFVr5gr5kH1XP6K0JcJtE7Lzvtr3FS/so5f1kpsqqqxy5JF+FRaO6H2qmcMfAUIox7AJteieRtVw==}
@@ -10717,6 +10747,16 @@ snapshots:
       react-dom: 18.3.1(react@18.3.1)
 
   '@floating-ui/utils@0.2.11': {}
+
+  '@fontsource/anton@5.2.7': {}
+
+  '@fontsource/caveat@5.2.8': {}
+
+  '@fontsource/hanken-grotesk@5.2.8': {}
+
+  '@fontsource/pacifico@5.2.7': {}
+
+  '@fontsource/space-mono@5.2.9': {}
 
   '@formatjs/ecma402-abstract@2.3.6':
     dependencies:
