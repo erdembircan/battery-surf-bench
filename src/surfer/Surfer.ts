@@ -23,6 +23,16 @@ import { pageDone } from './Bridge';
 const ANIM_MS = 220;
 
 /**
+ * Console trace of what the engine is doing, for debugging a run. Tagged so the
+ * surfer's actions are easy to follow in the iframe console.
+ * @param args
+ */
+const log = ( ...args: unknown[] ): void => {
+	// eslint-disable-next-line no-console -- intentional debug trace for the surf engine.
+	console.info( '[bsb-surfer]', ...args );
+};
+
+/**
  * Resolves after `ms` (clamped non-negative) using the window's timer.
  * @param ms
  * @param win
@@ -57,6 +67,25 @@ export class Surfer {
 		const scroller = new Scroller( this.win );
 		const deadline = performance.now() + behavior.dwellMs;
 
+		log(
+			`▶ ${ this.params.slug } (${
+				targets.type
+			}) · traits=[${ this.params.traits.join( ',' ) }] · speed=${
+				this.params.speed
+			}×`
+		);
+		log(
+			`  behaviour: dwell=${ Math.round(
+				behavior.dwellMs
+			) }ms depth=${ behavior.scrollDepth.toFixed( 2 ) } burst=${
+				behavior.burstPx
+			}px gap=${ Math.round(
+				behavior.burstGapMs
+			) }ms readPause=${ behavior.readingPauseChance.toFixed(
+				2
+			) } scrollUp=${ behavior.scrollUpChance.toFixed( 2 ) }`
+		);
+
 		try {
 			if ( targets.type === 'video' && targets.video ) {
 				await this.watchVideo(
@@ -75,6 +104,7 @@ export class Surfer {
 				await delay( remaining, this.win );
 			}
 		} finally {
+			log( `■ ${ this.params.slug } done → advancing queue` );
 			cursor.destroy();
 			pageDone( this.win );
 		}
@@ -97,6 +127,11 @@ export class Surfer {
 	): Promise< void > {
 		const targetScroll = scroller.maxScroll * behavior.scrollDepth;
 
+		log(
+			`  reading: settling, target depth ${ Math.round(
+				targetScroll
+			) }px`
+		);
 		await delay( behavior.burstGapMs, this.win );
 
 		while (
@@ -109,11 +144,18 @@ export class Surfer {
 				this.animMs
 			);
 			await scroller.burst( behavior.burstPx, this.animMs );
+			log( `  scroll burst → ${ Math.round( scroller.position ) }px` );
 
 			if ( Math.random() < behavior.readingPauseChance ) {
+				log(
+					`  reading pause ${ Math.round(
+						behavior.readingPauseMs
+					) }ms`
+				);
 				await delay( behavior.readingPauseMs, this.win );
 
 				if ( Math.random() < behavior.scrollUpChance ) {
+					log( '  re-read scroll-up' );
 					await scroller.burst(
 						-behavior.burstPx * 0.5,
 						this.animMs
@@ -154,9 +196,15 @@ export class Surfer {
 		const watcher = new VideoWatcher( video );
 		const watchMs =
 			( deadline - performance.now() ) * behavior.videoWatchFraction;
+		log(
+			`  watching video ${ Math.round(
+				watchMs
+			) }ms (fraction ${ behavior.videoWatchFraction.toFixed( 2 ) })`
+		);
 		await delay( watchMs, this.win );
 
 		if ( Math.random() < behavior.videoReplayChance ) {
+			log( '  replay video' );
 			watcher.replay();
 			cursor.click();
 			await delay( ( deadline - performance.now() ) * 0.5, this.win );
