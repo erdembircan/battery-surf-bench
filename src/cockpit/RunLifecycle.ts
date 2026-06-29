@@ -13,7 +13,6 @@ import { buildGraph, type GraphViewport, type GraphModel } from './DrainGraph';
 import { buildSessionPayload, postSession } from './SessionUpload';
 import { enqueueToast } from './Toasts';
 import { parseUserAgent } from './UserAgent';
-import { classify } from '../shared/SurferStats';
 
 /**
  * The summary drain graph's drawing viewport (SVG user units). A wide, short
@@ -124,8 +123,6 @@ const persistSession = (
 		uaBrowser: ua.browser,
 		uaVersion: ua.version,
 		uaOs: ua.os,
-		traits: context.traits,
-		archetype: classify( context.traits ),
 	} );
 
 	if ( ! payload ) {

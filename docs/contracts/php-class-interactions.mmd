@@ -83,7 +83,6 @@ classDiagram
         +sanitize_duration(mixed)$ int
         +sanitize_elapsed(mixed)$ int
         +sanitize_samples(mixed)$ array
-        +sanitize_traits(mixed)$ array
     }
 
     class SessionType {
@@ -143,11 +142,11 @@ classDiagram
     }
 
     class CourseRouter {
-        +__construct(CourseCatalog catalog, string param, Assets assets, string stylesheet, string engine)
+        +__construct(CourseCatalog catalog, string param, Assets assets, string stylesheet)
         +register() void
         +add_query_var(array vars) array
         +maybe_render(array posts, WP_Query query) array
-        +enqueue_assets() void
+        +enqueue_style() void
     }
 
     class CoursePagesSource {

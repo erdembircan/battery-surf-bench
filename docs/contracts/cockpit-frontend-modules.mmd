@@ -25,9 +25,9 @@ classDiagram
     %% --- Store slices: each owns one surface of the deck and reads CockpitContext.
     class RunStore {
         <<module>>
-        state: currentSrc (carries bsbRun/bsbSpeed/bsbTraits), run/idle/compact, clock & rate readouts
-        actions: toggleRun (normalizes traits; refuses unsupported/charging), toggleCompact
-        callbacks: syncRunActivity, initWakeLock, initViewport (advances queue on engine page-done)
+        state: currentSrc, run/idle/compact, clock & rate readouts
+        actions: toggleRun (refuses unsupported/charging), toggleCompact
+        callbacks: syncRunActivity, initWakeLock
     }
 
     class ConfigStore {
@@ -39,7 +39,7 @@ classDiagram
 
     class TraitsStore {
         <<module>>
-        state: archetypeLabel, pointsLeftDisplay, isBudgetEmpty, isCustomizeOpen, traitValue, traitTrack, isChipActive
+        state: archetypeLabel, pointsLeftDisplay, isBudgetEmpty, isCustomizeOpen, traitValue<i>, traitTrack<i>, isClass<Key>
         actions: selectClass, setTrait, resetTraits, toggleCustomize
     }
 
@@ -139,12 +139,11 @@ classDiagram
         +SPEEDS
     }
 
-    %% Shared trait domain — also imported by the in-iframe surf engine.
+    %% Shared surfer-trait domain backing the Surfer profile UI.
     class SurferStats {
         <<module>>
         +classify(number[]) Archetype
         +clampTrait(number[], number, number) number
-        +normalizeTraits(unknown) number[]
         +pointsLeft(number[]) number
         +headroom(number[], number) number
         +STATS, CLASSES, BUDGET, MIN, MAX
@@ -282,7 +281,6 @@ classDiagram
 
     %% Slice → focused domain delegation.
     RunStore --> RunConfig : normalizes config
-    RunStore --> SurferStats : normalizes traits on start
     RunStore --> TargetControl : clamps target on start
     RunStore --> Format : formats readouts
     RunStore --> ScreenWakeLock : creates & owns (composition)
@@ -302,7 +300,6 @@ classDiagram
     %% reading its REST access from the Interactivity config the PHP route seeds.
     RunLifecycle --> SessionUpload : persists finished run
     RunLifecycle --> UserAgent : parses capture browser fields
-    RunLifecycle --> SurferStats : classifies archetype for the record
     SessionUpload ..> RunSession : reads RunSummary & samples
 
     %% Run lifecycle & instance own the long-lived calculation objects.

@@ -51,10 +51,6 @@ return array(
 		// `.bsb-course-content` wrapper, enqueued only on course pages. Built
 		// from `src/course/style.scss`.
 		'style'          => 'build/style-course.css',
-		// The in-iframe surf engine, enqueued on every course page. It self-gates
-		// on the `bsbRun` URL flag, so a page viewed directly stays inert. Built
-		// from `src/surfer/index.ts`.
-		'engine'         => 'build/surfer.js',
 	),
 	'cockpit'    => array(
 		// Query parameter + value that serve the cockpit dashboard:

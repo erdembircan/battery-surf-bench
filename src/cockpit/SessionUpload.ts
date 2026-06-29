@@ -50,8 +50,6 @@ const META = {
 	uaBrowser: 'bsb_ua_browser',
 	uaVersion: 'bsb_ua_version',
 	uaOs: 'bsb_ua_os',
-	surferArchetype: 'bsb_surfer_archetype',
-	surferTraits: 'bsb_surfer_traits',
 	samples: 'bsb_samples',
 } as const;
 
@@ -84,10 +82,6 @@ export interface SessionUploadInput {
 	uaVersion: string;
 	/** The operating system the run was captured on (empty when unrecognised). */
 	uaOs: string;
-	/** The surfer trait vector the run was driven with. */
-	traits: readonly number[];
-	/** The archetype cover-name derived from the trait vector. */
-	archetype: string;
 }
 
 /** The session record POSTed to the post type's REST collection. */
@@ -192,8 +186,6 @@ export const buildSessionPayload = (
 		[ META.uaBrowser ]: input.uaBrowser,
 		[ META.uaVersion ]: input.uaVersion,
 		[ META.uaOs ]: input.uaOs,
-		[ META.surferArchetype ]: input.archetype,
-		[ META.surferTraits ]: [ ...input.traits ],
 		[ META.samples ]: input.samples.map( ( sample ) => ( {
 			t: sample.t,
 			level: sample.level,

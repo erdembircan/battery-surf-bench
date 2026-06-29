@@ -23,9 +23,6 @@ interface CockpitContext {
 	mode: 'duration' | 'targetDrop';
 	durationMinutes: number;
 	speed: number;
-	traits: number[];
-	traitsOpen: boolean;
-	archetypeLabels: Record< string, string >;
 	running: boolean;
 	compact: boolean;
 	soundEnabled: boolean;
@@ -124,7 +121,6 @@ interface CockpitConfig {
 		initBattery: () => () => void;
 		initWakeLock: () => () => void;
 		initSound: () => void;
-		initViewport: () => () => void;
 		syncRunActivity: () => void;
 		rollDuration: () => void;
 		renderSummary: () => void;
@@ -148,9 +144,6 @@ const baseContext = (): CockpitContext => ( {
 	mode: 'duration',
 	durationMinutes: 30,
 	speed: 1,
-	traits: [ 5, 5, 5, 5, 5, 5 ],
-	traitsOpen: false,
-	archetypeLabels: {},
 	running: false,
 	compact: false,
 	soundEnabled: true,
@@ -255,19 +248,12 @@ beforeEach( () => {
 
 describe( 'bsb/cockpit view store', () => {
 	describe( 'viewport', () => {
-		it( 'derives the viewport src from the active course page once running, carrying the run params', () => {
+		it( 'derives the viewport src from the active course page once running', () => {
 			mocks.context.running = true;
-			mocks.context.speed = 4;
-			mocks.context.traits = [ 1, 2, 3, 4, 5, 6 ];
 			mocks.context.pages = [ page( 'article-1' ) ];
 
-			const src = mocks.config?.state.currentSrc ?? '';
-			expect( src ).toContain( 'https://example.test/article-1?' );
-			// The engine reads these off the URL: arm, speed, personality.
-			expect( src ).toContain( 'bsbRun=1' );
-			expect( src ).toContain( 'bsbSpeed=4' );
-			expect( src ).toContain(
-				`bsbTraits=${ encodeURIComponent( '1,2,3,4,5,6' ) }`
+			expect( mocks.config?.state.currentSrc ).toBe(
+				'https://example.test/article-1'
 			);
 		} );
 
@@ -289,50 +275,9 @@ describe( 'bsb/cockpit view store', () => {
 			mocks.context.pages = [ page( 'article-1' ), page( 'gallery' ) ];
 			mocks.context.activeIndex = 1;
 
-			expect( mocks.config?.state.currentSrc ).toContain(
-				'https://example.test/gallery?'
+			expect( mocks.config?.state.currentSrc ).toBe(
+				'https://example.test/gallery'
 			);
-		} );
-
-		it( 'advances the page queue when the engine reports a page done', () => {
-			const cleanup = mocks.config!.callbacks.initViewport();
-			mocks.context.running = true;
-			mocks.context.pages = [ page( 'article-1' ), page( 'gallery' ) ];
-			mocks.context.activeIndex = 0;
-
-			const done = ( origin: string ): MessageEvent =>
-				( {
-					origin,
-					data: { type: 'bsb:page-done' },
-				} ) as unknown as MessageEvent;
-
-			// A cross-origin message is ignored.
-			window.dispatchEvent(
-				Object.assign(
-					new Event( 'message' ),
-					done( 'https://evil.test' )
-				)
-			);
-			expect( mocks.context.activeIndex ).toBe( 0 );
-
-			// A same-origin page-done wraps the fixed queue forward.
-			window.dispatchEvent(
-				Object.assign(
-					new Event( 'message' ),
-					done( window.location.origin )
-				)
-			);
-			expect( mocks.context.activeIndex ).toBe( 1 );
-
-			window.dispatchEvent(
-				Object.assign(
-					new Event( 'message' ),
-					done( window.location.origin )
-				)
-			);
-			expect( mocks.context.activeIndex ).toBe( 0 );
-
-			cleanup();
 		} );
 	} );
 

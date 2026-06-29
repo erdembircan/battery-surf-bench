@@ -39,31 +39,6 @@ test.describe( 'Course page route', () => {
 
 		await expectNoPhpNotices( page );
 	} );
-
-	test( 'stays inert when not armed: no surf cursor without bsbRun', async ( {
-		page,
-	} ) => {
-		await page.goto( '/?bsbSessionPage=article-1' );
-
-		// The engine self-gates on the run flag, so a direct view is a plain page.
-		await expect( page.locator( 'html.bsb-surfing' ) ).toHaveCount( 0 );
-		await expect( page.locator( '.bsb-surf-cursor' ) ).toHaveCount( 0 );
-	} );
-
-	test( 'arms the surf engine when the cockpit run params are present', async ( {
-		page,
-	} ) => {
-		// The cockpit drives a page by appending these params to the iframe src.
-		await page.goto(
-			'/?bsbSessionPage=article-1&bsbRun=1&bsbSpeed=10&bsbTraits=5,5,5,5,5,5'
-		);
-
-		// The engine hides the native cursor and draws its overlay while surfing.
-		await expect( page.locator( 'html.bsb-surfing' ) ).toBeAttached();
-		await expect( page.locator( '.bsb-surf-cursor' ) ).toBeAttached();
-
-		await expectNoPhpNotices( page );
-	} );
 } );
 
 test.describe( 'Cockpit surfer profile', () => {
