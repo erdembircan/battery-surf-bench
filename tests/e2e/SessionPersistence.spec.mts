@@ -38,6 +38,8 @@ const sessionBody = {
 		bsb_ua_browser: 'Chrome',
 		bsb_ua_version: '149',
 		bsb_ua_os: 'macOS',
+		bsb_surfer_archetype: 'Scholar',
+		bsb_surfer_traits: [ 1, 8, 4, 10, 6, 1 ],
 		bsb_samples: [
 			{ t: 0, level: 0.82, charging: false, count: 1 },
 			{ t: 600000, level: 0.7, charging: false, count: 3 },
@@ -96,6 +98,11 @@ test.describe( 'Benchmark session persistence', () => {
 		// single meta cannot hold a null), and round-trips intact.
 		expect( meta.bsb_rate_session ).toBe( 0 );
 		expect( meta.bsb_time_to_empty ).toBe( 0 );
+
+		// The surfer personality persists: the derived archetype and the raw
+		// six-stat vector round-trip through the array meta's schema.
+		expect( meta.bsb_surfer_archetype ).toBe( 'Scholar' );
+		expect( meta.bsb_surfer_traits ).toEqual( [ 1, 8, 4, 10, 6, 1 ] );
 
 		// The typed sample log survives schema validation whole.
 		expect( meta.bsb_samples ).toHaveLength( 2 );

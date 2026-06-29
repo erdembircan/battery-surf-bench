@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Surfer profile — RPG stats, in the real cockpit deck (mock)</title>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Space+Mono:wght@700&family=Hanken+Grotesk:wght@400;600;700&display=swap" rel="stylesheet" />
+<style>
+  /* Coastal Daybreak (light only). Tokens mirrored from src/styles/_theme.scss. */
+  :root{
+    --coastal-sky-0:#f3fafd; --coastal-sky-1:#e7f6ff;
+    --surface:#f1f7fa; --surface-shadow:rgba(31,58,95,.08); --line:#e1edf2;
+    --text:#1f3a5f; --text-strong:#1f3a5f; --text-soft:#5b7488; --label:rgba(31,58,95,.62);
+    --accent-grad:linear-gradient(150deg,#2f9bb3,#1c7e96); --accent:#2f9bb3; --accent-deep:#1c7e96;
+    --accent-ink:#fff; --accent-shadow:rgba(47,155,179,.4); --accent-soft:rgba(47,155,179,.08);
+    --subtitle-ink:#2f9bb3; --title-ink:#1f3a5f; --focus:#ff7a5c; --coral:#ff7a5c;
+    --track:#dbe9f0; --headroom:rgba(47,155,179,.24);
+    --deck-bg:radial-gradient(120% 70% at 50% -10%,#fff 0%,var(--coastal-sky-0) 40%,transparent 70%),linear-gradient(180deg,var(--coastal-sky-1) 0%,#fff 60%);
+    --stage-bg:radial-gradient(140% 60% at 50% 0%,rgba(255,255,255,.8) 0%,transparent 55%),linear-gradient(180deg,#fbfdfe 0%,#eef5f8 100%);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--stage-bg);min-height:100vh;font-family:'Hanken Grotesk',sans-serif;display:flex;gap:40px;flex-wrap:wrap;padding:36px;align-items:flex-start}
+  .frame{display:flex;flex-direction:column;gap:.5rem}
+  .frame__cap{font:700 .62rem 'Hanken Grotesk';letter-spacing:.18em;text-transform:uppercase;color:#8aa0ad}
+
+  /* ── deck shell (faithful to src/cockpit/style.scss) ───────────────────────── */
+  .deck{width:clamp(300px,28vw,372px);padding:1.6rem 1.5rem 1.4rem;color:var(--text);background:var(--deck-bg);border-radius:18px;box-shadow:0 18px 44px rgba(31,58,95,.18),2px 0 8px -5px rgba(0,20,40,.14);display:flex;flex-direction:column}
+
+  .brand{display:grid;grid-template-columns:auto 1fr auto;grid-template-rows:auto auto;align-items:stretch;column-gap:1rem;row-gap:.15rem;padding-top:.5rem;padding-bottom:1.5rem;margin-bottom:1.4rem;border-bottom:1px solid var(--line)}
+  .brand__mark{grid-area:1/1;align-self:stretch;aspect-ratio:1;min-height:0;background:var(--subtitle-ink);-webkit-mask:url('../../assets/images/menu-icon.svg') center/contain no-repeat;mask:url('../../assets/images/menu-icon.svg') center/contain no-repeat}
+  .brand__title{grid-area:1/2;align-self:center;font-family:'Anton',sans-serif;font-size:1.5rem;letter-spacing:.01em;line-height:.98;text-transform:uppercase;color:var(--title-ink)}
+  .brand__sub{grid-area:2/2;font-size:.62rem;font-weight:700;letter-spacing:.42em;text-transform:uppercase;color:var(--subtitle-ink)}
+
+  .config{display:flex;flex-direction:column;gap:1.55rem}
+  .field{display:flex;flex-direction:column;gap:.6rem}
+  .field__label{font-size:.66rem;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:var(--label);display:flex;align-items:center;justify-content:space-between}
+
+  .inset{border-radius:13px;background:var(--surface);box-shadow:inset 0 1px 3px var(--surface-shadow)}
+  .seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:.3rem;padding:.3rem}
+  .seg__opt{appearance:none;cursor:pointer;padding:.62rem .4rem;border:0;border-radius:9px;background:transparent;color:var(--text-soft);font:700 .86rem 'Hanken Grotesk';letter-spacing:.02em;transition:.2s}
+  .seg__opt:hover{color:var(--text-strong);background:var(--accent-soft)}
+  .seg__opt.is-active{color:var(--accent-ink);background:var(--accent-grad);box-shadow:0 4px 12px var(--accent-shadow),inset 0 1px 0 rgba(255,255,255,.4)}
+  .seg--speed .seg__opt{font-family:'Space Mono',monospace;letter-spacing:0}
+  .stepper{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:.5rem;padding:.45rem}
+  .stepper__btn{width:2.4rem;height:2.4rem;border:0;border-radius:9px;background:#fff;color:var(--accent);font-size:1.3rem;font-weight:700;cursor:pointer;box-shadow:0 1px 4px rgba(31,58,95,.12)}
+  .stepper__val{text-align:center;font-family:'Space Mono',monospace;font-weight:700;font-size:1.5rem;color:var(--text-strong)}
+  .stepper__val small{font:700 .6rem 'Hanken Grotesk';letter-spacing:.16em;color:var(--label);display:block;text-transform:uppercase}
+
+  /* ── surfer field ──────────────────────────────────────────────────────────── */
+  .classes{display:flex;flex-wrap:wrap;gap:.34rem}
+  .chip{font:700 .76rem 'Hanken Grotesk';padding:.4rem .66rem;border-radius:999px;border:1.5px solid var(--line);background:var(--surface);color:var(--text-soft);cursor:pointer;transition:.15s}
+  .chip:hover{border-color:var(--accent);color:var(--text-strong)}
+  .chip.is-active{background:var(--accent-grad);border-color:transparent;color:#fff;box-shadow:0 4px 12px var(--accent-shadow)}
+
+  .customize{align-self:flex-start;margin-top:.1rem;background:none;border:0;padding:.1rem 0;cursor:pointer;font:700 .72rem 'Hanken Grotesk';letter-spacing:.04em;color:var(--accent-deep);display:inline-flex;align-items:center;gap:.3rem}
+  .customize::after{content:'';width:.5rem;height:.5rem;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg);transition:transform .2s;margin-top:-2px}
+  .customize.is-open::after{transform:rotate(-135deg);margin-top:2px}
+
+  .stats{margin-top:.4rem;padding:.85rem .9rem 1rem;border-radius:13px;background:var(--accent-soft);display:none}
+  .stats.is-open{display:block}
+
+  .pool{display:flex;align-items:baseline;gap:.45rem;margin-bottom:.9rem}
+  .pool__lab{font-size:.6rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--label)}
+  .pool__num{font-family:'Space Mono',monospace;font-weight:700;font-size:1.5rem;font-variant-numeric:tabular-nums;color:var(--accent-deep);line-height:1}
+  .pool.is-empty .pool__num{color:var(--coral)}
+  .pool.is-empty .pool__lab{color:var(--coral)}
+  .reset{margin-left:auto;align-self:center;background:none;border:0;cursor:pointer;font:700 .66rem 'Hanken Grotesk';letter-spacing:.1em;text-transform:uppercase;color:var(--text-soft);display:inline-flex;align-items:center;gap:.3rem;padding:.2rem .1rem}
+  .reset::before{content:'';width:.8rem;height:.8rem;background:var(--text-soft);-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 12a9 9 0 1 0 3-6.7L3 8'/%3E%3Cpath d='M3 3v5h5'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 12a9 9 0 1 0 3-6.7L3 8'/%3E%3Cpath d='M3 3v5h5'/%3E%3C/svg%3E") center/contain no-repeat}
+  .reset:hover{color:var(--accent-deep)}
+  .reset:hover::before{background:var(--accent-deep)}
+
+  .stat{padding:.4rem 0}
+  .stat+.stat{border-top:1px solid var(--line)}
+  .stat__top{display:flex;align-items:baseline;justify-content:space-between}
+  .stat__name{font-weight:700;font-size:.9rem;color:var(--text-strong)}
+  .stat__val{font-family:'Space Mono',monospace;font-weight:700;font-size:1rem;font-variant-numeric:tabular-nums;color:var(--accent-deep)}
+  .stat__desc{font-size:.68rem;color:var(--text-soft);margin:.05rem 0 .4rem}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:7px;border-radius:6px;background:var(--track);outline:none;margin:0}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;margin-top:-6px;border-radius:50%;background:#fff;border:3px solid var(--accent);box-shadow:0 2px 5px rgba(0,0,0,.25);cursor:pointer}
+  input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:#fff;border:3px solid var(--accent);box-shadow:0 2px 5px rgba(0,0,0,.25);cursor:pointer}
+  input[type=range]:focus-visible{outline:2px solid var(--focus);outline-offset:3px}
+
+  .build{font-family:'Space Mono',monospace;font-size:.74rem;font-weight:700;color:var(--accent-deep)}
+
+  .foot{margin-top:1.6rem}
+  .run{display:flex;align-items:center;justify-content:center;gap:.7rem;width:100%;padding:1rem;cursor:pointer;border:0;border-radius:14px;background:var(--accent-grad);color:var(--accent-ink);font-family:'Anton',sans-serif;font-size:1.18rem;letter-spacing:.08em;text-transform:uppercase;box-shadow:0 8px 20px var(--accent-shadow),inset 0 1px 0 rgba(255,255,255,.3)}
+  .run__glyph{width:0;height:0;border-left:11px solid currentColor;border-top:7px solid transparent;border-bottom:7px solid transparent}
+</style>
+</head>
+<body>
+<script>
+  const STATS=[
+    ['Haste','scroll speed — slow crawl → fast flicks'],
+    ['Endurance','time per page — bounces → camps'],
+    ['Reach','scroll depth — fold → bottom'],
+    ['Literacy','reading — ignores text → reads'],
+    ['Recall','re-reading — never → re-checks'],
+    ['Allure','media pull — skips → watches & replays'],
+  ];
+  const BUDGET=30,MIN=0,MAX=10;
+  const FRESH=()=>Array(6).fill(MIN);   // blank slate — 0 in every stat, full budget to spend
+  const CLASSES={
+    'Balanced':      [5,5,5,5,5,5],
+    'Scholar':       [1,8,4,10,6,1],
+    'Binge-Watcher': [4,7,3,2,4,10],
+    'Doomscroller':  [10,5,8,2,1,4],
+    'Skimmer':       [8,3,7,5,2,5],
+    'Re-Reader':     [2,7,5,8,7,1],
+  };
+  const CUSTOM='Custom';
+  const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
+  const sum=a=>a.reduce((x,y)=>x+y,0);
+
+  // The archetype is DERIVED from the stat vector by rules (first match wins) —
+  // this is the cover-name calculation: e.g. high Allure + low Literacy reads as
+  // "Binge-Watcher". No match → "Custom". The vector is the only state; the name
+  // is always a pure function of it, recomputed on every edit.
+  function classify([Ha,En,Re,Li,Rc,Al]){
+    if(Al>=8 && Li<=3)            return 'Binge-Watcher';
+    if(Rc>=7 && Li>=6)            return 'Re-Reader';
+    if(Ha>=8 && Re>=6 && Li<=3)   return 'Doomscroller';
+    if(Ha>=6 && Re>=6 && En<=4)   return 'Skimmer';
+    if(Li>=8 && Ha<=3)            return 'Scholar';
+    if([Ha,En,Re,Li,Rc,Al].every(x=>x>=4 && x<=6)) return 'Balanced';
+    return CUSTOM;
+  }
+  // Track paints three zones: solid accent up to the current value, a faint
+  // "headroom" tint up to the highest value still affordable (value + points
+  // left), then dead track for the unreachable remainder.
+  function fill(el,v,ceil){
+    const p=(v-MIN)/(MAX-MIN)*100, c=(ceil-MIN)/(MAX-MIN)*100;
+    el.style.background=`linear-gradient(90deg,var(--accent) 0 ${p}%,var(--headroom) ${p}% ${c}%,var(--track) ${c}% 100%)`;
+  }
+
+  function makeDeck(startSource, openCustom){
+    const deck=document.createElement('div');deck.className='deck';
+    // The vector is the only state — the archetype name is derived from it.
+    let vec=startSource===CUSTOM?FRESH():[...CLASSES[startSource]];
+
+    deck.innerHTML=`
+      <header class="brand">
+        <span class="brand__mark" aria-hidden="true"></span>
+        <span class="brand__title">Battery Surf Bench</span>
+        <span class="brand__sub">Cockpit</span>
+      </header>
+      <div class="config">
+        <section class="field">
+          <span class="field__label">Mode</span>
+          <div class="seg"><button class="seg__opt is-active">Duration</button><button class="seg__opt">Target drop</button></div>
+        </section>
+        <section class="field">
+          <span class="field__label">Run for</span>
+          <div class="stepper inset"><button class="stepper__btn">&minus;</button><span class="stepper__val">30<small>minutes</small></span><button class="stepper__btn">+</button></div>
+        </section>
+
+        <section class="field field--surfer">
+          <span class="field__label">Surfer <span class="build"></span></span>
+          <div class="classes"></div>
+          <button type="button" class="customize">Customize stats</button>
+          <div class="stats">
+            <div class="pool"><span class="pool__num"></span><span class="pool__lab">points to spend</span><button type="button" class="reset">Reset</button></div>
+            <div class="rows"></div>
+          </div>
+        </section>
+
+        <section class="field">
+          <span class="field__label">Speed</span>
+          <div class="seg seg--speed"><button class="seg__opt is-active">1&times;</button><button class="seg__opt">4&times;</button><button class="seg__opt">10&times;</button></div>
+        </section>
+      </div>
+      <footer class="foot"><button class="run"><span class="run__glyph"></span>Start run</button></footer>`;
+
+    const buildEl=deck.querySelector('.build');
+    const classesBox=deck.querySelector('.classes');
+    const stats=deck.querySelector('.stats');
+    const customizeBtn=deck.querySelector('.customize');
+    const rows=deck.querySelector('.rows');
+    const poolNum=deck.querySelector('.pool__num');
+    const poolBox=deck.querySelector('.pool');
+    const resetBtn=deck.querySelector('.reset');
+
+    // Load a representative preset vector for an archetype. The derived name then
+    // naturally reads back as that archetype. Reset loads the blank slate.
+    function load(vector){vec=[...vector];sync();render();}
+
+    const chipEls={};
+    for(const [name,vector] of Object.entries(CLASSES)){
+      const c=document.createElement('button');c.className='chip';c.type='button';c.textContent=name;
+      c.onclick=()=>load(vector);
+      chipEls[name]=c;classesBox.append(c);
+    }
+    resetBtn.onclick=()=>load(FRESH());
+
+    const sliders=[];
+    STATS.forEach(([name,desc],i)=>{
+      const row=document.createElement('div');row.className='stat';
+      row.innerHTML=`<div class="stat__top"><span class="stat__name">${name}</span><span class="stat__val"></span></div><div class="stat__desc">${desc}</div><input type="range" min="${MIN}" max="${MAX}" step="1" aria-label="${name}">`;
+      const sl=row.querySelector('input'),val=row.querySelector('.stat__val');
+      sl.addEventListener('input',()=>{
+        const others=sum(vec)-vec[i];
+        vec[i]=clamp(+sl.value,MIN,Math.min(MAX,BUDGET-others));
+        sl.value=vec[i];render();   // name re-derives in render(); no separate state to desync
+      });
+      sliders.push({sl,val});rows.append(row);
+    });
+
+    customizeBtn.onclick=()=>{const open=!stats.classList.contains('is-open');stats.classList.toggle('is-open',open);customizeBtn.classList.toggle('is-open',open);};
+    if(openCustom){stats.classList.add('is-open');customizeBtn.classList.add('is-open');}
+
+    function sync(){sliders.forEach((s,i)=>s.sl.value=vec[i]);}
+    function render(){
+      const spent=sum(vec),left=BUDGET-spent;
+      sliders.forEach((s,i)=>{s.val.textContent=vec[i];fill(s.sl,vec[i],Math.min(MAX,vec[i]+left));});
+      poolNum.textContent=left;poolBox.classList.toggle('is-empty',left===0);
+      const archetype=classify(vec);                                   // derived from the stats
+      for(const [n,el] of Object.entries(chipEls))el.classList.toggle('is-active',n===archetype);
+      buildEl.textContent=archetype;
+    }
+    sync();render();
+    return deck;
+  }
+
+  const wrap=(cap,deck)=>{const f=document.createElement('div');f.className='frame';const c=document.createElement('span');c.className='frame__cap';c.textContent=cap;f.append(c,deck);return f;};
+  document.body.append(
+    wrap('Preset loaded — name reads "Binge-Watcher"', makeDeck('Binge-Watcher', false)),
+    wrap('Drag stats — name re-derives live; Reset zeroes', makeDeck('Skimmer', true)),
+  );
+</script>
+</body>
+</html>

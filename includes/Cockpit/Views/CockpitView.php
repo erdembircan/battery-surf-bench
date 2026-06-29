@@ -143,6 +143,12 @@ class CockpitView implements View {
 		$unsupported_unit    = isset( $data['unsupported_unit'] ) ? (string) $data['unsupported_unit'] : '';
 		$new_run_label       = isset( $data['new_run_label'] ) ? (string) $data['new_run_label'] : '';
 		$summary_brand       = isset( $data['summary_brand'] ) ? (string) $data['summary_brand'] : '';
+		$surfer_label        = isset( $data['surfer_label'] ) ? (string) $data['surfer_label'] : '';
+		$customize_label     = isset( $data['customize_label'] ) ? (string) $data['customize_label'] : '';
+		$reset_label         = isset( $data['reset_label'] ) ? (string) $data['reset_label'] : '';
+		$points_label        = isset( $data['points_label'] ) ? (string) $data['points_label'] : '';
+		$trait_stats         = isset( $data['trait_stats'] ) && is_array( $data['trait_stats'] ) ? $data['trait_stats'] : array();
+		$trait_classes       = isset( $data['trait_classes'] ) && is_array( $data['trait_classes'] ) ? $data['trait_classes'] : array();
 
 		// Shared postcard components, rendered once and placed in both the startup
 		// postcard and the run-summary card so the illustration and the stamp are a
@@ -350,8 +356,63 @@ HTML;
 			)
 		);
 
+		// The surfer-profile field: class-preset chips, a Customize disclosure and
+		// the six point-buy stat sliders. The trait vector is the single source on
+		// the root context, so each chip/slider carries a plain `data-class` /
+		// `data-index` the actions read (the runtime copies nested contexts, so a
+		// nested vector would desync). The per-element readouts bind to fixed store
+		// getters generated per class and per stat index (see TraitsStore): a chip's
+		// active state to `state.isClass<Key>`, a slider's value/track to
+		// `state.traitValue<i>` / `state.traitTrack<i>`.
+		$bsb_chips = '';
+		foreach ( $trait_classes as $bsb_class ) {
+			$bsb_chip_key   = isset( $bsb_class['key'] ) ? (string) $bsb_class['key'] : '';
+			$bsb_chip_attr  = esc_attr( $bsb_chip_key );
+			$bsb_chip_state = 'state.isClass' . preg_replace( '/[^a-zA-Z0-9]/', '', $bsb_chip_key );
+			$bsb_chip_text  = esc_html( isset( $bsb_class['label'] ) ? (string) $bsb_class['label'] : '' );
+			$bsb_chips     .= <<<CHIP
+<button type="button" class="bsb-chip" data-class="{$bsb_chip_attr}" data-wp-on--click="actions.selectClass" data-wp-bind--aria-pressed="{$bsb_chip_state}" data-wp-class--is-active="{$bsb_chip_state}">{$bsb_chip_text}</button>
+CHIP;
+		}
+
+		$bsb_stat_rows = '';
+		foreach ( $trait_stats as $bsb_index => $bsb_stat ) {
+			$bsb_stat_i     = (int) $bsb_index;
+			$bsb_stat_name  = esc_html( isset( $bsb_stat['name'] ) ? (string) $bsb_stat['name'] : '' );
+			$bsb_stat_lever = esc_html( isset( $bsb_stat['lever'] ) ? (string) $bsb_stat['lever'] : '' );
+			$bsb_stat_aria  = esc_attr( isset( $bsb_stat['name'] ) ? (string) $bsb_stat['name'] : '' );
+			$bsb_stat_rows .= <<<ROW
+<div class="bsb-stat">
+						<div class="bsb-stat__top"><span class="bsb-stat__name">{$bsb_stat_name}</span><span class="bsb-stat__val" data-wp-text="state.traitValue{$bsb_stat_i}"></span></div>
+						<span class="bsb-stat__lever">{$bsb_stat_lever}</span>
+						<input class="bsb-stat__slider" type="range" min="0" max="10" step="1" data-index="{$bsb_stat_i}" aria-label="{$bsb_stat_aria}" data-wp-bind--value="state.traitValue{$bsb_stat_i}" data-wp-style--background="state.traitTrack{$bsb_stat_i}" data-wp-on--input="actions.setTrait" />
+					</div>
+ROW;
+		}
+
+		$surfer_label    = esc_html( $surfer_label );
+		$customize_label = esc_html( $customize_label );
+		$reset_label     = esc_html( $reset_label );
+		$points_label    = esc_html( $points_label );
+
+		$bsb_surfer_field = <<<HTML
+<section class="bsb-field bsb-field--surfer">
+					<span class="bsb-field__label">{$surfer_label} <span class="bsb-surfer__build" data-wp-text="state.archetypeLabel"></span></span>
+					<div class="bsb-chips">{$bsb_chips}</div>
+					<button type="button" class="bsb-surfer__customize" data-wp-on--click="actions.toggleCustomize" data-wp-bind--aria-expanded="state.isCustomizeOpen" data-wp-class--is-open="state.isCustomizeOpen">{$customize_label}</button>
+					<div class="bsb-surfer__stats" data-wp-class--is-open="state.isCustomizeOpen">
+						<div class="bsb-surfer__pool" data-wp-class--is-empty="state.isBudgetEmpty">
+							<span class="bsb-surfer__points" data-wp-text="state.pointsLeftDisplay"></span>
+							<span class="bsb-surfer__points-label">{$points_label}</span>
+							<button type="button" class="bsb-surfer__reset" data-wp-on--click="actions.resetTraits">{$reset_label}</button>
+						</div>
+						{$bsb_stat_rows}
+					</div>
+				</section>
+HTML;
+
 		return <<<HTML
-<div {$wrapper} data-wp-interactive="bsb/cockpit" {$context} data-wp-init---battery="callbacks.initBattery" data-wp-init---wake-lock="callbacks.initWakeLock" data-wp-init---sound="callbacks.initSound" data-wp-watch---run-activity="callbacks.syncRunActivity" data-wp-class--is-compact="state.isCompact" data-wp-class--is-deck-shown="state.isDeckShown">
+<div {$wrapper} data-wp-interactive="bsb/cockpit" {$context} data-wp-init---battery="callbacks.initBattery" data-wp-init---wake-lock="callbacks.initWakeLock" data-wp-init---sound="callbacks.initSound" data-wp-init---viewport="callbacks.initViewport" data-wp-watch---run-activity="callbacks.syncRunActivity" data-wp-class--is-compact="state.isCompact" data-wp-class--is-deck-shown="state.isDeckShown">
 	<aside class="bsb-cockpit__deck">
 		<header class="bsb-deck__brand">
 			<span class="bsb-deck__mark" aria-hidden="true"></span>
@@ -404,6 +465,8 @@ HTML;
 					<span class="bsb-target__value" data-wp-text="state.targetDisplay" data-wp-style--color="state.targetColor"></span>
 				</div>
 			</section>
+
+			{$bsb_surfer_field}
 
 			<section class="bsb-field">
 				<span class="bsb-field__label">{$speed_label}</span>

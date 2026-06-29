@@ -12,6 +12,7 @@ import { type StorePart } from './StoreParts';
 import { instanceFor, now, wallNow } from './RunInstance';
 import { applyReadouts, stopRun } from './RunLifecycle';
 import { normalizeDuration, normalizeMode, normalizeSpeed } from './RunConfig';
+import { normalizeTraits } from '../shared/SurferStats';
 import { clampTarget, targetCap } from './TargetControl';
 import { ScreenWakeLock, type WakeLockSentinelLike } from './WakeLock';
 import { formatClock, formatTimeToEmpty, formatRate } from './Format';
@@ -23,16 +24,33 @@ export const runStore: StorePart = {
 		 * URL of the active course page, bound onto the viewport iframe. Empty
 		 * until a run starts, so the benchmarked pages are not fetched while the
 		 * idle screen is showing — the iframe loads only once surfing begins.
+		 *
+		 * The run parameters ride the URL so the in-iframe surf engine (a separate
+		 * document) can read them: `bsbRun` arms the engine, `bsbSpeed` fast-
+		 * forwards its durations, and `bsbTraits` is the personality vector. They
+		 * are re-appended on every page so the engine stays stateless across the
+		 * queue; the course router ignores them (it reads only `bsbSessionPage`).
 		 */
 		get currentSrc(): string {
-			const { pages, activeIndex, running } =
+			const { pages, activeIndex, running, speed, traits } =
 				getContext< CockpitContext >();
 
 			if ( ! running ) {
 				return '';
 			}
 
-			return pages[ activeIndex ]?.url ?? '';
+			const base = pages[ activeIndex ]?.url ?? '';
+
+			if ( ! base ) {
+				return '';
+			}
+
+			const url = new URL( base, window.location.origin );
+			url.searchParams.set( 'bsbRun', '1' );
+			url.searchParams.set( 'bsbSpeed', String( speed ) );
+			url.searchParams.set( 'bsbTraits', traits.join( ',' ) );
+
+			return url.toString();
 		},
 
 		/** Whether no run is live — hides the readouts pill until one starts. */
@@ -137,6 +155,7 @@ export const runStore: StorePart = {
 				context.durationMinutes
 			);
 			context.speed = normalizeSpeed( context.speed );
+			context.traits = normalizeTraits( context.traits );
 			context.targetPercent = clampTarget(
 				context.targetPercent,
 				targetCap( context.batteryLevel )
@@ -280,6 +299,47 @@ export const runStore: StorePart = {
 				clearInterval( instance.clock );
 				instance.clock = null;
 			}
+		},
+
+		/**
+		 * Bridges the in-iframe surf engine to the page queue. The engine posts a
+		 * `bsb:page-done` message when it finishes surfing a page; this advances
+		 * the active index (wrapping the fixed course order), which re-derives
+		 * `currentSrc` and loads the next page. Same-origin only — messages from
+		 * any other origin are ignored — and inert unless a run is live. Returns a
+		 * cleanup that detaches the listener.
+		 *
+		 * @return A cleanup that removes the message listener.
+		 */
+		initViewport(): () => void {
+			// Capture the reactive context here, in scope: `getContext()` cannot be
+			// called inside the message listener, which fires outside any
+			// Interactivity scope (same reason the wake-lock visibility handler
+			// captures its context up front).
+			const context = getContext< CockpitContext >();
+
+			const onMessage = ( event: MessageEvent ): void => {
+				if ( event.origin !== window.location.origin ) {
+					return;
+				}
+
+				const data = event.data as { type?: string } | null;
+
+				if ( ! data || data.type !== 'bsb:page-done' ) {
+					return;
+				}
+
+				if ( ! context.running || context.pages.length === 0 ) {
+					return;
+				}
+
+				context.activeIndex =
+					( context.activeIndex + 1 ) % context.pages.length;
+			};
+
+			window.addEventListener( 'message', onMessage );
+
+			return () => window.removeEventListener( 'message', onMessage );
 		},
 	},
 };

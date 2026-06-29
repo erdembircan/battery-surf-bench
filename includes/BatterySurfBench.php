@@ -130,7 +130,8 @@ class BatterySurfBench {
 				$catalog,
 				$this->registry->get( 'course.param' ),
 				$this->assets,
-				$this->registry->get( 'course.style' )
+				$this->registry->get( 'course.style' ),
+				$this->registry->get( 'course.engine' )
 			),
 			new CoursePagesSource(
 				$this->registry->get( 'course.binding_source' ),

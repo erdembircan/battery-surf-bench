@@ -77,6 +77,8 @@ const input = (
 	uaBrowser: 'Chrome',
 	uaVersion: '149',
 	uaOs: 'macOS',
+	traits: [ 1, 8, 4, 10, 6, 1 ],
+	archetype: 'Scholar',
 	...overrides,
 } );
 
@@ -132,6 +134,8 @@ describe( 'buildSessionPayload', () => {
 		expect( meta.bsb_ended_at ).toBe( '2026-06-23T10:30:00.000Z' );
 		expect( meta.bsb_start_level ).toBe( 0.82 );
 		expect( meta.bsb_end_level ).toBe( 0.7 );
+		expect( meta.bsb_surfer_archetype ).toBe( 'Scholar' );
+		expect( meta.bsb_surfer_traits ).toEqual( [ 1, 8, 4, 10, 6, 1 ] );
 		expect( meta.bsb_dropped_pct ).toBe( 12 );
 		expect( meta.bsb_elapsed ).toBe( 1500 );
 		expect( meta.bsb_rate_10 ).toBe( 24.5 );

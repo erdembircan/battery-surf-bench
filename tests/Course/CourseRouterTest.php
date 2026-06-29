@@ -40,7 +40,7 @@ final class CourseRouterTest extends TestCase {
 	private function router(): CourseRouter {
 		$catalog = new CourseCatalog( '/plugin/includes/Course/content' );
 
-		return new CourseRouter( $catalog, self::PARAM, Mockery::mock( Assets::class ), 'build/style-course.css' );
+		return new CourseRouter( $catalog, self::PARAM, Mockery::mock( Assets::class ), 'build/style-course.css', 'build/surfer.js' );
 	}
 
 	/**
@@ -96,6 +96,24 @@ final class CourseRouterTest extends TestCase {
 		$this->assertStringContainsString( '<!-- wp:', $posts[0]->post_content );
 		$this->assertTrue( $query->is_singular );
 		$this->assertTrue( $query->is_page );
+	}
+
+	/**
+	 * Serving a course page enqueues both the course stylesheet and the surf
+	 * engine, so the page is styled and the engine is present to drive it when
+	 * the cockpit arms the run.
+	 */
+	public function test_enqueue_assets_loads_style_and_engine(): void {
+		$assets = Mockery::mock( Assets::class );
+		$assets->shouldReceive( 'enqueue' )->once()->with( 'build/style-course.css' );
+		$assets->shouldReceive( 'enqueue' )->once()->with( 'build/surfer.js' );
+
+		$catalog = new CourseCatalog( '/plugin/includes/Course/content' );
+		$router  = new CourseRouter( $catalog, self::PARAM, $assets, 'build/style-course.css', 'build/surfer.js' );
+
+		$router->enqueue_assets();
+
+		$this->addToAssertionCount( 1 );
 	}
 
 	/**

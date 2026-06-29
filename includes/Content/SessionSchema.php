@@ -403,6 +403,32 @@ class SessionSchema {
 				'elements'       => array(),
 				'default_column' => true,
 			),
+			// The surfer personality the run was driven with: the derived archetype
+			// cover-name (surfaced in the listing) and the raw six-stat trait vector
+			// it was computed from. Speed is absent here for the same reason it is
+			// absent from the config group — it is playback, not a drain input.
+			array(
+				'key'            => 'surfer_archetype',
+				'rest_type'      => 'string',
+				'label'          => __( 'Surfer', 'battery-surf-bench' ),
+				'format'         => 'text',
+				'default'        => '',
+				'sanitize'       => 'sanitize_text_field',
+				'elements'       => array(),
+				'default_column' => true,
+			),
+			array(
+				'key'            => 'surfer_traits',
+				'rest_type'      => 'array',
+				'label'          => __( 'Surfer traits', 'battery-surf-bench' ),
+				'format'         => 'text',
+				'default'        => self::NO_DEFAULT,
+				'sanitize'       => array( self::class, 'sanitize_traits' ),
+				'elements'       => array(),
+				'default_column' => false,
+				'listed'         => false,
+				'items'          => array( 'type' => 'integer' ),
+			),
 			// Run configuration, namespaced under `config`. Surf speed is
 			// deliberately absent: it drives playback, not the drain calculations,
 			// so it is no part of the stored session record.
@@ -485,6 +511,25 @@ class SessionSchema {
 		$level = max( 0.0, min( 1.0, (float) $value ) );
 
 		return round( $level, 4 );
+	}
+
+	/**
+	 * Sanitizes the surfer trait vector to exactly six whole stats, each clamped
+	 * to the 0..10 slider range. Mirrors the client-side normalizer so a crafted
+	 * REST write cannot store an out-of-range or wrong-length vector.
+	 *
+	 * @param mixed $value Raw meta value.
+	 * @return array<int, int> The six clamped stat values.
+	 */
+	public static function sanitize_traits( $value ): array {
+		$raw = is_array( $value ) ? array_values( $value ) : array();
+		$out = array();
+
+		for ( $i = 0; $i < 6; $i++ ) {
+			$out[] = max( 0, min( 10, (int) ( $raw[ $i ] ?? 0 ) ) );
+		}
+
+		return $out;
 	}
 
 	/**

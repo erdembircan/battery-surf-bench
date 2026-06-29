@@ -188,6 +188,14 @@ $globe-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' v
 	--accent-ink: #ffffff;
 	--accent-shadow: #{rgba($coastal-teal, 0.4)};
 	--accent-soft: #{rgba($coastal-teal, 0.08)};
+	// Solid accent colours (the gradient's two stops), used where a flat fill is
+	// needed — the surfer sliders' fill/thumb and the field's accented text.
+	--accent: #{$coastal-teal};
+	--accent-deep: #{$coastal-teal-deep};
+	// A visible mid-strength accent tint for the surfer sliders' "headroom" zone
+	// (how far a stat can still be pushed within the point budget).
+	--accent-headroom: #{rgba($coastal-teal, 0.24)};
+	--track: #{$coastal-line};
 	--stepper-btn-bg: #ffffff;
 	--stepper-btn-ink: #{$coastal-teal};
 	--stepper-btn-hover-bg: #{$coastal-teal};
@@ -246,6 +254,10 @@ $globe-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' v
 		--accent-ink: #{$dusk-deep};
 		--accent-shadow: #{rgba($dusk-amber-2, 0.4)};
 		--accent-soft: #{rgba($dusk-foam, 0.08)};
+		--accent: #{$dusk-aqua};
+		--accent-deep: #{$dusk-teal};
+		--accent-headroom: #{rgba($dusk-aqua, 0.24)};
+		--track: #{rgba($dusk-foam, 0.12)};
 		--stepper-btn-bg: #{rgba($dusk-foam, 0.1)};
 		--stepper-btn-ink: #{$dusk-foam};
 		--stepper-btn-hover-bg: #{$dusk-aqua};

@@ -1,0 +1,124 @@
+%% Surf engine — contract chart.
+%% The in-iframe runtime (bundle `build/surfer.js`, enqueued on every course page
+%% by CourseRouter) that drives one course page through a human-looking visit
+%% shaped by the surfer trait vector. It is armed only when the cockpit appends
+%% the run params to the page URL (`bsbRun`/`bsbSpeed`/`bsbTraits`); otherwise it
+%% is inert. When a page visit finishes it posts `bsb:page-done` to the parent
+%% cockpit, which advances the page queue. Only public (exported) surface shown.
+%% Function-only modules are <<module>>; the rest are classes.
+classDiagram
+    direction LR
+
+    %% --- Entry: parse params, drive one visit if armed.
+    class SurferIndex {
+        <<module>>
+        reads location.search → parseRunParams; if armed, new Surfer(params).run()
+    }
+
+    class RunParams {
+        <<module>>
+        +parseRunParams(string) RunParamsValue
+    }
+
+    class RunParamsValue {
+        <<types>>
+        armed: bool
+        speed: Speed
+        traits: number[]
+        slug: string
+    }
+
+    %% --- The page as the engine sees it.
+    class PageModel {
+        <<module>>
+        +pageTypeFor(string) PageType
+        +findTargets(Document, string) PageTargets
+    }
+
+    class PageTargets {
+        <<types>>
+        type: PageType
+        text: HTMLElement[]
+        figures: HTMLElement[]
+        video: HTMLIFrameElement|null
+    }
+
+    %% --- Trait → behaviour mapping (speed divides only time knobs).
+    class Behavior {
+        <<module>>
+        +behaviorFor(number[], PageType, speed) Behavior
+    }
+
+    %% --- Motion helpers + the drivers.
+    class Easing {
+        <<module>>
+        +easeInOutQuad(number) number
+        +lerp(number, number, number) number
+    }
+
+    class Scroller {
+        +maxScroll: number
+        +position: number
+        +burst(deltaPx, durationMs) Promise
+    }
+
+    class Cursor {
+        +moveTo(x, y, durationMs) Promise
+        +click() void
+        +destroy() void
+    }
+
+    class VideoWatcher {
+        +replay() void
+    }
+
+    %% --- Orchestrator + the message back to the cockpit.
+    class Surfer {
+        +run() Promise
+    }
+
+    class Bridge {
+        <<module>>
+        +pageDone(Window) void
+    }
+
+    %% --- Shared with the cockpit (one source of truth for the vector + speed).
+    class SurferStats {
+        <<module>>
+        +normalizeTraits(unknown) number[]
+        +classify, clampTrait, headroom, pointsLeft
+    }
+
+    class RunConfig {
+        <<module>>
+        +normalizeSpeed(number) Speed
+    }
+
+    %% --- The cockpit side the engine talks to (see cockpit-frontend-modules).
+    class RunStore {
+        <<module>>
+        currentSrc seeds bsbRun/bsbSpeed/bsbTraits · initViewport advances queue on page-done
+    }
+
+    %% Relationships.
+    SurferIndex --> RunParams : parses URL
+    SurferIndex --> Surfer : runs when armed
+    RunParams --> RunParamsValue : returns
+    RunParams --> SurferStats : normalizeTraits
+    RunParams --> RunConfig : normalizeSpeed
+
+    Surfer --> PageModel : finds targets
+    Surfer --> Behavior : derives behaviour
+    Surfer --> Scroller : scrolls
+    Surfer --> Cursor : creates & owns (composition)
+    Surfer --> VideoWatcher : watches/replays
+    Surfer --> Bridge : signals page-done
+    PageModel --> PageTargets : returns
+    Behavior ..> PageModel : reads PageType
+    Scroller --> Easing : eases bursts
+    Cursor --> Easing : eases glides
+
+    %% Cross-frame: the engine posts to the cockpit, which advances the queue and
+    %% re-seeds the next page's URL params (no inter-page links).
+    Bridge ..> RunStore : postMessage bsb:page-done
+    RunStore ..> SurferIndex : re-arms next page via currentSrc params

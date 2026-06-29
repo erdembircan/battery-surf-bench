@@ -46,6 +46,8 @@ const customScriptConfig = {
 			'style.scss'
 		),
 		course: path.resolve( process.cwd(), 'src', 'course', 'style.scss' ),
+		// The in-iframe surf engine, enqueued on course pages (see CourseRouter).
+		surfer: path.resolve( process.cwd(), 'src', 'surfer', 'index.ts' ),
 		'cockpit-dashboard': path.resolve(
 			process.cwd(),
 			'src',
