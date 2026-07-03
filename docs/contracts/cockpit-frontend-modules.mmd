@@ -37,6 +37,12 @@ classDiagram
         callbacks: rollDuration (odometer)
     }
 
+    class TraitsStore {
+        <<module>>
+        state: archetypeLabel, pointsLeftDisplay, isBudgetEmpty, isCustomizeOpen, traitValue<i>, traitTrack<i>, isClass<Key>
+        actions: selectClass, setTrait, resetTraits, toggleCustomize
+    }
+
     class TargetStore {
         <<module>>
         state: targetDisplay, targetCap, targetColor
@@ -133,6 +139,16 @@ classDiagram
         +SPEEDS
     }
 
+    %% Shared surfer-trait domain backing the Surfer profile UI.
+    class SurferStats {
+        <<module>>
+        +classify(number[]) Archetype
+        +clampTrait(number[], number, number) number
+        +pointsLeft(number[]) number
+        +headroom(number[], number) number
+        +STATS, CLASSES, BUDGET, MIN, MAX
+    }
+
     class TargetControl {
         <<module>>
         +targetCap(number|null) number
@@ -227,6 +243,7 @@ classDiagram
     CockpitView --> StoreParts : merges slices
     CockpitView --> RunStore : composes
     CockpitView --> ConfigStore : composes
+    CockpitView --> TraitsStore : composes
     CockpitView --> TargetStore : composes
     CockpitView --> BatteryStore : composes
     CockpitView --> SoundStore : composes
@@ -237,6 +254,8 @@ classDiagram
     %% Slices share the run state, lifecycle seam and reactive context.
     RunStore ..> CockpitContext : reads/writes
     ConfigStore ..> CockpitContext : reads/writes
+    TraitsStore ..> CockpitContext : reads/writes
+    TraitsStore --> SurferStats : point-buy & classify
     TargetStore ..> CockpitContext : reads/writes
     BatteryStore ..> CockpitContext : reads/writes
     SoundStore ..> CockpitContext : reads/writes

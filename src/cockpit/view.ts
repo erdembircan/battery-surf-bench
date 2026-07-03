@@ -13,6 +13,8 @@
  *   wake-lock effects.
  * - {@link ./ConfigStore}   — run mode, duration stepper (and its odometer) and
  *   surf speed.
+ * - {@link ./TraitsStore}   — the surfer personality: the point-buy stat vector,
+ *   class presets and the derived archetype that shape the engine's behaviour.
  * - {@link ./TargetStore}   — the target-drop battery slider.
  * - {@link ./BatteryStore}  — the live battery readouts and the Battery Status
  *   API wiring that feeds the drain-rate calculations.
@@ -36,6 +38,7 @@ import { store } from '@wordpress/interactivity';
 import { mergeStoreParts } from './StoreParts';
 import { runStore } from './RunStore';
 import { configStore } from './ConfigStore';
+import { traitsStore } from './TraitsStore';
 import { targetStore } from './TargetStore';
 import { batteryStore } from './BatteryStore';
 import { soundStore } from './SoundStore';
@@ -52,6 +55,7 @@ store(
 	mergeStoreParts(
 		runStore,
 		configStore,
+		traitsStore,
 		targetStore,
 		batteryStore,
 		soundStore,

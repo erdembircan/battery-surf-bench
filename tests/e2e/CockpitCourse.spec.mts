@@ -41,6 +41,100 @@ test.describe( 'Course page route', () => {
 	} );
 } );
 
+test.describe( 'Cockpit surfer profile', () => {
+	test( 'renders the surfer field: chips, customize sliders, derived archetype', async ( {
+		page,
+	} ) => {
+		await page.goto( '/?bsbSession=cockpit' );
+
+		// The Surfer field sits among the config controls, its label carrying the
+		// live derived archetype name.
+		await expect( page.locator( '.bsb-field--surfer' ) ).toBeAttached();
+		await expect(
+			page.locator(
+				'.bsb-surfer__build[data-wp-text="state.archetypeLabel"]'
+			)
+		).toBeAttached();
+
+		// Class-preset chips load a vector on click.
+		await expect(
+			page.locator(
+				'.bsb-chips .bsb-chip[data-wp-on--click="actions.selectClass"]'
+			)
+		).toHaveCount( 6 );
+
+		// The six stat sliders sit behind the Customize disclosure, each wired to
+		// set its stat; the points readout and Reset round out the panel.
+		await expect(
+			page.locator(
+				'.bsb-surfer__customize[data-wp-on--click="actions.toggleCustomize"]'
+			)
+		).toBeAttached();
+		await expect(
+			page.locator(
+				'.bsb-stat__slider[data-wp-on--input="actions.setTrait"]'
+			)
+		).toHaveCount( 6 );
+		await expect(
+			page.locator(
+				'.bsb-surfer__points[data-wp-text="state.pointsLeftDisplay"]'
+			)
+		).toBeAttached();
+		await expect(
+			page.locator(
+				'.bsb-surfer__reset[data-wp-on--click="actions.resetTraits"]'
+			)
+		).toBeAttached();
+
+		await expectNoPhpNotices( page );
+	} );
+
+	test( 'editing stats updates the points budget and derived archetype live', async ( {
+		page,
+	} ) => {
+		await page.goto( '/?bsbSession=cockpit' );
+
+		// Reveal the control deck by flipping the startup postcard, then open the
+		// stat sliders.
+		await page
+			.locator(
+				'.bsb-flipcard--idle .bsb-flipcard__flip[data-wp-on--click="actions.toggleIdleFlip"]'
+			)
+			.first()
+			.click();
+		await expect(
+			page.locator( '.wp-block-bsb-cockpit.is-deck-shown' )
+		).toBeAttached();
+		await page.locator( '.bsb-surfer__customize' ).click();
+
+		const points = page.locator( '.bsb-surfer__points' );
+		const build = page.locator( '.bsb-surfer__build' );
+
+		// The Balanced default spends the whole budget and reads as Balanced.
+		await expect( points ).toHaveText( '0' );
+		await expect( build ).toHaveText( 'Balanced' );
+
+		// Lowering the first stat to zero frees points and breaks the Balanced
+		// band — the budget and the derived name both update reactively.
+		await page
+			.locator( '.bsb-stat__slider' )
+			.first()
+			.evaluate( ( el: HTMLInputElement ) => {
+				el.value = '0';
+				el.dispatchEvent( new Event( 'input', { bubbles: true } ) );
+			} );
+		await expect( points ).toHaveText( '5' );
+		await expect( build ).not.toHaveText( 'Balanced' );
+
+		// A class chip reloads its preset; the derived name reads it back.
+		await page.locator( '.bsb-chip[data-class="Scholar"]' ).click();
+		await expect( build ).toHaveText( 'Scholar' );
+		await expect( points ).toHaveText( '0' );
+
+		await expectNoPhpNotices( page );
+	} );
+} );
+
 test.describe( 'Cockpit dashboard route', () => {
 	test( 'serves a stripped Interactivity dashboard, no PHP notices', async ( {
 		page,

@@ -2144,3 +2144,258 @@ body.bsb-cockpit-dashboard {
 .bsb-frank--warning {
 	--cancel-ink: #{rgba(theme.$coastal-coral-deep, 0.9)};
 }
+
+// ── Surfer profile field ────────────────────────────────────────────────────
+// The RPG "Surfer" stat field in the config column: class-preset chips, a
+// Customize disclosure, and the six point-buy stat sliders with a derived
+// archetype cover-name. Reuses the deck's field/inset language.
+
+// The Surfer field label carries the derived archetype name, pushed to the
+// right edge of the row.
+.bsb-field--surfer .bsb-field__label {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 0.5rem;
+}
+
+// The derived archetype name, right-aligned in the field label.
+.bsb-surfer__build {
+	margin-left: auto;
+	font-family: theme.$font-mono;
+	font-size: 0.78rem;
+	font-weight: 700;
+	color: var(--subtitle-ink);
+}
+
+// Class chips — wrapping pills that load a preset vector.
+.bsb-chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.34rem;
+}
+
+.bsb-chip {
+	appearance: none;
+	cursor: pointer;
+	padding: 0.4rem 0.66rem;
+	border: 1.5px solid var(--line);
+	border-radius: 999px;
+	background: var(--surface);
+	color: var(--text-soft);
+	font-family: theme.$font-ui;
+	font-size: 0.76rem;
+	font-weight: 700;
+	transition:
+		background 0.15s ease,
+		color 0.15s ease,
+		border-color 0.15s ease;
+
+	&:hover {
+		border-color: var(--accent);
+		color: var(--text-strong);
+	}
+
+	&:focus-visible {
+		@extend %focus-ring;
+	}
+
+	&.is-active {
+		background: var(--accent-grad);
+		border-color: transparent;
+		color: var(--accent-ink);
+		box-shadow: 0 4px 12px var(--accent-shadow);
+	}
+}
+
+// Customize disclosure — a text button with a chevron that rotates when open.
+.bsb-surfer__customize {
+	align-self: flex-start;
+	margin-top: 0.1rem;
+	padding: 0.1rem 0;
+	border: 0;
+	background: none;
+	cursor: pointer;
+	display: inline-flex;
+	align-items: center;
+	gap: 0.34rem;
+	font-family: theme.$font-ui;
+	font-size: 0.72rem;
+	font-weight: 700;
+	letter-spacing: 0.04em;
+	color: var(--accent-deep, var(--subtitle-ink));
+
+	&::after {
+		content: '';
+		width: 0.5rem;
+		height: 0.5rem;
+		margin-top: -2px;
+		border-right: 2px solid currentColor;
+		border-bottom: 2px solid currentColor;
+		transform: rotate(45deg);
+		transition: transform 0.2s ease;
+	}
+
+	&.is-open::after {
+		margin-top: 2px;
+		transform: rotate(-135deg);
+	}
+
+	&:focus-visible {
+		@extend %focus-ring;
+	}
+}
+
+// The stats panel — hidden until Customize is open.
+.bsb-surfer__stats {
+	display: none;
+	margin-top: 0.4rem;
+	padding: 0.85rem 0.9rem 1rem;
+	border-radius: 13px;
+	background: var(--accent-soft);
+
+	&.is-open {
+		display: block;
+	}
+}
+
+// Points readout + Reset.
+.bsb-surfer__pool {
+	display: flex;
+	align-items: baseline;
+	gap: 0.45rem;
+	margin-bottom: 0.9rem;
+
+	&.is-empty .bsb-surfer__points,
+	&.is-empty .bsb-surfer__points-label {
+		color: var(--focus);
+	}
+}
+
+.bsb-surfer__points {
+	font-family: theme.$font-mono;
+	font-weight: 700;
+	font-size: 1.5rem;
+	font-variant-numeric: tabular-nums;
+	line-height: 1;
+	color: var(--accent-deep, var(--subtitle-ink));
+}
+
+.bsb-surfer__points-label {
+	font-size: 0.6rem;
+	font-weight: 700;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	color: var(--label);
+}
+
+.bsb-surfer__reset {
+	margin-left: auto;
+	align-self: center;
+	padding: 0.2rem 0.1rem;
+	border: 0;
+	background: none;
+	cursor: pointer;
+	font-family: theme.$font-ui;
+	font-size: 0.66rem;
+	font-weight: 700;
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+	color: var(--text-soft);
+
+	&:hover {
+		color: var(--accent-deep, var(--subtitle-ink));
+	}
+
+	&:focus-visible {
+		@extend %focus-ring;
+	}
+}
+
+// One stat row: name + value, the lever helper line, then the slider.
+.bsb-stat {
+	padding: 0.4rem 0;
+}
+
+.bsb-stat__top {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+}
+
+.bsb-stat__name {
+	font-weight: 700;
+	font-size: 0.9rem;
+	color: var(--text-strong);
+}
+
+.bsb-stat__val {
+	font-family: theme.$font-mono;
+	font-weight: 700;
+	font-size: 1rem;
+	font-variant-numeric: tabular-nums;
+	color: var(--accent-deep, var(--subtitle-ink));
+}
+
+.bsb-stat__lever {
+	display: block;
+	margin: 0.05rem 0 0.4rem;
+	font-size: 0.68rem;
+	color: var(--text-soft);
+}
+
+// The slider: a range input whose track is painted (accent fill + headroom tint
+// + dead track) via the bound `background` gradient.
+.bsb-stat__slider {
+	-webkit-appearance: none;
+	appearance: none;
+	display: block;
+	width: 100%;
+	height: 7px;
+	margin: 0;
+	border-radius: 6px;
+	background: var(--track);
+	outline: none;
+	cursor: pointer;
+
+	// Flat, full-width track in both engines (the painted gradient rides the
+	// element background, set per-value by the store).
+	&::-webkit-slider-runnable-track {
+		height: 7px;
+		border-radius: 6px;
+		background: transparent;
+	}
+
+	&::-moz-range-track {
+		height: 7px;
+		border-radius: 6px;
+		background: transparent;
+	}
+
+	&::-webkit-slider-thumb {
+		-webkit-appearance: none;
+		appearance: none;
+		width: 18px;
+		height: 18px;
+		margin-top: -6px;
+		border: 3px solid var(--accent);
+		border-radius: 50%;
+		background: #fff;
+		box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25);
+		cursor: pointer;
+	}
+
+	&::-moz-range-thumb {
+		width: 18px;
+		height: 18px;
+		border: 3px solid var(--accent);
+		border-radius: 50%;
+		background: #fff;
+		box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25);
+		cursor: pointer;
+	}
+
+	&:focus-visible {
+		@extend %focus-ring;
+	}
+}
