@@ -3,13 +3,20 @@
 %% Every action the surfer can take is a Behavior that bids in an auction each
 %% tick; SurfLoop draws a winner via the Arbiter and runs it through a Motor.
 %% No behavior-selection branching exists — bids are pure multiplicative
-%% functions of traits, affordances, appetite and noise (see the surf-engine
-%% plan). Function-only modules are marked <<module>>; interfaces <<interface>>;
-%% the rest are classes. Only the public (exported) surface is shown. Test
-%% doubles (FakeMotor, FakeClock) are test infrastructure, not architecture,
-%% and are omitted.
+%% functions of traits, affordances, appetite and noise. Function-only modules
+%% are marked <<module>>; interfaces <<interface>>; the rest are classes. Only
+%% the public (exported) surface is shown. Test doubles (FakeMotor, FakeClock)
+%% are test infrastructure, not architecture, and are omitted.
 classDiagram
     direction LR
+
+    %% --- Boot: the classic script the course router enqueues on every course
+    %% page. Boots the engine only when the traits URL param is present.
+    class EngineBoot {
+        <<module>>
+        boot guard on the traits URL param; builds and starts SurfLoop; posts
+        'bsb:pageDone' to the parent frame when the page's session ends
+    }
 
     %% --- Orchestration: the tick loop and its inputs.
     class SurfLoop {
@@ -163,6 +170,15 @@ classDiagram
     DomMotor ..|> Motor
     RealClock ..|> Clock
 
+    EngineBoot --> SurfLoop : builds deps & starts
+    EngineBoot --> DomMotor : creates
+    EngineBoot --> RealClock : creates
+    EngineBoot --> Rng : seeds the one PRNG instance
+    EngineBoot --> Affordances : provides senseAffordances
+    EngineBoot --> SurferStats : normalizeTraits
+    EngineBoot --> RunConfig : normalizeSpeed
+    EngineBoot ..> RunStore : postMessage 'bsb:pageDone'
+
     SurfLoop --> Behavior : bids & runs each tick
     SurfLoop --> Arbiter : draws a winner
     SurfLoop --> Appetite : creates & owns (composition)
@@ -187,8 +203,19 @@ classDiagram
     Behavior ..> BehaviorContext : reads
     Behavior ..> Motor : acts through
 
-    %% --- Shared contract with the cockpit (see cockpit-frontend-modules.mmd).
+    %% --- Shared contracts with the cockpit (see cockpit-frontend-modules.mmd).
     class SurferStats {
         <<module>>
         shared trait vector contract — STATS, MAX
+    }
+
+    class RunConfig {
+        <<module>>
+        shared speed contract — normalizeSpeed
+    }
+
+    class RunStore {
+        <<module>>
+        cockpit-side receiver — currentSrc carries traits+speed onto the
+        iframe URL; a page-done listener advances activeIndex
     }

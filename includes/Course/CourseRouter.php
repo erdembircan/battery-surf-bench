@@ -41,14 +41,16 @@ class CourseRouter implements Manager {
 	 *
 	 * @param CourseCatalog $catalog    Source of the course pages and their markup.
 	 * @param string        $param      Query parameter the page slug is read from.
-	 * @param Assets        $assets     Service used to enqueue the course stylesheet.
+	 * @param Assets        $assets     Service used to enqueue the course stylesheet and surf engine.
 	 * @param string        $stylesheet Course stylesheet, relative to the plugin root.
+	 * @param string        $script     Surf engine script, relative to the plugin root.
 	 */
 	public function __construct(
 		private CourseCatalog $catalog,
 		private string $param,
 		private Assets $assets,
-		private string $stylesheet
+		private string $stylesheet,
+		private string $script
 	) {
 	}
 
@@ -153,8 +155,11 @@ class CourseRouter implements Manager {
 		add_filter( 'render_block_core/post-title', '__return_empty_string' );
 
 		// Load the course stylesheet, which styles the `.bsb-course-content`
-		// the page is wrapped in (and reaches nothing else on the page).
+		// the page is wrapped in (and reaches nothing else on the page), and the
+		// headless surf engine, which boots itself only when the traits URL
+		// param is present.
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_style' ) );
+		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_script' ) );
 
 		return array( $virtual );
 	}
@@ -166,5 +171,14 @@ class CourseRouter implements Manager {
 	 */
 	public function enqueue_style(): void {
 		$this->assets->enqueue( $this->stylesheet );
+	}
+
+	/**
+	 * Enqueues the surf engine script.
+	 *
+	 * @return void
+	 */
+	public function enqueue_script(): void {
+		$this->assets->enqueue( $this->script );
 	}
 }

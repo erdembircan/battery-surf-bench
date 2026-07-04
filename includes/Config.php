@@ -51,6 +51,11 @@ return array(
 		// `.bsb-course-content` wrapper, enqueued only on course pages. Built
 		// from `src/course/style.scss`.
 		'style'          => 'build/style-course.css',
+		// The headless surf engine, enqueued only on course pages alongside the
+		// stylesheet above. Boots itself only when the traits URL param is
+		// present, so a human opening a course URL directly sees a static page.
+		// Built from `src/surfer/index.ts`.
+		'script'         => 'build/surfer.js',
 	),
 	'cockpit'    => array(
 		// Query parameter + value that serve the cockpit dashboard:

@@ -41,6 +41,57 @@ test.describe( 'Course page route', () => {
 	} );
 } );
 
+test.describe( 'Surf engine', () => {
+	test( 'boots and surfs when the traits URL param is present', async ( {
+		page,
+	} ) => {
+		// Records every `message` the page receives so the engine's page-done
+		// postMessage (sent to `window.parent`, which is the page itself here,
+		// outside an iframe) can be observed after the fact.
+		await page.addInitScript( () => {
+			(
+				window as unknown as { __bsbMessages: unknown[] }
+			 ).__bsbMessages = [];
+			window.addEventListener( 'message', ( event ) => {
+				(
+					window as unknown as { __bsbMessages: unknown[] }
+				 ).__bsbMessages.push( event.data );
+			} );
+		} );
+
+		// Tempo maxed and endurance/literacy/allure/fidget at zero: the surfer
+		// scrolls fast and gets bored fast. Speed 10x compresses every wait so
+		// the whole page session finishes well within the test timeout.
+		await page.goto(
+			'/?bsbSessionPage=article-1&bsbTraits=10,0,0,0,0&bsbSpeed=10'
+		);
+
+		await page.waitForFunction( () => window.scrollY > 0 );
+
+		await page.waitForFunction(
+			() =>
+				(
+					window as unknown as { __bsbMessages: { type?: string }[] }
+				 ).__bsbMessages?.some( ( m ) => m?.type === 'bsb:pageDone' ),
+			{ timeout: 20_000 }
+		);
+
+		await expectNoPhpNotices( page );
+	} );
+
+	test( 'stays a static page when the traits URL param is absent', async ( {
+		page,
+	} ) => {
+		await page.goto( '/?bsbSessionPage=article-1' );
+
+		// Long enough to clear the engine's settle beat and first tick many
+		// times over, were it (incorrectly) running.
+		await page.waitForTimeout( 800 );
+
+		expect( await page.evaluate( () => window.scrollY ) ).toBe( 0 );
+	} );
+} );
+
 test.describe( 'Cockpit surfer profile', () => {
 	test( 'renders the surfer field: chips, customize sliders, derived archetype', async ( {
 		page,
