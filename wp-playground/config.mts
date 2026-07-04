@@ -6,6 +6,9 @@
  * same values instead of hardcoding them independently.
  */
 
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
 /** Host/interface the playground servers bind to and are reached on. */
 export const PLAYGROUND_HOST = '127.0.0.1';
 
@@ -21,7 +24,13 @@ export const PLAYGROUND_DEV_PORT = 9400;
 /** Port used by the non-persistent (test) playground. */
 export const PLAYGROUND_TEST_PORT = 9401;
 
-/** Port the LiveReload server listens on during development. */
+/**
+ * Preferred port for the LiveReload server during development. The watcher
+ * resolves the actual port at startup — incrementing from this one if it is
+ * already taken, mirroring the playground's own port resolution — and publishes
+ * it via {@link LIVERELOAD_PORT_FILE}, so this is a starting point, not a
+ * guarantee.
+ */
 export const LIVERELOAD_PORT = 35729;
 
 /**
@@ -39,8 +48,32 @@ export const PLAYGROUND_DEV_URL = `http://${ PLAYGROUND_HOST }:${ PLAYGROUND_DEV
 /** Base URL for the non-persistent (test) playground. */
 export const PLAYGROUND_TEST_URL = `http://${ PLAYGROUND_HOST }:${ PLAYGROUND_TEST_PORT }`;
 
-/** URL of the LiveReload client script the dev mu-plugin enqueues. */
-export const LIVERELOAD_CLIENT_URL = `http://${ LIVERELOAD_HOST }:${ LIVERELOAD_PORT }/livereload.js`;
+/**
+ * Build the URL of the LiveReload client script the dev mu-plugin enqueues.
+ *
+ * The port is resolved dynamically at startup rather than baked in, so the
+ * client URL is derived from whichever port the LiveReload server actually
+ * bound this run.
+ *
+ * @param port - The port the LiveReload server is listening on.
+ * @return The `livereload.js` client URL for that port.
+ */
+export function liveReloadClientUrl( port: number ): string {
+	return `http://${ LIVERELOAD_HOST }:${ port }/livereload.js`;
+}
+
+/**
+ * File the resolved LiveReload port is written to so the two independent dev
+ * processes agree on it. `live-reload.mts` binds a free port (incrementing past
+ * a busy one) and writes it here; `start.mts` reads it back to bake the matching
+ * client URL into the dev mu-plugin. The watcher owns resolution because only
+ * the process that binds the port can guarantee it is free. Regenerated every
+ * run and gitignored.
+ */
+export const LIVERELOAD_PORT_FILE = resolve(
+	dirname( fileURLToPath( import.meta.url ) ),
+	'.livereload-port'
+);
 
 /**
  * Marker written to stdout once the playground is fully initialised and can
