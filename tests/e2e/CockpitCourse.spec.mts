@@ -84,11 +84,14 @@ test.describe( 'Surf engine', () => {
 	} ) => {
 		await page.goto( '/?bsbSessionPage=article-1' );
 
-		// Long enough to clear the engine's settle beat and first tick many
-		// times over, were it (incorrectly) running.
-		await page.waitForTimeout( 800 );
-
-		expect( await page.evaluate( () => window.scrollY ) ).toBe( 0 );
+		// Poll past the engine's settle beat (1000-3000 ms at speed 1, the
+		// default with no bsbSpeed param) plus a first tick — an incorrectly
+		// booting engine would move scrollY inside this window instead of
+		// leaving it pinned at 0 the whole time.
+		for ( let i = 0; i < 4; i++ ) {
+			await page.waitForTimeout( 1000 );
+			expect( await page.evaluate( () => window.scrollY ) ).toBe( 0 );
+		}
 	} );
 } );
 
@@ -192,15 +195,19 @@ test.describe( 'Cockpit dashboard route', () => {
 	} ) => {
 		await page.goto( '/?bsbSession=cockpit' );
 
-		// The interactive region and viewport iframe are present. The dev-tools
-		// panel is a second, separate `bsb/cockpit` region (joined via the
+		// The interactive region and viewport iframe are present, wired to
+		// listen for the surf engine's page-done handshake. The dev-tools panel
+		// is a second, separate `bsb/cockpit` region (joined via the
 		// store-merge mechanism), so this locator is scoped to the cockpit
 		// block's own wrapper.
 		await expect(
 			page.locator(
 				'.wp-block-bsb-cockpit[data-wp-interactive="bsb/cockpit"]'
 			)
-		).toBeAttached();
+		).toHaveAttribute(
+			'data-wp-init---page-advance',
+			'callbacks.initPageAdvance'
+		);
 
 		// The control deck is rendered alongside the stage, with the run
 		// control wired to the store.

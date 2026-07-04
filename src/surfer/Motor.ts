@@ -107,7 +107,19 @@ export class DomMotor implements Motor {
 
 	async playVideo(): Promise< void > {
 		const video = document.querySelector( 'video' );
-		await video?.play().catch( () => undefined );
+
+		if ( ! video ) {
+			return;
+		}
+
+		try {
+			await video.play();
+		} catch {
+			// Autoplay with sound is blocked without a user gesture; muted
+			// autoplay is allowed, so retry muted rather than staying paused.
+			video.muted = true;
+			await video.play().catch( () => undefined );
+		}
 	}
 
 	idle( ms: number ): Promise< void > {
