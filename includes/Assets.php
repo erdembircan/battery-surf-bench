@@ -11,9 +11,11 @@ use InvalidArgumentException;
 
 use function esc_html;
 use function wp_enqueue_script;
+use function wp_enqueue_script_module;
 use function wp_enqueue_style;
 use function wp_localize_script;
 use function wp_register_script;
+use function wp_register_script_module;
 use function wp_set_script_module_translations;
 use function wp_set_script_translations;
 
@@ -99,6 +101,36 @@ class Assets {
 		);
 
 		return $handle;
+	}
+
+	/**
+	 * Registers a script module built by the Interactivity module bundler,
+	 * versioned by content hash like every other plugin-owned asset. Registering
+	 * rather than enqueuing lets a caller register its translations
+	 * ({@see Assets::set_script_module_translations()}) before marking it for
+	 * output ({@see Assets::enqueue_script_module()}).
+	 *
+	 * @param string        $relative Path to the built module relative to the plugin root.
+	 * @param array<string> $deps     Script module identifiers this module depends on.
+	 * @return string The registered module's identifier.
+	 */
+	public function register_script_module( string $relative, array $deps = array() ): string {
+		$id = $this->handle( $relative );
+
+		wp_register_script_module( $id, $this->paths->url( $relative ), $deps, $this->version( $relative ) );
+
+		return $id;
+	}
+
+	/**
+	 * Marks an already-registered script module for output, the script-module
+	 * counterpart of {@see Assets::enqueue_script()}.
+	 *
+	 * @param string $id Identifier of a registered script module.
+	 * @return void
+	 */
+	public function enqueue_script_module( string $id ): void {
+		wp_enqueue_script_module( $id );
 	}
 
 	/**

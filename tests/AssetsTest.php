@@ -163,4 +163,48 @@ final class AssetsTest extends TestCase {
 		// PHPUnit does not flag the test as risky.
 		$this->addToAssertionCount( 1 );
 	}
+
+	/**
+	 * A script module is registered with a namespaced identifier, its declared
+	 * dependencies, and the file hash as its version — the module counterpart of
+	 * {@see Assets::register_bundle()}.
+	 */
+	public function test_register_script_module_uses_namespaced_id_deps_and_hash_version(): void {
+		$this->stub_resolvers( 'a1b2c3d4', 'https://example.test/devtools/view.js' );
+
+		Functions\expect( 'wp_register_script_module' )
+			->once()
+			->with(
+				'battery-surf-bench-view',
+				'https://example.test/devtools/view.js',
+				array( '@wordpress/interactivity' ),
+				'a1b2c3d4'
+			);
+
+		$assets = new Assets( 'battery-surf-bench', new Paths( '/plugins/battery-surf-bench/battery-surf-bench.php' ) );
+		$id     = $assets->register_script_module( 'build/devtools/view.js', array( '@wordpress/interactivity' ) );
+
+		$this->assertSame( 'battery-surf-bench-view', $id );
+
+		// The Mockery expectation above is the assertion; acknowledge it so
+		// PHPUnit does not flag the test as risky.
+		$this->addToAssertionCount( 1 );
+	}
+
+	/**
+	 * Enqueuing by identifier defers to WordPress for an already-registered
+	 * script module, the module counterpart of {@see Assets::enqueue_script()}.
+	 */
+	public function test_enqueue_script_module_enqueues_a_registered_id(): void {
+		Functions\expect( 'wp_enqueue_script_module' )
+			->once()
+			->with( 'battery-surf-bench-view' );
+
+		$assets = new Assets( 'battery-surf-bench', new Paths( '/plugins/battery-surf-bench/battery-surf-bench.php' ) );
+		$assets->enqueue_script_module( 'battery-surf-bench-view' );
+
+		// The Mockery expectation above is the assertion; acknowledge it so
+		// PHPUnit does not flag the test as risky.
+		$this->addToAssertionCount( 1 );
+	}
 }

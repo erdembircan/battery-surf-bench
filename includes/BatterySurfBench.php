@@ -20,8 +20,12 @@ use ErdemBircan\BatterySurfBench\Content\SessionType;
 use ErdemBircan\BatterySurfBench\Course\CourseCatalog;
 use ErdemBircan\BatterySurfBench\Course\CourseLibrary;
 use ErdemBircan\BatterySurfBench\Course\CourseRouter;
+use ErdemBircan\BatterySurfBench\DevTools\DevTools;
+use ErdemBircan\BatterySurfBench\DevTools\Views\DevToolsPanelView;
 use ErdemBircan\BatterySurfBench\Support\Manager;
 use ErdemBircan\BatterySurfBench\Support\StandaloneChrome;
+
+use function explode;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -165,6 +169,21 @@ class BatterySurfBench {
 				$this->registry->get( 'cockpit.style' ),
 				new SessionDetailView(),
 				$this->assets
+			),
+			// Environment-gated dev tools: a floating panel (and the Interactivity
+			// module it joins the cockpit store from) that lets battery behaviour be
+			// forced for testing, active only in a development environment. Its own
+			// gate closes registration entirely outside one, so nothing here reaches
+			// a production site.
+			new DevTools(
+				explode( ',', $this->registry->get( 'devtools.environments' ) ),
+				$this->registry->get( 'devtools.module' ),
+				$this->registry->get( 'devtools.style' ),
+				$this->assets,
+				$this->registry->get( 'cockpit.param' ),
+				$this->registry->get( 'cockpit.value' ),
+				$this->registry->get( 'session.post_type' ),
+				new DevToolsPanelView()
 			),
 		);
 	}

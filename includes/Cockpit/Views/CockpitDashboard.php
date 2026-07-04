@@ -35,14 +35,20 @@ class CockpitDashboard implements View {
 	/**
 	 * Renders the dashboard document around the given body markup.
 	 *
-	 * @param array<string, mixed> $data View data; `body` holds the pre-rendered cockpit body HTML.
+	 * @param array<string, mixed> $data {
+	 *     View data.
+	 *
+	 *     @type string $body            Pre-rendered cockpit body HTML.
+	 *     @type string $devtools_panel  Pre-rendered dev-tools panel markup, empty outside a dev environment.
+	 * }
 	 * @return string The complete dashboard document.
 	 */
 	public function render( array $data = array() ): string {
-		$body    = isset( $data['body'] ) ? (string) $data['body'] : '';
-		$lang    = get_language_attributes();
-		$charset = esc_attr( get_bloginfo( 'charset' ) );
-		$title   = esc_html__( 'Battery Surf Bench — Cockpit', 'battery-surf-bench' );
+		$body           = isset( $data['body'] ) ? (string) $data['body'] : '';
+		$devtools_panel = isset( $data['devtools_panel'] ) ? (string) $data['devtools_panel'] : '';
+		$lang           = get_language_attributes();
+		$charset        = esc_attr( get_bloginfo( 'charset' ) );
+		$title          = esc_html__( 'Battery Surf Bench — Cockpit', 'battery-surf-bench' );
 
 		ob_start();
 		wp_head();
@@ -64,6 +70,7 @@ class CockpitDashboard implements View {
 </head>
 <body class="bsb-cockpit-dashboard">
 	{$body}
+	{$devtools_panel}
 	{$footer}
 </body>
 </html>
