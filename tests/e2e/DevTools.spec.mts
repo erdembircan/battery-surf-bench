@@ -114,6 +114,40 @@ test.describe( 'Dev-tools battery-override panel', () => {
 		expect( await page.content() ).not.toMatch( PHP_NOTICE );
 	} );
 
+	test( 'a persisted level override positions the slider thumb after a reload', async ( {
+		page,
+	} ) => {
+		// Seed the persisted devtools slice before any module runs, as a prior
+		// session would have left it.
+		await page.addInitScript( () => {
+			window.localStorage.setItem(
+				'bsb-devtools-v1',
+				JSON.stringify( {
+					open: true,
+					battery: { enabled: true, charging: null, level: 0.3 },
+				} )
+			);
+		} );
+
+		await page.goto( '/?bsbSession=cockpit' );
+
+		// Pins the range input's `data-wp-bind--value` behavior: under the
+		// installed Interactivity version the binding sets the input's value
+		// PROPERTY (which positions the thumb), so the slider must sit at the
+		// persisted 30 — not the browser-default 50 — while the readout span
+		// shows the same figure. If a future Interactivity version regresses
+		// this to an attribute-only (no-op) bind, this assertion catches it.
+		const slider = page.locator(
+			'.bsb-devtools__level input[type="range"]'
+		);
+		await expect( slider ).toHaveValue( '30' );
+		await expect( page.locator( '.bsb-devtools__level-value' ) ).toHaveText(
+			'30'
+		);
+
+		expect( await page.content() ).not.toMatch( PHP_NOTICE );
+	} );
+
 	test( 'the panel also loads on the stored-session detail screen', async ( {
 		page,
 	} ) => {
