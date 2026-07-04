@@ -46,8 +46,8 @@ $bsb_context = array(
 	// The surfer personality: a balanced five-stat vector by default (every stat
 	// mid-range), the stat sliders hidden until the visitor opens Customize, and
 	// the translated archetype names the store maps the derived cover-name to.
-	// The vector is normalized on run start (see RunStore.toggleRun), so a crafted
-	// value is corrected before it drives the engine.
+	// The vector itself is display-only here; normalizeTraits() clamps it on the
+	// consuming side once the engine reads it (wired in a later PR).
 	'traits'              => array( 5, 5, 5, 5, 5 ),
 	'traitsOpen'          => false,
 	'archetypeLabels'     => array(
