@@ -13,20 +13,29 @@
 		<style>
 			/*
 			 * Floating dev-tools panel study (docs/plans/dev-tools-plan.md §5/§9
-			 * milestone 1). Dev-build-only floating box: collapsed "DEV" chip
-			 * (accented when the bypass is active) that expands into a compact
-			 * card with one toggle row. Reuses the real Coastal Daybreak / Dusk
-			 * Lineup tokens from src/styles/_theme.scss so it drops into the
-			 * shipped cockpit unchanged. Throwaway mockup — no build step.
+			 * milestone 1), shown OVER a representative cockpit deck+stage shell
+			 * (brand / mode / duration / speed / start, plus the idle stage sky)
+			 * so its placement and contrast against the real front end can be
+			 * judged — not floating on a blank page. The deck/stage markup below
+			 * is a static approximation for context only (cribbed from
+			 * idle-stage.html / plugged-in-warning.html); it does not ship. Only
+			 * the `.bsb-devtools` panel is the thing being decided here.
 			 *
-			 * The "physical charger" switch top-left is a MOCKUP-ONLY stand-in
-			 * for the real BatteryManager reading; it does not ship. It lets you
-			 * see the panel's "Actually: …" line react independently of the
-			 * bypass toggle, exactly like a real plugged-in laptop would.
+			 * Reuses the real Coastal Daybreak / Dusk Lineup tokens from
+			 * src/styles/_theme.scss so the panel drops into the shipped cockpit
+			 * unchanged. Throwaway mockup — no build step.
+			 *
+			 * The "physical charger" switch in the demo controls is a MOCKUP-ONLY
+			 * stand-in for the real BatteryManager reading; it does not ship. It
+			 * lets you see the panel's "Actually: …" line react independently of
+			 * the bypass toggle, exactly like a real plugged-in laptop would.
 			 */
 			:root {
-				--deck-bg: radial-gradient(120% 70% at 50% -10%, #fff 0%, #e7f6ff 40%, transparent 70%),
-					linear-gradient(180deg, #e7f6ff 0%, #fff 60%);
+				--sky-0: #f3fafd;
+				--sky-1: #e7f6ff;
+				--deck-bg: linear-gradient(180deg, #fbfdfe 0%, #eef5f8 100%);
+				--stage-bg: radial-gradient(120% 70% at 50% -10%, rgba(255, 206, 92, 0.34) 0%, rgba(255, 206, 92, 0) 55%),
+					linear-gradient(180deg, #eaf6fb 0%, #dcf0f6 60%, #cfe9f2 100%);
 				--surface: #f1f7fa;
 				--surface-shadow: rgba(31, 58, 95, 0.08);
 				--line: #e1edf2;
@@ -42,6 +51,13 @@
 				--focus: #ff7a5c;
 				--track: #e1edf2;
 				--card-shadow: rgba(31, 58, 95, 0.18);
+				--wave-back: rgba(234, 250, 255, 0.5);
+				--wave-mid: rgba(191, 233, 245, 0.55);
+				--wave-front: rgba(255, 255, 255, 0.6);
+				--sun: #ffce5c;
+				--sun-2: #ffb24a;
+				--on-stage: #234055;
+				--on-stage-soft: #5b7488;
 				--font-ui: 'Hanken Grotesk', ui-sans-serif, system-ui, sans-serif;
 				--font-disp: 'Anton', 'Arial Narrow', sans-serif;
 				--font-mono: 'Space Mono', ui-monospace, monospace;
@@ -51,6 +67,8 @@
 				--deck-bg: linear-gradient(180deg, rgba(255, 138, 61, 0.16) 0%, rgba(255, 138, 61, 0) 26%),
 					radial-gradient(140% 50% at 50% 30%, rgba(255, 178, 74, 0.18) 0%, transparent 55%),
 					linear-gradient(175deg, #0a3a4f 0%, #062b3d 70%);
+				--stage-bg: radial-gradient(120% 70% at 50% -10%, rgba(255, 178, 74, 0.26) 0%, rgba(255, 178, 74, 0) 55%),
+					linear-gradient(180deg, #0c3e52 0%, #0a3447 55%, #062734 100%);
 				--surface: rgba(3, 22, 32, 0.5);
 				--surface-shadow: rgba(0, 0, 0, 0.4);
 				--line: rgba(160, 225, 240, 0.16);
@@ -66,6 +84,13 @@
 				--focus: #ffcf6b;
 				--track: rgba(230, 247, 251, 0.12);
 				--card-shadow: rgba(0, 0, 0, 0.45);
+				--wave-back: rgba(230, 247, 251, 0.08);
+				--wave-mid: rgba(70, 214, 196, 0.18);
+				--wave-front: rgba(230, 247, 251, 0.26);
+				--sun: #ffcf6b;
+				--sun-2: #ff8a3d;
+				--on-stage: #e6f7fb;
+				--on-stage-soft: rgba(230, 247, 251, 0.62);
 			}
 
 			* {
@@ -81,32 +106,36 @@
 			body {
 				font-family: var(--font-ui);
 				color: var(--text);
-				background: var(--deck-bg);
+				background: radial-gradient(120% 70% at 50% -10%, #fff 0%, var(--sky-1) 40%, transparent 70%),
+					linear-gradient(180deg, var(--sky-1) 0%, #fff 60%);
 				min-height: 100%;
-				position: relative;
+				padding: 28px 28px 0;
 				transition: background 0.2s ease, color 0.2s ease;
 			}
 
-			.stage {
-				max-width: 640px;
-				margin: 0 auto;
-				padding: 40px 24px 320px;
+			:root[data-theme='dark'] body {
+				background: var(--deck-bg);
 			}
 
-			.stage h1 {
+			.intro {
+				max-width: 760px;
+				margin: 0 auto 20px;
+			}
+
+			.intro h1 {
 				font-family: var(--font-disp);
-				font-size: 22px;
+				font-size: 20px;
 				letter-spacing: 0.02em;
 				margin: 0 0 8px;
 			}
 
-			.stage p {
+			.intro p {
 				color: var(--text-soft);
 				line-height: 1.5;
-				max-width: 46em;
+				margin: 0;
 			}
 
-			.stage code {
+			.intro code {
 				font-family: var(--font-mono);
 				font-size: 0.9em;
 				background: var(--accent-soft);
@@ -116,24 +145,22 @@
 
 			/* ── Mockup-only demo controls (not part of the shipped panel) ─── */
 			.demo-controls {
-				position: fixed;
-				top: 20px;
-				left: 20px;
+				max-width: 760px;
+				margin: 0 auto 20px;
 				display: flex;
-				flex-direction: column;
-				gap: 10px;
+				flex-wrap: wrap;
+				gap: 10px 22px;
+				align-items: center;
 				background: var(--surface);
 				border: 1px solid var(--line);
 				border-radius: 12px;
-				padding: 14px 16px;
+				padding: 12px 16px;
 				box-shadow: 0 8px 24px var(--surface-shadow);
-				z-index: 100;
 				font-size: 13px;
 			}
 
 			.demo-controls__title {
 				font-weight: 700;
-				color: var(--text-strong);
 				text-transform: uppercase;
 				letter-spacing: 0.04em;
 				font-size: 11px;
@@ -143,8 +170,7 @@
 			.demo-row {
 				display: flex;
 				align-items: center;
-				justify-content: space-between;
-				gap: 16px;
+				gap: 8px;
 			}
 
 			.demo-row button {
@@ -165,7 +191,236 @@
 				border-color: transparent;
 			}
 
-			/* ── Shipped panel styles (.bsb-devtools) ────────────────────────── */
+			/* ── Representative cockpit shell (context only — does not ship) ── */
+			.cockpit-wrap {
+				max-width: 900px;
+				margin: 0 auto 40px;
+			}
+
+			.cockpit {
+				display: grid;
+				grid-template-columns: 300px 1fr;
+				height: 560px;
+				border-radius: 18px;
+				overflow: hidden;
+				box-shadow: 0 20px 54px var(--card-shadow);
+				position: relative;
+			}
+
+			.deck {
+				display: flex;
+				flex-direction: column;
+				padding: 22px;
+				background: var(--deck-bg);
+				border-right: 1px solid var(--line);
+			}
+
+			.brand {
+				display: flex;
+				align-items: center;
+				gap: 10px;
+				padding-bottom: 16px;
+				border-bottom: 1px solid var(--line);
+			}
+
+			.brand .mark {
+				width: 30px;
+				height: 30px;
+				border-radius: 8px;
+				background: var(--accent-grad);
+				flex: none;
+			}
+
+			.brand .name {
+				font-family: var(--font-disp);
+				font-size: 17px;
+				line-height: 1;
+				color: var(--text-strong);
+			}
+
+			.brand .name small {
+				display: block;
+				font-family: var(--font-ui);
+				font-size: 9px;
+				font-weight: 700;
+				letter-spacing: 0.24em;
+				text-transform: uppercase;
+				color: var(--accent);
+				margin-top: 3px;
+			}
+
+			.deck-body {
+				flex: 1;
+				display: flex;
+				flex-direction: column;
+				gap: 16px;
+				padding-top: 16px;
+			}
+
+			.field .flabel {
+				display: block;
+				font-size: 10px;
+				font-weight: 700;
+				letter-spacing: 0.14em;
+				text-transform: uppercase;
+				color: var(--label);
+				margin-bottom: 7px;
+			}
+
+			.seg {
+				display: grid;
+				grid-template-columns: 1fr 1fr;
+				gap: 4px;
+				padding: 4px;
+				border-radius: 11px;
+				background: var(--accent-soft);
+			}
+
+			.seg button {
+				border: 0;
+				padding: 8px;
+				border-radius: 8px;
+				font: inherit;
+				font-weight: 700;
+				font-size: 12px;
+				background: transparent;
+				color: var(--text-soft);
+				cursor: pointer;
+			}
+
+			.seg button.on {
+				background: var(--surface);
+				color: var(--accent);
+				box-shadow: 0 4px 12px var(--surface-shadow);
+			}
+
+			.dur {
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				padding: 9px 13px;
+				border-radius: 12px;
+				border: 1px solid var(--line);
+				background: var(--surface);
+			}
+
+			.dur .num {
+				font-family: var(--font-disp);
+				font-size: 22px;
+				line-height: 1;
+				color: var(--text-strong);
+			}
+
+			.dur .num small {
+				font-family: var(--font-ui);
+				font-size: 11px;
+				font-weight: 700;
+				color: var(--text-soft);
+				margin-left: 5px;
+			}
+
+			.dur .step {
+				width: 26px;
+				height: 26px;
+				border: 1px solid var(--line);
+				border-radius: 8px;
+				background: var(--accent-soft);
+				color: var(--accent);
+				font-size: 15px;
+				font-weight: 700;
+				cursor: pointer;
+			}
+
+			.start {
+				margin-top: auto;
+				padding: 14px;
+				border: 0;
+				border-radius: 14px;
+				background: var(--accent-grad);
+				color: var(--accent-ink);
+				font-family: var(--font-disp);
+				font-size: 16px;
+				letter-spacing: 0.08em;
+				text-transform: uppercase;
+				cursor: pointer;
+				box-shadow: 0 14px 30px var(--card-shadow);
+			}
+
+			.stage {
+				position: relative;
+				overflow: hidden;
+				background: var(--stage-bg);
+				color: var(--on-stage);
+				display: grid;
+				place-items: center;
+			}
+
+			.stage .sun {
+				position: absolute;
+				z-index: 0;
+				width: 190px;
+				height: 190px;
+				border-radius: 50%;
+				top: -46px;
+				right: -40px;
+				background: radial-gradient(circle at 50% 50%, var(--sun) 0%, var(--sun-2) 60%, transparent 72%);
+			}
+
+			.stage .waves {
+				position: absolute;
+				inset-inline: 0;
+				bottom: 0;
+				height: 110px;
+				z-index: 1;
+			}
+
+			.stage .waves i {
+				position: absolute;
+				inset-inline: -10%;
+				bottom: 0;
+				height: 110px;
+				background-repeat: repeat-x;
+				background-size: 260px 100%;
+				opacity: 0.6;
+			}
+
+			.stage .waves i:nth-child(1) {
+				background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='40' viewBox='0 0 200 40' preserveAspectRatio='none'%3E%3Cpath d='M0 20 q 50 -14 100 0 t 100 0 V40 H0 Z' fill='%23eafaff' fill-opacity='0.5'/%3E%3C/svg%3E");
+			}
+
+			.stage .waves i:nth-child(2) {
+				opacity: 0.7;
+				background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='40' viewBox='0 0 200 40' preserveAspectRatio='none'%3E%3Cpath d='M0 20 q 50 -14 100 0 t 100 0 V40 H0 Z' fill='%23bfe9f5' fill-opacity='0.55'/%3E%3C/svg%3E");
+			}
+
+			.stage .ready {
+				position: relative;
+				z-index: 2;
+				text-align: center;
+				padding: 0 20px;
+			}
+
+			.stage .ready h2 {
+				font-family: var(--font-disp);
+				font-size: 30px;
+				line-height: 1;
+				text-transform: uppercase;
+				color: var(--on-stage);
+				margin: 0 0 8px;
+			}
+
+			.stage .ready p {
+				font-size: 13px;
+				color: var(--on-stage-soft);
+				margin: 0;
+			}
+
+			/* ── Shipped panel styles (.bsb-devtools) ─────────────────────────
+			 * position: fixed is viewport-relative regardless of DOM parent, so
+			 * mounting it inside the cockpit host (per the plan) still pins it to
+			 * the corner of the browser window — placed here at the wrapper level
+			 * to match that behaviour exactly.
+			 */
 			.bsb-devtools {
 				position: fixed;
 				right: 20px;
@@ -356,21 +611,16 @@
 		</style>
 	</head>
 	<body>
-		<div class="stage">
+		<div class="intro">
 			<h1>Dev tools panel — mockup</h1>
 			<p>
-				Milestone 1 of <code>docs/plans/dev-tools-plan.md</code>. Floating
-				dev-build-only panel, bottom-right. Click the <code>DEV</code> chip
-				to expand it; flip its <strong>Bypass charging gate</strong> switch;
-				toggle light/dark and the mock "physical charger" below to see the
-				<code>Actually: …</code> line react.
-			</p>
-			<p>
-				This page is throwaway — no build step, inline CSS/JS only. The
-				markup and class names (<code>.bsb-devtools</code>, BEM children)
-				are the direction to port into
-				<code>src/cockpit/DevToolsPanel.ts</code> +
-				<code>src/cockpit/style.scss</code> in milestone 2.
+				Milestone 1 of <code>docs/plans/dev-tools-plan.md</code>. The
+				cockpit shell below (brand, mode/duration/speed, start, idle stage)
+				is a static stand-in for context only — it does not ship. Only the
+				floating <code>.bsb-devtools</code> panel bottom-right is the real
+				deliverable. Click the <code>DEV</code> chip to expand it, flip the
+				bypass switch, and use the controls below to check both themes and
+				the "actually plugged in" state.
 			</p>
 		</div>
 
@@ -386,32 +636,76 @@
 			</div>
 		</div>
 
-		<div class="bsb-devtools" id="devtools" data-collapsed="true">
-			<button class="bsb-devtools__chip" id="chip" type="button" data-bypass="false" aria-label="Open dev tools">
-				<span class="bsb-devtools__chip-dot"></span>
-				DEV
-			</button>
-			<div class="bsb-devtools__card">
-				<div class="bsb-devtools__head">
-					<span class="bsb-devtools__title">Dev tools</span>
-					<button class="bsb-devtools__collapse" id="collapse" type="button" aria-label="Collapse dev tools">
-						&#x2715;
-					</button>
-				</div>
-				<div class="bsb-devtools__row">
-					<div>
-						<p class="bsb-devtools__label">Bypass charging gate</p>
-						<p class="bsb-devtools__help">Run while plugged in — readings are not a real benchmark.</p>
+		<div class="cockpit-wrap">
+			<div class="cockpit">
+				<div class="deck">
+					<div class="brand">
+						<span class="mark"></span>
+						<span class="name">Battery Surf Bench<small>Cockpit</small></span>
 					</div>
-					<label class="bsb-devtools__switch">
-						<input type="checkbox" id="bypass" />
-						<span class="bsb-devtools__switch-track"></span>
-						<span class="bsb-devtools__switch-thumb"></span>
-					</label>
+					<div class="deck-body">
+						<div class="field">
+							<span class="flabel">Mode</span>
+							<div class="seg">
+								<button class="on" type="button">Duration</button>
+								<button type="button">Target drop</button>
+							</div>
+						</div>
+						<div class="field">
+							<span class="flabel">Run duration</span>
+							<div class="dur">
+								<button class="step" type="button">&minus;</button>
+								<span class="num">30<small>min</small></span>
+								<button class="step" type="button">+</button>
+							</div>
+						</div>
+						<div class="field">
+							<span class="flabel">Speed</span>
+							<div class="seg">
+								<button class="on" type="button">1&times;</button>
+								<button type="button">4&times;</button>
+							</div>
+						</div>
+						<button class="start" type="button">Start</button>
+					</div>
 				</div>
-				<p class="bsb-devtools__actual" id="actual">
-					Actually: <strong id="actual-state">on battery</strong>
-				</p>
+				<div class="stage">
+					<span class="sun"></span>
+					<div class="waves"><i></i><i></i></div>
+					<div class="ready">
+						<h2>Ready to surf</h2>
+						<p>Hit start to begin the benchmark.</p>
+					</div>
+				</div>
+			</div>
+
+			<div class="bsb-devtools" id="devtools" data-collapsed="true">
+				<button class="bsb-devtools__chip" id="chip" type="button" data-bypass="false" aria-label="Open dev tools">
+					<span class="bsb-devtools__chip-dot"></span>
+					DEV
+				</button>
+				<div class="bsb-devtools__card">
+					<div class="bsb-devtools__head">
+						<span class="bsb-devtools__title">Dev tools</span>
+						<button class="bsb-devtools__collapse" id="collapse" type="button" aria-label="Collapse dev tools">
+							&#x2715;
+						</button>
+					</div>
+					<div class="bsb-devtools__row">
+						<div>
+							<p class="bsb-devtools__label">Bypass charging gate</p>
+							<p class="bsb-devtools__help">Run while plugged in — readings are not a real benchmark.</p>
+						</div>
+						<label class="bsb-devtools__switch">
+							<input type="checkbox" id="bypass" />
+							<span class="bsb-devtools__switch-track"></span>
+							<span class="bsb-devtools__switch-thumb"></span>
+						</label>
+					</div>
+					<p class="bsb-devtools__actual" id="actual">
+						Actually: <strong id="actual-state">on battery</strong>
+					</p>
+				</div>
 			</div>
 		</div>
 
