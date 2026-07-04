@@ -79,10 +79,40 @@ test.describe( 'Surf engine', () => {
 		await expectNoPhpNotices( page );
 	} );
 
+	test( 'drives a visible fake cursor while surfing', async ( { page } ) => {
+		// Fidget maxed, everything else at zero: FidgetWiggle/MicroScroll
+		// dominate early ticks, so the cursor moves promptly and repeatedly.
+		await page.goto(
+			'/?bsbSessionPage=article-1&bsbTraits=0,0,0,0,10&bsbSpeed=10'
+		);
+
+		const cursor = page.locator( '.bsb-surf-cursor' );
+		await expect( cursor ).toBeAttached();
+
+		const initialTransform = await cursor.evaluate(
+			( el ) => ( el as HTMLElement ).style.transform
+		);
+
+		await page.waitForFunction(
+			( initial ) => {
+				const el = document.querySelector(
+					'.bsb-surf-cursor'
+				) as HTMLElement | null;
+				return !! el && el.style.transform !== initial;
+			},
+			initialTransform,
+			{ timeout: 10_000 }
+		);
+	} );
+
 	test( 'stays a static page when the traits URL param is absent', async ( {
 		page,
 	} ) => {
 		await page.goto( '/?bsbSessionPage=article-1' );
+
+		// No fake cursor and no OS-cursor-hiding class — the engine never booted.
+		await expect( page.locator( '.bsb-surf-cursor' ) ).toHaveCount( 0 );
+		await expect( page.locator( 'html' ) ).not.toHaveClass( /bsb-surfing/ );
 
 		// Poll past the engine's settle beat (1000-3000 ms at speed 1, the
 		// default with no bsbSpeed param) plus a first tick — an incorrectly

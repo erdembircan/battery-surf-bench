@@ -72,6 +72,14 @@ classDiagram
         +idle(ms) Promise
     }
 
+    %% The visible cursor DomMotor drives — synthetic mousemove events alone
+    %% render nothing, so pointerDrift and selectSnippet move this instead.
+    class FakeCursor {
+        +position Point
+        +moveTo(Point) void
+        +travelTo(Point, frames, Rng) Promise
+    }
+
     class Clock {
         <<interface>>
         +wait(ms) Promise
@@ -172,6 +180,7 @@ classDiagram
 
     EngineBoot --> SurfLoop : builds deps & starts
     EngineBoot --> DomMotor : creates
+    DomMotor --> FakeCursor : creates & owns (composition)
     EngineBoot --> RealClock : creates
     EngineBoot --> Rng : seeds the one PRNG instance
     EngineBoot --> Affordances : provides senseAffordances

@@ -6,6 +6,7 @@
  */
 
 import type { Rng } from './Rng';
+import { FakeCursor } from './FakeCursor';
 
 /** A motion primitive the surfer can perform. */
 export interface Motor {
@@ -32,19 +33,55 @@ const easeInOutQuad = ( t: number ): number =>
  * Waits for the next animation frame, falling back to a short timeout where
  * `requestAnimationFrame` is unavailable (e.g. a backgrounded iframe tab).
  */
-const nextFrame = (): Promise< number > =>
+const nextFrame = (): Promise< void > =>
 	new Promise( ( resolve ) =>
 		typeof requestAnimationFrame === 'function'
-			? requestAnimationFrame( resolve )
-			: setTimeout( () => resolve( performance.now() ), 16 )
+			? requestAnimationFrame( () => resolve() )
+			: setTimeout( resolve, 16 )
 	);
+
+/** Assumed animation-frame length, for converting a duration to a frame count. */
+const FRAME_MS = 16;
+
+/**
+ * Converts a duration to a frame count at {@link FRAME_MS} per frame, never
+ * fewer than one so a zero/negative duration still completes.
+ * @param ms
+ */
+const msToFrames = ( ms: number ): number =>
+	Math.max( 1, Math.round( ms / FRAME_MS ) );
+
+/** Shortest and longest single wander leg, in frames, for `pointerDrift`. */
+const DRIFT_LEG_FRAMES_MIN = 15;
+const DRIFT_LEG_FRAMES_MAX = 30;
+
+/** How long the cursor travels to a snippet before the selection sweep starts. */
+const SNIPPET_APPROACH_MS = 500;
+
+/** How long the progressive selection sweep takes to cover the snippet. */
+const SNIPPET_SWEEP_MS = 700;
+
+/** How long the finished selection is held before it is cleared. */
+const SNIPPET_HOLD_MS = 600;
 
 /** Production motor: performs real, eased DOM motion. */
 export class DomMotor implements Motor {
 	private readonly rng: Rng;
+	private readonly nextFrameFn: () => Promise< void >;
+	private readonly cursor: FakeCursor;
 
-	constructor( rng: Rng ) {
+	/**
+	 * @param rng
+	 * @param nextFrameFn Animation tick source the cursor advances on.
+	 */
+	constructor( rng: Rng, nextFrameFn: () => Promise< void > = nextFrame ) {
 		this.rng = rng;
+		this.nextFrameFn = nextFrameFn;
+		this.cursor = new FakeCursor(
+			document,
+			{ x: window.innerWidth / 2, y: window.innerHeight / 2 },
+			nextFrameFn
+		);
 	}
 
 	async scrollBy( px: number, ms: number ): Promise< void > {
@@ -66,16 +103,24 @@ export class DomMotor implements Motor {
 	}
 
 	async pointerDrift( ms: number ): Promise< void > {
-		const start = performance.now();
+		let framesLeft = msToFrames( ms );
 
-		while ( performance.now() - start < ms ) {
-			const event = new MouseEvent( 'mousemove', {
-				bubbles: true,
-				clientX: this.rng() * window.innerWidth,
-				clientY: this.rng() * window.innerHeight,
-			} );
-			document.dispatchEvent( event );
-			await nextFrame();
+		while ( framesLeft > 0 ) {
+			const legFrames = Math.min(
+				framesLeft,
+				DRIFT_LEG_FRAMES_MIN +
+					Math.floor(
+						this.rng() *
+							( DRIFT_LEG_FRAMES_MAX - DRIFT_LEG_FRAMES_MIN )
+					)
+			);
+			const target = {
+				x: this.rng() * window.innerWidth,
+				y: this.rng() * window.innerHeight,
+			};
+
+			await this.cursor.travelTo( target, legFrames, this.rng );
+			framesLeft -= legFrames;
 		}
 	}
 
@@ -89,19 +134,50 @@ export class DomMotor implements Motor {
 		}
 
 		const el = candidates[ Math.floor( this.rng() * candidates.length ) ];
-		const textNode = el.firstChild;
+		const textNode = Array.from( el.childNodes ).find(
+			( node ): node is Text =>
+				node.nodeType === Node.TEXT_NODE &&
+				( node.textContent ?? '' ).trim().length > 0
+		);
 		const selection = el.ownerDocument.defaultView?.getSelection();
 
 		if ( ! textNode || ! selection ) {
 			return;
 		}
 
+		const text = textNode.textContent ?? '';
+		const rect = el.getBoundingClientRect();
+
+		await this.cursor.travelTo(
+			{ x: rect.left, y: rect.top + rect.height / 2 },
+			msToFrames( SNIPPET_APPROACH_MS ),
+			this.rng
+		);
+
 		const range = el.ownerDocument.createRange();
-		range.selectNodeContents( textNode );
+		range.setStart( textNode, 0 );
+		range.setEnd( textNode, 0 );
 		selection.removeAllRanges();
 		selection.addRange( range );
 
-		await new Promise( ( resolve ) => setTimeout( resolve, 600 ) );
+		// Extends the selection and sweeps the cursor across the snippet in
+		// lockstep, frame by frame, rather than selecting the whole thing at once.
+		const sweepFrames = msToFrames( SNIPPET_SWEEP_MS );
+
+		for ( let i = 1; i <= sweepFrames; i++ ) {
+			const t = i / sweepFrames;
+			range.setEnd( textNode, Math.floor( text.length * t ) );
+			this.cursor.moveTo( {
+				x: rect.left + rect.width * t,
+				y: rect.top + rect.height / 2,
+			} );
+			await this.nextFrameFn();
+		}
+
+		for ( let i = 0; i < msToFrames( SNIPPET_HOLD_MS ); i++ ) {
+			await this.nextFrameFn();
+		}
+
 		selection.removeAllRanges();
 	}
 

@@ -673,3 +673,27 @@ $tag-bg: #eef3f8; // light-blue tag chip
 		max-width: none;
 	}
 }
+
+// The surf engine hides the OS cursor for the whole page while it drives (see
+// FakeCursor.ts) and paints its own instead. Scoped outside `.bsb-course-content`
+// since both apply page-wide, not just within the article wrapper.
+.bsb-surfing {
+	cursor: none;
+}
+
+.bsb-surf-cursor {
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 24px;
+	height: 24px;
+	pointer-events: none;
+	z-index: 999999;
+	will-change: transform;
+
+	svg {
+		display: block;
+		width: 100%;
+		height: 100%;
+	}
+}
