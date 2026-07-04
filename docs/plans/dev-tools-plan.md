@@ -130,7 +130,7 @@ New/changed files, all in `src/cockpit/` (CamelCase, JSDoc on classes/functions,
 - **Expanded:** compact card — header ("Dev tools" + collapse control), one labeled toggle row ("Bypass charging gate" + a one-line helper, e.g. "Run while plugged in — readings are not a real benchmark"), and the actual-state line while bypass is on ("Actually: plugged in / on battery").
 - **Copy:** plain untranslated strings in the panel module. This is maintainer-only tooling that never ships; do not add `__()` calls (JS string extraction isn't wired in this repo anyway).
 - **Styles:** a new `.bsb-devtools` section in `src/cockpit/style.scss` (SCSS only, never a hand-written `.css`). Reuse the existing theme tokens defined on `.wp-block-bsb-cockpit` — both light and `[data-theme='dark']` must look right; verify any token you reference actually exists in the theme before using it. Tradeoff, accepted: the compiled stylesheet ships these few unused selectors in production (the SCSS pipeline has no build-flag branch, and a dev-only style entry isn't worth the enqueue plumbing).
-- **Mockup first (CLAUDE.md rule):** this is a new UI surface. Before production code, build `docs/mockups/dev-tools-panel.html` — self-contained (inline CSS/JS, no build step), showing collapsed + expanded states, light + dark, toggle on/off — add a line to `docs/mockups/README.md`, and get the direction approved by the reviewing session before porting it into SCSS/DOM code (PR 1, see §8).
+- **Mockup first (CLAUDE.md rule):** this is a new UI surface. Before production code, build `docs/mockups/dev-tools-panel.html` — self-contained (inline CSS/JS, no build step), showing collapsed + expanded states, light + dark, toggle on/off — add a line to `docs/mockups/README.md`, and get the direction approved by the reviewing session before porting it into SCSS/DOM code (milestone 1, see §9).
 
 ## 6. Behavior specification
 
@@ -142,10 +142,10 @@ New/changed files, all in `src/cockpit/` (CamelCase, JSDoc on classes/functions,
 
 ## 7. Contracts (charts)
 
-Same PR as the implementation, never a follow-up:
+Ship with the implementation milestone, never as a follow-up:
 
 - `docs/contracts/cockpit-frontend-modules.mmd` — add `DevOverrides` (state + transform + subscription, public surface only), `DevToolsPanel` (dev-build-only marker), `BatteryMonitor.refresh()`, and the relationships `BatteryStore → DevOverrides`, `DevToolsPanel → DevOverrides` / `RunInstance`.
-- **Broken window, fix in passing:** both `cockpit-frontend-modules.mmd` (~L50) and `CockpitContext.ts` (~L50) still say "six-stat" for `traits`; the code migrated to five (commit `a4daf9a`). Correct the wording in the same PR.
+- **Broken window, fix in passing:** both `cockpit-frontend-modules.mmd` (~L50) and `CockpitContext.ts` (~L50) still say "six-stat" for `traits`; the code migrated to five (commit `a4daf9a`). Correct the wording in the same milestone.
 - No PHP chart changes — no PHP is touched.
 
 ## 8. Testing spec
@@ -162,14 +162,16 @@ Behavior through public interfaces only; vitest (jsdom) carries the behavior cov
 **Playwright e2e** (extend `tests/e2e/CockpitCourse.spec.mts` or a small new spec):
 - The cockpit page contains **no** `.bsb-devtools` element — e2e runs the production build (`pretest:e2e` → `pnpm build`), so this asserts the dev tooling can never leak into a shipped bundle. That absence selector is a contract with the panel's root class: rename them together.
 
-**Manual dev verification (before the PR):** run `pnpm dev`, confirm the panel mounts, the dynamic-import chunk loads under the script-modules output, and the bypass actually enables the run button while plugged in. Screenshot in the PR description.
+**Manual dev verification (before finishing milestone 2):** run `pnpm dev`, confirm the panel mounts, the dynamic-import chunk loads under the script-modules output, and the bypass actually enables the run button while plugged in. Screenshot in the PR description.
 
-## 9. Delivery — two PRs, in order
+## 9. Delivery — one PR, two approval-gated milestones
 
-1. **PR 1 — mockup.** `docs/mockups/dev-tools-panel.html` + README entry, nothing else. The reviewing session approves the direction (offer the tweak levers: size, colour, spacing) before PR 2 starts.
-2. **PR 2 — implementation.** Everything else in this plan: `DevOverrides`, `DevToolsPanel`, `BatteryMonitor.refresh()`, the `view.ts` boot guard, `src/Globals.d.ts`, the vitest `define`, SCSS, all tests, the chart update, the six-stat wording fix.
+All work happens as one continuous stream on a single branch with a single **draft PR**, opened at the first push. The stream is split into two milestones, and each milestone ends at a hard stop: push, report, and **wait for the reviewing session's approval** before starting the next. Never begin milestone-2 work while milestone 1 is unapproved.
 
-Each PR: replay the PR workflow locally until green, Conventional Commits (`[FEAT]` for PR 2, `[DOCS]`/`[CHORE]` as fits PR 1), no AI attribution, push and open the PR without asking (standing convention).
+1. **Milestone 1 — mockup.** `docs/mockups/dev-tools-panel.html` + README entry, nothing else. Push, open the draft PR, and stop. The reviewing session approves the direction (offer the tweak levers: size, colour, spacing); iterate on the mockup within this milestone until approved.
+2. **Milestone 2 — implementation.** Everything else in this plan, on the same branch: `DevOverrides`, `DevToolsPanel`, `BatteryMonitor.refresh()`, the `view.ts` boot guard, `src/Globals.d.ts`, the vitest `define`, SCSS, all tests, the chart update, the six-stat wording fix. When green and reviewed, mark the PR ready.
+
+Each milestone: replay the PR workflow locally until green before pushing, Conventional Commits per commit (`[DOCS]`/`[CHORE]` for the mockup, `[FEAT]` for the implementation), no AI attribution.
 
 ## 10. Acceptance criteria (reviewer checks these)
 
@@ -179,4 +181,4 @@ Each PR: replay the PR workflow locally until green, Conventional Commits (`[FEA
 - Toggling bypass takes effect immediately in both directions (no 30 s heartbeat wait), including the mid-run stop on toggle-off while plugged.
 - `SCRIPT_DEBUG` usage verified against the installed `@wordpress/scripts` config; typed via the ambient declaration; vitest `define` added.
 - No PHP changes anywhere in the diff.
-- All styles in SCSS; panel strings untranslated by design; chart updated in the same PR; mockup approved before implementation; all CLAUDE.md conventions hold (PHPCS untouched-green, lint/tests replayed locally with real exit codes).
+- All styles in SCSS; panel strings untranslated by design; chart updated in the implementation milestone; mockup approved before implementation; all CLAUDE.md conventions hold (PHPCS untouched-green, lint/tests replayed locally with real exit codes).
