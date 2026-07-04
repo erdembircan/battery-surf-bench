@@ -191,6 +191,7 @@ vi.mock( '@wordpress/interactivity', () => ( {
 } ) );
 
 import { __resetInstance } from './view';
+import { devOverrides } from './DevOverrides';
 
 const page = ( n: string ): CoursePage => ( {
 	slug: n,
@@ -244,6 +245,9 @@ beforeEach( () => {
 	mocks.element = { dataset: {}, checked: false, value: '' };
 	// The run state is a module singleton; reset it so tests stay isolated.
 	__resetInstance();
+	// The dev overrides are a module singleton too.
+	devOverrides.bypassCharging = false;
+	devOverrides.actualCharging = null;
 } );
 
 describe( 'bsb/cockpit view store', () => {
@@ -1571,5 +1575,85 @@ describe( 'bsb/cockpit view store', () => {
 			expect( mocks.config!.state.isToastError ).toBe( true );
 			expect( mocks.config!.state.toastRole ).toBe( 'alert' );
 		} );
+	} );
+} );
+
+describe( 'dev overrides bypass', () => {
+	afterEach( () => {
+		delete ( navigator as { getBattery?: unknown } ).getBattery;
+	} );
+
+	it( 'leaves a run startable and records samples while a charging reading is bypassed', async () => {
+		devOverrides.bypassCharging = true;
+
+		const mockBattery = {
+			level: 0.5,
+			charging: true,
+			addEventListener: vi.fn(),
+			removeEventListener: vi.fn(),
+		};
+		( navigator as { getBattery?: unknown } ).getBattery = () =>
+			Promise.resolve( mockBattery );
+
+		const cleanup = mocks.config!.callbacks.initBattery();
+		await vi.waitFor( () =>
+			expect( mocks.context.batteryLevel ).toBe( 50 )
+		);
+
+		// The transform coherently reports "on battery" downstream: the start
+		// gate clears even though the device is physically plugged in.
+		expect( mocks.context.batteryCharging ).toBe( false );
+		expect( mocks.config!.state.isStartBlocked ).toBe( false );
+
+		mocks.config!.actions.toggleRun();
+		expect( mocks.context.running ).toBe( true );
+
+		// A later (still physically charging) reading keeps recording, because
+		// the store sees it as a discharging sample.
+		const onChange = mockBattery.addEventListener.mock.calls.find(
+			( call ) => call[ 0 ] === 'levelchange'
+		)?.[ 1 ] as () => void;
+		mockBattery.level = 0.49;
+		onChange();
+
+		expect( mocks.context.running ).toBe( true );
+		expect( mocks.context.rateSession ).not.toBeNull();
+
+		cleanup();
+	} );
+
+	it( 'stops a bypassed run with reason plugged once the bypass is turned off', async () => {
+		devOverrides.bypassCharging = true;
+
+		const mockBattery = {
+			level: 0.5,
+			charging: true,
+			addEventListener: vi.fn(),
+			removeEventListener: vi.fn(),
+		};
+		( navigator as { getBattery?: unknown } ).getBattery = () =>
+			Promise.resolve( mockBattery );
+
+		const cleanup = mocks.config!.callbacks.initBattery();
+		await vi.waitFor( () =>
+			expect( mocks.context.batteryLevel ).toBe( 50 )
+		);
+
+		mocks.config!.actions.toggleRun();
+		expect( mocks.context.running ).toBe( true );
+
+		// Turning the bypass off (mirroring the panel's toggle + monitor
+		// refresh) re-emits the still-charging raw reading unmodified: the run
+		// stops exactly as an unplugged-then-plugged run would.
+		devOverrides.bypassCharging = false;
+		const onChange = mockBattery.addEventListener.mock.calls.find(
+			( call ) => call[ 0 ] === 'chargingchange'
+		)?.[ 1 ] as () => void;
+		onChange();
+
+		expect( mocks.context.running ).toBe( false );
+		expect( mocks.context.endReason ).toBe( 'plugged' );
+
+		cleanup();
 	} );
 } );

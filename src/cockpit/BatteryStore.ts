@@ -13,6 +13,7 @@ import { instanceFor, now } from './RunInstance';
 import { applyReadouts, stopRun } from './RunLifecycle';
 import { BatteryMonitor, type BatteryReading } from './BatteryMonitor';
 import { targetCap } from './TargetControl';
+import { applyDevOverrides } from './DevOverrides';
 
 /** The battery slice of the `bsb/cockpit` store. */
 export const batteryStore: StorePart = {
@@ -98,7 +99,8 @@ export const batteryStore: StorePart = {
 
 			const monitor = new BatteryMonitor( {
 				getBattery: provider,
-				onReading: ( reading ) => {
+				onReading: ( raw ) => {
+					const reading = applyDevOverrides( raw );
 					instance.lastReading = reading;
 					context.batteryLevel = Math.round( reading.level * 100 );
 					context.batteryCharging = reading.charging;

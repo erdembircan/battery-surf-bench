@@ -64,3 +64,16 @@ store(
 		toastStore
 	)
 );
+
+// Dev-build-only floating panel (bypass-the-charging-gate and future dev
+// tools). The condition folds to `false` in a production build (wp-scripts
+// build defaults NODE_ENV to 'production'), so webpack drops this branch —
+// and the dynamic import inside it — from the production bundle entirely.
+if ( process.env.NODE_ENV !== 'production' ) {
+	void import( './DevToolsPanel' ).then( ( mod ) => {
+		const host = document.querySelector( '.wp-block-bsb-cockpit' );
+		if ( host ) {
+			mod.mountDevToolsPanel( host );
+		}
+	} );
+}

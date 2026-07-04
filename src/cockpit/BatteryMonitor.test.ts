@@ -206,6 +206,70 @@ describe( 'BatteryMonitor', () => {
 		expect( timers.active() ).toBe( 0 );
 	} );
 
+	it( 'refresh re-emits the current reading', async () => {
+		const onReading = vi.fn< ( reading: BatteryReading ) => void >();
+		const manager = fakeManager( 0.6, false );
+		const timers = fakeTimers();
+
+		const monitor = new BatteryMonitor( {
+			getBattery: () => Promise.resolve( manager ),
+			onReading,
+			...timers,
+		} );
+		monitor.start();
+		await vi.waitFor( () =>
+			expect( manager.addEventListener ).toHaveBeenCalled()
+		);
+		onReading.mockClear();
+
+		manager.level = 0.55;
+		manager.charging = true;
+		monitor.refresh();
+
+		expect( onReading ).toHaveBeenCalledWith( {
+			level: 0.55,
+			charging: true,
+		} );
+	} );
+
+	it( 'refresh is a no-op before the manager resolves', () => {
+		const onReading = vi.fn< ( reading: BatteryReading ) => void >();
+		const timers = fakeTimers();
+
+		const monitor = new BatteryMonitor( {
+			getBattery: () =>
+				new Promise< BatteryManagerLike >( () => undefined ),
+			onReading,
+			...timers,
+		} );
+		monitor.start();
+		monitor.refresh();
+
+		expect( onReading ).not.toHaveBeenCalled();
+	} );
+
+	it( 'refresh is a no-op after stop', async () => {
+		const onReading = vi.fn< ( reading: BatteryReading ) => void >();
+		const manager = fakeManager( 0.6, false );
+		const timers = fakeTimers();
+
+		const monitor = new BatteryMonitor( {
+			getBattery: () => Promise.resolve( manager ),
+			onReading,
+			...timers,
+		} );
+		monitor.start();
+		await vi.waitFor( () =>
+			expect( manager.addEventListener ).toHaveBeenCalled()
+		);
+		monitor.stop();
+		onReading.mockClear();
+
+		monitor.refresh();
+
+		expect( onReading ).not.toHaveBeenCalled();
+	} );
+
 	it( 'does not attach when stopped before acquisition resolves', async () => {
 		const onReading = vi.fn< ( reading: BatteryReading ) => void >();
 		const manager = fakeManager();

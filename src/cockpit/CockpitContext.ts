@@ -47,7 +47,7 @@ export interface CockpitContext {
 	mode: RunMode;
 	durationMinutes: number;
 	speed: number;
-	// The surfer personality: a six-stat trait vector (see shared/SurferStats),
+	// The surfer personality: a five-stat trait vector (see shared/SurferStats),
 	// whether the stat sliders are revealed, and the translated archetype names
 	// keyed by canonical key so the store can show the derived cover-name.
 	traits: number[];

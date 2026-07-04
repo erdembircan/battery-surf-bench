@@ -229,7 +229,26 @@ classDiagram
         +__construct(BatteryMonitorOptions)
         +start() void
         +stop() void
+        +startHeartbeat() void
+        +stopHeartbeat() void
+        +refresh() void
         +HEARTBEAT_MS
+    }
+
+    %% Dev-build-only floating panel and its battery-reading transform. Neither
+    %% reaches a production bundle: the NODE_ENV guard in CockpitView folds to
+    %% false, dropping the dynamic import of DevToolsPanel, and DevOverrides'
+    %% bypass stays permanently false so applyDevOverrides is a pass-through.
+    class DevOverrides {
+        <<module>>
+        +devOverrides: DevOverridesState
+        +applyDevOverrides(BatteryReading) BatteryReading
+        +onDevReading(() =&gt; void) () =&gt; void
+    }
+
+    class DevToolsPanel {
+        <<module, dev-build only>>
+        +mountDevToolsPanel(Element) void
     }
 
     class ScreenWakeLock {
@@ -250,6 +269,7 @@ classDiagram
     CockpitView --> SummaryStore : composes
     CockpitView --> StartupStore : composes
     CockpitView --> ToastStore : composes
+    CockpitView --> DevToolsPanel : mounts (dev builds only)
 
     %% Slices share the run state, lifecycle seam and reactive context.
     RunStore ..> CockpitContext : reads/writes
@@ -289,6 +309,9 @@ classDiagram
     TargetStore --> TargetControl : maps slider input
     BatteryStore --> TargetControl : caps idle target
     BatteryStore --> BatteryMonitor : creates & owns (composition)
+    BatteryStore --> DevOverrides : transforms every raw reading
+    DevToolsPanel --> DevOverrides : reads/writes bypass state
+    DevToolsPanel --> RunInstance : refreshes the monitor on toggle
     SoundStore --> FinishChime : creates & owns (composition)
     SummaryStore --> Format : formats verdict
     SummaryStore --> GraphSvg : paints chart from model

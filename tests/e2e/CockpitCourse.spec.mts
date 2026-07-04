@@ -258,6 +258,12 @@ test.describe( 'Cockpit dashboard route', () => {
 			/style-cockpit-dashboard/
 		);
 
+		// This spec runs against the production build (`pretest:e2e` → `pnpm
+		// build`), so the dev-tools panel — mounted only where
+		// `process.env.NODE_ENV !== 'production'` — must never appear here. A
+		// rename of the panel's root class must update this selector too.
+		await expect( page.locator( '.bsb-devtools' ) ).toHaveCount( 0 );
+
 		await expectNoPhpNotices( page );
 	} );
 } );

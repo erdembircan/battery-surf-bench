@@ -135,6 +135,18 @@ export class BatteryMonitor {
 		this.manager = undefined;
 	}
 
+	/**
+	 * Re-emits the current manager reading through the normal `onReading` path.
+	 * Lets a caller outside the acquisition/heartbeat cycle (the dev-tools panel)
+	 * force an immediate reading after changing something the transform reads —
+	 * without it, the next reading might be up to {@link HEARTBEAT_MS} away, or
+	 * never while idle (idle readings are otherwise event-driven only). A no-op
+	 * before the manager promise resolves or after `stop()`.
+	 */
+	refresh(): void {
+		this.emit();
+	}
+
 	/** Reports the current reading immediately, if a manager has been acquired. */
 	private emit(): void {
 		if ( ! this.manager ) {

@@ -2399,3 +2399,206 @@ body.bsb-cockpit-dashboard {
 		@extend %focus-ring;
 	}
 }
+
+// ── Dev tools panel (development builds only) ──────────────────────────────
+// A small floating box, mounted into the cockpit wrapper only where
+// `process.env.NODE_ENV !== 'production'` (see view.ts): collapsed to a "DEV"
+// chip, or expanded to a card with the bypass-charging-gate toggle. Sits above
+// the toast layer, in the same fixed corner, but its own box stays small so it
+// never intercepts clicks elsewhere on the page. Reuses the cockpit's own theme
+// tokens (cascading from `.wp-block-bsb-cockpit`) rather than declaring any of
+// its own — production ships these selectors unused (dormant, near-zero cost)
+// since the SCSS pipeline has no build-flag branch to strip them.
+.bsb-devtools {
+	position: fixed;
+	inset-block-end: 20px;
+	inset-inline-end: 20px;
+	z-index: 1100;
+	font-family: theme.$font-ui;
+}
+
+.bsb-devtools__chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	border: 1px solid var(--line);
+	border-radius: 999px;
+	padding: 8px 14px;
+	background: var(--surface);
+	color: var(--text-soft);
+	box-shadow: 0 6px 18px var(--surface-shadow);
+	font-family: theme.$font-mono;
+	font-size: 11px;
+	font-weight: 700;
+	letter-spacing: 0.08em;
+	cursor: pointer;
+
+	&[data-bypass='true'] {
+		color: var(--accent-ink);
+		background: var(--accent-grad);
+		border-color: transparent;
+
+		.bsb-devtools__chip-dot {
+			background: var(--accent-ink);
+			opacity: 1;
+		}
+	}
+
+	&:focus-visible {
+		@extend %focus-ring;
+	}
+}
+
+.bsb-devtools__chip-dot {
+	width: 7px;
+	height: 7px;
+	border-radius: 50%;
+	background: var(--text-soft);
+	opacity: 0.5;
+}
+
+.bsb-devtools__card {
+	width: 250px;
+	background: var(--surface);
+	backdrop-filter: blur(14px);
+	-webkit-backdrop-filter: blur(14px);
+	border: 1px solid var(--line);
+	border-radius: 14px;
+	box-shadow: 0 14px 36px var(--surface-shadow);
+	padding: 14px 16px 16px;
+	color: var(--text);
+}
+
+.bsb-devtools__head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: 10px;
+}
+
+.bsb-devtools__title {
+	font-family: theme.$font-mono;
+	font-size: 11px;
+	font-weight: 700;
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+	color: var(--label);
+}
+
+.bsb-devtools__collapse {
+	border: 0;
+	background: transparent;
+	color: var(--text-soft);
+	cursor: pointer;
+	font-size: 15px;
+	line-height: 1;
+	padding: 2px 4px;
+	border-radius: 6px;
+
+	&:hover {
+		background: var(--accent-soft);
+		color: var(--text-strong);
+	}
+
+	&:focus-visible {
+		@extend %focus-ring;
+	}
+}
+
+.bsb-devtools__row {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 10px;
+}
+
+.bsb-devtools__label {
+	font-size: 13px;
+	font-weight: 600;
+	color: var(--text-strong);
+	margin: 0 0 3px;
+}
+
+.bsb-devtools__help {
+	font-size: 11px;
+	color: var(--text-soft);
+	line-height: 1.4;
+	margin: 0;
+}
+
+// Switch control — mirrors a native checkbox, styled as a track+thumb.
+.bsb-devtools__switch {
+	position: relative;
+	display: inline-block;
+	width: 34px;
+	height: 20px;
+	flex: none;
+	margin-top: 1px;
+
+	input {
+		position: absolute;
+		opacity: 0;
+		width: 100%;
+		height: 100%;
+		margin: 0;
+		cursor: pointer;
+
+		&:checked + .bsb-devtools__switch-track {
+			background: var(--accent-grad);
+		}
+
+		&:checked ~ .bsb-devtools__switch-thumb {
+			transform: translateX(14px);
+		}
+
+		&:focus-visible + .bsb-devtools__switch-track {
+			@extend %focus-ring;
+		}
+	}
+}
+
+.bsb-devtools__switch-track {
+	position: absolute;
+	inset: 0;
+	background: var(--track);
+	border-radius: 999px;
+	transition: background 0.15s ease;
+}
+
+.bsb-devtools__switch-thumb {
+	position: absolute;
+	top: 2px;
+	left: 2px;
+	width: 16px;
+	height: 16px;
+	border-radius: 50%;
+	background: #fff;
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+	transition: transform 0.15s ease;
+}
+
+.bsb-devtools__actual {
+	margin: 12px 0 0;
+	padding-top: 10px;
+	border-top: 1px solid var(--line);
+	font-family: theme.$font-mono;
+	font-size: 11px;
+	color: var(--text-soft);
+	display: none;
+
+	&[data-visible='true'] {
+		display: block;
+	}
+
+	strong {
+		color: var(--text-strong);
+	}
+}
+
+.bsb-devtools[data-collapsed='true'] .bsb-devtools__card {
+	display: none;
+}
+
+.bsb-devtools[data-collapsed='false'] .bsb-devtools__chip {
+	display: none;
+}
