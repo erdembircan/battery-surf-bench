@@ -238,6 +238,19 @@ export const batteryStore: StorePart = {
 		 * makes this re-run reactively. In production, with no dev-tools module
 		 * loaded, `state.devtools` is undefined and this reads it once and never
 		 * does anything again.
+		 *
+		 * On a platform with no Battery Status API, disarming a previously-armed
+		 * synthetic override resolves to no reading at all — the mirror of the
+		 * arm path: the cockpit is returned to the unsupported idle state
+		 * (`batterySupported` false, readouts at their em-dash idle values, as
+		 * `initBattery`'s no-provider branch leaves them). A run started under
+		 * the synthetic override is first stopped with the `stopped` reason —
+		 * the disarm is a manual dev action, and stopping through the normal
+		 * teardown preserves the run's summary instead of leaving a live run
+		 * with no battery source. The revert is gated on the API actually being
+		 * absent (the same probe `initBattery` uses), never on a merely
+		 * not-yet-arrived first reading, so a supported browser is never
+		 * wrongly locked while its first reading is still in flight.
 		 */
 		syncBatteryOverride(): void {
 			const context = getContext< CockpitContext >();
@@ -255,7 +268,27 @@ export const batteryStore: StorePart = {
 					context.batterySupported = true;
 				}
 				applyReading( context, instance, resolved );
+				return;
 			}
+
+			const platformHasBattery =
+				typeof ( navigator as Navigator & { getBattery?: unknown } )
+					.getBattery === 'function';
+
+			if ( platformHasBattery || ! context.batterySupported ) {
+				return;
+			}
+
+			// Synthetic override disarmed on a no-battery platform: wind up any
+			// run it was powering, then restore the unsupported idle state so
+			// the forced readouts do not linger as if they were real.
+			if ( context.running ) {
+				stopRun( context, instance, 'stopped' );
+			}
+
+			context.batterySupported = false;
+			context.batteryLevel = null;
+			context.batteryCharging = false;
 		},
 	},
 };

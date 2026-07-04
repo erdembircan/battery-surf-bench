@@ -948,6 +948,60 @@ describe( 'bsb/cockpit view store', () => {
 				expect( mocks.config!.state.isBatteryUnsupported ).toBe( true );
 				expect( mocks.context.batteryLevel ).toBeNull();
 			} );
+
+			it( 'reverts to the unsupported idle state when a synthetic override is disarmed', () => {
+				// Arm on a platform with no Battery Status API: the synthetic
+				// reading unlocks the cockpit.
+				setOverride( { enabled: true, charging: false, level: 0.3 } );
+				mocks.config!.callbacks.initBattery();
+				expect( mocks.context.batterySupported ).toBe( true );
+				expect( mocks.context.batteryLevel ).toBe( 30 );
+
+				// Disarm: with no raw reading to fall back on, the whole idle
+				// state must revert — not just stop updating — so the forced
+				// readouts do not linger as if they were real.
+				setOverride( { enabled: false, charging: false, level: 0.3 } );
+				mocks.config!.callbacks.syncBatteryOverride();
+
+				expect( mocks.context.batterySupported ).toBe( false );
+				expect( mocks.context.batteryLevel ).toBeNull();
+				expect( mocks.context.batteryCharging ).toBe( false );
+				expect( mocks.config!.state.isBatteryUnsupported ).toBe( true );
+			} );
+
+			it( 'stops a run powered by a synthetic override when the override is disarmed', () => {
+				setOverride( { enabled: true, charging: false, level: 0.8 } );
+				mocks.config!.callbacks.initBattery();
+				mocks.context.running = true;
+
+				// Chosen behavior: disarming the tool mid-run is a manual dev
+				// action, so the run is stopped with the `stopped` reason (its
+				// summary is preserved through the normal teardown) and the
+				// cockpit then reverts to the locked, unsupported idle state —
+				// a live run must never continue with no battery source at all.
+				setOverride( { enabled: false, charging: null, level: null } );
+				mocks.config!.callbacks.syncBatteryOverride();
+
+				expect( mocks.context.running ).toBe( false );
+				expect( mocks.context.ended ).toBe( true );
+				expect( mocks.context.endReason ).toBe( 'stopped' );
+				expect( mocks.context.batterySupported ).toBe( false );
+				expect( mocks.context.batteryLevel ).toBeNull();
+			} );
+
+			it( 'does not lock a supported browser whose first reading has not arrived yet', () => {
+				// A real battery API exists, but its async acquisition has not
+				// delivered a reading yet (lastReading is still null). The watch
+				// firing with a disarmed override must leave the seeded
+				// supported state alone.
+				( navigator as { getBattery?: unknown } ).getBattery = () =>
+					new Promise( () => undefined );
+
+				setOverride( { enabled: false, charging: null, level: null } );
+				mocks.config!.callbacks.syncBatteryOverride();
+
+				expect( mocks.context.batterySupported ).toBe( true );
+			} );
 		} );
 	} );
 
