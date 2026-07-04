@@ -1,0 +1,194 @@
+%% Surf engine modules — contract chart.
+%% The utility-AI engine that runs inside the course-page iframe (src/surfer/).
+%% Every action the surfer can take is a Behavior that bids in an auction each
+%% tick; SurfLoop draws a winner via the Arbiter and runs it through a Motor.
+%% No behavior-selection branching exists — bids are pure multiplicative
+%% functions of traits, affordances, appetite and noise (see the surf-engine
+%% plan). Function-only modules are marked <<module>>; interfaces <<interface>>;
+%% the rest are classes. Only the public (exported) surface is shown. Test
+%% doubles (FakeMotor, FakeClock) are test infrastructure, not architecture,
+%% and are omitted.
+classDiagram
+    direction LR
+
+    %% --- Orchestration: the tick loop and its inputs.
+    class SurfLoop {
+        +start() void
+        +stop() void
+    }
+
+    class Arbiter {
+        <<module>>
+        +pickBehavior(Ballot[], Rng) Behavior|null
+    }
+
+    class Appetite {
+        +valueFor(string) number
+        +consume(string) void
+        +recoverTick() void
+    }
+
+    %% --- The behavior contract every action implements.
+    class Behavior {
+        <<interface>>
+        +key string
+        +bid(BehaviorContext, appetite, boredom) number
+        +run(Motor, BehaviorContext) Promise
+    }
+
+    class BehaviorContext {
+        <<types>>
+        traits, affordances, rng, clock, speed
+    }
+
+    %% --- Sensing, motion and time seams the behaviors act through.
+    class Affordances {
+        <<module>>
+        +senseAffordances(Document) Affordances
+    }
+
+    class Motor {
+        <<interface>>
+        +scrollBy(px, ms) Promise
+        +pointerDrift(ms) Promise
+        +selectSnippet() Promise
+        +playVideo() Promise
+        +idle(ms) Promise
+    }
+
+    %% The only DOM writer in the engine.
+    class DomMotor {
+        +scrollBy(px, ms) Promise
+        +pointerDrift(ms) Promise
+        +selectSnippet() Promise
+        +playVideo() Promise
+        +idle(ms) Promise
+    }
+
+    class Clock {
+        <<interface>>
+        +wait(ms) Promise
+    }
+
+    class RealClock {
+        +wait(ms) Promise
+    }
+
+    class Rng {
+        <<module>>
+        +mulberry32(seed) Rng
+    }
+
+    %% --- Shared bid arithmetic and the tempo metronome.
+    class Bid {
+        <<module>>
+        +drive(stat) number
+        +noise(Rng) number
+        +lerp(min, max, t) number
+        +clamp01(number) number
+    }
+
+    class Tempo {
+        <<module>>
+        +tickIntervalMs(tempo) number
+        +flickPx(tempo) number
+        +flickEaseMs(tempo) number
+    }
+
+    %% --- Behaviors: one bidder per action, each governed by one primary stat.
+    %% ScrollBurst: baseline mover, constant drive × scrollRemaining affordance.
+    class ScrollBurst {
+        +key string
+        +bid(BehaviorContext, appetite, boredom) number
+        +run(Motor, BehaviorContext) Promise
+    }
+    %% ReadPause: literacy, gated by textDensity.
+    class ReadPause {
+        +key string
+        +bid(BehaviorContext, appetite, boredom) number
+        +run(Motor, BehaviorContext) Promise
+    }
+    %% GlanceBack: literacy; affordance grows as scrollRemaining shrinks.
+    class GlanceBack {
+        +key string
+        +bid(BehaviorContext, appetite, boredom) number
+        +run(Motor, BehaviorContext) Promise
+    }
+    %% WatchVideo: allure, gated by hasVideo.
+    class WatchVideo {
+        +key string
+        +bid(BehaviorContext, appetite, boredom) number
+        +run(Motor, BehaviorContext) Promise
+    }
+    %% LingerImage: allure, gated by imageCount.
+    class LingerImage {
+        +key string
+        +bid(BehaviorContext, appetite, boredom) number
+        +run(Motor, BehaviorContext) Promise
+    }
+    %% FidgetWiggle: fidget, no page affordance needed.
+    class FidgetWiggle {
+        +key string
+        +bid(BehaviorContext, appetite, boredom) number
+        +run(Motor, BehaviorContext) Promise
+    }
+    %% MicroScroll: fidget, no page affordance needed.
+    class MicroScroll {
+        +key string
+        +bid(BehaviorContext, appetite, boredom) number
+        +run(Motor, BehaviorContext) Promise
+    }
+    %% SelectSnippet: fidget, gated by textDensity.
+    class SelectSnippet {
+        +key string
+        +bid(BehaviorContext, appetite, boredom) number
+        +run(Motor, BehaviorContext) Promise
+    }
+    %% MoveOn: bids accumulated boredom; SurfLoop halts the page on this key.
+    class MoveOn {
+        +key string
+        +bid(BehaviorContext, appetite, boredom) number
+        +run() Promise
+    }
+
+    ScrollBurst ..|> Behavior
+    ReadPause ..|> Behavior
+    GlanceBack ..|> Behavior
+    WatchVideo ..|> Behavior
+    LingerImage ..|> Behavior
+    FidgetWiggle ..|> Behavior
+    MicroScroll ..|> Behavior
+    SelectSnippet ..|> Behavior
+    MoveOn ..|> Behavior
+    DomMotor ..|> Motor
+    RealClock ..|> Clock
+
+    SurfLoop --> Behavior : bids & runs each tick
+    SurfLoop --> Arbiter : draws a winner
+    SurfLoop --> Appetite : creates & owns (composition)
+    SurfLoop --> Motor : passes to the winning behavior
+    SurfLoop --> Clock : waits between ticks
+    SurfLoop --> Rng : seeded randomness
+    SurfLoop --> Tempo : tick interval from tempo
+    SurfLoop ..> BehaviorContext : builds each tick
+    SurfLoop --> MoveOn : recognizes its key to halt & fire onPageDone
+
+    ReadPause --> Bid : drive & noise
+    GlanceBack --> Bid : drive & noise
+    WatchVideo --> Bid : drive & noise
+    LingerImage --> Bid : drive & noise
+    FidgetWiggle --> Bid : drive & noise
+    MicroScroll --> Bid : drive & noise
+    SelectSnippet --> Bid : drive & noise
+    ScrollBurst --> Bid : noise
+    ScrollBurst --> Tempo : flick px & ease
+    Bid --> SurferStats : MAX
+
+    Behavior ..> BehaviorContext : reads
+    Behavior ..> Motor : acts through
+
+    %% --- Shared contract with the cockpit (see cockpit-frontend-modules.mmd).
+    class SurferStats {
+        <<module>>
+        shared trait vector contract — STATS, MAX
+    }
