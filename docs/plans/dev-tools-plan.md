@@ -112,19 +112,47 @@ target-stop all see the same (possibly overridden) reading. No second code path.
 - Rendered server-side (only when the gate is open) by a View class —
   `includes/DevTools/Views/DevToolsPanelView.php` implementing the `View` interface,
   heredoc markup, the view escapes its own output. No HTML in the manager.
-- Small fixed-position utilitarian panel: battery section with a tri-state charging
-  control (System / Charging / Discharging) and a level override slider + on/off. Wrapper
-  is `data-wp-interactive="bsb/cockpit"` and binds only to `devtools*`-prefixed
+- **Floating collapsible widget, fixed to the bottom-right corner of the page** (high
+  z-index, above the cockpit). Two states:
+  - **Collapsed (default):** a small pill/badge (e.g. "DEV") — unobtrusive, always
+    visible while the tools are active.
+  - **Expanded:** clicking the pill reveals the panel card (opening upward from the
+    corner): a header ("Dev Tools", collapse control) and one **section per sub-tool**.
+- **Each sub-tool has its own enable/disable master toggle.** A disabled sub-tool is
+  fully inert — its overrides are not applied regardless of its control values — and its
+  controls render visually muted. Only enabling the section arms it.
+- Sub-tool sections are additive: a future tool is a new section + state slice, no
+  rework. Today there is exactly one section:
+  - **Battery** — enable toggle; charging override tri-state (System / Charging /
+    Discharging); level override (on/off + slider).
+- Panel/off/on state shape (extends the store slice above):
+
+  ```ts
+  state.devtools = {
+    open: boolean,             // panel expanded vs collapsed pill
+    battery: {
+      enabled:  boolean,       // sub-tool master switch — gate for the resolver
+      charging: boolean | null, // null = follow system
+      level:    number  | null, // 0–1, null = follow system
+    },
+  };
+  ```
+
+  `resolveReading` applies overrides **only when `enabled` is true**.
+- **Persistence:** the `devtools` slice is persisted to `localStorage` (versioned key,
+  written via a watch on the slice, hydrated on module init). Without it every reload
+  would snap back to the real charging state and re-block the run — the exact friction
+  this tool exists to remove. Dev-only code path, so `localStorage` is acceptable here.
+- Wrapper is `data-wp-interactive="bsb/cockpit"` and binds only to `devtools*`-prefixed
   state/actions (the panel sits outside the cockpit block, so it has **no cockpit
   context** — it must bind to state only, never `getContext()`-derived getters).
 - Panel + module load on every surface where the cockpit view module loads (course
   pages, cockpit dashboard, session-detail screen) — discover those surfaces from the
   `Cockpit` and `SessionDetail` managers rather than hard-coding assumptions.
-- This is dev-only chrome, not product UI — deliberately minimal styling; no
-  `docs/mockups/` round (flagged for the maintainer; say so in the PR description so it
-  can be vetoed).
-- Structure the panel and store slice so a second tool (whatever comes next) is an
-  additive section + slice, not a rework.
+- This is dev-only chrome, not product UI — deliberately minimal styling. The
+  interaction pattern (bottom-right collapsible floating widget, per-tool sections with
+  master toggles) was specified directly by the maintainer, so no `docs/mockups/` round;
+  visual polish stays utilitarian.
 
 ### PHP wiring
 
