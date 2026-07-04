@@ -44,13 +44,13 @@ const labels = (): Record< string, string > => ( {
 	'Binge-Watcher': 'Binge-Watcher',
 	Doomscroller: 'Doomscroller',
 	Skimmer: 'Skimmer',
-	'Re-Reader': 'Re-Reader',
+	Jitterbug: 'Jitterbug',
 	Custom: 'Custom',
 } );
 
 beforeEach( () => {
 	mocks.context = {
-		traits: [ 5, 5, 5, 5, 5, 5 ],
+		traits: [ 5, 5, 5, 5, 5 ],
 		traitsOpen: false,
 		archetypeLabels: labels(),
 	};
@@ -75,11 +75,11 @@ describe( 'traits store slice', () => {
 
 	describe( 'point budget', () => {
 		it( 'reports points left and flags an empty budget', () => {
-			expect( state.pointsLeftDisplay ).toBe( '0' ); // balanced spends 30
+			expect( state.pointsLeftDisplay ).toBe( '0' ); // balanced spends 25
 			expect( state.isBudgetEmpty ).toBe( true );
 
 			mocks.context.traits = FRESH();
-			expect( state.pointsLeftDisplay ).toBe( '30' );
+			expect( state.pointsLeftDisplay ).toBe( '25' );
 			expect( state.isBudgetEmpty ).toBe( false );
 		} );
 	} );
@@ -95,10 +95,10 @@ describe( 'traits store slice', () => {
 
 	describe( 'per-slider getters (fixed index)', () => {
 		it( 'reads each stat by its own index getter', () => {
-			mocks.context.traits = [ 1, 2, 3, 4, 5, 6 ];
+			mocks.context.traits = [ 1, 2, 3, 4, 5 ];
 			expect( state.traitValue0 ).toBe( 1 );
 			expect( state.traitValue2 ).toBe( 3 );
-			expect( state.traitValue5 ).toBe( 6 );
+			expect( state.traitValue4 ).toBe( 5 );
 		} );
 
 		it( 'paints a track gradient with the accent fill and headroom', () => {
@@ -138,8 +138,8 @@ describe( 'traits store slice', () => {
 		} );
 
 		it( 'caps a raise at the remaining budget', () => {
-			// 28 spent, 2 left; raising stat 0 (5) can reach only 7.
-			mocks.context.traits = [ 5, 5, 6, 5, 5, 2 ];
+			// 23 spent, 2 left; raising stat 0 (5) can reach only 7.
+			mocks.context.traits = [ 5, 5, 6, 5, 2 ];
 			mocks.element.dataset.index = '0';
 			mocks.element.value = '10';
 			actions.setTrait();

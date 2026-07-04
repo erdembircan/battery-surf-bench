@@ -2,24 +2,18 @@
  * Surfer personality stats — the shared, framework-free domain behind the
  * cockpit's "Surfer" profile and the in-iframe surf engine.
  *
- * A surfer is six stats, each 0–10, that the engine reads to decide how it
- * behaves on a page (scroll speed, dwell, depth, reading, re-reading, video
- * pull). The stats are spent from a fixed point budget (raising one forces
- * lowering another), and an archetype "cover name" is DERIVED from the vector by
- * threshold rules — it is never stored or selected, only computed, so the name
- * is always a pure function of the current stats. Both the cockpit (which edits
- * the vector) and the engine (which consumes it) import this one module so the
- * two sides cannot drift.
+ * A surfer is five stats, each 0–10, that the engine reads to decide how it
+ * behaves on a page (tick cadence, scroll flick size, reading, media pull,
+ * fidgeting). The stats are spent from a fixed point budget (raising one
+ * forces lowering another), and an archetype "cover name" is DERIVED from the
+ * vector by threshold rules — it is never stored or selected, only computed,
+ * so the name is always a pure function of the current stats. Both the
+ * cockpit (which edits the vector) and the engine (which consumes it) import
+ * this one module so the two sides cannot drift.
  */
 
 /** A surfer stat, in the fixed order the trait vector and presets use. */
-export type StatKey =
-	| 'haste'
-	| 'endurance'
-	| 'reach'
-	| 'literacy'
-	| 'recall'
-	| 'allure';
+export type StatKey = 'tempo' | 'endurance' | 'literacy' | 'allure' | 'fidget';
 
 /** One surfer stat and the single simulation lever it drives. */
 export interface Stat {
@@ -29,22 +23,21 @@ export interface Stat {
 }
 
 /**
- * The six stats in vector order. The trait vector is `number[]` indexed to
+ * The five stats in vector order. The trait vector is `number[]` indexed to
  * match this list, so the index of a stat here is its index everywhere.
  */
 export const STATS: readonly Stat[] = [
-	{ key: 'haste', lever: 'scroll speed — slow crawl to fast flicks' },
+	{
+		key: 'tempo',
+		lever: 'pace of every motion — lazy crawl to rapid flicks',
+	},
 	{
 		key: 'endurance',
-		lever: 'time per page — bounces fast to camps the page',
+		lever: 'staying power — bounces fast to camps the page',
 	},
-	{
-		key: 'reach',
-		lever: 'scroll depth — stops at the fold to reaches the bottom',
-	},
-	{ key: 'literacy', lever: 'reading — ignores text to stops and reads' },
-	{ key: 'recall', lever: 're-reading — never looks back to re-checks' },
-	{ key: 'allure', lever: 'media pull — skips video to watches and replays' },
+	{ key: 'literacy', lever: 'pull of text — ignores it to stops and reads' },
+	{ key: 'allure', lever: 'pull of media — skips it to sits and watches' },
+	{ key: 'fidget', lever: 'restlessness — statue-still to squirmy' },
 ];
 
 /** Number of stats in a trait vector. */
@@ -55,7 +48,7 @@ export const MIN = 0;
 export const MAX = 10;
 
 /** Total points distributable across all stats — the point-buy budget. */
-export const BUDGET = 30;
+export const BUDGET = 25;
 
 /**
  * A derived archetype name, or `'Custom'` when the vector matches no rule. These
@@ -67,7 +60,7 @@ export type Archetype =
 	| 'Binge-Watcher'
 	| 'Doomscroller'
 	| 'Skimmer'
-	| 'Re-Reader'
+	| 'Jitterbug'
 	| 'Custom';
 
 /**
@@ -77,13 +70,13 @@ export type Archetype =
 export const CLASSES: Readonly<
 	Record< Exclude< Archetype, 'Custom' >, readonly number[] >
 > = {
-	//               haste end reach lit recall allure
-	Balanced: [ 5, 5, 5, 5, 5, 5 ],
-	Scholar: [ 1, 8, 4, 10, 6, 1 ],
-	'Binge-Watcher': [ 4, 7, 3, 2, 4, 10 ],
-	Doomscroller: [ 10, 5, 8, 2, 1, 4 ],
-	Skimmer: [ 8, 3, 7, 5, 2, 5 ],
-	'Re-Reader': [ 2, 7, 5, 8, 7, 1 ],
+	//               tempo end lit allure fidget
+	Balanced: [ 5, 5, 5, 5, 5 ],
+	Scholar: [ 2, 8, 10, 2, 3 ],
+	'Binge-Watcher': [ 3, 7, 2, 10, 3 ],
+	Doomscroller: [ 10, 4, 2, 5, 4 ],
+	Skimmer: [ 8, 3, 5, 4, 5 ],
+	Jitterbug: [ 6, 4, 2, 3, 10 ],
 };
 
 /**
@@ -160,28 +153,22 @@ export const normalizeTraits = ( value: unknown ): number[] => {
  * @param vec
  */
 export const classify = ( vec: readonly number[] ): Archetype => {
-	const [
-		haste = 0,
-		endurance = 0,
-		reach = 0,
-		literacy = 0,
-		recall = 0,
-		allure = 0,
-	] = vec;
+	const [ tempo = 0, endurance = 0, literacy = 0, allure = 0, fidget = 0 ] =
+		vec;
 
 	if ( allure >= 8 && literacy <= 3 ) {
 		return 'Binge-Watcher';
 	}
-	if ( recall >= 7 && literacy >= 6 ) {
-		return 'Re-Reader';
+	if ( fidget >= 8 && literacy <= 4 ) {
+		return 'Jitterbug';
 	}
-	if ( haste >= 8 && reach >= 6 && literacy <= 3 ) {
+	if ( tempo >= 8 && literacy <= 3 ) {
 		return 'Doomscroller';
 	}
-	if ( haste >= 6 && reach >= 6 && endurance <= 4 ) {
+	if ( tempo >= 6 && endurance <= 4 ) {
 		return 'Skimmer';
 	}
-	if ( literacy >= 8 && haste <= 3 ) {
+	if ( literacy >= 8 && tempo <= 3 ) {
 		return 'Scholar';
 	}
 	if (

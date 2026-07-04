@@ -16,13 +16,13 @@ import {
 } from './SurferStats';
 
 describe( 'SurferStats vector shape', () => {
-	it( 'has six stats', () => {
-		expect( STAT_COUNT ).toBe( 6 );
-		expect( STATS ).toHaveLength( 6 );
+	it( 'has five stats', () => {
+		expect( STAT_COUNT ).toBe( 5 );
+		expect( STATS ).toHaveLength( 5 );
 	} );
 
 	it( 'FRESH is a full blank slate with the whole budget unspent', () => {
-		expect( FRESH() ).toEqual( [ MIN, MIN, MIN, MIN, MIN, MIN ] );
+		expect( FRESH() ).toEqual( [ MIN, MIN, MIN, MIN, MIN ] );
 		expect( pointsLeft( FRESH() ) ).toBe( BUDGET );
 	} );
 } );
@@ -52,39 +52,39 @@ describe( 'presets', () => {
 } );
 
 describe( 'classify', () => {
-	// [haste, endurance, reach, literacy, recall, allure]
+	// [tempo, endurance, literacy, allure, fidget]
 	it( 'reads high media + low reading as Binge-Watcher', () => {
-		expect( classify( [ 4, 7, 3, 2, 4, 10 ] ) ).toBe( 'Binge-Watcher' );
+		expect( classify( [ 3, 7, 2, 10, 3 ] ) ).toBe( 'Binge-Watcher' );
 	} );
 
 	it( 'returns Custom when no rule matches', () => {
-		expect( classify( [ 0, 0, 0, 0, 0, 0 ] ) ).toBe( 'Custom' );
+		expect( classify( [ 0, 0, 0, 0, 0 ] ) ).toBe( 'Custom' );
 	} );
 
-	it( 'prefers Re-Reader over Scholar when recall is high', () => {
-		// High literacy + low haste would be Scholar, but recall>=7 wins first.
-		expect( classify( [ 2, 7, 5, 8, 7, 1 ] ) ).toBe( 'Re-Reader' );
+	it( 'prefers Jitterbug over Skimmer when fidget is high', () => {
+		// tempo>=6 && endurance<=4 would be Skimmer, but fidget>=8 wins first.
+		expect( classify( [ 6, 4, 2, 3, 10 ] ) ).toBe( 'Jitterbug' );
 	} );
 
 	it( 'reads all-mid as Balanced', () => {
-		expect( classify( [ 4, 5, 6, 5, 4, 6 ] ) ).toBe( 'Balanced' );
+		expect( classify( [ 4, 5, 6, 5, 4 ] ) ).toBe( 'Balanced' );
 	} );
 
 	it( 'a value outside the mid band is not Balanced', () => {
-		expect( classify( [ 4, 5, 6, 5, 4, 7 ] ) ).not.toBe( 'Balanced' );
+		expect( classify( [ 4, 5, 6, 5, 7 ] ) ).not.toBe( 'Balanced' );
 	} );
 } );
 
 describe( 'point-buy clamping', () => {
 	it( 'caps a raise at the remaining budget', () => {
-		// Spent 28, 2 left; stat 0 currently 5 → can reach at most 7.
-		const vec = [ 5, 5, 6, 5, 5, 2 ];
+		// Spent 23, 2 left; stat 0 currently 5 → can reach at most 7.
+		const vec = [ 5, 5, 6, 5, 2 ];
 		expect( pointsLeft( vec ) ).toBe( 2 );
 		expect( clampTrait( vec, 0, 10 ) ).toBe( 7 );
 	} );
 
 	it( 'never lets a raise exceed the budget', () => {
-		const vec = [ 5, 5, 5, 5, 5, 5 ];
+		const vec = [ 5, 5, 5, 5, 5 ];
 		for ( let i = 0; i < STAT_COUNT; i++ ) {
 			const next = [ ...vec ];
 			next[ i ] = clampTrait( vec, i, MAX );
@@ -98,9 +98,9 @@ describe( 'point-buy clamping', () => {
 	} );
 
 	it( 'headroom is the value plus what is affordable, capped at MAX', () => {
-		const vec = [ 5, 5, 6, 5, 5, 2 ]; // 2 points left
+		const vec = [ 5, 5, 6, 5, 2 ]; // 2 points left
 		expect( headroom( vec, 0 ) ).toBe( 7 ); // 5 + 2
-		const full = [ 9, 5, 5, 5, 5, 1 ]; // 0 left
+		const full = [ 9, 5, 5, 5, 1 ]; // 0 left
 		expect( headroom( full, 0 ) ).toBe( 9 ); // value + 0
 	} );
 } );
@@ -116,7 +116,7 @@ describe( 'normalizeTraits', () => {
 	} );
 
 	it( 'clamps each stat into range and trims overspend to the budget', () => {
-		const out = normalizeTraits( [ 99, 99, 99, 99, 99, 99 ] );
+		const out = normalizeTraits( [ 99, 99, 99, 99, 99 ] );
 		expect( pointsLeft( out ) ).toBeGreaterThanOrEqual( 0 );
 		for ( const value of out ) {
 			expect( value ).toBeGreaterThanOrEqual( MIN );
@@ -129,6 +129,6 @@ describe( 'normalizeTraits', () => {
 	} );
 
 	it( 'rounds fractional values', () => {
-		expect( normalizeTraits( [ 5.4, 0, 0, 0, 0, 0 ] )[ 0 ] ).toBe( 5 );
+		expect( normalizeTraits( [ 5.4, 0, 0, 0, 0 ] )[ 0 ] ).toBe( 5 );
 	} );
 } );

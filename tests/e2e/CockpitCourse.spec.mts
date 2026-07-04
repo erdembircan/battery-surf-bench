@@ -63,7 +63,7 @@ test.describe( 'Cockpit surfer profile', () => {
 			)
 		).toHaveCount( 6 );
 
-		// The six stat sliders sit behind the Customize disclosure, each wired to
+		// The five stat sliders sit behind the Customize disclosure, each wired to
 		// set its stat; the points readout and Reset round out the panel.
 		await expect(
 			page.locator(
@@ -74,7 +74,7 @@ test.describe( 'Cockpit surfer profile', () => {
 			page.locator(
 				'.bsb-stat__slider[data-wp-on--input="actions.setTrait"]'
 			)
-		).toHaveCount( 6 );
+		).toHaveCount( 5 );
 		await expect(
 			page.locator(
 				'.bsb-surfer__points[data-wp-text="state.pointsLeftDisplay"]'

@@ -43,12 +43,12 @@ $bsb_context = array(
 	'mode'                => 'duration',
 	'durationMinutes'     => 30,
 	'speed'               => 1,
-	// The surfer personality: a balanced six-stat vector by default (every stat
+	// The surfer personality: a balanced five-stat vector by default (every stat
 	// mid-range), the stat sliders hidden until the visitor opens Customize, and
 	// the translated archetype names the store maps the derived cover-name to.
 	// The vector is normalized on run start (see RunStore.toggleRun), so a crafted
 	// value is corrected before it drives the engine.
-	'traits'              => array( 5, 5, 5, 5, 5, 5 ),
+	'traits'              => array( 5, 5, 5, 5, 5 ),
 	'traitsOpen'          => false,
 	'archetypeLabels'     => array(
 		'Balanced'      => __( 'Balanced', 'battery-surf-bench' ),
@@ -56,7 +56,7 @@ $bsb_context = array(
 		'Binge-Watcher' => __( 'Binge-Watcher', 'battery-surf-bench' ),
 		'Doomscroller'  => __( 'Doomscroller', 'battery-surf-bench' ),
 		'Skimmer'       => __( 'Skimmer', 'battery-surf-bench' ),
-		'Re-Reader'     => __( 'Re-Reader', 'battery-surf-bench' ),
+		'Jitterbug'     => __( 'Jitterbug', 'battery-surf-bench' ),
 		'Custom'        => __( 'Custom', 'battery-surf-bench' ),
 	),
 	'running'             => false,
@@ -140,37 +140,33 @@ $bsb_markup = ( new CockpitView() )->render(
 		'target_aria'          => __( 'Target battery percentage', 'battery-surf-bench' ),
 		'speed_label'          => __( 'Speed', 'battery-surf-bench' ),
 		// The surfer-profile field: the "Surfer" label, the Customize disclosure,
-		// the Reset and points caption, the six stats (name + the sim lever each
-		// scales, in the shared SurferStats vector order: haste, endurance, reach,
-		// literacy, recall, allure) and the class-preset chips.
+		// the Reset and points caption, the five stats (name + the sim lever each
+		// scales, in the shared SurferStats vector order: tempo, endurance,
+		// literacy, allure, fidget) and the class-preset chips.
 		'surfer_label'         => __( 'Surfer', 'battery-surf-bench' ),
 		'customize_label'      => __( 'Customize stats', 'battery-surf-bench' ),
 		'reset_label'          => __( 'Reset', 'battery-surf-bench' ),
 		'points_label'         => __( 'points to spend', 'battery-surf-bench' ),
 		'trait_stats'          => array(
 			array(
-				'name'  => __( 'Haste', 'battery-surf-bench' ),
-				'lever' => __( 'scroll speed', 'battery-surf-bench' ),
+				'name'  => __( 'Tempo', 'battery-surf-bench' ),
+				'lever' => __( 'pace of every motion', 'battery-surf-bench' ),
 			),
 			array(
 				'name'  => __( 'Endurance', 'battery-surf-bench' ),
-				'lever' => __( 'time per page', 'battery-surf-bench' ),
-			),
-			array(
-				'name'  => __( 'Reach', 'battery-surf-bench' ),
-				'lever' => __( 'scroll depth', 'battery-surf-bench' ),
+				'lever' => __( 'staying power', 'battery-surf-bench' ),
 			),
 			array(
 				'name'  => __( 'Literacy', 'battery-surf-bench' ),
-				'lever' => __( 'how much it reads', 'battery-surf-bench' ),
-			),
-			array(
-				'name'  => __( 'Recall', 'battery-surf-bench' ),
-				'lever' => __( 're-reading', 'battery-surf-bench' ),
+				'lever' => __( 'pull of text', 'battery-surf-bench' ),
 			),
 			array(
 				'name'  => __( 'Allure', 'battery-surf-bench' ),
-				'lever' => __( 'pull of video', 'battery-surf-bench' ),
+				'lever' => __( 'pull of media', 'battery-surf-bench' ),
+			),
+			array(
+				'name'  => __( 'Fidget', 'battery-surf-bench' ),
+				'lever' => __( 'restlessness', 'battery-surf-bench' ),
 			),
 		),
 		'trait_classes'        => array(
@@ -195,8 +191,8 @@ $bsb_markup = ( new CockpitView() )->render(
 				'label' => __( 'Skimmer', 'battery-surf-bench' ),
 			),
 			array(
-				'key'   => 'Re-Reader',
-				'label' => __( 'Re-Reader', 'battery-surf-bench' ),
+				'key'   => 'Jitterbug',
+				'label' => __( 'Jitterbug', 'battery-surf-bench' ),
 			),
 		),
 		'battery_label'        => __( 'Battery', 'battery-surf-bench' ),
