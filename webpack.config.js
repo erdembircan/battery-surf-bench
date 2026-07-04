@@ -8,8 +8,15 @@
  * copies each block's `block.json` and `render.php` into `build/`; the module
  * config builds the cockpit's Interactivity API view as an ES module with
  * `@wordpress/interactivity` externalized. Both are returned untouched apart
- * from the script config's explicit entry points and the DataViews stylesheet
- * alias, so blocks, modules and bundles all bind to WordPress's own packages.
+ * from the script config's explicit entry points, the module config's added
+ * dev-tools entry, and the DataViews stylesheet alias, so blocks, modules and
+ * bundles all bind to WordPress's own packages.
+ *
+ * The dev-tools view module (`src/devtools/view.ts`) is not tied to a
+ * `block.json`, so `@wordpress/scripts`' automatic module-entry discovery (which
+ * scans for `viewScriptModule` fields) never finds it — it is added to the
+ * module config's entry map by hand below, alongside the block-derived entries
+ * it otherwise leaves untouched.
  */
 
 const path = require( 'path' );
@@ -52,6 +59,12 @@ const customScriptConfig = {
 			'cockpit',
 			'style.scss'
 		),
+		devtools: path.resolve(
+			process.cwd(),
+			'src',
+			'devtools',
+			'style.scss'
+		),
 	},
 	resolve: {
 		...scriptConfig.resolve,
@@ -72,4 +85,38 @@ const customScriptConfig = {
 	},
 };
 
-module.exports = [ customScriptConfig, ...moduleConfigs ];
+const devtoolsViewEntry = path.resolve(
+	process.cwd(),
+	'src',
+	'devtools',
+	'view.ts'
+);
+
+// The dev-tools module has no block.json to be discovered from, so it is added
+// to the (single) module config's entry map by hand; every block-derived entry
+// already there is left untouched. `@wordpress/scripts` hands back its module
+// entry as a *function* (`getWebpackEntryPoints( 'module' )`, resolved lazily by
+// webpack), not a plain object — spreading it directly (`{ ...moduleConfig.entry }`)
+// would silently discard that function and, with it, every block-derived entry
+// it would have found, so it is called through instead and its result merged.
+const customModuleConfigs = moduleConfigs.map( ( moduleConfig, index ) => {
+	if ( index !== 0 ) {
+		return moduleConfig;
+	}
+
+	const originalEntry = moduleConfig.entry;
+
+	return {
+		...moduleConfig,
+		entry: async () => {
+			const resolved =
+				typeof originalEntry === 'function'
+					? await originalEntry()
+					: originalEntry;
+
+			return { ...resolved, 'devtools/view': devtoolsViewEntry };
+		},
+	};
+} );
+
+module.exports = [ customScriptConfig, ...customModuleConfigs ];

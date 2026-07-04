@@ -1,0 +1,170 @@
+/*
+ * Dev-tools panel styles.
+ *
+ * A floating, collapsible widget fixed to the bottom-right corner of every
+ * surface it loads on (the cockpit dashboard, the stored-session detail
+ * screen). This is dev-only chrome, not product UI: deliberately minimal and
+ * utilitarian, styled independently of the cockpit's own light/dark theme
+ * tokens rather than borrowing them, so it stays legible over either.
+ */
+
+$bg: #1b1f24;
+$bg-raised: #262b32;
+$border: #3a414a;
+$text: #e7ebef;
+$text-soft: #9aa4b1;
+$accent: #4fd1c5;
+$danger: #f97066;
+
+.bsb-devtools {
+	position: fixed;
+	right: 1rem;
+	bottom: 1rem;
+	z-index: 2147483000;
+	font-family: 'Space Mono', ui-monospace, monospace;
+	font-size: 0.8rem;
+	color: $text;
+
+	* {
+		box-sizing: border-box;
+	}
+}
+
+.bsb-devtools__pill {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.4rem;
+	padding: 0.5rem 0.85rem;
+	border: 1px solid $border;
+	border-radius: 999px;
+	background: $bg;
+	color: $text;
+	cursor: pointer;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+
+	&:hover {
+		border-color: $accent;
+	}
+}
+
+.bsb-devtools__pill-dot {
+	width: 0.5rem;
+	height: 0.5rem;
+	border-radius: 50%;
+	background: $text-soft;
+
+	.bsb-devtools.is-armed & {
+		background: $accent;
+		box-shadow: 0 0 0 3px rgba($accent, 0.25);
+	}
+}
+
+.bsb-devtools__panel {
+	position: absolute;
+	right: 0;
+	bottom: calc(100% + 0.5rem);
+	width: 15rem;
+	border: 1px solid $border;
+	border-radius: 0.6rem;
+	background: $bg;
+	box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+	overflow: hidden;
+
+	&[hidden] {
+		display: none;
+	}
+}
+
+.bsb-devtools__header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 0.6rem 0.75rem;
+	background: $bg-raised;
+	border-bottom: 1px solid $border;
+	font-weight: 700;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+}
+
+.bsb-devtools__collapse {
+	background: transparent;
+	border: none;
+	color: $text-soft;
+	cursor: pointer;
+	font-size: 1rem;
+	line-height: 1;
+
+	&:hover {
+		color: $text;
+	}
+}
+
+.bsb-devtools__section {
+	padding: 0.7rem 0.75rem;
+
+	& + & {
+		border-top: 1px solid $border;
+	}
+
+	&.is-disabled .bsb-devtools__section-body {
+		opacity: 0.4;
+		pointer-events: none;
+	}
+}
+
+.bsb-devtools__section-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	font-weight: 700;
+	margin-bottom: 0.5rem;
+}
+
+.bsb-devtools__section-body {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+
+.bsb-devtools__tristate {
+	display: flex;
+	gap: 0.3rem;
+}
+
+.bsb-devtools__choice {
+	flex: 1;
+	padding: 0.3rem 0.4rem;
+	border: 1px solid $border;
+	border-radius: 0.35rem;
+	background: $bg-raised;
+	color: $text-soft;
+	cursor: pointer;
+	font: inherit;
+
+	&.is-selected {
+		border-color: $accent;
+		color: $text;
+	}
+}
+
+.bsb-devtools__level {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.bsb-devtools__level-value {
+	min-width: 2.4em;
+	text-align: right;
+	color: $text-soft;
+}
+
+.bsb-devtools__toggle {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.4rem;
+	cursor: pointer;
+}
