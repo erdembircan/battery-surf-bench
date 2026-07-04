@@ -24,7 +24,14 @@ const loginStep: BlueprintV1Declaration[ 'steps' ] = [
 	},
 ];
 
-/** Enable WordPress debug constants. */
+/**
+ * Enable WordPress debug constants. `WP_ENVIRONMENT_TYPE` also opens the
+ * plugin's own dev-tools gate ({@see DevTools}): every blueprint below shares
+ * this step, so the dev-only battery-override panel is available wherever
+ * these blueprints run, including the e2e suite, which needs it to exercise the
+ * override without a real unplug. The constant wins over any system env var
+ * `wp_get_environment_type()` also reads.
+ */
 const debugStep: BlueprintV1Declaration[ 'steps' ] = [
 	{
 		step: 'defineWpConfigConsts',
@@ -33,6 +40,7 @@ const debugStep: BlueprintV1Declaration[ 'steps' ] = [
 			WP_DEBUG_LOG: true,
 			WP_DEBUG_DISPLAY: true,
 			SCRIPT_DEBUG: true,
+			WP_ENVIRONMENT_TYPE: 'development',
 		},
 	},
 ];

@@ -141,9 +141,14 @@ test.describe( 'Cockpit dashboard route', () => {
 	} ) => {
 		await page.goto( '/?bsbSession=cockpit' );
 
-		// The interactive region and viewport iframe are present.
+		// The interactive region and viewport iframe are present. The dev-tools
+		// panel is a second, separate `bsb/cockpit` region (joined via the
+		// store-merge mechanism), so this locator is scoped to the cockpit
+		// block's own wrapper.
 		await expect(
-			page.locator( '[data-wp-interactive="bsb/cockpit"]' )
+			page.locator(
+				'.wp-block-bsb-cockpit[data-wp-interactive="bsb/cockpit"]'
+			)
 		).toBeAttached();
 
 		// The control deck is rendered alongside the stage, with the run
@@ -248,15 +253,23 @@ test.describe( 'Cockpit dashboard route', () => {
 				.first()
 		).toBeAttached();
 
-		// Stripped dashboard: the cockpit's own stylesheet is the only one that
-		// survives — every theme or other-plugin stylesheet is dequeued, so no
-		// foreign CSS leaks in.
+		// Stripped dashboard: every theme or other-plugin stylesheet is dequeued,
+		// so no foreign CSS leaks in. Only the cockpit's own stylesheet and the
+		// dev-tools panel's stylesheet survive the strip — the e2e blueprint runs
+		// with the dev-tools gate open, so its style is spared too.
 		const stylesheets = page.locator( 'link[rel="stylesheet"]' );
-		await expect( stylesheets ).toHaveCount( 1 );
-		await expect( stylesheets ).toHaveAttribute(
-			'href',
-			/style-cockpit-dashboard/
+		await expect( stylesheets ).toHaveCount( 2 );
+		const hrefs = await stylesheets.evaluateAll( ( links ) =>
+			links.map( ( link ) => link.getAttribute( 'href' ) )
 		);
+		expect(
+			hrefs.some( ( href ) =>
+				/style-cockpit-dashboard/.test( href ?? '' )
+			)
+		).toBe( true );
+		expect(
+			hrefs.some( ( href ) => /style-devtools/.test( href ?? '' ) )
+		).toBe( true );
 
 		await expectNoPhpNotices( page );
 	} );
