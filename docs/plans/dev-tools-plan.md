@@ -15,21 +15,24 @@ Build a **development-build-only floating dev-tools panel** on the cockpit page:
 
 This is a pure frontend feature. **No PHP changes, no blueprint changes, no server-side environment detection.**
 
-## 2. Activation — the `SCRIPT_DEBUG` build-time flag
+## 2. Activation — the `process.env.NODE_ENV` build-time check
 
-`@wordpress/scripts` injects a compile-time global via `webpack.DefinePlugin` in **both** its bundle configs (classic scripts and the script-module config that builds the cockpit's `viewScriptModule`):
+The activation check in source is literally:
 
-- `pnpm start` (development watch, what `pnpm dev` runs) → `SCRIPT_DEBUG === true`
-- `pnpm build` (production, what CI/e2e/zip run) → `SCRIPT_DEBUG === false`
+```ts
+const isDevBuild = process.env.NODE_ENV !== 'production';
+```
 
-wp-scripts' own comment calls it out as "used for development features flagging" — it is the intended switch. Verify this in the installed package (`node_modules/@wordpress/scripts/config/webpack.config.js`, the two `DefinePlugin` blocks) before relying on it, per `CLAUDE.md`.
+wp-scripts handles the rest **out of the box** — no config changes, no new flags, no declarations:
 
-Because DefinePlugin substitutes the literal at parse time, `if ( SCRIPT_DEBUG ) { … }` becomes `if ( false ) { … }` in production and webpack drops the branch **and any dynamic `import()` inside it** from the dependency graph — the dev-tools code contributes zero bytes to the production bundle.
+- `wp-scripts build` defaults `process.env.NODE_ENV` to `'production'` (`node_modules/@wordpress/scripts/scripts/build.js`); `wp-scripts start` (what `pnpm dev` runs) leaves it unset, so the shared webpack config resolves `mode: 'development'` (`node_modules/@wordpress/scripts/config/webpack.config.js`, the `isProduction`/`mode` lines at the top).
+- Webpack's `mode` automatically substitutes `process.env.NODE_ENV` in bundled code with the mode string (`optimization.nodeEnv` defaults to `mode`; neither wp-scripts nor the project `webpack.config.js` overrides it). Both bundle configs — classic scripts and the script-module config that builds the cockpit's `viewScriptModule` — share that mode.
 
-Two supporting pieces:
+Verify those lines in the installed package before relying on them, per `CLAUDE.md`.
 
-- **TypeScript:** declare the global in a new ambient declaration file next to the existing `src/StyleModules.d.ts` precedent — `src/Globals.d.ts` with `declare const SCRIPT_DEBUG: boolean;` (plus a JSDoc line saying who defines it). Confirm `tsconfig.json`'s `include` picks it up.
-- **Vitest:** the flag doesn't exist under vitest. Add `define: { SCRIPT_DEBUG: 'true' }` to `vitest.config.mts` so imported modules referencing it don't throw.
+Because the substitution happens at parse time, `if ( process.env.NODE_ENV !== 'production' ) { … }` becomes `if ( false ) { … }` in a production build and webpack drops the branch **and any dynamic `import()` inside it** from the dependency graph — the dev-tools code contributes zero bytes to the production bundle.
+
+No supporting pieces needed: `tsconfig.json` already includes the `node` types, so `process.env` type-checks; vitest sets `NODE_ENV` to `'test'`, so the guard is truthy under tests and the panel modules are directly testable.
 
 ## 3. Architecture — override at the source, not at the gates
 
@@ -110,7 +113,7 @@ New/changed files, all in `src/cockpit/` (CamelCase, JSDoc on classes/functions,
 //     transform on the next natural reading make that race harmless.
 
 // view.ts — boot, after the store registration:
-//   if ( SCRIPT_DEBUG ) {
+//   if ( process.env.NODE_ENV !== 'production' ) {
 //     void import( './DevToolsPanel' ).then( ( mod ) => {
 //       const host = document.querySelector( '.wp-block-bsb-cockpit' );
 //       if ( host ) mod.mountDevToolsPanel( host );
@@ -119,7 +122,7 @@ New/changed files, all in `src/cockpit/` (CamelCase, JSDoc on classes/functions,
 // The folded-false branch means production emits no chunk and ships no code.
 // Fallback if the dynamic-import chunk misbehaves under the script-modules
 // output (verify in a dev build that the panel actually loads): switch to a
-// static import with the same SCRIPT_DEBUG guard around the mount call and
+// static import with the same NODE_ENV guard around the mount call and
 // confirm what production tree-shaking leaves behind is acceptable/inert.
 ```
 
@@ -138,7 +141,7 @@ New/changed files, all in `src/cockpit/` (CamelCase, JSDoc on classes/functions,
 - **During a bypassed run:** readings keep flowing as "on battery": samples record (`session.record`), readouts/drain-rate/projection update, target-drop logic works. Plugging/unplugging the physical charger changes nothing.
 - **Toggling bypass OFF while plugged and running:** the toggle's `refresh()` re-emits the raw reading → `charging: true` reaches Layer C → the run stops with reason `'plugged'`, exactly as an unplugged-then-plugged run would. This is intended and must be covered by a test.
 - **Persistence:** collapsed state and bypass state survive a reload via localStorage (dev-only convenience; the accented chip keeps a persisted bypass visible).
-- **Production build:** `SCRIPT_DEBUG` folds to `false` → no panel module in the bundle, `devOverrides.bypassCharging` is permanently `false` → `applyDevOverrides` returns the raw reading. The only production-path cost is one function call and one boolean read per battery reading.
+- **Production build:** the `NODE_ENV` guard folds to `false` → no panel module in the bundle, `devOverrides.bypassCharging` is permanently `false` → `applyDevOverrides` returns the raw reading. The only production-path cost is one function call and one boolean read per battery reading.
 
 ## 7. Contracts (charts)
 
@@ -169,7 +172,7 @@ Behavior through public interfaces only; vitest (jsdom) carries the behavior cov
 All work happens as one continuous stream on a single branch with a single **draft PR**, opened at the first push. The stream is split into two milestones, and each milestone ends at a hard stop: push, report, and **wait for the reviewing session's approval** before starting the next. Never begin milestone-2 work while milestone 1 is unapproved.
 
 1. **Milestone 1 — mockup.** `docs/mockups/dev-tools-panel.html` + README entry, nothing else. Push, open the draft PR, and stop. The reviewing session approves the direction (offer the tweak levers: size, colour, spacing); iterate on the mockup within this milestone until approved.
-2. **Milestone 2 — implementation.** Everything else in this plan, on the same branch: `DevOverrides`, `DevToolsPanel`, `BatteryMonitor.refresh()`, the `view.ts` boot guard, `src/Globals.d.ts`, the vitest `define`, SCSS, all tests, the chart update, the six-stat wording fix. When green and reviewed, mark the PR ready.
+2. **Milestone 2 — implementation.** Everything else in this plan, on the same branch: `DevOverrides`, `DevToolsPanel`, `BatteryMonitor.refresh()`, the `view.ts` boot guard, SCSS, all tests, the chart update, the six-stat wording fix. When green and reviewed, mark the PR ready.
 
 Each milestone: replay the PR workflow locally until green before pushing, Conventional Commits per commit (`[DOCS]`/`[CHORE]` for the mockup, `[FEAT]` for the implementation), no AI attribution.
 
@@ -179,6 +182,6 @@ Each milestone: replay the PR workflow locally until green before pushing, Conve
 - Exactly **one** bypass seam: grep shows no bypass checks added to `RunStore`, `RunLifecycle`, `DrainRate`, or the sample-recording gate — only the `applyDevOverrides` call in `BatteryStore`.
 - A bypassed run is complete: samples recorded, readouts live, summary produced.
 - Toggling bypass takes effect immediately in both directions (no 30 s heartbeat wait), including the mid-run stop on toggle-off while plugged.
-- `SCRIPT_DEBUG` usage verified against the installed `@wordpress/scripts` config; typed via the ambient declaration; vitest `define` added.
+- The `process.env.NODE_ENV` substitution chain verified against the installed `@wordpress/scripts` sources; no config, flag, or declaration additions anywhere — the check works out of the box.
 - No PHP changes anywhere in the diff.
 - All styles in SCSS; panel strings untranslated by design; chart updated in the implementation milestone; mockup approved before implementation; all CLAUDE.md conventions hold (PHPCS untouched-green, lint/tests replayed locally with real exit codes).
