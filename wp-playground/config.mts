@@ -25,11 +25,11 @@ export const PLAYGROUND_DEV_PORT = 9400;
 export const PLAYGROUND_TEST_PORT = 9401;
 
 /**
- * Preferred port for the LiveReload server during development. The actual port
- * is resolved at startup (incrementing from this one if it is already taken,
- * mirroring the playground's own port resolution) and shared between the two
- * dev processes via {@link LIVERELOAD_PORT_FILE}, so this is a starting point,
- * not a guarantee.
+ * Preferred port for the LiveReload server during development. The watcher
+ * resolves the actual port at startup — incrementing from this one if it is
+ * already taken, mirroring the playground's own port resolution — and publishes
+ * it via {@link LIVERELOAD_PORT_FILE}, so this is a starting point, not a
+ * guarantee.
  */
 export const LIVERELOAD_PORT = 35729;
 
@@ -64,9 +64,11 @@ export function liveReloadClientUrl( port: number ): string {
 
 /**
  * File the resolved LiveReload port is written to so the two independent dev
- * processes agree on it. `start.mts` resolves a free port, writes it here, and
- * bakes the matching client URL into the dev mu-plugin; `live-reload.mts` reads
- * it back to bind the exact same port. Regenerated every run and gitignored.
+ * processes agree on it. `live-reload.mts` binds a free port (incrementing past
+ * a busy one) and writes it here; `start.mts` reads it back to bake the matching
+ * client URL into the dev mu-plugin. The watcher owns resolution because only
+ * the process that binds the port can guarantee it is free. Regenerated every
+ * run and gitignored.
  */
 export const LIVERELOAD_PORT_FILE = resolve(
 	dirname( fileURLToPath( import.meta.url ) ),

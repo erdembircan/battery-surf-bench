@@ -1,5 +1,5 @@
 import livereload from 'livereload';
-import { existsSync, readFileSync } from 'node:fs';
+import { rmSync, writeFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
@@ -7,60 +7,109 @@ import {
 	LIVERELOAD_PORT,
 	LIVERELOAD_PORT_FILE,
 } from './config.mts';
+import { MAX_PORT_INCREMENTS } from './ResolveOpenPort.mts';
 
 const __dirname = dirname( fileURLToPath( import.meta.url ) );
 const pluginDir = resolve( __dirname, '..' );
 
-/** How long to wait for `start.mts` to publish the resolved port, in ms. */
-const PORT_WAIT_TIMEOUT_MS = 15_000;
-
-/** How often to re-check for the port file while waiting, in ms. */
-const PORT_POLL_INTERVAL_MS = 100;
+/** A LiveReload server instance with an `EADDRINUSE`-aware error channel. */
+type LiveReloadServer = ReturnType< typeof livereload.createServer >;
 
 /**
- * Read the LiveReload port `start.mts` resolved and published, waiting for it
- * to appear.
+ * Attempt to start the LiveReload server on a single port.
  *
- * The playground start script owns port resolution: it probes a free port,
- * writes it to {@link LIVERELOAD_PORT_FILE}, and bakes the matching client URL
- * into the dev mu-plugin. This watcher then binds the exact same port so the
- * two processes can never drift. The file is polled because the two dev
- * processes start concurrently and either may win the race.
+ * Unlike a probe-then-bind check, this reports the outcome of the *real* bind:
+ * the returned server is the one that will keep running, so there is no window
+ * for the port to be taken between a probe and the live server. A port already
+ * in use resolves to `null` (the caller increments and retries); any other
+ * error rejects so a genuine fault is not mistaken for a busy port.
  *
- * If the file never appears (e.g. the watcher was launched on its own, without
- * the playground), the preferred port is used as a fallback so standalone runs
- * still start rather than hanging.
+ * The `error` handler is attached to the LiveReload server itself, not the
+ * underlying HTTP server: `livereload` re-emits bind failures on its own
+ * instance, and without a listener there that re-emit crashes the process.
  *
- * @return The resolved LiveReload port.
+ * @param port - The port to bind.
+ * @return The listening server, or `null` if the port is in use.
  */
-async function resolveLiveReloadPort(): Promise< number > {
-	const maxAttempts = PORT_WAIT_TIMEOUT_MS / PORT_POLL_INTERVAL_MS;
+function tryListen( port: number ): Promise< LiveReloadServer | null > {
+	return new Promise( ( resolvePromise, rejectPromise ) => {
+		let settled = false;
 
-	for ( let attempt = 0; attempt < maxAttempts; attempt++ ) {
-		if ( existsSync( LIVERELOAD_PORT_FILE ) ) {
-			const parsed = Number.parseInt(
-				readFileSync( LIVERELOAD_PORT_FILE, 'utf8' ).trim(),
-				10
-			);
-			if ( Number.isInteger( parsed ) && parsed > 0 ) {
-				return parsed;
+		const server = livereload.createServer(
+			{
+				host: LIVERELOAD_HOST,
+				port,
+				exts: [ 'php', 'js', 'css' ],
+				delay: 300,
+			},
+			() => {
+				if ( ! settled ) {
+					settled = true;
+					resolvePromise( server );
+				}
 			}
-		}
-
-		await new Promise( ( done ) =>
-			setTimeout( done, PORT_POLL_INTERVAL_MS )
 		);
-	}
 
-	process.stdout.write(
-		`[live-reload] no port published within ${
-			PORT_WAIT_TIMEOUT_MS / 1000
-		}s; falling back to ${ LIVERELOAD_PORT }\n`
-	);
-	return LIVERELOAD_PORT;
+		server.on( 'error', ( error: NodeJS.ErrnoException ) => {
+			if ( settled ) {
+				return;
+			}
+			settled = true;
+
+			if ( error.code === 'EADDRINUSE' ) {
+				try {
+					server.server?.close();
+				} catch {
+					// The bind never completed, so there may be nothing to
+					// close; ignore and let the caller try the next port.
+				}
+				resolvePromise( null );
+				return;
+			}
+
+			rejectPromise( error );
+		} );
+	} );
 }
 
-const port = await resolveLiveReloadPort();
+/**
+ * Start the LiveReload server, incrementing the port when one is in use.
+ *
+ * Probes `basePort` first; while it is taken (e.g. a watcher from a previous
+ * run still holds it) the port is incremented and re-tried, up to
+ * `maxIncrements` times. Because the watcher is the process that actually binds
+ * the port, it — not the playground start script — owns the resolution: only
+ * the binder can guarantee the port is free and report the real one back.
+ *
+ * @param basePort      - The preferred port to start from.
+ * @param maxIncrements - Maximum number of times to increment the port.
+ * @return The listening server and the port it bound.
+ * @throws If no port in the range is free.
+ */
+async function startWatcher(
+	basePort: number,
+	maxIncrements = MAX_PORT_INCREMENTS
+): Promise< { server: LiveReloadServer; port: number } > {
+	for ( let offset = 0; offset <= maxIncrements; offset++ ) {
+		const port = basePort + offset;
+		const server = await tryListen( port );
+
+		if ( server ) {
+			if ( port !== basePort ) {
+				process.stdout.write(
+					`[live-reload] port ${ basePort } in use, using ${ port } instead\n`
+				);
+			}
+			return { server, port };
+		}
+	}
+
+	const lastPort = basePort + maxIncrements;
+	throw new Error(
+		`[live-reload] no free port found in range ${ basePort }-${ lastPort }; ` +
+			`tried ${ maxIncrements + 1 } ports and all were in use.`
+	);
+}
 
 /**
  * Start a LiveReload server for the Playground dev workflow.
@@ -74,16 +123,18 @@ const port = await resolveLiveReloadPort();
  * The server is pinned to `LIVERELOAD_HOST` (the IPv4 loopback) so it binds the
  * same address the mu-plugin's client URL points at; left to its default the
  * `livereload` package binds `localhost`/`::1` and IPv4 requests are refused.
- * The port is resolved dynamically by `start.mts` (see
- * {@link resolveLiveReloadPort}) so a busy preferred port no longer wedges the
- * dev workflow.
+ *
+ * The port is resolved dynamically here (see {@link startWatcher}) and the
+ * bound port is published to {@link LIVERELOAD_PORT_FILE} so `start.mts` points
+ * the dev mu-plugin's client URL at whichever port this run actually used. A
+ * stale file from a previous run is cleared first so the playground never reads
+ * an outdated port.
  */
-const server = livereload.createServer( {
-	host: LIVERELOAD_HOST,
-	port,
-	exts: [ 'php', 'js', 'css' ],
-	delay: 300,
-} );
+rmSync( LIVERELOAD_PORT_FILE, { force: true } );
+
+const { server, port } = await startWatcher( LIVERELOAD_PORT );
+
+writeFileSync( LIVERELOAD_PORT_FILE, String( port ) );
 
 server.watch( [
 	resolve( pluginDir, 'build' ),
