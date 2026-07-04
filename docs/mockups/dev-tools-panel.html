@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Dev tools panel — bypass charging gate</title>
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link
+			href="https://fonts.googleapis.com/css2?family=Anton&family=Hanken+Grotesk:wght@400;600;700&family=Space+Mono:wght@700&display=swap"
+			rel="stylesheet"
+		/>
+		<style>
+			/*
+			 * Floating dev-tools panel study (docs/plans/dev-tools-plan.md §5/§9
+			 * milestone 1). Dev-build-only floating box: collapsed "DEV" chip
+			 * (accented when the bypass is active) that expands into a compact
+			 * card with one toggle row. Reuses the real Coastal Daybreak / Dusk
+			 * Lineup tokens from src/styles/_theme.scss so it drops into the
+			 * shipped cockpit unchanged. Throwaway mockup — no build step.
+			 *
+			 * The "physical charger" switch top-left is a MOCKUP-ONLY stand-in
+			 * for the real BatteryManager reading; it does not ship. It lets you
+			 * see the panel's "Actually: …" line react independently of the
+			 * bypass toggle, exactly like a real plugged-in laptop would.
+			 */
+			:root {
+				--deck-bg: radial-gradient(120% 70% at 50% -10%, #fff 0%, #e7f6ff 40%, transparent 70%),
+					linear-gradient(180deg, #e7f6ff 0%, #fff 60%);
+				--surface: #f1f7fa;
+				--surface-shadow: rgba(31, 58, 95, 0.08);
+				--line: #e1edf2;
+				--text: #1f3a5f;
+				--text-strong: #1f3a5f;
+				--text-soft: #5b7488;
+				--label: rgba(31, 58, 95, 0.62);
+				--accent: #2f9bb3;
+				--accent-deep: #1c7e96;
+				--accent-soft: rgba(47, 155, 179, 0.08);
+				--accent-grad: linear-gradient(150deg, #2f9bb3 0%, #1c7e96 100%);
+				--accent-ink: #ffffff;
+				--focus: #ff7a5c;
+				--track: #e1edf2;
+				--card-shadow: rgba(31, 58, 95, 0.18);
+				--font-ui: 'Hanken Grotesk', ui-sans-serif, system-ui, sans-serif;
+				--font-disp: 'Anton', 'Arial Narrow', sans-serif;
+				--font-mono: 'Space Mono', ui-monospace, monospace;
+			}
+
+			:root[data-theme='dark'] {
+				--deck-bg: linear-gradient(180deg, rgba(255, 138, 61, 0.16) 0%, rgba(255, 138, 61, 0) 26%),
+					radial-gradient(140% 50% at 50% 30%, rgba(255, 178, 74, 0.18) 0%, transparent 55%),
+					linear-gradient(175deg, #0a3a4f 0%, #062b3d 70%);
+				--surface: rgba(3, 22, 32, 0.5);
+				--surface-shadow: rgba(0, 0, 0, 0.4);
+				--line: rgba(160, 225, 240, 0.16);
+				--text: #e6f7fb;
+				--text-strong: #ffffff;
+				--text-soft: rgba(230, 247, 251, 0.62);
+				--label: rgba(230, 247, 251, 0.6);
+				--accent: #46d6c4;
+				--accent-deep: #0f5e72;
+				--accent-soft: rgba(230, 247, 251, 0.08);
+				--accent-grad: linear-gradient(150deg, #ffcf6b 0%, #ff8a3d 100%);
+				--accent-ink: #062b3d;
+				--focus: #ffcf6b;
+				--track: rgba(230, 247, 251, 0.12);
+				--card-shadow: rgba(0, 0, 0, 0.45);
+			}
+
+			* {
+				box-sizing: border-box;
+			}
+
+			html,
+			body {
+				height: 100%;
+				margin: 0;
+			}
+
+			body {
+				font-family: var(--font-ui);
+				color: var(--text);
+				background: var(--deck-bg);
+				min-height: 100%;
+				position: relative;
+				transition: background 0.2s ease, color 0.2s ease;
+			}
+
+			.stage {
+				max-width: 640px;
+				margin: 0 auto;
+				padding: 40px 24px 320px;
+			}
+
+			.stage h1 {
+				font-family: var(--font-disp);
+				font-size: 22px;
+				letter-spacing: 0.02em;
+				margin: 0 0 8px;
+			}
+
+			.stage p {
+				color: var(--text-soft);
+				line-height: 1.5;
+				max-width: 46em;
+			}
+
+			.stage code {
+				font-family: var(--font-mono);
+				font-size: 0.9em;
+				background: var(--accent-soft);
+				padding: 0.1em 0.4em;
+				border-radius: 4px;
+			}
+
+			/* ── Mockup-only demo controls (not part of the shipped panel) ─── */
+			.demo-controls {
+				position: fixed;
+				top: 20px;
+				left: 20px;
+				display: flex;
+				flex-direction: column;
+				gap: 10px;
+				background: var(--surface);
+				border: 1px solid var(--line);
+				border-radius: 12px;
+				padding: 14px 16px;
+				box-shadow: 0 8px 24px var(--surface-shadow);
+				z-index: 100;
+				font-size: 13px;
+			}
+
+			.demo-controls__title {
+				font-weight: 700;
+				color: var(--text-strong);
+				text-transform: uppercase;
+				letter-spacing: 0.04em;
+				font-size: 11px;
+				color: var(--label);
+			}
+
+			.demo-row {
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				gap: 16px;
+			}
+
+			.demo-row button {
+				font-family: var(--font-ui);
+				font-size: 12px;
+				font-weight: 600;
+				border: 1px solid var(--line);
+				background: var(--accent-soft);
+				color: var(--text-strong);
+				border-radius: 999px;
+				padding: 5px 12px;
+				cursor: pointer;
+			}
+
+			.demo-row button[aria-pressed='true'] {
+				background: var(--accent-grad);
+				color: var(--accent-ink);
+				border-color: transparent;
+			}
+
+			/* ── Shipped panel styles (.bsb-devtools) ────────────────────────── */
+			.bsb-devtools {
+				position: fixed;
+				right: 20px;
+				bottom: 20px;
+				z-index: 999;
+				font-family: var(--font-ui);
+			}
+
+			.bsb-devtools__chip {
+				display: inline-flex;
+				align-items: center;
+				gap: 6px;
+				border: none;
+				border-radius: 999px;
+				padding: 8px 14px;
+				background: var(--surface);
+				color: var(--text-soft);
+				box-shadow: 0 6px 18px var(--card-shadow);
+				font-family: var(--font-mono);
+				font-size: 11px;
+				font-weight: 700;
+				letter-spacing: 0.08em;
+				cursor: pointer;
+				border: 1px solid var(--line);
+			}
+
+			.bsb-devtools__chip-dot {
+				width: 7px;
+				height: 7px;
+				border-radius: 50%;
+				background: var(--text-soft);
+				opacity: 0.5;
+			}
+
+			.bsb-devtools__chip[data-bypass='true'] {
+				color: var(--accent-ink);
+				background: var(--accent-grad);
+				border-color: transparent;
+			}
+
+			.bsb-devtools__chip[data-bypass='true'] .bsb-devtools__chip-dot {
+				background: var(--accent-ink);
+				opacity: 1;
+			}
+
+			.bsb-devtools__card {
+				width: 248px;
+				background: var(--surface);
+				backdrop-filter: blur(14px);
+				-webkit-backdrop-filter: blur(14px);
+				border: 1px solid var(--line);
+				border-radius: 14px;
+				box-shadow: 0 12px 32px var(--card-shadow);
+				padding: 14px 16px 16px;
+				color: var(--text);
+			}
+
+			.bsb-devtools__head {
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				margin-bottom: 10px;
+			}
+
+			.bsb-devtools__title {
+				font-family: var(--font-mono);
+				font-size: 11px;
+				font-weight: 700;
+				letter-spacing: 0.1em;
+				text-transform: uppercase;
+				color: var(--label);
+			}
+
+			.bsb-devtools__collapse {
+				border: none;
+				background: transparent;
+				color: var(--text-soft);
+				cursor: pointer;
+				font-size: 16px;
+				line-height: 1;
+				padding: 2px 4px;
+				border-radius: 6px;
+			}
+
+			.bsb-devtools__collapse:hover {
+				background: var(--accent-soft);
+				color: var(--text-strong);
+			}
+
+			.bsb-devtools__row {
+				display: flex;
+				align-items: flex-start;
+				justify-content: space-between;
+				gap: 10px;
+			}
+
+			.bsb-devtools__label {
+				font-size: 13px;
+				font-weight: 600;
+				color: var(--text-strong);
+				margin: 0 0 3px;
+			}
+
+			.bsb-devtools__help {
+				font-size: 11px;
+				color: var(--text-soft);
+				line-height: 1.4;
+				margin: 0;
+			}
+
+			/* Switch control — mirrors a native checkbox, styled as a track+thumb. */
+			.bsb-devtools__switch {
+				position: relative;
+				display: inline-block;
+				width: 34px;
+				height: 20px;
+				flex: none;
+				margin-top: 1px;
+			}
+
+			.bsb-devtools__switch input {
+				position: absolute;
+				opacity: 0;
+				width: 100%;
+				height: 100%;
+				margin: 0;
+				cursor: pointer;
+			}
+
+			.bsb-devtools__switch-track {
+				position: absolute;
+				inset: 0;
+				background: var(--track);
+				border-radius: 999px;
+				transition: background 0.15s ease;
+			}
+
+			.bsb-devtools__switch-thumb {
+				position: absolute;
+				top: 2px;
+				left: 2px;
+				width: 16px;
+				height: 16px;
+				border-radius: 50%;
+				background: #ffffff;
+				box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+				transition: transform 0.15s ease;
+			}
+
+			.bsb-devtools__switch input:checked + .bsb-devtools__switch-track {
+				background: var(--accent-grad);
+			}
+
+			.bsb-devtools__switch input:checked ~ .bsb-devtools__switch-thumb {
+				transform: translateX(14px);
+			}
+
+			.bsb-devtools__switch input:focus-visible + .bsb-devtools__switch-track {
+				outline: 2px solid var(--focus);
+				outline-offset: 2px;
+			}
+
+			.bsb-devtools__actual {
+				margin: 12px 0 0;
+				padding-top: 10px;
+				border-top: 1px solid var(--line);
+				font-family: var(--font-mono);
+				font-size: 11px;
+				color: var(--text-soft);
+				display: none;
+			}
+
+			.bsb-devtools__actual[data-visible='true'] {
+				display: block;
+			}
+
+			.bsb-devtools__actual strong {
+				color: var(--text-strong);
+			}
+
+			.bsb-devtools[data-collapsed='true'] .bsb-devtools__card {
+				display: none;
+			}
+
+			.bsb-devtools[data-collapsed='false'] .bsb-devtools__chip {
+				display: none;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="stage">
+			<h1>Dev tools panel — mockup</h1>
+			<p>
+				Milestone 1 of <code>docs/plans/dev-tools-plan.md</code>. Floating
+				dev-build-only panel, bottom-right. Click the <code>DEV</code> chip
+				to expand it; flip its <strong>Bypass charging gate</strong> switch;
+				toggle light/dark and the mock "physical charger" below to see the
+				<code>Actually: …</code> line react.
+			</p>
+			<p>
+				This page is throwaway — no build step, inline CSS/JS only. The
+				markup and class names (<code>.bsb-devtools</code>, BEM children)
+				are the direction to port into
+				<code>src/cockpit/DevToolsPanel.ts</code> +
+				<code>src/cockpit/style.scss</code> in milestone 2.
+			</p>
+		</div>
+
+		<div class="demo-controls">
+			<span class="demo-controls__title">Mockup-only demo controls</span>
+			<div class="demo-row">
+				<span>Theme</span>
+				<button type="button" id="theme-toggle" aria-pressed="false">Dark</button>
+			</div>
+			<div class="demo-row">
+				<span>Physical charger plugged in</span>
+				<button type="button" id="charger-toggle" aria-pressed="false">Plug in</button>
+			</div>
+		</div>
+
+		<div class="bsb-devtools" id="devtools" data-collapsed="true">
+			<button class="bsb-devtools__chip" id="chip" type="button" data-bypass="false" aria-label="Open dev tools">
+				<span class="bsb-devtools__chip-dot"></span>
+				DEV
+			</button>
+			<div class="bsb-devtools__card">
+				<div class="bsb-devtools__head">
+					<span class="bsb-devtools__title">Dev tools</span>
+					<button class="bsb-devtools__collapse" id="collapse" type="button" aria-label="Collapse dev tools">
+						&#x2715;
+					</button>
+				</div>
+				<div class="bsb-devtools__row">
+					<div>
+						<p class="bsb-devtools__label">Bypass charging gate</p>
+						<p class="bsb-devtools__help">Run while plugged in — readings are not a real benchmark.</p>
+					</div>
+					<label class="bsb-devtools__switch">
+						<input type="checkbox" id="bypass" />
+						<span class="bsb-devtools__switch-track"></span>
+						<span class="bsb-devtools__switch-thumb"></span>
+					</label>
+				</div>
+				<p class="bsb-devtools__actual" id="actual">
+					Actually: <strong id="actual-state">on battery</strong>
+				</p>
+			</div>
+		</div>
+
+		<script>
+			var root = document.documentElement;
+			var themeToggle = document.getElementById('theme-toggle');
+			var chargerToggle = document.getElementById('charger-toggle');
+			var devtools = document.getElementById('devtools');
+			var chip = document.getElementById('chip');
+			var collapse = document.getElementById('collapse');
+			var bypass = document.getElementById('bypass');
+			var actual = document.getElementById('actual');
+			var actualState = document.getElementById('actual-state');
+
+			var charging = false;
+
+			function render() {
+				chip.dataset.bypass = String(bypass.checked);
+				actual.dataset.visible = String(bypass.checked);
+				actualState.textContent = charging ? 'plugged in' : 'on battery';
+			}
+
+			themeToggle.addEventListener('click', function () {
+				var dark = root.getAttribute('data-theme') === 'dark';
+				root.setAttribute('data-theme', dark ? 'light' : 'dark');
+				themeToggle.setAttribute('aria-pressed', String(!dark));
+				themeToggle.textContent = dark ? 'Dark' : 'Light';
+			});
+
+			chargerToggle.addEventListener('click', function () {
+				charging = !charging;
+				chargerToggle.setAttribute('aria-pressed', String(charging));
+				chargerToggle.textContent = charging ? 'Unplug' : 'Plug in';
+				render();
+			});
+
+			chip.addEventListener('click', function () {
+				devtools.dataset.collapsed = 'false';
+			});
+
+			collapse.addEventListener('click', function () {
+				devtools.dataset.collapsed = 'true';
+			});
+
+			bypass.addEventListener('change', render);
+
+			render();
+		</script>
+	</body>
+</html>
