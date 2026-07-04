@@ -1,5 +1,5 @@
 /**
- * Satiation bookkeeping (plan §3.1). Running a behavior consumes its
+ * Satiation bookkeeping. Running a behavior consumes its
  * novelty; it recovers a little every tick. This is what keeps a strong trait
  * from looping the same action forever — the bid stays high, but appetite
  * drags it back down until something else gets a turn.

@@ -1,8 +1,8 @@
 /**
- * What the page offers, sensed once from the DOM when the engine boots
- * (plan §3.5). Behaviors read this instead of branching on "what kind of
- * page is this" — a page with no `<video>` simply has `hasVideo: false`,
- * which zeroes `WatchVideo`'s bid by multiplication, never by a gate.
+ * What the page offers, sensed fresh from the DOM every tick. Behaviors read
+ * this instead of branching on "what kind of page is this" — a page with no
+ * `<video>` simply has `hasVideo: false`, which zeroes `WatchVideo`'s bid by
+ * multiplication, never by a gate.
  */
 
 import { clamp01 } from './Bid';

@@ -1,7 +1,7 @@
 /**
  * The contract every surf action implements. Behaviors are never called
- * directly — each tick they bid in an auction (plan §3.1/§3.2), and the
- * arbiter draws a winner. A behavior's `bid` must stay a pure function of its
+ * directly — each tick they bid in an auction, and the arbiter draws a
+ * winner. A behavior's `bid` must stay a pure function of its
  * inputs (no side effects, no branching on identity), so the arbiter can
  * treat every behavior identically regardless of what it does when it wins.
  */

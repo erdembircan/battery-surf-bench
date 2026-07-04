@@ -1,8 +1,8 @@
 /**
- * Selection over the tick's bids — a roulette wheel, never argmax (plan
- * §3.2). Argmax would let one high stat rule out everything else, exactly
- * what the RPG design rejects; a weighted random draw lets a weak bid still
- * occasionally win, and a zero bid still never can.
+ * Selection over the tick's bids — a roulette wheel, never argmax. Argmax
+ * would let one high stat rule out everything else, exactly what the RPG
+ * design rejects; a weighted random draw lets a weak bid still occasionally
+ * win, and a zero bid still never can.
  */
 
 import type { Behavior } from './Behavior';

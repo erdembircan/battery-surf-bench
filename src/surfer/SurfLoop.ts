@@ -1,5 +1,5 @@
 /**
- * The orchestrator (plan §3.5). Owns the tick loop, boredom, and appetite —
+ * The orchestrator. Owns the tick loop, boredom, and appetite —
  * behaviors themselves stay stateless pure bidders. Each tick: collect bids,
  * draw a winner, run it, update appetite/boredom, wait the tempo-scaled
  * interval. When `MoveOn` wins, the loop halts and fires `onPageDone`.

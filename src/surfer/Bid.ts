@@ -1,7 +1,7 @@
 /**
  * The shared arithmetic behind every behavior's bid: `drive × affordance ×
- * appetite × noise` (see the surf-engine plan §3.1). Each behavior supplies
- * its own affordance and appetite; this module holds the two pieces that are
+ * appetite × noise`. Each behavior supplies its own affordance and appetite;
+ * this module holds the two pieces that are
  * identical everywhere — the trait-to-drive mapping and the random jitter —
  * so every behavior reads the same floor and the same noise band.
  */

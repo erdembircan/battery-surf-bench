@@ -1,6 +1,6 @@
 /**
- * Tempo is the engine's metronome, not a bidder (plan §3.4): it never enters
- * an auction, it scales the clock and the motor directly. These are the three
+ * Tempo is the engine's metronome, not a bidder: it never enters an auction,
+ * it scales the clock and the motor directly. These are the three
  * levers it scales — tick cadence, scroll-flick size, and the flick's easing
  * time — all linear in the tempo stat, fastest at `MAX`.
  */
