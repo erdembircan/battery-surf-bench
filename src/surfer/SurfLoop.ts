@@ -33,7 +33,8 @@ export interface SurfLoopDeps {
 	clock: Clock;
 	rng: Rng;
 	traits: number[];
-	affordances: Affordances;
+	/** Re-read each tick, so `scrollRemaining` reflects the surfer's own scrolling. */
+	senseAffordances: () => Affordances;
 	speed: number;
 	onPageDone: () => void;
 }
@@ -64,8 +65,8 @@ export class SurfLoop {
 	}
 
 	private context(): BehaviorContext {
-		const { traits, affordances, rng, clock, speed } = this.deps;
-		return { traits, affordances, rng, clock, speed };
+		const { traits, senseAffordances, rng, clock, speed } = this.deps;
+		return { traits, affordances: senseAffordances(), rng, clock, speed };
 	}
 
 	private async loop(): Promise< void > {

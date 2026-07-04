@@ -18,7 +18,7 @@ describe( 'SurfLoop', () => {
 			clock: new FakeClock(),
 			rng: () => 0.999999, // always resolves to the last positive-bid entry
 			traits: [ 0, 0, 0, 0, 0 ],
-			affordances: openAffordances,
+			senseAffordances: () => openAffordances,
 			speed: 1,
 			onPageDone,
 		} );
@@ -42,7 +42,7 @@ describe( 'SurfLoop', () => {
 			clock: new FakeClock(),
 			rng: neutralRng,
 			traits: [ 0, 0, 0, 0, 0 ],
-			affordances: openAffordances,
+			senseAffordances: () => openAffordances,
 			speed: 1,
 			onPageDone,
 		} );
@@ -69,7 +69,7 @@ describe( 'SurfLoop', () => {
 				clock,
 				rng: neutralRng,
 				traits: [ 0, endurance, 0, 0, 0 ],
-				affordances: openAffordances,
+				senseAffordances: () => openAffordances,
 				speed: 1,
 				onPageDone,
 			} );
@@ -88,6 +88,38 @@ describe( 'SurfLoop', () => {
 		expect( highEnduranceTicks ).toBeGreaterThan( lowEnduranceTicks );
 	} );
 
+	it( 're-senses affordances every tick, so scroll quiets once the page bottoms out', async () => {
+		const motor = new FakeMotor();
+		const onPageDone = vi.fn();
+		let scrollRemaining = 1;
+		const loop = new SurfLoop( {
+			behaviors: [ new ScrollBurst(), new MoveOn() ],
+			motor,
+			clock: new FakeClock(),
+			rng: neutralRng,
+			traits: [ 0, 0, 0, 0, 0 ],
+			senseAffordances: () => ( { ...openAffordances, scrollRemaining } ),
+			speed: 1,
+			onPageDone,
+		} );
+
+		loop.start();
+		await vi.waitFor( () =>
+			expect( motor.commands.length ).toBeGreaterThan( 0 )
+		);
+
+		// The page has now bottomed out: ScrollBurst's affordance should zero out
+		// on the very next tick, rather than staying frozen at the boot-time value.
+		scrollRemaining = 0;
+		const commandsAtBottom = motor.commands.length;
+
+		await vi.waitFor( () =>
+			expect( onPageDone ).toHaveBeenCalledTimes( 1 )
+		);
+
+		expect( motor.commands.length ).toBe( commandsAtBottom );
+	} );
+
 	it( 'stop() prevents any further ticks', async () => {
 		const onPageDone = vi.fn();
 		const motor = new FakeMotor();
@@ -97,7 +129,7 @@ describe( 'SurfLoop', () => {
 			clock: new FakeClock(),
 			rng: neutralRng,
 			traits: [ 0, 0, 0, 0, 0 ],
-			affordances: openAffordances,
+			senseAffordances: () => openAffordances,
 			speed: 1,
 			onPageDone,
 		} );

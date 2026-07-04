@@ -37,7 +37,7 @@ export class GlanceBack implements Behavior {
 		const px =
 			SCROLL_UP_PX_MIN +
 			ctx.rng() * ( SCROLL_UP_PX_MAX - SCROLL_UP_PX_MIN );
-		await motor.scrollBy( -px, SCROLL_UP_MS / ctx.speed );
+		await motor.scrollBy( -px, SCROLL_UP_MS );
 
 		const settleMs =
 			SETTLE_MS_MIN + ctx.rng() * ( SETTLE_MS_MAX - SETTLE_MS_MIN );

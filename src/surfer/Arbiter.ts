@@ -35,15 +35,22 @@ export const pickBehavior = (
 
 	const draw = rng() * total;
 	let cumulative = 0;
+	let lastPositive: Behavior | null = null;
 
 	for ( const { b, bid } of bids ) {
-		cumulative += Math.max( 0, bid );
+		const weight = Math.max( 0, bid );
+		if ( weight <= 0 ) {
+			continue;
+		}
+
+		cumulative += weight;
+		lastPositive = b;
 		if ( draw < cumulative ) {
 			return b;
 		}
 	}
 
-	// Floating-point rounding can leave `draw` a hair short of `total`; the
-	// last positive-bid entry is the correct winner in that edge case.
-	return bids[ bids.length - 1 ]?.b ?? null;
+	// Floating-point rounding can leave `draw` at or past `total`; the last
+	// positive-bid entry is the correct winner in that edge case.
+	return lastPositive;
 };

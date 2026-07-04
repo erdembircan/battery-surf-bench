@@ -10,19 +10,24 @@ import type { Rng } from './Rng';
 import type { Clock } from './Clock';
 import type { Affordances } from './Affordances';
 import type { Motor } from './Motor';
+import { STATS, type StatKey } from '../shared/SurferStats';
 
 /**
- * Index of each stat within the trait vector — mirrors the fixed `STATS`
- * order in the shared `SurferStats` module, the contract shared with the
- * cockpit.
+ * Index of each stat within the trait vector, derived from the shared
+ * `SurferStats` `STATS` order so a reorder there can never silently desync
+ * a behavior from the vector it reads.
  */
-export const TEMPO = 0;
-export const ENDURANCE = 1;
-export const LITERACY = 2;
-export const ALLURE = 3;
-export const FIDGET = 4;
+const STAT_INDEX = Object.fromEntries(
+	STATS.map( ( stat, index ) => [ stat.key, index ] )
+) as Record< StatKey, number >;
 
-/** Everything a behavior's `bid`/`run` needs, refreshed once the page loads. */
+export const TEMPO = STAT_INDEX.tempo;
+export const ENDURANCE = STAT_INDEX.endurance;
+export const LITERACY = STAT_INDEX.literacy;
+export const ALLURE = STAT_INDEX.allure;
+export const FIDGET = STAT_INDEX.fidget;
+
+/** Everything a behavior's `bid`/`run` needs, rebuilt fresh every tick. */
 export interface BehaviorContext {
 	traits: readonly number[];
 	affordances: Affordances;

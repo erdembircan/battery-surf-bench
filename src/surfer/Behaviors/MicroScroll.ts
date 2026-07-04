@@ -27,6 +27,6 @@ export class MicroScroll implements Behavior {
 		const magnitude =
 			JITTER_PX_MIN + ctx.rng() * ( JITTER_PX_MAX - JITTER_PX_MIN );
 		const px = ctx.rng() < 0.5 ? -magnitude : magnitude;
-		await motor.scrollBy( px, JITTER_MS / ctx.speed );
+		await motor.scrollBy( px, JITTER_MS );
 	}
 }

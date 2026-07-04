@@ -5,6 +5,8 @@
  * tests can swap in a recording fake and assert on commands instead of pixels.
  */
 
+import type { Rng } from './Rng';
+
 /** A motion primitive the surfer can perform. */
 export interface Motor {
 	/** Scrolls the page by `px` (negative scrolls up), eased over `ms`. */
@@ -39,6 +41,12 @@ const nextFrame = (): Promise< number > =>
 
 /** Production motor: performs real, eased DOM motion. */
 export class DomMotor implements Motor {
+	private readonly rng: Rng;
+
+	constructor( rng: Rng ) {
+		this.rng = rng;
+	}
+
 	async scrollBy( px: number, ms: number ): Promise< void > {
 		const start = performance.now();
 		let moved = 0;
@@ -63,8 +71,8 @@ export class DomMotor implements Motor {
 		while ( performance.now() - start < ms ) {
 			const event = new MouseEvent( 'mousemove', {
 				bubbles: true,
-				clientX: Math.random() * window.innerWidth,
-				clientY: Math.random() * window.innerHeight,
+				clientX: this.rng() * window.innerWidth,
+				clientY: this.rng() * window.innerHeight,
 			} );
 			document.dispatchEvent( event );
 			await nextFrame();
@@ -80,8 +88,7 @@ export class DomMotor implements Motor {
 			return;
 		}
 
-		const el =
-			candidates[ Math.floor( Math.random() * candidates.length ) ];
+		const el = candidates[ Math.floor( this.rng() * candidates.length ) ];
 		const textNode = el.firstChild;
 		const selection = el.ownerDocument.defaultView?.getSelection();
 
