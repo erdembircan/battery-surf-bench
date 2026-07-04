@@ -2,7 +2,7 @@ import type {
 	BlueprintDeclaration,
 	BlueprintV1Declaration,
 } from '@wp-playground/blueprints';
-import { PLUGIN_SLUG, LIVERELOAD_CLIENT_URL } from './config.mts';
+import { PLUGIN_SLUG, liveReloadClientUrl } from './config.mts';
 
 /**
  * Base blueprint options shared by all playground modes. Pins PHP to the
@@ -57,7 +57,13 @@ const activatePluginStep: BlueprintV1Declaration[ 'steps' ] = [
  * `battery_surf_bench_cockpit_spared_script_handles` filter to survive that strip and keep
  * reloading the cockpit in place.
  */
-const liveReloadMuPlugin = `<?php
+/**
+ * Build the dev-only LiveReload mu-plugin PHP source for a resolved client URL.
+ *
+ * @param clientUrl - The `livereload.js` client URL to enqueue.
+ * @return The mu-plugin PHP source.
+ */
+const liveReloadMuPlugin = ( clientUrl: string ) => `<?php
 /**
  * Battery Surf Bench dev live reload. Injected by the Playground dev blueprint;
  * enqueues the LiveReload client so editing PHP or rebuilding the JS bundle
@@ -66,7 +72,7 @@ const liveReloadMuPlugin = `<?php
 add_action( 'wp_enqueue_scripts', 'bsb_dev_live_reload' );
 add_action( 'admin_enqueue_scripts', 'bsb_dev_live_reload' );
 function bsb_dev_live_reload() {
-	wp_enqueue_script( 'bsb-live-reload', '${ LIVERELOAD_CLIENT_URL }', array(), null, true );
+	wp_enqueue_script( 'bsb-live-reload', '${ clientUrl }', array(), null, true );
 }
 
 // The cockpit dashboard strips every classic front-end script; spare the
@@ -78,8 +84,15 @@ function bsb_dev_live_reload_spare( $handles ) {
 }
 `;
 
-/** Install the dev-only LiveReload mu-plugin. */
-const liveReloadStep: BlueprintV1Declaration[ 'steps' ] = [
+/**
+ * Build the dev-only LiveReload mu-plugin install step for a resolved port.
+ *
+ * @param liveReloadPort - The port the LiveReload server bound this run.
+ * @return The mkdir + writeFile steps that install the mu-plugin.
+ */
+const liveReloadStep = (
+	liveReloadPort: number
+): NonNullable< BlueprintV1Declaration[ 'steps' ] > => [
 	{
 		step: 'mkdir',
 		path: '/wordpress/wp-content/mu-plugins',
@@ -87,33 +100,45 @@ const liveReloadStep: BlueprintV1Declaration[ 'steps' ] = [
 	{
 		step: 'writeFile',
 		path: '/wordpress/wp-content/mu-plugins/bsb-live-reload.php',
-		data: liveReloadMuPlugin,
+		data: liveReloadMuPlugin( liveReloadClientUrl( liveReloadPort ) ),
 	},
 ];
 
 /**
- * Development blueprint for a first-run or non-persistent instance. Logs in
- * as admin, enables debug constants, and activates the plugin.
+ * Build the development blueprint for a first-run or non-persistent instance.
+ * Logs in as admin, enables debug constants, activates the plugin, and installs
+ * the LiveReload mu-plugin pointed at the resolved port.
+ *
+ * @param liveReloadPort - The port the LiveReload server bound this run.
+ * @return The blueprint declaration.
  */
-export const devBlueprint: BlueprintDeclaration = {
+export const devBlueprint = (
+	liveReloadPort: number
+): BlueprintDeclaration => ( {
 	...base,
 	steps: [
 		...loginStep,
 		...debugStep,
 		...activatePluginStep,
-		...liveReloadStep,
+		...liveReloadStep( liveReloadPort ),
 	],
-};
+} );
 
 /**
- * Resume blueprint for an existing persistent installation. Only logs in and
- * re-enables debug constants; the plugin is already active in the persisted
+ * Build the resume blueprint for an existing persistent installation. Only logs
+ * in, re-enables debug constants, and reinstalls the LiveReload mu-plugin
+ * pointed at the resolved port; the plugin is already active in the persisted
  * database, so activation is skipped.
+ *
+ * @param liveReloadPort - The port the LiveReload server bound this run.
+ * @return The blueprint declaration.
  */
-export const devResumeBlueprint: BlueprintDeclaration = {
+export const devResumeBlueprint = (
+	liveReloadPort: number
+): BlueprintDeclaration => ( {
 	...base,
-	steps: [ ...loginStep, ...debugStep, ...liveReloadStep ],
-};
+	steps: [ ...loginStep, ...debugStep, ...liveReloadStep( liveReloadPort ) ],
+} );
 
 /**
  * End-to-end blueprint for a deterministic, non-persistent test instance.

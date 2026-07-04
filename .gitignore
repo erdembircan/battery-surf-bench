@@ -12,3 +12,6 @@ playwright/.cache/
 
 # wp-playground persistent WordPress installation
 wp-playground/wordpress/
+
+# Resolved LiveReload port, published by start.mts for the watcher each run
+wp-playground/.livereload-port
