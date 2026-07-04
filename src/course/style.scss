@@ -696,4 +696,10 @@ $tag-bg: #eef3f8; // light-blue tag chip
 		width: 100%;
 		height: 100%;
 	}
+
+	path {
+		fill: $ink;
+		stroke: $white;
+		stroke-width: 1;
+	}
 }

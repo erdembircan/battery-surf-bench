@@ -62,9 +62,9 @@ const jitteredControlPoint = ( a: Point, b: Point, rng: Rng ): Point => {
 };
 
 /**
- * Builds the cursor's DOM element. Static positioning/sizing lives in the
- * course stylesheet under {@link CURSOR_CLASS}; this only ever writes the
- * element's `transform`.
+ * Builds the cursor's DOM element. Static positioning, sizing and colour all
+ * live in the course stylesheet under {@link CURSOR_CLASS}; this only ever
+ * writes the element's `transform`.
  * @param doc
  */
 const buildElement = ( doc: Document ): HTMLElement => {
@@ -72,7 +72,7 @@ const buildElement = ( doc: Document ): HTMLElement => {
 	el.className = CURSOR_CLASS;
 	el.setAttribute( 'aria-hidden', 'true' );
 	el.innerHTML =
-		'<svg viewBox="0 0 24 24" width="24" height="24"><path d="M4 2 L4 20 L9 16 L12 22 L15 20.5 L12 14.5 L18 14.5 Z" fill="#1a1a1a" stroke="#fff" stroke-width="1"/></svg>';
+		'<svg viewBox="0 0 24 24" width="24" height="24"><path d="M4 2 L4 20 L9 16 L12 22 L15 20.5 L12 14.5 L18 14.5 Z"/></svg>';
 
 	return el;
 };
