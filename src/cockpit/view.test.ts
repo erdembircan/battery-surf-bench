@@ -99,6 +99,15 @@ interface CockpitConfig {
 		isToastEntering: boolean;
 		isToastHolding: boolean;
 		isToastLeaving: boolean;
+		// Present only once the dev-tools module has joined the store (never set
+		// by this file's own registration); the battery seam reads it optionally.
+		devtools?: {
+			battery: {
+				enabled: boolean;
+				charging: boolean | null;
+				level: number | null;
+			};
+		};
 	};
 	actions: {
 		selectMode: () => void;
@@ -119,6 +128,7 @@ interface CockpitConfig {
 	};
 	callbacks: {
 		initBattery: () => () => void;
+		syncBatteryOverride: () => void;
 		initWakeLock: () => () => void;
 		initSound: () => void;
 		syncRunActivity: () => void;
@@ -178,9 +188,16 @@ const mocks = vi.hoisted( () => ( {
 } ) );
 
 vi.mock( '@wordpress/interactivity', () => ( {
-	store: ( _namespace: string, config: CockpitConfig ) => {
-		mocks.config = config;
-		return config;
+	// The real `store()` returns the existing merged store when called with no
+	// second argument (used by the battery seam to re-fetch the shared state for
+	// the dev-tools override) — only overwrite the captured config when one is
+	// actually supplied, so that re-fetch reads back the same config instead of
+	// wiping it.
+	store: ( _namespace: string, config?: CockpitConfig ) => {
+		if ( config !== undefined ) {
+			mocks.config = config;
+		}
+		return mocks.config;
 	},
 	getContext: () => mocks.context,
 	getElement: () => ( { ref: mocks.element } ),
@@ -244,6 +261,11 @@ beforeEach( () => {
 	mocks.element = { dataset: {}, checked: false, value: '' };
 	// The run state is a module singleton; reset it so tests stay isolated.
 	__resetInstance();
+	// `mocks.config` (and its `state`) is the one real merged store, captured
+	// once at module load and shared by every test in this file — clear any
+	// dev-tools override a prior test armed on it, so it never leaks across
+	// tests the way `mocks.context` cannot (that one is rebuilt above).
+	delete mocks.config?.state.devtools;
 } );
 
 describe( 'bsb/cockpit view store', () => {
@@ -810,6 +832,122 @@ describe( 'bsb/cockpit view store', () => {
 			// No API → flag unsupported so the view locks the cockpit.
 			expect( mocks.context.batterySupported ).toBe( false );
 			expect( mocks.config?.state.isBatteryUnsupported ).toBe( true );
+		} );
+
+		describe( 'dev-tools battery override', () => {
+			/** The battery-override slice, as the devtools module would shape it. */
+			type Override = {
+				enabled: boolean;
+				charging: boolean | null;
+				level: number | null;
+			};
+
+			/**
+			 * Arms the dev-tools override on the merged state, as the devtools
+			 * module would.
+			 *
+			 * @param override The battery-override slice to set.
+			 */
+			const setOverride = ( override: Override ): void => {
+				mocks.config!.state.devtools = { battery: override };
+			};
+
+			it( 'forces charging through the override, stopping a live run despite a discharging reading', async () => {
+				const mockBattery = {
+					level: 0.5,
+					charging: false,
+					addEventListener: vi.fn(),
+					removeEventListener: vi.fn(),
+				};
+				( navigator as { getBattery?: unknown } ).getBattery = () =>
+					Promise.resolve( mockBattery );
+
+				mocks.context.running = true;
+				setOverride( { enabled: true, charging: true, level: null } );
+
+				const cleanup = mocks.config!.callbacks.initBattery();
+
+				await vi.waitFor( () =>
+					expect( mocks.context.batteryCharging ).toBe( true )
+				);
+				expect( mocks.context.running ).toBe( false );
+
+				cleanup();
+			} );
+
+			it( 'leaves the reading untouched when the override is disarmed (production passthrough)', async () => {
+				const mockBattery = {
+					level: 0.5,
+					charging: false,
+					addEventListener: vi.fn(),
+					removeEventListener: vi.fn(),
+				};
+				( navigator as { getBattery?: unknown } ).getBattery = () =>
+					Promise.resolve( mockBattery );
+
+				setOverride( { enabled: false, charging: true, level: 0.1 } );
+
+				const cleanup = mocks.config!.callbacks.initBattery();
+
+				await vi.waitFor( () =>
+					expect( mocks.context.batteryLevel ).toBe( 50 )
+				);
+				expect( mocks.context.batteryCharging ).toBe( false );
+
+				cleanup();
+			} );
+
+			it( 're-applies the reading via syncBatteryOverride once the override changes mid-run', async () => {
+				const mockBattery = {
+					level: 0.5,
+					charging: false,
+					addEventListener: vi.fn(),
+					removeEventListener: vi.fn(),
+				};
+				( navigator as { getBattery?: unknown } ).getBattery = () =>
+					Promise.resolve( mockBattery );
+
+				mocks.context.running = true;
+				const cleanup = mocks.config!.callbacks.initBattery();
+
+				await vi.waitFor( () =>
+					expect( mocks.context.batteryLevel ).toBe( 50 )
+				);
+				expect( mocks.context.running ).toBe( true );
+
+				// Arming the override after the fact is what the
+				// `data-wp-watch--devtools-battery` directive re-runs on.
+				setOverride( { enabled: true, charging: true, level: null } );
+				mocks.config!.callbacks.syncBatteryOverride();
+
+				expect( mocks.context.batteryCharging ).toBe( true );
+				expect( mocks.context.running ).toBe( false );
+
+				cleanup();
+			} );
+
+			it( 'synthesizes a reading when the Battery Status API is unsupported but both override fields are set', () => {
+				setOverride( { enabled: true, charging: false, level: 0.3 } );
+
+				mocks.config!.callbacks.initBattery();
+
+				// Unlocked despite the missing API, because the override supplied a
+				// full reading.
+				expect( mocks.config!.state.isBatteryUnsupported ).toBe(
+					false
+				);
+				expect( mocks.context.batteryLevel ).toBe( 30 );
+				expect( mocks.context.batteryCharging ).toBe( false );
+			} );
+
+			it( 'stays unsupported when the API is missing and the override is incomplete', () => {
+				setOverride( { enabled: true, charging: true, level: null } );
+
+				mocks.config!.callbacks.initBattery();
+
+				expect( mocks.config!.state.isBatteryUnsupported ).toBe( true );
+				expect( mocks.context.batteryLevel ).toBeNull();
+			} );
 		} );
 	} );
 
