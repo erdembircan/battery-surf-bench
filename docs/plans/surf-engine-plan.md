@@ -98,11 +98,10 @@ The run's demo **speed multiplier** (`RunConfig.normalizeSpeed`, crossed via URL
 ```
 iframe loads course page
   → boot guard: engine starts only when the traits URL param is present
+  → sense affordances (DOM scan)
   → settle beat (1–3 s, jittered — knowledge-base convention)
   → ↻ tick:
-      sense affordances (DOM scan, re-read every tick — scrollRemaining tracks
-      the surfer's own scrolling, so ScrollBurst quiets once it bottoms out)
-      → collect bids → roulette pick → winner runs its motor commands (async)
+      collect bids → roulette pick → winner runs its motor commands (async)
       → appetite/boredom update → wait tick interval
   → MoveOn wins → engine shell posts page-done to parent → loop halts
 cockpit hears page-done → advances activeIndex (modulo) → iframe navigates → engine boots fresh
@@ -170,7 +169,7 @@ export const pickBehavior: ( bids: ReadonlyArray<{ b: Behavior; bid: number }>, 
 // SurfLoop.ts — the orchestrator. Owns tick loop, boredom, appetite, halt-on-MoveOn.
 export class SurfLoop {
   constructor( deps: { behaviors: Behavior[]; motor: Motor; clock: Clock; rng: Rng;
-                       traits: number[]; senseAffordances: () => Affordances; speed: number;
+                       traits: number[]; affordances: Affordances; speed: number;
                        onPageDone: () => void } );
   start(): void;
   stop(): void;
