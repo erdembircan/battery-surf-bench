@@ -28,6 +28,9 @@ final class BatterySurfBenchTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Functions\when( 'plugin_dir_path' )->justReturn( '/path/to/' );
+		// The dev-tools manager gates its own registration on the environment;
+		// default it closed (production) so booting never depends on it.
+		Functions\when( 'wp_get_environment_type' )->justReturn( 'production' );
 	}
 
 	/**

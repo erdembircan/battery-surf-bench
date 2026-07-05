@@ -1,187 +1,271 @@
-# Frontend Dev Tools — Implementation Plan
+# Dev-Tools Plan — Environment-Gated Development Tools with Battery Override
 
-**Status:** approved architecture, ready to implement.
-**Audience:** the implementing session/agent. Read this whole document before writing code. Read `CLAUDE.md` first — every convention there applies (SCSS, tests, PHPCS, workflow replay, commit format, chart updates, mockups-first). This plan does not restate them; it adds the design decisions.
+## Problem
 
-## 1. Goal
+Testing the cockpit's battery behavior requires physically unplugging the laptop (and the
+monitor that powers it). We need a development-tools system that can inject and manipulate
+runtime values — first tool: **overriding the battery charging state (and level)** seen by
+the cockpit — active only in development environments, on both the PHP and the client side.
 
-The cockpit refuses to start a run while the laptop is plugged in, and ends a live run the moment the charger connects — correct product behavior, but it forces the maintainer to unplug the laptop every time they want to check a style, a layout, or any run-time functionality during development.
+## Ground truth this plan is built on
 
-Build a **development-build-only floating dev-tools panel** on the cockpit page:
+Verified against the installed source (WordPress 7.0 under `wp-playground/wordpress/`,
+`@wordpress/interactivity` 6.48.1 under `node_modules/`) — not training data:
 
-- A small floating box, collapsible (collapsed chip ↔ expanded card), that exists **only in development builds**. Production builds contain none of its code and change no behavior.
-- Its first (and for now only) tool: **Bypass charging gate** — a toggle that makes the whole cockpit behave as if the device were on battery, so runs can start, record samples, compute drain rates, and finish normally while plugged in.
-- The architecture must make **adding future tools cheap** (mock battery level, force-unsupported API, etc.) without redesigning the seam.
+1. **Native environment value.** WordPress has the NODE_ENV analog:
+   `wp_get_environment_type()` (`wp-includes/load.php`), fed by the `WP_ENVIRONMENT_TYPE`
+   constant or system env var. Values: `local | development | staging | production`;
+   anything invalid falls back to `production`. This is the activation switch. (The
+   separate `wp_get_development_mode()` governs core-internals nuances, not "is this a dev
+   site" — we do not use it.)
+2. **Store merging is the sanctioned extension mechanism.** `store()` calls with the same
+   namespace from *different script modules* deep-merge into the same raw store and return
+   the same reactive `state`/`actions` proxies (`@wordpress/interactivity/src/store.ts`).
+   Core ships this exact pattern in every core block view module. Our `bsb/cockpit` store
+   is public (no `lock`), so a dev-only module can join it. Collision rule: the later
+   call's members **override** — dev-tools members must therefore be namespaced by prefix
+   (see below).
+3. **No flux-style `subscribe`/middleware exists.** The Interactivity API's supported
+   interception points are (a) mutating the shared state proxy — every directive/getter
+   that reads it re-evaluates via Preact signals — and (b) `data-wp-watch` /
+   exported `watch()` effects. We use (a) + a `data-wp-watch` directive; no monkey-patching.
+4. **Battery data flows through per-element context, not global state.**
+   `callbacks.initBattery` (`src/cockpit/BatteryStore.ts`) is the sole consumer of
+   `navigator.getBattery`; its `BatteryMonitor` `onReading` path drives *everything*:
+   context display values, sample recording, the plugged auto-stop, the target-drop stop.
+   Real `chargingchange` events re-write context, so a display-only fake would be stomped
+   and run logic would still see the truth. **The override must be applied inside the
+   reading-processing path.**
 
-This is a pure frontend feature. **No PHP changes, no blueprint changes, no server-side environment detection.**
+## Architecture
 
-## 2. Activation — the `process.env.NODE_ENV` build-time check
+### Activation — one switch, both sides
 
-The activation check in source is literally:
+- **PHP:** a `DevTools` manager is registered like every other manager in
+  `BatterySurfBench::managers()`, but its `register()` bails immediately unless
+  `wp_get_environment_type()` returns one of the allowed values (`local`, `development`)
+  read from `Config.php` (e.g. `devtools.environments`). Expose the check as a public
+  method (e.g. `DevTools::is_active(): bool`) so tests and other managers can consult it.
+- **Client:** there is no separate JS env check — the dev-tools script module and panel
+  markup are **only emitted when the PHP gate is open**. Production pages ship zero dev
+  bytes. The seam inside the production cockpit module is inert without the dev module
+  (optional-chained state slice, see below).
+- **Playground:** add `WP_ENVIRONMENT_TYPE: 'development'` to the existing
+  `defineWpConfigConsts` debug step in `wp-playground/blueprint.mts` (dev *and* e2e
+  blueprints — e2e must be able to exercise the tools; production gating is covered by
+  PHP unit tests instead). Verify at runtime that the constant actually wins (the function
+  also reads a system env var; constant takes precedence).
+
+### Frontend — dev module joins the cockpit store
+
+New script module (own webpack module entry, not part of the cockpit view module):
+
+- `src/devtools/view.ts` — thin composition root, same convention as the cockpit:
+  `store( 'bsb/cockpit', mergeStoreParts( batteryOverrideStore ) )`. Joining the existing
+  namespace is the whole point: same state proxy, reactivity for free.
+- `src/devtools/BatteryOverrideStore.ts` — the domain slice (CamelCase, unit-tested).
+  **Every member it merges into `bsb/cockpit` carries a `devtools` prefix**
+  (`state.devtools.*`, `actions.devtoolsToggleCharging`, getters like
+  `state.devtoolsIsChargingForced`, …) so the override-on-collision merge rule can never
+  clobber production members.
+- `src/devtools/style.scss` — compiled by the build like every other stylesheet; panel
+  styling lives here, never inline.
+
+Override state shape (in cockpit store state, so it is shared and reactive):
 
 ```ts
-const isDevBuild = process.env.NODE_ENV !== 'production';
+state.devtools = {
+  battery: {
+    charging: boolean | null, // null = don't override
+    level:    number  | null, // 0–1, null = don't override
+  },
+};
 ```
 
-wp-scripts handles the rest **out of the box** — no config changes, no new flags, no declarations:
+### The seam — override applied at the reading choke point
 
-- `wp-scripts build` defaults `process.env.NODE_ENV` to `'production'` (`node_modules/@wordpress/scripts/scripts/build.js`); `wp-scripts start` (what `pnpm dev` runs) leaves it unset, so the shared webpack config resolves `mode: 'development'` (`node_modules/@wordpress/scripts/config/webpack.config.js`, the `isProduction`/`mode` lines at the top).
-- Webpack's `mode` automatically substitutes `process.env.NODE_ENV` in bundled code with the mode string (`optimization.nodeEnv` defaults to `mode`; neither wp-scripts nor the project `webpack.config.js` overrides it). Both bundle configs — classic scripts and the script-module config that builds the cockpit's `viewScriptModule` — share that mode.
+Production-side changes in `src/cockpit/BatteryStore.ts` (small, inert without dev tools):
 
-Verify those lines in the installed package before relying on them, per `CLAUDE.md`.
+1. Extract the current `onReading` closure body into a named, exported, testable function
+   (e.g. `applyReading( context, instance, reading )`) — behavior unchanged.
+2. Add a tiny pure resolver, e.g. `src/cockpit/BatteryOverride.ts`:
+   `resolveReading( raw: Reading | null, override?: { charging: boolean | null; level: number | null } ): Reading | null`
+   — returns `raw` untouched when the override slice is absent/null-valued (production);
+   substitutes the overridden fields when set; may synthesize a full reading when the
+   platform reports no battery support but both override fields are set (makes the tools
+   usable in Safari/Firefox where `navigator.getBattery` is absent).
+3. `initBattery`'s `onReading` becomes: cache the raw reading on the run instance
+   (`RunInstance`), then `applyReading( context, instance, resolveReading( raw, state.devtools?.battery ) )`.
+4. New cockpit callback (e.g. `callbacks.syncBatteryOverride`) bound on the cockpit
+   wrapper via `data-wp-watch--devtools-battery`. It reads `state.devtools?.battery`
+   (reactive dependency) and re-runs the resolve+apply path with the cached raw reading.
+   This is what makes flipping the toggle take effect *immediately* — including
+   triggering the plugged auto-stop mid-run — instead of waiting for the next real
+   battery event. In production `state.devtools` is undefined; the watch reads
+   `undefined` once and never does anything.
 
-Because the substitution happens at parse time, `if ( process.env.NODE_ENV !== 'production' ) { … }` becomes `if ( false ) { … }` in a production build and webpack drops the branch **and any dynamic `import()` inside it** from the dependency graph — the dev-tools code contributes zero bytes to the production bundle.
+This gives one uniform truth: display getters, sample recording, plugged-stop and
+target-stop all see the same (possibly overridden) reading. No second code path.
 
-No supporting pieces needed: `tsconfig.json` already includes the `node` types, so `process.env` type-checks; vitest sets `NODE_ENV` to `'test'`, so the guard is truthy under tests and the panel modules are directly testable.
+### Panel UI
 
-## 3. Architecture — override at the source, not at the gates
+- Rendered server-side (only when the gate is open) by a View class —
+  `includes/DevTools/Views/DevToolsPanelView.php` implementing the `View` interface,
+  heredoc markup, the view escapes its own output. No HTML in the manager.
+- **Floating collapsible widget, fixed to the bottom-right corner of the page** (high
+  z-index, above the cockpit). Two states:
+  - **Collapsed (default):** a small pill/badge (e.g. "DEV") — unobtrusive, always
+    visible while the tools are active.
+  - **Expanded:** clicking the pill reveals the panel card (opening upward from the
+    corner): a header ("Dev Tools", collapse control) and one **section per sub-tool**.
+- **Each sub-tool has its own enable/disable master toggle.** A disabled sub-tool is
+  fully inert — its overrides are not applied regardless of its control values — and its
+  controls render visually muted. Only enabling the section arms it.
+- Sub-tool sections are additive: a future tool is a new section + state slice, no
+  rework. Today there is exactly one section:
+  - **Battery** — enable toggle; charging override tri-state (System / Charging /
+    Discharging); level override (on/off + slider).
+- Panel/off/on state shape (extends the store slice above):
 
-### 3.1 Why not flag-check each gate
+  ```ts
+  state.devtools = {
+    open: boolean,             // panel expanded vs collapsed pill
+    battery: {
+      enabled:  boolean,       // sub-tool master switch — gate for the resolver
+      charging: boolean | null, // null = follow system
+      level:    number  | null, // 0–1, null = follow system
+    },
+  };
+  ```
 
-"Plugged in" is enforced in **three** places, all reading `context.batteryCharging` (fed by `BatteryMonitor` readings):
+  `resolveReading` applies overrides **only when `enabled` is true**.
+- **Persistence:** the `devtools` slice is persisted to `localStorage` (versioned key,
+  written via a watch on the slice, hydrated on module init). Without it every reload
+  would snap back to the real charging state and re-block the run — the exact friction
+  this tool exists to remove. Dev-only code path, so `localStorage` is acceptable here.
+- Wrapper is `data-wp-interactive="bsb/cockpit"` and binds only to `devtools*`-prefixed
+  state/actions (the panel sits outside the cockpit block, so it has **no cockpit
+  context** — it must bind to state only, never `getContext()`-derived getters).
+- Panel + module load on every surface where the cockpit view module loads (course
+  pages, cockpit dashboard, session-detail screen) — discover those surfaces from the
+  `Cockpit` and `SessionDetail` managers rather than hard-coding assumptions.
+- This is dev-only chrome, not product UI — deliberately minimal styling. The
+  interaction pattern (bottom-right collapsible floating widget, per-tool sections with
+  master toggles) was specified directly by the maintainer, so no `docs/mockups/` round;
+  visual polish stays utilitarian.
 
-- **Layer A** — `RunStore.ts` `get isStartBlocked()` (~L63): `! running && batteryCharging` → disables the run button, swaps its label to "Plugged in".
-- **Layer B** — `RunStore.ts` `toggleRun()` (~L129): imperative refusal `if ( ! batterySupported || batteryCharging ) return;`.
-- **Layer C** — `BatteryStore.ts` `initBattery` reading callback (~L123): `if ( reading.charging && context.running ) stopRun( …, 'plugged' )`.
+### PHP wiring
 
-Plus two downstream consumers of the same fact: the sample-recording gate (`BatteryStore.ts` ~L112 — charging readings are never logged) and the drain-rate fit (`DrainRate.ts` ~L60 — filters charging samples).
+- `includes/DevTools/DevTools.php` — manager: env gate; registers the script module
+  (`wp_register_script_module`, dep on `@wordpress/interactivity`, content-hash version
+  via the existing `Assets` service conventions); enqueues it and renders the panel view
+  on the cockpit surfaces; enqueues the compiled panel stylesheet.
+- `includes/Config.php` — `devtools` section (allowed environments, handles/paths as the
+  existing config conventions dictate).
+- Build: extend the **module** config in `webpack.config.js` with the `devtools/view`
+  entry (the config already destructures `[ scriptConfig, ...moduleConfigs ]`; module
+  configs currently pass through untouched — add the entry, keep the rest untouched).
 
-Sprinkling `|| devBypass` into five sites is procedural sprawl, easy to miss one, and leaves the run half-working (e.g. gates open but no samples recorded → empty readouts/summary — useless for checking layout). Rejected.
+## Not in scope (this PR)
 
-### 3.2 The chosen seam: transform the battery reading
+- Migrating existing e2e battery workarounds to the override (follow-up).
+- Any second dev tool (time warp, speed hacks, state snapshots) — architecture leaves
+  room, nothing built.
+- `wp_get_development_mode()` — different semantics, not our switch.
 
-**One interception point:** the `onReading` funnel in `BatteryStore.ts`'s `initBattery` callback — the single place every battery fact enters the system. When the bypass is active, the raw reading is transformed to `charging: false` **before** anything consumes it. Every downstream consumer — all three gates, the sample log, the drain fit, the summary reason — coherently sees "on battery". A bypassed run is a *complete* run: samples record, drain math runs, the summary freezes. (The numbers are garbage while actually charging; that is fine — this is a dev tool for checking behavior and layout, not a measurement.)
+## Tests (same PR, non-negotiable)
 
-This is also the extension point for future tools: the override module is a pure transform over `BatteryReading`, so "mock battery level" later is another field on the same transform, not a new seam.
+- **PHPUnit** (`tests/DevTools/…`, base `TestCase`, Brain\Monkey):
+  gate closed on `production`/`staging` (no hooks registered, nothing enqueued); gate
+  open on `development`/`local`; script-module registration/enqueue calls made with
+  correct args; panel view implements `View`, escapes its slots.
+- **Vitest** (`src/cockpit/`, `src/devtools/`): `BatteryOverride.resolveReading` pure
+  cases (passthrough / charging-only / level-only / synth-when-unsupported);
+  `applyReading` extraction keeps existing behavior (charging mid-run → `plugged` stop,
+  target reached → `targetDrop` stop, sample recording gates) — extend existing battery
+  tests rather than duplicating; `BatteryOverrideStore` slice actions.
+- **Playwright e2e** (`tests/e2e/DevTools.spec.mts`): panel present on a course page
+  (blueprint env = development); with a run active, forcing "Charging" stops the run with
+  the plugged reason; forcing "Discharging" allows starting and sustaining a run on a
+  host that is actually plugged in — the exact friction this feature removes. Blueprint
+  runs `WP_DEBUG_DISPLAY` on: any PHP notice fails the run. Keep selectors/directives in
+  the spec in sync with the panel markup in the same change.
 
-### 3.3 Panel placement — vanilla DOM, not Interactivity directives
+## Charts
 
-The Interactivity API hydrates directives from **server-rendered** markup; it does not process DOM injected later at runtime. Since the panel exists only in dev builds, its markup cannot be server-rendered — so the panel is a small **vanilla-DOM component**: a module that builds its elements, wires plain event listeners, and mounts itself. It lives in the same cockpit bundle, so it reaches everything directly by import — the override state, and the monitor via the `instanceFor()` module singleton (`RunInstance.ts`; callable from anywhere, not scope-bound).
+`docs/contracts/` must gain/update the chart(s) covering: the `DevTools` manager and its
+public surface, the dev-tools script module joining the `bsb/cockpit` store, and the
+override seam in the battery flow. Public API only, abstractions marked. Same PR.
 
-No store slice, no new context fields, no directives — `view.ts` gains only the guarded boot call. Everything reactive stays untouched.
+## Milestone 2 — Discharge simulation
 
-## 4. Components & interfaces
+A second sub-tool: linearly discharge the mocked battery from a start level to an end
+level over a selectable duration. It is **purely a driver of the existing override
+seam** — a ticker writes the interpolated level into `state.devtools.battery.level`
+(and forces `charging` to discharging on start), and the already-shipped
+`data-wp-watch` seam re-applies it, so display, sample recording, plugged/target-drop
+stops and the panel's own level row all react as if a real battery were draining. No
+new interception mechanism.
 
-New/changed files, all in `src/cockpit/` (CamelCase, JSDoc on classes/functions, none on types/interfaces):
+### Model
 
-```ts
-// DevOverrides.ts — the ONLY dev-tools module production code touches.
-// Holds the override state and the pure transform. Small enough to cost one
-// property read per battery reading when inactive.
-//   interface DevOverridesState {
-//     bypassCharging: boolean;
-//     actualCharging: boolean | null;  // last RAW charging seen while bypassing
-//   }
-//   export const devOverrides: DevOverridesState   // module singleton, seeded
-//                                                  // { bypassCharging: false,
-//                                                  //   actualCharging: null }
-//   export function applyDevOverrides( raw: BatteryReading ): BatteryReading
-// Behavior:
-//   - bypassCharging false → returns raw unchanged (production path, zero cost).
-//   - bypassCharging true  → records the truth (devOverrides.actualCharging =
-//     raw.charging), notifies subscribers, returns { ...raw, charging: false }.
-//   - never mutates the raw reading.
-//   export function onDevReading( listener: () => void ): () => void
-//     // subscribe/unsubscribe, so the panel can live-update its "actually
-//     // plugged in / on battery" line; no-op cost when no listener.
+- Sim state joins the devtools slice (shape change → bump the storage key):
+  `sim: { fromPercent, toPercent, minutes, running, startedAt: number|null }`.
+  Defaults: from 90, to 20, minutes 30. All three step by 5; minutes range 5–60,
+  levels 0–100.
+- The simulated level at any instant is a pure function of `(config, now − startedAt)`
+  — extract it as a pure, unit-tested helper. A 1-second ticker (module scope in the
+  devtools bundle) writes it into the level override; ticks stop at progress 1.
+- **Start**: requires `toPercent < fromPercent` (Start disabled otherwise); sets
+  `charging = false` (discharging), `running = true`, `startedAt = now`, starts the
+  ticker. **Stop**: clears the ticker, `running = false` — the current overrides stay
+  frozen where they were (predictable, and the System buttons already exist to clear
+  them). **Completion**: same as stop, holding the end level.
+- The whole slice persists (as before); hydrating with `running: true` **resumes** the
+  sim from `startedAt` — if the end time has already passed, apply the end state and
+  stop. A reload mid-sim keeps simulating; the sim's truth is the timestamp, not the
+  ticker.
 
-// BatteryStore.ts — one-line integration at the top of initBattery's onReading:
-//   const reading = applyDevOverrides( raw );
-// …then the existing body runs against `reading` untouched.
+### Panel UI
 
-// BatteryMonitor.ts — one addition:
-//   refresh(): void   // public; re-emits the current manager reading through the
-//                     // normal onReading path. No-op before the manager promise
-//                     // resolves or after stop(). (emit() stays private.)
+- A second bounded group, title "Discharge", below Battery — the additive-section
+  architecture as designed.
+- Three stepper rows — **no sliders**: "From" (%), "To" (%), "Duration" (min). Each is
+  the deck's own stepper pattern: decrement button, non-selectable value read-out,
+  increment button — discover the shipped duration stepper's markup/SCSS in the cockpit
+  deck and mirror its proportions/behavior at panel scale (the panel stays
+  Hanken/Anton, theme tokens, no mono).
+- One full-width **Start/Stop** button under the steppers: Start (teal, disabled while
+  `to ≥ from`) ⇄ Stop (coral) while running.
+- **While running, every other battery-related control is disabled**: the Battery
+  group's charging tri-state and level row, and the sim's own steppers — only Stop
+  stays live. (This muting is legitimate — gated by a running process, unlike the
+  removed enable toggles.) Progress display is the level row itself ticking down.
+- Armed state needs no new logic: a running sim diverges the level, so
+  `devtoolsIsArmed`, the coral pill and "Override active" already fire.
 
-// DevToolsPanel.ts — dev-only, never imported statically by production code.
-//   export function mountDevToolsPanel( host: Element ): void
-// Vanilla DOM: builds the floating panel, appends it to the host (the
-// `.wp-block-bsb-cockpit` wrapper, so the theme's CSS custom properties cascade
-// into it), wires listeners:
-//   - chip / header control toggles collapsed ↔ expanded (class toggle);
-//   - the "Bypass charging gate" toggle flips devOverrides.bypassCharging,
-//     persists, then calls instanceFor().monitor?.refresh() so the gate state
-//     updates IMMEDIATELY — without it the next reading might be 30 s away on
-//     the heartbeat, or never while idle (idle readings are event-driven only);
-//   - subscribes via onDevReading to keep the actual-state line current;
-//   - restores { collapsed, bypassCharging } from localStorage key
-//     'bsb-dev-tools' on mount (JSON payload; silently tolerant of absent or
-//     corrupt values — fall back to defaults, never throw), and refreshes the
-//     monitor if a persisted bypass came back on. The monitor may not exist yet
-//     at mount (init order is async both ways); the refresh no-op plus the
-//     transform on the next natural reading make that race harmless.
+### Tests
 
-// view.ts — boot, after the store registration:
-//   if ( process.env.NODE_ENV !== 'production' ) {
-//     void import( './DevToolsPanel' ).then( ( mod ) => {
-//       const host = document.querySelector( '.wp-block-bsb-cockpit' );
-//       if ( host ) mod.mountDevToolsPanel( host );
-//     } );
-//   }
-// The folded-false branch means production emits no chunk and ships no code.
-// Fallback if the dynamic-import chunk misbehaves under the script-modules
-// output (verify in a dev build that the panel actually loads): switch to a
-// static import with the same NODE_ENV guard around the mount call and
-// confirm what production tree-shaking leaves behind is acceptable/inert.
-```
+- **Vitest**: the pure interpolation helper (bounds, exact endpoints, clamping);
+  ticker behavior with fake timers (start writes level+charging, stop freezes,
+  completion stops at end level); resume-from-storage (mid-sim → continues; past-end →
+  end state, not running); Start-guard (`to ≥ from`); stepper actions clamp/step.
+- **PHPUnit**: view markup contract for the new group (labels escaped, steppers,
+  Start/Stop bindings).
+- **e2e**: start a short sim (5 min, wide level span so ticks are visible within
+  seconds) → level readout moves, other battery controls muted, Stop visible; Stop →
+  values frozen, controls unmute. Selector sync as always.
 
-## 5. Panel UX & styling
+### Charts
 
-- **Placement:** `position: fixed`, bottom-right corner, above the cockpit layout (`z-index` above everything the cockpit uses). Must never intercept clicks outside its own box.
-- **Collapsed:** a small pill/chip ("DEV"). When the bypass is active, the chip carries a visible accent so an enabled override is never invisible.
-- **Expanded:** compact card — header ("Dev tools" + collapse control), one labeled toggle row ("Bypass charging gate" + a one-line helper, e.g. "Run while plugged in — readings are not a real benchmark"), and the actual-state line while bypass is on ("Actually: plugged in / on battery").
-- **Copy:** plain untranslated strings in the panel module. This is maintainer-only tooling that never ships; do not add `__()` calls (JS string extraction isn't wired in this repo anyway).
-- **Styles:** a new `.bsb-devtools` section in `src/cockpit/style.scss` (SCSS only, never a hand-written `.css`). Reuse the existing theme tokens defined on `.wp-block-bsb-cockpit` — both light and `[data-theme='dark']` must look right; verify any token you reference actually exists in the theme before using it. Tradeoff, accepted: the compiled stylesheet ships these few unused selectors in production (the SCSS pipeline has no build-flag branch, and a dev-only style entry isn't worth the enqueue plumbing).
-- **Mockup first (CLAUDE.md rule):** this is a new UI surface. Before production code, build `docs/mockups/dev-tools-panel.html` — self-contained (inline CSS/JS, no build step), showing collapsed + expanded states, light + dark, toggle on/off — add a line to `docs/mockups/README.md`, and get the direction approved by the reviewing session before porting it into SCSS/DOM code (milestone 1, see §9).
+`docs/contracts/cockpit-frontend-modules.mmd`: the devtools store part gains the sim
+members (state/actions/callbacks it exposes). PHP chart only if the manager's public
+surface changes (labels alone do not).
 
-## 6. Behavior specification
+## Delivery
 
-- **Toggling bypass ON (while plugged, idle):** `monitor.refresh()` re-emits → transform yields `charging: false` → `isStartBlocked` clears → run button enables instantly.
-- **During a bypassed run:** readings keep flowing as "on battery": samples record (`session.record`), readouts/drain-rate/projection update, target-drop logic works. Plugging/unplugging the physical charger changes nothing.
-- **Toggling bypass OFF while plugged and running:** the toggle's `refresh()` re-emits the raw reading → `charging: true` reaches Layer C → the run stops with reason `'plugged'`, exactly as an unplugged-then-plugged run would. This is intended and must be covered by a test.
-- **Persistence:** collapsed state and bypass state survive a reload via localStorage (dev-only convenience; the accented chip keeps a persisted bypass visible).
-- **Production build:** the `NODE_ENV` guard folds to `false` → no panel module in the bundle, `devOverrides.bypassCharging` is permanently `false` → `applyDevOverrides` returns the raw reading. The only production-path cost is one function call and one boolean read per battery reading.
-
-## 7. Contracts (charts)
-
-Ship with the implementation milestone, never as a follow-up:
-
-- `docs/contracts/cockpit-frontend-modules.mmd` — add `DevOverrides` (state + transform + subscription, public surface only), `DevToolsPanel` (dev-build-only marker), `BatteryMonitor.refresh()`, and the relationships `BatteryStore → DevOverrides`, `DevToolsPanel → DevOverrides` / `RunInstance`.
-- **Broken window, fix in passing:** both `cockpit-frontend-modules.mmd` (~L50) and `CockpitContext.ts` (~L50) still say "six-stat" for `traits`; the code migrated to five (commit `a4daf9a`). Correct the wording in the same milestone.
-- No PHP chart changes — no PHP is touched.
-
-## 8. Testing spec
-
-Behavior through public interfaces only; vitest (jsdom) carries the behavior coverage, since production e2e builds exclude the panel by design.
-
-**Vitest:**
-- `DevOverrides`: bypass off → input returned unchanged and raw not mutated; bypass on → `charging` forced false, `actualCharging` records the raw truth, subscribers notified; unsubscribe works.
-- `DevToolsPanel` (jsdom): `mountDevToolsPanel` renders the chip into the host; expand/collapse round-trips; the toggle flips `devOverrides.bypassCharging`, persists to localStorage, and calls `refresh()` on the instance's monitor (observable via a fake monitor placed on `instanceFor()`); mount restores persisted state and tolerates absent/corrupt payloads; a restored active bypass triggers a monitor refresh.
-- `BatteryMonitor.refresh()`: emits the current reading through `onReading`; no-op before the manager resolves and after `stop()` (extend the existing `BatteryMonitor.test.ts`).
-- Gate integration (behavioral, through the store): with bypass on, a charging reading flowing through the battery pipeline leaves the run startable and records samples during an active session; with bypass off mid-run, a charging reading stops the run with reason `'plugged'`. Follow the existing `view.test.ts` / `RunLifecycle.test.ts` patterns for driving readings.
-- Reset `devOverrides` state between tests (it is a module singleton).
-
-**Playwright e2e** (extend `tests/e2e/CockpitCourse.spec.mts` or a small new spec):
-- The cockpit page contains **no** `.bsb-devtools` element — e2e runs the production build (`pretest:e2e` → `pnpm build`), so this asserts the dev tooling can never leak into a shipped bundle. That absence selector is a contract with the panel's root class: rename them together.
-
-**Manual dev verification (before finishing milestone 2):** run `pnpm dev`, confirm the panel mounts, the dynamic-import chunk loads under the script-modules output, and the bypass actually enables the run button while plugged in. Screenshot in the PR description.
-
-## 9. Delivery — one PR, two approval-gated milestones
-
-All work happens as one continuous stream on a single branch with a single **draft PR**, opened at the first push. The stream is split into two milestones, and each milestone ends at a hard stop: push, report, and **wait for the reviewing session's approval** before starting the next. Never begin milestone-2 work while milestone 1 is unapproved.
-
-1. **Milestone 1 — mockup.** `docs/mockups/dev-tools-panel.html` + README entry, nothing else. Push, open the draft PR, and stop. The reviewing session approves the direction (offer the tweak levers: size, colour, spacing); iterate on the mockup within this milestone until approved.
-2. **Milestone 2 — implementation.** Everything else in this plan, on the same branch: `DevOverrides`, `DevToolsPanel`, `BatteryMonitor.refresh()`, the `view.ts` boot guard, SCSS, all tests, the chart update, the six-stat wording fix. When green and reviewed, mark the PR ready.
-
-Each milestone: replay the PR workflow locally until green before pushing, Conventional Commits per commit (`[DOCS]`/`[CHORE]` for the mockup, `[FEAT]` for the implementation), no AI attribution.
-
-## 10. Acceptance criteria (reviewer checks these)
-
-- Production bundle ships zero dev-tools code: build with `pnpm build` and grep `build/` for panel markers (e.g. `bsb-devtools`, `mountDevToolsPanel`) — nothing outside the compiled stylesheet's dormant selectors; the e2e absence assertion passes.
-- Exactly **one** bypass seam: grep shows no bypass checks added to `RunStore`, `RunLifecycle`, `DrainRate`, or the sample-recording gate — only the `applyDevOverrides` call in `BatteryStore`.
-- A bypassed run is complete: samples recorded, readouts live, summary produced.
-- Toggling bypass takes effect immediately in both directions (no 30 s heartbeat wait), including the mid-run stop on toggle-off while plugged.
-- The `process.env.NODE_ENV` substitution chain verified against the installed `@wordpress/scripts` sources; no config, flag, or declaration additions anywhere — the check works out of the box.
-- No PHP changes anywhere in the diff.
-- All styles in SCSS; panel strings untranslated by design; chart updated in the implementation milestone; mockup approved before implementation; all CLAUDE.md conventions hold (PHPCS untouched-green, lint/tests replayed locally with real exit codes).
+Single PR from this branch (`worktree-dev-tools-fresh`), which already carries the
+removal of the superseded plan. Conventional Commits, no AI attribution. Before pushing:
+replay the PR workflow from `.github_bak/workflows/` locally (read it fresh, run every
+job's steps, all green — full output, real exit codes, no `tail`). The worktree is fresh:
+run `composer install` and `pnpm install` first (real installs, no symlinked `vendor`).

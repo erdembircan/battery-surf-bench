@@ -40,6 +40,10 @@ final class CockpitViewTest extends TestCase {
 		$this->assertStringContainsString( 'data-wp-init---battery="callbacks.initBattery"', $markup );
 		$this->assertStringContainsString( 'data-wp-init---wake-lock="callbacks.initWakeLock"', $markup );
 		$this->assertStringContainsString( 'data-wp-watch---run-activity="callbacks.syncRunActivity"', $markup );
+		// The dev-tools battery-override seam: inert in production (the watch
+		// reads an undefined `state.devtools` once and never fires again) but
+		// present regardless, so the module can join later with no markup change.
+		$this->assertStringContainsString( 'data-wp-watch---devtools-battery="callbacks.syncBatteryOverride"', $markup );
 		$this->assertStringContainsString( 'data-wp-class--is-compact="state.isCompact"', $markup );
 		// The deck is hidden by default (the stylesheet's base state) and revealed
 		// by the client adding this class once a run is live or the card is flipped.

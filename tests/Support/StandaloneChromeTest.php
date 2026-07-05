@@ -29,9 +29,10 @@ use function has_filter;
  */
 final class StandaloneChromeTest extends TestCase {
 
-	private const STYLE         = 'build/style-cockpit-dashboard.css';
-	private const STYLE_HANDLE  = 'bsb-cockpit';
-	private const SPARED_FILTER = 'battery_surf_bench_cockpit_spared_script_handles';
+	private const STYLE                = 'build/style-cockpit-dashboard.css';
+	private const STYLE_HANDLE         = 'bsb-cockpit';
+	private const SPARED_SCRIPT_FILTER = 'battery_surf_bench_cockpit_spared_script_handles';
+	private const SPARED_STYLE_FILTER  = 'battery_surf_bench_cockpit_spared_style_handles';
 
 	/**
 	 * Builds the chrome under test.
@@ -75,6 +76,11 @@ final class StandaloneChromeTest extends TestCase {
 		$GLOBALS['wp_styles']  = $wp_styles;
 		$GLOBALS['wp_scripts'] = null;
 
+		Functions\expect( 'apply_filters' )
+			->once()
+			->with( self::SPARED_STYLE_FILTER, array() )
+			->andReturn( array() );
+
 		Functions\expect( 'wp_dequeue_style' )->once()->with( 'theme-style' );
 		Functions\expect( 'wp_dequeue_style' )->once()->with( 'another-plugin' );
 		Functions\expect( 'wp_dequeue_style' )->never()->with( self::STYLE_HANDLE );
@@ -82,6 +88,36 @@ final class StandaloneChromeTest extends TestCase {
 		$chrome = $this->chrome( $assets );
 		$chrome->enqueue_style();
 		$chrome->dequeue_all_assets();
+
+		unset( $GLOBALS['wp_styles'], $GLOBALS['wp_scripts'] );
+
+		// The Mockery expectations above are the assertions; acknowledge them so
+		// PHPUnit does not flag the test as risky.
+		$this->addToAssertionCount( 4 );
+	}
+
+	/**
+	 * Style handles returned through the chrome's style filter survive the strip,
+	 * alongside the kept stylesheet. The dev-tools panel relies on this so its
+	 * stylesheet still loads on the stripped cockpit dashboard.
+	 */
+	public function test_dequeue_all_assets_spares_filtered_style_handles(): void {
+		$wp_styles        = new WP_Styles();
+		$wp_styles->queue = array( 'theme-style', 'bsb-devtools', 'another-plugin' );
+
+		$GLOBALS['wp_styles']  = $wp_styles;
+		$GLOBALS['wp_scripts'] = null;
+
+		Functions\expect( 'apply_filters' )
+			->once()
+			->with( self::SPARED_STYLE_FILTER, array() )
+			->andReturn( array( 'bsb-devtools' ) );
+
+		Functions\expect( 'wp_dequeue_style' )->once()->with( 'theme-style' );
+		Functions\expect( 'wp_dequeue_style' )->once()->with( 'another-plugin' );
+		Functions\expect( 'wp_dequeue_style' )->never()->with( 'bsb-devtools' );
+
+		$this->chrome()->dequeue_all_assets();
 
 		unset( $GLOBALS['wp_styles'], $GLOBALS['wp_scripts'] );
 
@@ -103,7 +139,7 @@ final class StandaloneChromeTest extends TestCase {
 
 		Functions\expect( 'apply_filters' )
 			->once()
-			->with( self::SPARED_FILTER, array() )
+			->with( self::SPARED_SCRIPT_FILTER, array() )
 			->andReturn( array() );
 
 		Functions\expect( 'wp_dequeue_script' )->once()->with( 'theme-script' );
@@ -132,7 +168,7 @@ final class StandaloneChromeTest extends TestCase {
 
 		Functions\expect( 'apply_filters' )
 			->once()
-			->with( self::SPARED_FILTER, array() )
+			->with( self::SPARED_SCRIPT_FILTER, array() )
 			->andReturn( array( 'bsb-live-reload' ) );
 
 		Functions\expect( 'wp_dequeue_script' )->once()->with( 'theme-script' );

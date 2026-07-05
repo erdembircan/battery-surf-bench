@@ -33,10 +33,12 @@ defined( 'ABSPATH' ) || exit;
  * preloads, global styles, emoji, resource hints, the admin bar), re-adds only
  * the essential asset printers, and dequeues every classic style and script so
  * no theme or other-plugin CSS/JS reaches the page — sparing only the one
- * stylesheet the page is built on and any script handles the dev-tooling filter
- * opts back in (the Playground LiveReload client). The Interactivity API script
- * modules live in their own registry, so they are re-registered intact and still
- * hydrate. Headers go out no-cache, no-index, as a plugin-served document should.
+ * stylesheet the page is built on, any style handles the dev-tooling style
+ * filter opts back in (the dev-tools panel stylesheet), and any script handles
+ * the dev-tooling script filter opts back in (the Playground LiveReload
+ * client). The Interactivity API script modules live in their own registry, so
+ * they are re-registered intact and still hydrate. Headers go out no-cache,
+ * no-index, as a plugin-served document should.
  *
  * One instance serves one page type: it is constructed with the stylesheet that
  * page keeps, so the page that owns it only renders its own body — this chrome
@@ -107,10 +109,12 @@ class StandaloneChrome {
 
 	/**
 	 * Dequeues every classic style and script after the theme has enqueued, so
-	 * none print on the standalone document — except the kept stylesheet and any
-	 * script handles opted out through the dev-tooling filter (empty by default;
-	 * the Playground LiveReload client uses it to survive the strip). Script
-	 * modules are a separate registry and are left untouched.
+	 * none print on the standalone document — except the kept stylesheet (and any
+	 * style handles opted out through the dev-tooling style filter) and any
+	 * script handles opted out through the dev-tooling script filter (both empty
+	 * by default; the Playground LiveReload client and the dev-tools panel use
+	 * them to survive the strip). Script modules are a separate registry and are
+	 * left untouched.
 	 *
 	 * @return void
 	 */
@@ -118,8 +122,18 @@ class StandaloneChrome {
 		global $wp_styles, $wp_scripts;
 
 		if ( $wp_styles instanceof WP_Styles ) {
+			/**
+			 * Filters the classic style handles the standalone document keeps when
+			 * it strips the front end. Empty by default — a standalone document
+			 * wants no foreign CSS — but dev tooling (the dev-tools panel) hooks it
+			 * so its stylesheet survives the strip on the cockpit dashboard.
+			 *
+			 * @param array<int, string> $handles Style handles to spare from the strip.
+			 */
+			$spared_styles = apply_filters( 'battery_surf_bench_cockpit_spared_style_handles', array() );
+
 			foreach ( (array) $wp_styles->queue as $handle ) {
-				if ( $handle === $this->style_handle ) {
+				if ( $handle === $this->style_handle || in_array( $handle, $spared_styles, true ) ) {
 					continue;
 				}
 

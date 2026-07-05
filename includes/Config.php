@@ -66,4 +66,19 @@ return array(
 		// that survives. Built from `src/cockpit/style.scss`.
 		'style'      => 'build/style-cockpit-dashboard.css',
 	),
+	'devtools'   => array(
+		// Environments the dev-tools gate opens for, read against
+		// `wp_get_environment_type()`. Anything else (staging, production) keeps
+		// the gate closed, so the panel and its script module ship zero bytes.
+		// Comma-separated: the Registry only ever resolves scalars, never an
+		// array, so the bootstrap splits this into the list `DevTools` receives.
+		'environments' => 'local,development',
+		// The dev-tools Interactivity view module, which joins the `bsb/cockpit`
+		// store to add the battery override. Built from `src/devtools/view.ts`.
+		'module'       => 'build/devtools/view.js',
+		// Stylesheet for the floating dev-tools panel, spared from the cockpit
+		// dashboard's asset strip via the dev-tooling style filter. Built from
+		// `src/devtools/style.scss`.
+		'style'        => 'build/style-devtools.css',
+	),
 );

@@ -52,7 +52,13 @@ classDiagram
     class BatteryStore {
         <<module>>
         state: batteryDisplay, batteryColor, isCharging, isBatteryUnsupported
-        callbacks: initBattery (flags unsupported when API absent)
+        callbacks: initBattery (flags unsupported when API absent), syncBatteryOverride
+        +applyReading(ctx, instance, BatteryReading) void
+    }
+
+    class BatteryOverride {
+        <<module>>
+        +resolveReading(BatteryReading|null, BatteryOverrideState) BatteryReading|null
     }
 
     class SoundStore {
@@ -312,3 +318,72 @@ classDiagram
     RunSession --> DrainRate : fits & projects
     DrainGraph ..> DrainRate : maps Sample[]
     SampleLog ..> DrainRate : RleSample extends Sample
+
+    %% Battery-override seam: every reading (real or dev-tools-forced) resolves
+    %% through BatteryOverride before BatteryStore's exported applyReading acts
+    %% on it, so display, sample recording and the stop conditions share one
+    %% truth. Passthrough when no override is present or armed.
+    BatteryStore --> BatteryOverride : resolves reading before applying it
+
+    %% --- Dev-tools module (src/devtools/), enqueued only in a dev environment.
+    %% A separate script module from CockpitView above; it joins the SAME
+    %% `bsb/cockpit` namespace via the store-merge mechanism (later members
+    %% override on collision), which is why every member it contributes carries
+    %% a `devtools` prefix. In production this module never loads at all.
+    %% The devtools slice is itself composed of a shared shell (persistence,
+    %% panel open state) plus one StorePart per sub-tool: the battery override,
+    %% and the discharge simulation that drives it. A third tool is a new
+    %% StorePart folded in here, not a rework of the composition root.
+    class DevToolsView {
+        <<module>>
+        store('bsb/cockpit', mergeStoreParts(DevtoolsShellStore, BatteryOverrideStore, DischargeSimStore))
+    }
+
+    class DevtoolsStore {
+        <<module>>
+        state: devtools.open, devtools.battery, devtools.sim
+        actions: devtoolsToggleOpen
+        callbacks: devtoolsPersist
+        +current() DevtoolsState
+        +hydrateDevtools() void
+        +DEVTOOLS_STORAGE_KEY
+    }
+
+    class BatteryOverrideStore {
+        <<module>>
+        state: devtoolsIsChargingSystem/On/Off, devtoolsIsLevelForced, devtoolsLevelPercent, devtoolsLevelFillPercent, devtoolsIsArmed
+        actions: devtoolsSetCharging, devtoolsSetLevel, devtoolsResetLevel
+    }
+
+    class DischargeSimStore {
+        <<module>>
+        state: devtoolsSimFromDisplay/ToDisplay/MinutesDisplay, devtoolsIsSimRunning, devtoolsIsSimStartBlocked
+        actions: devtoolsStepSim, devtoolsToggleSim
+        +resumeDischargeSim() void
+    }
+
+    class DischargeSim {
+        <<module>>
+        +simDurationMs(DischargeSimConfig) number
+        +simProgress(DischargeSimConfig, number) number
+        +simulatedLevel(DischargeSimConfig, number) number
+        +isSimComplete(DischargeSimConfig, number) bool
+        +DEFAULT_SIM
+    }
+
+    DevToolsView --> StoreParts : merges slices
+    DevToolsView --> DevtoolsStore : composes (shared shell)
+    DevToolsView --> BatteryOverrideStore : composes
+    DevToolsView --> DischargeSimStore : composes
+    BatteryOverrideStore --> DevtoolsStore : reads/writes the shared devtools slice
+    DischargeSimStore --> DevtoolsStore : reads/writes the shared devtools slice
+    DischargeSimStore --> DischargeSim : evaluates the pure model against the clock
+
+    %% The discharge sim is purely a driver of the existing override seam: its
+    %% ticker writes into the same `devtools.battery.level`/`charging` fields
+    %% BatteryOverrideStore itself owns — no second interception mechanism, and
+    %% no new "armed" logic (devtoolsIsArmed already reads a diverged level).
+    DischargeSimStore ..> BatteryOverrideStore : drives battery.level/charging
+
+    DevtoolsStore ..> BatteryStore : joins bsb/cockpit store (state.devtools.battery)
+    BatteryStore ..> DevtoolsStore : reads state.devtools.battery (undefined in production)

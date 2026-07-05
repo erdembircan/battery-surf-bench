@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Dev-tools panel — coastal pill + field card</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Hanken+Grotesk:wght@400;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --navy: #1f3a5f;
+    --ink-soft: #5b7488;
+    --teal: #2f9bb3;
+    --teal-deep: #1c7e96;
+    --coral: #ff7a5c;
+    --surface: #f1f7fa;
+    --line: #e1edf2;
+    --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html,
+  body {
+    margin: 0;
+    height: 100%;
+  }
+
+  body {
+    font-family: 'Hanken Grotesk', ui-sans-serif, system-ui, sans-serif;
+    color: var(--navy);
+  }
+
+  /* ── demo chrome (not part of the design spec) ─────────────────────────── */
+  .demo-caption {
+    position: fixed;
+    top: 1.4rem;
+    left: 1.6rem;
+    z-index: 10;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--ink-soft);
+    letter-spacing: 0.01em;
+  }
+
+  .demo-controls {
+    position: fixed;
+    top: 3.1rem;
+    left: 1.6rem;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.85rem 1rem;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.72);
+    border: 1px solid var(--line);
+    box-shadow: 0 8px 20px -12px rgba(0, 20, 40, 0.3);
+    backdrop-filter: blur(6px);
+  }
+
+  .demo-controls label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--navy);
+    cursor: pointer;
+  }
+
+  .demo-controls input[type='checkbox'] {
+    width: 1rem;
+    height: 1rem;
+    accent-color: var(--teal);
+    cursor: pointer;
+  }
+
+  /* ── stage ──────────────────────────────────────────────────────────────── */
+  .stage {
+    position: relative;
+    min-height: 100vh;
+    overflow: hidden;
+    background:
+      radial-gradient(120% 70% at 50% -10%, #fff 0%, #f3fafd 40%, transparent 70%),
+      linear-gradient(180deg, #e7f6ff 0%, #fff 60%);
+  }
+
+  /* ── widget anchor, pinned bottom-right like the real floating widget ─────── */
+  .dt-anchor {
+    position: fixed;
+    right: 1.5rem;
+    bottom: 1.5rem;
+    z-index: 5;
+  }
+
+  .dt-swap {
+    position: relative;
+  }
+
+  .dt-swap > * {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+  }
+
+  /* ── collapsed state — the pill ────────────────────────────────────────────
+     A compact rounded pill on the card's own surface: quiet, no decoration. */
+  .dt-pill {
+    appearance: none;
+    display: inline-block;
+    padding: 0.45rem 0.9rem;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--surface);
+    font-family: 'Anton', sans-serif;
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--navy);
+    line-height: 1.2;
+    cursor: pointer;
+    box-shadow: 0 10px 24px -14px rgba(0, 20, 40, 0.3);
+    /* Revealing (the target rule the moment [hidden] is removed): a brief,
+       subtle entrance — opening must feel near-instant, so this stays short
+       and carries no visibility/delay of its own. */
+    transition:
+      opacity 0.12s var(--ease),
+      transform 0.12s var(--ease),
+      border-color 0.18s ease,
+      color 0.18s ease,
+      box-shadow 0.18s ease;
+  }
+
+  .dt-pill:hover {
+    transform: translateY(-1px);
+    border-color: var(--teal);
+    box-shadow: 0 12px 26px -14px rgba(0, 20, 40, 0.34);
+  }
+
+  .dt-pill:focus-visible {
+    outline: 2px solid var(--teal);
+    outline-offset: 3px;
+  }
+
+  /* armed: the pill quietly turns coral — text and border only */
+  .dt-pill.is-armed {
+    color: var(--coral);
+    border-color: var(--coral);
+  }
+
+  /* ── expanded state — the field card ───────────────────────────────────── */
+  .dt-card {
+    width: 272px;
+    border-radius: 16px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    box-shadow:
+      0 18px 36px -16px rgba(0, 20, 40, 0.28),
+      0 6px 14px -8px rgba(0, 20, 40, 0.18);
+    overflow: hidden;
+    transform-origin: bottom right;
+  }
+
+  .dt-card__header {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.85rem 0.6rem 0.85rem 1rem;
+  }
+
+  .dt-card__eyebrow {
+    font-family: 'Anton', sans-serif;
+    font-size: 13px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--navy);
+  }
+
+  /* the quiet armed indicator: plain coral text, right-aligned before close */
+  .dt-card__armed {
+    display: none;
+    align-items: center;
+    margin-left: auto;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--coral);
+    white-space: nowrap;
+  }
+
+  .dt-card.is-armed .dt-card__armed {
+    display: inline-flex;
+  }
+
+  .dt-card:not(.is-armed) .dt-card__close {
+    margin-left: auto;
+  }
+
+  .dt-card__close {
+    flex: 0 0 auto;
+    display: grid;
+    place-items: center;
+    width: 1.6rem;
+    height: 1.6rem;
+    border-radius: 50%;
+    border: 1px solid rgba(31, 58, 95, 0.3);
+    background: transparent;
+    color: var(--navy);
+    font-size: 0.95rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: color 0.16s ease, border-color 0.16s ease, background 0.16s ease;
+  }
+
+  .dt-card__close:hover {
+    color: var(--teal-deep);
+    border-color: var(--teal);
+    background: rgba(47, 155, 179, 0.1);
+  }
+
+  .dt-card__close:focus-visible {
+    outline: 2px solid var(--teal);
+    outline-offset: 2px;
+  }
+
+  .dt-card__divider {
+    height: 1px;
+    background: var(--line);
+  }
+
+  /* The card body: breathing room around one bounded group per sub-tool.
+     Stacked with a gap that already supports a second tool's container. */
+  .dt-card__body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+    padding: 0.9rem;
+  }
+
+  /* One bounded group per sub-tool — a contained sub-panel on its own white
+     ground so it reads as a distinct unit inside the card, not loose controls.
+     No enable switch: every control below already carries its own explicit
+     off-state (the charging tri-state's System, the level row's System), so
+     there is nothing left for a master switch to gate — controls are always
+     live. */
+  .dt-group {
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: #fff;
+    padding: 0.85rem 0.9rem;
+  }
+
+  .dt-group__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .dt-group__title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--navy);
+  }
+
+  .dt-group__divider {
+    height: 1px;
+    margin: 0.75rem 0;
+    background: var(--line);
+  }
+
+  .dt-group__body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  /* charging tri-state segmented control — sits on the group's white ground,
+     so the track uses the card's tint (not white-on-white) with no border of
+     its own, avoiding a double-border effect. The level row's own "System"
+     choice reuses this same option shape/typography, so both rows read as
+     the same control family. */
+  .dt-seg {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    gap: 0.25rem;
+    padding: 0.3rem;
+    border-radius: 10px;
+    background: var(--surface);
+    box-shadow: inset 0 1px 3px rgba(31, 58, 95, 0.1);
+  }
+
+  .dt-seg__option {
+    appearance: none;
+    border: 0;
+    padding: 0.5rem 0.3rem;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--ink-soft);
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
+  }
+
+  .dt-seg__option:hover {
+    color: var(--navy);
+  }
+
+  .dt-seg__option:focus-visible {
+    outline: 2px solid var(--teal);
+    outline-offset: 2px;
+  }
+
+  .dt-seg__option.is-selected {
+    background: var(--teal-deep);
+    color: #fff;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  }
+
+  /* level row: the standalone System button (same shape/typography as a seg
+     option, outside the tri-state's own grid) + the slider + the readout. */
+  .dt-level {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+  }
+
+  .dt-level > .dt-seg__option {
+    flex: 0 0 auto;
+  }
+
+  .dt-level input[type='range'] {
+    flex: 1 1 auto;
+    /* Flex items default to `min-width: auto` (their intrinsic content size);
+       without this the range input refuses to shrink below its UA default
+       track width once the System button and the fixed-width readout also
+       claim room, and the row overflows the card. */
+    min-width: 0;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 4px;
+    border-radius: 999px;
+    background:
+      linear-gradient(var(--teal), var(--teal)) 0 / var(--fill, 30%) 100% no-repeat,
+      var(--line);
+    cursor: pointer;
+    transition: opacity 0.18s ease;
+  }
+
+  .dt-level input[type='range']::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 0 0 2px var(--teal), 0 2px 6px rgba(0, 20, 40, 0.3);
+    cursor: pointer;
+    margin-top: 0;
+  }
+
+  .dt-level input[type='range']::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border: 0;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 0 0 2px var(--teal), 0 2px 6px rgba(0, 20, 40, 0.3);
+    cursor: pointer;
+  }
+
+  .dt-level input[type='range']::-moz-range-track {
+    height: 4px;
+    border-radius: 999px;
+    background: var(--line);
+  }
+
+  .dt-level input[type='range']:focus-visible {
+    outline: 2px solid var(--teal);
+    outline-offset: 4px;
+  }
+
+  /* following the system: the track/thumb/readout mute to a ghost of their
+     active look — the slider still sits at (and stays draggable to) its
+     last value; dragging it is what re-arms the override. */
+  .dt-level.is-inactive input[type='range'],
+  .dt-level.is-inactive .dt-level__value {
+    opacity: 0.5;
+  }
+
+  .dt-level__value {
+    /* Fixed (not minimum) width sized for the widest value ("100%"), and
+       `flex: none`, so the slider's length never shifts as the digit count
+       changes and the readout never gets squeezed by the slider. */
+    flex: 0 0 auto;
+    width: 2.8em;
+    text-align: right;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--navy);
+    font-variant-numeric: tabular-nums;
+    transition: opacity 0.18s ease;
+  }
+
+  /* ── swap motion: pill ⇄ card — hiding is instant, revealing gets a brief,
+     subtle entrance (the transition declared on the base rules above) ────── */
+  .dt-pill[data-hidden],
+  .dt-card[data-hidden] {
+    display: block;
+    opacity: 0;
+    pointer-events: none;
+    transition: none;
+  }
+
+  .dt-pill[data-hidden] {
+    transform: translateY(4px);
+  }
+
+  .dt-card[data-hidden] {
+    transform: translateY(6px);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .dt-pill,
+    .dt-card {
+      transition: none !important;
+    }
+  }
+
+  html.force-reduced-motion .dt-pill,
+  html.force-reduced-motion .dt-card {
+    transition: none !important;
+  }
+</style>
+</head>
+<body>
+
+<p class="demo-caption">Dev-tools panel — coastal pill + field card</p>
+
+<div class="demo-controls">
+  <label>
+    <input type="checkbox" id="demoExpanded" />
+    Expanded
+  </label>
+  <label>
+    <input type="checkbox" id="demoArmed" />
+    Armed
+  </label>
+  <label>
+    <input type="checkbox" id="demoReducedMotion" />
+    Reduced motion
+  </label>
+</div>
+
+<div class="stage">
+
+  <div class="dt-anchor" id="dtAnchor">
+    <div class="dt-swap">
+
+      <!-- collapsed: the pill -->
+      <button type="button" class="dt-pill" id="dtPill" aria-expanded="false" aria-controls="dtCard">DEV</button>
+
+      <!-- expanded: the field card -->
+      <div class="dt-card" id="dtCard" data-hidden>
+        <div class="dt-card__header">
+          <span class="dt-card__eyebrow">Dev tools</span>
+          <span class="dt-card__armed">Override active</span>
+          <button type="button" class="dt-card__close" id="dtClose" aria-label="Close">&times;</button>
+        </div>
+        <div class="dt-card__divider"></div>
+
+        <div class="dt-card__body">
+          <div class="dt-group">
+            <div class="dt-group__head">
+              <span class="dt-group__title">Battery</span>
+            </div>
+            <div class="dt-group__divider"></div>
+
+            <div class="dt-group__body">
+              <div class="dt-seg" role="group" aria-label="Charging state">
+                <button type="button" class="dt-seg__option is-selected" data-charging="system">System</button>
+                <button type="button" class="dt-seg__option" data-charging="charging">Charging</button>
+                <button type="button" class="dt-seg__option" data-charging="discharging">Discharging</button>
+              </div>
+
+              <div class="dt-level is-inactive" id="dtLevel">
+                <button type="button" class="dt-seg__option is-selected" id="dtLevelSystem">System</button>
+                <input type="range" min="0" max="100" step="5" value="82" id="dtLevelRange" style="--fill: 82%" aria-label="Battery level override" />
+                <span class="dt-level__value" id="dtLevelValue">82%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const anchor = document.getElementById('dtAnchor');
+  const pill = document.getElementById('dtPill');
+  const card = document.getElementById('dtCard');
+  const closeBtn = document.getElementById('dtClose');
+  const demoExpanded = document.getElementById('demoExpanded');
+  const demoArmed = document.getElementById('demoArmed');
+  const segOptions = Array.from(document.querySelectorAll('.dt-seg[role="group"] .dt-seg__option'));
+  const levelRow = document.getElementById('dtLevel');
+  const levelSystem = document.getElementById('dtLevelSystem');
+  const levelRange = document.getElementById('dtLevelRange');
+  const levelValue = document.getElementById('dtLevelValue');
+
+  // Pill ⇄ card are mutually exclusive, toggled via a `[data-hidden]`
+  // attribute on whichever is off screen (mirrors the real `hidden` bind).
+  function setExpanded(expanded) {
+    anchor.classList.toggle('is-expanded', expanded);
+    if (expanded) {
+      pill.setAttribute('data-hidden', '');
+      card.removeAttribute('data-hidden');
+    } else {
+      card.setAttribute('data-hidden', '');
+      pill.removeAttribute('data-hidden');
+    }
+    pill.setAttribute('aria-expanded', String(expanded));
+    demoExpanded.checked = expanded;
+  }
+
+  pill.addEventListener('click', () => setExpanded(true));
+  closeBtn.addEventListener('click', () => setExpanded(false));
+  demoExpanded.addEventListener('change', () => setExpanded(demoExpanded.checked));
+
+  // Armed is DERIVED from the real controls, never set directly: a charging
+  // choice other than System, or a dragged-in level. There is no separate
+  // "enabled" switch — each field's own `null`/System *is* its off-state.
+  function selectedCharging() {
+    const selected = segOptions.find((b) => b.classList.contains('is-selected'));
+    return selected ? selected.dataset.charging : 'system';
+  }
+
+  function isLevelForced() {
+    return !levelSystem.classList.contains('is-selected');
+  }
+
+  function isArmed() {
+    return selectedCharging() !== 'system' || isLevelForced();
+  }
+
+  function refreshArmed() {
+    const armed = isArmed();
+    pill.classList.toggle('is-armed', armed);
+    card.classList.toggle('is-armed', armed);
+    demoArmed.checked = armed;
+  }
+
+  // demo: the "Armed" toggle is a shortcut that drives the REAL controls — on
+  // arms via Discharging; off returns both fields to System.
+  demoArmed.addEventListener('change', () => {
+    if (demoArmed.checked) {
+      selectSeg('discharging');
+    } else {
+      selectSeg('system');
+      setLevelSystem(true);
+    }
+    refreshArmed();
+  });
+
+  // demo: force prefers-reduced-motion regardless of OS setting
+  const demoReducedMotion = document.getElementById('demoReducedMotion');
+  demoReducedMotion.addEventListener('change', () => {
+    document.documentElement.classList.toggle('force-reduced-motion', demoReducedMotion.checked);
+  });
+
+  // charging tri-state
+  function selectSeg(value) {
+    segOptions.forEach((b) => b.classList.toggle('is-selected', b.dataset.charging === value));
+  }
+
+  segOptions.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      selectSeg(btn.dataset.charging);
+      refreshArmed();
+    });
+  });
+
+  // level row: dragging the slider is itself what arms the override; the
+  // System button clears it back to following the system (the slider mutes
+  // to its ghost but stays draggable — dragging re-arms). While following the
+  // system, the slider and readout mirror the LIVE system reading (simulated
+  // here — the real panel reads it off `state.batterySystemPercent`,
+  // published by the production battery seam), not a fixed placeholder.
+  let simulatedSystemPercent = 82;
+  let isLevelSystem = true;
+
+  function paintLevel(percent) {
+    levelRange.value = String(percent);
+    levelValue.textContent = percent + '%';
+    levelRange.style.setProperty('--fill', percent + '%');
+  }
+
+  function setLevelSystem(system) {
+    isLevelSystem = system;
+    levelSystem.classList.toggle('is-selected', system);
+    levelRow.classList.toggle('is-inactive', system);
+
+    if (system) {
+      paintLevel(simulatedSystemPercent);
+    }
+  }
+
+  levelSystem.addEventListener('click', () => {
+    setLevelSystem(true);
+    refreshArmed();
+  });
+
+  levelRange.addEventListener('input', () => {
+    levelValue.textContent = levelRange.value + '%';
+    levelRange.style.setProperty('--fill', levelRange.value + '%');
+    setLevelSystem(false);
+    refreshArmed();
+  });
+
+  // Simulate the system battery slowly draining; only repaints the row while
+  // following it (System) — a forced value keeps showing exactly what was
+  // dragged in, same as the real panel.
+  setInterval(() => {
+    simulatedSystemPercent = Math.max(0, simulatedSystemPercent - 1);
+    if (isLevelSystem) {
+      paintLevel(simulatedSystemPercent);
+    }
+  }, 4000);
+</script>
+
+</body>
+</html>

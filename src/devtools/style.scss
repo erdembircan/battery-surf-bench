@@ -1,0 +1,564 @@
+/*
+ * Dev-tools panel styles.
+ *
+ * A floating widget fixed to the bottom-right corner of every surface it
+ * loads on (the cockpit dashboard, the stored-session detail screen), ported
+ * faithfully from the approved mockup (`docs/mockups/dev-tools-panel.html`):
+ * collapsed is a quiet coastal pill; expanded is a field card holding one
+ * bounded white sub-panel per tool. This is dev-only chrome, not product UI,
+ * but it still lives on the shared Coastal Daybreak palette rather than a
+ * one-off dark theme, so it reads as part of the same product.
+ *
+ * The panel mounts outside `.wp-block-bsb-cockpit`, so the cockpit's own
+ * `--*` custom properties (set by `theme.tokens` on that element) are not in
+ * scope here. Rather than re-emitting the whole token mixin — which would
+ * also emit an unused `[data-theme='dark']` override this dev-only,
+ * light-only widget never toggles — this file reads the theme's SCSS
+ * variables directly. `@use`-ing the theme partial also re-declares its
+ * `@font-face` rules in this stylesheet's own compiled output, so Anton and
+ * Hanken Grotesk are available here even on a surface that, hypothetically,
+ * did not already load the cockpit stylesheet.
+ */
+
+@use '../styles/theme';
+
+$ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+.bsb-devtools {
+	position: fixed;
+	right: 1.5rem;
+	bottom: 1.5rem;
+	z-index: 2147483000;
+	font-family: theme.$font-ui;
+	color: theme.$coastal-navy;
+
+	*,
+	*::before,
+	*::after {
+		box-sizing: border-box;
+	}
+}
+
+.bsb-devtools__swap {
+	position: relative;
+}
+
+.bsb-devtools__pill,
+.bsb-devtools__card {
+	position: absolute;
+	right: 0;
+	bottom: 0;
+	// Revealing (this rule is the transition's *target* the moment `hidden` is
+	// removed): a brief, subtle entrance — the only animation in this swap.
+	// Opening must feel near-instant, so this stays short (well under the
+	// mockup's original 220ms) and carries no `visibility`/delay of its own,
+	// so the incoming element becomes hit-testable immediately rather than
+	// waiting out a transition first.
+	transition:
+		opacity 0.12s $ease,
+		transform 0.12s $ease;
+}
+
+// The swap between the collapsed pill and the expanded card is mutually
+// exclusive — bound via `data-wp-bind--hidden`, never both on screen. Hiding
+// is instant (`transition: none`): no fade-out to wait for, so a click swaps
+// the pair immediately in either direction, and the outgoing element is
+// genuinely gone — off the accessibility tree and reported hidden by layout
+// tools — the same frame `hidden` is set, not a transition-delay later.
+// Overriding `display` only matters for the *other* direction: it lets the
+// reveal's entrance transition (above) actually animate instead of jumping
+// from `display: none`.
+.bsb-devtools__pill[hidden],
+.bsb-devtools__card[hidden] {
+	display: block;
+	visibility: hidden;
+	opacity: 0;
+	pointer-events: none;
+	transition: none;
+}
+
+.bsb-devtools__pill[hidden] {
+	transform: translateY(4px);
+}
+
+.bsb-devtools__card[hidden] {
+	transform: translateY(6px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.bsb-devtools__pill,
+	.bsb-devtools__card {
+		transition: none !important;
+	}
+}
+
+// ── Collapsed state — the pill ───────────────────────────────────────────────
+.bsb-devtools__pill {
+	appearance: none;
+	display: inline-block;
+	padding: 0.45rem 0.9rem;
+	border: 1px solid theme.$coastal-line;
+	border-radius: 999px;
+	background: theme.$coastal-surface;
+	font-family: theme.$font-display;
+	font-size: 12px;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	color: theme.$coastal-navy;
+	line-height: 1.2;
+	cursor: pointer;
+	box-shadow: 0 10px 24px -14px rgba(0, 20, 40, 0.3);
+	transition:
+		opacity 0.15s $ease,
+		transform 0.18s $ease,
+		border-color 0.18s ease,
+		color 0.18s ease,
+		box-shadow 0.18s ease;
+
+	&:hover {
+		transform: translateY(-1px);
+		border-color: theme.$coastal-teal;
+		box-shadow: 0 12px 26px -14px rgba(0, 20, 40, 0.34);
+	}
+
+	&:focus-visible {
+		outline: 2px solid theme.$coastal-teal;
+		outline-offset: 3px;
+	}
+
+	// Armed: the pill quietly turns coral — text and border only.
+	&.is-armed {
+		color: theme.$coastal-coral;
+		border-color: theme.$coastal-coral;
+	}
+}
+
+// ── Expanded state — the field card ──────────────────────────────────────────
+.bsb-devtools__card {
+	width: 272px;
+	border-radius: 16px;
+	background: theme.$coastal-surface;
+	border: 1px solid theme.$coastal-line;
+	box-shadow:
+		0 18px 36px -16px rgba(0, 20, 40, 0.28),
+		0 6px 14px -8px rgba(0, 20, 40, 0.18);
+	overflow: hidden;
+	transform-origin: bottom right;
+}
+
+.bsb-devtools__card-header {
+	display: flex;
+	align-items: center;
+	gap: 0.6rem;
+	padding: 0.85rem 0.6rem 0.85rem 1rem;
+}
+
+.bsb-devtools__card-eyebrow {
+	font-family: theme.$font-display;
+	font-size: 13px;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	color: theme.$coastal-navy;
+}
+
+// The quiet armed indicator: plain coral text, no dot, no animation.
+.bsb-devtools__card-armed {
+	font-size: 11px;
+	font-weight: 600;
+	letter-spacing: 0.02em;
+	color: theme.$coastal-coral;
+	white-space: nowrap;
+}
+
+.bsb-devtools__card-close {
+	flex: 0 0 auto;
+	// Always at the far right, whether or not the armed text beside it is
+	// present — simpler than conditioning the margin on an armed class, with
+	// the same result once the (possibly-absent) armed text no longer
+	// participates in the flex row's gap.
+	margin-left: auto;
+	display: grid;
+	place-items: center;
+	width: 1.6rem;
+	height: 1.6rem;
+	border-radius: 50%;
+	border: 1px solid rgba(31, 58, 95, 0.3);
+	background: transparent;
+	color: theme.$coastal-navy;
+	font-size: 0.95rem;
+	line-height: 1;
+	cursor: pointer;
+	transition:
+		color 0.16s ease,
+		border-color 0.16s ease,
+		background 0.16s ease;
+
+	&:hover {
+		color: theme.$coastal-teal-deep;
+		border-color: theme.$coastal-teal;
+		background: rgba(47, 155, 179, 0.1);
+	}
+
+	&:focus-visible {
+		outline: 2px solid theme.$coastal-teal;
+		outline-offset: 2px;
+	}
+}
+
+.bsb-devtools__card-divider {
+	height: 1px;
+	background: theme.$coastal-line;
+}
+
+// The card body: breathing room around one bounded group per sub-tool.
+// Stacked with a gap that already supports a second tool's container.
+.bsb-devtools__card-body {
+	display: flex;
+	flex-direction: column;
+	gap: 0.7rem;
+	padding: 0.9rem;
+}
+
+// One bounded group per sub-tool — a contained sub-panel on its own white
+// ground so it reads as a distinct unit inside the card, not loose controls.
+.bsb-devtools__group {
+	border: 1px solid theme.$coastal-line;
+	border-radius: 12px;
+	background: #fff;
+	padding: 0.85rem 0.9rem;
+}
+
+.bsb-devtools__group-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+}
+
+.bsb-devtools__group-title {
+	font-size: 13px;
+	font-weight: 700;
+	color: theme.$coastal-navy;
+}
+
+.bsb-devtools__group-divider {
+	height: 1px;
+	margin: 0.75rem 0;
+	background: theme.$coastal-line;
+}
+
+.bsb-devtools__group-body {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+}
+
+// ── Charging tri-state segmented control ─────────────────────────────────
+// Sits on the group's white ground, so the track uses the card's tint (not
+// white-on-white) with no border of its own, avoiding a double-border effect.
+.bsb-devtools__seg {
+	display: grid;
+	grid-auto-flow: column;
+	grid-auto-columns: 1fr;
+	gap: 0.25rem;
+	padding: 0.3rem;
+	border-radius: 10px;
+	background: theme.$coastal-surface;
+	box-shadow: inset 0 1px 3px rgba(31, 58, 95, 0.1);
+}
+
+.bsb-devtools__seg-option {
+	appearance: none;
+	border: 0;
+	padding: 0.5rem 0.3rem;
+	border-radius: 8px;
+	background: transparent;
+	color: theme.$coastal-ink-soft;
+	font-family: inherit;
+	font-size: 12px;
+	font-weight: 600;
+	cursor: pointer;
+	transition:
+		background 0.18s ease,
+		color 0.18s ease,
+		box-shadow 0.18s ease;
+
+	&:hover {
+		color: theme.$coastal-navy;
+	}
+
+	&:focus-visible {
+		outline: 2px solid theme.$coastal-teal;
+		outline-offset: 2px;
+	}
+
+	&.is-selected {
+		background: theme.$coastal-teal-deep;
+		color: #fff;
+		box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25);
+	}
+}
+
+// ── Level row ──────────────────────────────────────────────────────────────
+// The level's own "System" choice (follow the real reading), styled from the
+// same `.bsb-devtools__seg-option` shape/typography as the charging tri-state
+// so both rows read as the same control family — same mental model as
+// charging: touching the slider is itself the override, System is its
+// explicit off-state. `flex: 0 0 auto` keeps it from stretching in the row
+// (it sits outside the `.bsb-devtools__seg` grid this class is normally used
+// inside, but its own box is self-contained).
+.bsb-devtools__level {
+	display: flex;
+	align-items: center;
+	gap: 0.7rem;
+
+	> .bsb-devtools__seg-option {
+		flex: 0 0 auto;
+	}
+
+	input[type='range'] {
+		flex: 1 1 auto;
+		// Flex items default to `min-width: auto`, i.e. their intrinsic content
+		// size — for a range input that is the UA's default track width, wider
+		// than this row has room for once the System button and the fixed-width
+		// readout also claim their space. Without this the slider refuses to
+		// shrink and the row overflows the card. Explicit `0` lets it shrink to
+		// whatever room is actually left.
+		min-width: 0;
+		appearance: none;
+		height: 4px;
+		border-radius: 999px;
+		background:
+			linear-gradient(theme.$coastal-teal, theme.$coastal-teal) 0 /
+				var(--fill, 30%) 100% no-repeat,
+			theme.$coastal-line;
+		cursor: pointer;
+		transition: opacity 0.18s ease;
+
+		&::-webkit-slider-thumb {
+			appearance: none;
+			width: 16px;
+			height: 16px;
+			border-radius: 50%;
+			background: #fff;
+			box-shadow:
+				0 0 0 2px theme.$coastal-teal,
+				0 2px 6px rgba(0, 20, 40, 0.3);
+			cursor: pointer;
+			margin-top: 0;
+		}
+
+		&::-moz-range-thumb {
+			width: 16px;
+			height: 16px;
+			border: 0;
+			border-radius: 50%;
+			background: #fff;
+			box-shadow:
+				0 0 0 2px theme.$coastal-teal,
+				0 2px 6px rgba(0, 20, 40, 0.3);
+			cursor: pointer;
+		}
+
+		&::-moz-range-track {
+			height: 4px;
+			border-radius: 999px;
+			background: theme.$coastal-line;
+		}
+
+		&:focus-visible {
+			outline: 2px solid theme.$coastal-teal;
+			outline-offset: 4px;
+		}
+	}
+
+	// Following the system: the track/thumb/readout mute to a ghost of their
+	// active look — the slider still sits at (and stays draggable to) its
+	// last value, dragging it is what re-arms the override.
+	&.is-inactive input[type='range'],
+	&.is-inactive .bsb-devtools__level-value {
+		opacity: 0.5;
+	}
+}
+
+.bsb-devtools__level-value {
+	// A fixed (not minimum) width sized for the widest value ("100%") — so the
+	// slider's own length never shifts as the reading's digit count changes
+	// (0% ↔ 100%) — and `flex: none` so it never gets squeezed by the slider
+	// claiming the row's flexible space.
+	flex: 0 0 auto;
+	width: 2.8em;
+	text-align: right;
+	font-size: 13px;
+	font-weight: 700;
+	color: theme.$coastal-navy;
+	font-variant-numeric: tabular-nums;
+	transition: opacity 0.18s ease;
+}
+
+// A group whose controls are gated by a genuinely running process (the
+// discharge sim) — never a decorative master switch. Muted, not removed: the
+// values stay legible, they are just not interactive while the sim owns them.
+.bsb-devtools__group-body.is-disabled,
+.bsb-devtools__sim-steppers.is-disabled {
+	opacity: 0.5;
+	pointer-events: none;
+}
+
+// ── Discharge steppers ───────────────────────────────────────────────────────
+// Mirrors the cockpit deck's own `.bsb-stepper` triad (decrement / readout /
+// increment, `auto 1fr auto`) at panel scale — same structural proportions,
+// but the panel's own Hanken/Anton typography and `theme.$coastal-*` colors
+// used directly, not the rolling-digit `.bsb-odometer` (which hardcodes
+// `theme.$font-mono`, excluded from this panel) or the cockpit's `--*` custom
+// properties (out of scope outside `.wp-block-bsb-cockpit`).
+.bsb-devtools__stepper-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.6rem;
+}
+
+.bsb-devtools__stepper-label {
+	flex: 1 1 auto;
+	font-size: 12px;
+	font-weight: 600;
+	color: theme.$coastal-ink-soft;
+}
+
+.bsb-devtools__stepper {
+	flex: 0 0 auto;
+	display: grid;
+	grid-template-columns: auto 1fr auto;
+	align-items: center;
+	gap: 0.35rem;
+	padding: 0.25rem;
+	border-radius: 10px;
+	background: theme.$coastal-surface;
+	box-shadow: inset 0 1px 3px rgba(31, 58, 95, 0.1);
+}
+
+.bsb-devtools__stepper-btn {
+	appearance: none;
+	cursor: pointer;
+	width: 1.6rem;
+	height: 1.6rem;
+	border: 0;
+	border-radius: 7px;
+	background: #fff;
+	color: theme.$coastal-navy;
+	font-size: 0.95rem;
+	line-height: 1;
+	box-shadow: 0 1px 3px rgba(31, 58, 95, 0.18);
+	transition:
+		background 0.18s ease,
+		transform 0.12s ease,
+		opacity 0.18s ease;
+
+	&:hover {
+		background: theme.$coastal-teal;
+		color: #fff;
+	}
+
+	&:active {
+		transform: scale(0.92);
+	}
+
+	&:focus-visible {
+		outline: 2px solid theme.$coastal-teal;
+		outline-offset: 2px;
+	}
+
+	&:disabled {
+		cursor: not-allowed;
+		opacity: 0.6;
+
+		&:hover {
+			background: #fff;
+			color: theme.$coastal-navy;
+		}
+	}
+}
+
+.bsb-devtools__stepper-readout {
+	display: flex;
+	align-items: baseline;
+	justify-content: center;
+	gap: 0.25rem;
+	min-width: 2.6em;
+	font-size: 13px;
+	font-weight: 700;
+	color: theme.$coastal-navy;
+	font-variant-numeric: tabular-nums;
+}
+
+.bsb-devtools__stepper-unit {
+	font-size: 0.65rem;
+	font-weight: 700;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: theme.$coastal-ink-soft;
+}
+
+// ── Sim Start/Stop toggle ────────────────────────────────────────────────────
+// Mirrors the cockpit deck's own `.bsb-run` two-state pattern (two
+// always-rendered text spans, shown/hidden purely by CSS keyed off
+// `.is-running`) — translated strings can't be swapped client-side via
+// `data-wp-text`, since JS `__()` extraction is not wired for this project.
+.bsb-devtools__sim-toggle {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+	margin-top: 0.15rem;
+	padding: 0.6rem;
+	cursor: pointer;
+	border: 0;
+	border-radius: 10px;
+	background: theme.$coastal-teal;
+	color: #fff;
+	font-family: theme.$font-display;
+	font-size: 12px;
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+	box-shadow: 0 6px 14px -6px rgba(47, 155, 179, 0.5);
+	transition:
+		transform 0.14s ease,
+		box-shadow 0.2s ease,
+		filter 0.2s ease;
+
+	&:hover {
+		transform: translateY(-1px);
+		filter: saturate(1.1);
+	}
+
+	&:active {
+		transform: translateY(0);
+	}
+
+	&:focus-visible {
+		outline: 2px solid theme.$coastal-teal-deep;
+		outline-offset: 2px;
+	}
+
+	&.is-running {
+		background: theme.$coastal-coral;
+		box-shadow: 0 6px 14px -6px rgba(224, 96, 78, 0.5);
+	}
+
+	&:disabled {
+		cursor: not-allowed;
+		opacity: 0.5;
+		box-shadow: none;
+		transform: none;
+	}
+}
+
+// One label per state; the running class decides which shows.
+.bsb-devtools__sim-toggle-text {
+	display: none;
+}
+
+.bsb-devtools__sim-toggle:not(.is-running) .bsb-devtools__sim-toggle-text--start,
+.bsb-devtools__sim-toggle.is-running .bsb-devtools__sim-toggle-text--stop {
+	display: inline;
+}

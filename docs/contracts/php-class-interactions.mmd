@@ -39,6 +39,8 @@ classDiagram
         +__construct(string namespace, Paths paths)
         +enqueue(string relative, array deps) string
         +register_bundle(string relative) string
+        +register_script_module(string relative, array deps) string
+        +enqueue_script_module(string id) void
         +localize(string handle, string object_name, array data) void
         +enqueue_script(string handle) void
         +set_script_translations(string handle) void
@@ -98,6 +100,20 @@ classDiagram
         +register() void
         +maybe_render(bool replace, WP_Post post) bool
         +enqueue(string hook_suffix) void
+    }
+
+    class DevTools {
+        +__construct(array environments, string module, string style, Assets assets, string cockpit_param, string cockpit_value, string session_post_type, DevToolsPanelView view)
+        +is_active() bool
+        +register() void
+        +enqueue_front() void
+        +enqueue_admin(string hook_suffix) void
+        +render_panel(string panel) string
+        +spare_style_handle(array handles) array
+    }
+
+    class DevToolsPanelView {
+        +render(array data) string
     }
 
     class StandaloneChrome {
@@ -209,6 +225,7 @@ classDiagram
     BatterySurfBench --> SessionDetail : creates & owns (composition)
     BatterySurfBench --> CockpitDashboard : creates & owns (composition)
     BatterySurfBench --> StandaloneChrome : creates & owns (composition)
+    BatterySurfBench --> DevTools : creates & owns (composition)
     BatterySurfBench ..> Manager : registers
     I18n ..|> Manager : implements
     Menu ..|> Manager : implements
@@ -220,6 +237,20 @@ classDiagram
     SessionDetail --> Assets : uses
     SessionDetail ..> SummaryReasons : seeds verdict wording
     StandaloneChrome --> Assets : uses
+    DevTools ..|> Manager : implements
+    DevTools --> Assets : uses
+    DevTools --> DevToolsPanelView : renders via
+    DevToolsPanelView ..|> View : implements
+    %% Filter-mediated, not a direct dependency: DevTools hooks
+    %% `battery_surf_bench_devtools_panel` (Cockpit and SessionDetail apply it
+    %% when building their view data) and
+    %% `battery_surf_bench_cockpit_spared_style_handles` (StandaloneChrome
+    %% applies it while stripping the cockpit dashboard) — neither surface
+    %% references DevTools, keeping dev-only chrome decoupled from production
+    %% managers.
+    DevTools ..> Cockpit : decorates via filter (devtools panel)
+    DevTools ..> SessionDetail : decorates via filter (devtools panel)
+    DevTools ..> StandaloneChrome : spares its stylesheet via filter
     SessionsScreen ..|> Manager : implements
     SessionsScreen --> SessionSchema : uses
     SessionsScreen --> Assets : uses
