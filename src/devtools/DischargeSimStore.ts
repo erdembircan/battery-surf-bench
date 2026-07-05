@@ -9,12 +9,18 @@
  * as they would to a real draining battery. No new interception mechanism,
  * and no new "armed" logic — a running sim diverges `battery.level`, which
  * `devtoolsIsArmed` (in {@link ./BatteryOverrideStore}) already reads.
+ *
+ * Also exports {@link resetDischargeSim}, a plain function rather than a
+ * `StorePart` action — the panel's cross-cutting Reset button ({@link
+ * ./ResetStore}) composes it directly, so this sub-tool's own reset (stop the
+ * ticker, restore the steppers to {@link ./DischargeSim}.DEFAULT_SIM) lives
+ * here, next to the ticker it stops.
  */
 
 import { getElement } from '@wordpress/interactivity';
 import { type StorePart } from '../cockpit/StoreParts';
 import { current } from './DevtoolsStore';
-import { simulatedLevel, isSimComplete } from './DischargeSim';
+import { simulatedLevel, isSimComplete, DEFAULT_SIM } from './DischargeSim';
 
 /**
  * Clamps a value to a closed range.
@@ -100,6 +106,27 @@ export const resumeDischargeSim = (): void => {
 	}
 
 	startTicker();
+};
+
+/**
+ * Stops a running sim and restores its full state to {@link DEFAULT_SIM} —
+ * `running`, `startedAt`, and the `fromPercent`/`toPercent`/`minutes`
+ * steppers. Exported (rather than folded into a `StorePart` action) so the
+ * panel's cross-cutting Reset button ({@link ./ResetStore}) can call it
+ * directly without a second store member. Does not touch `battery.level`/
+ * `charging` — clearing those back to "follow the system" is the battery
+ * sub-tool's own reset ({@link ./BatteryOverrideStore}.resetBatteryOverride),
+ * which the panel-wide reset composes alongside this one.
+ */
+export const resetDischargeSim = (): void => {
+	stopTicker();
+
+	const { sim } = current();
+	sim.running = false;
+	sim.startedAt = null;
+	sim.fromPercent = DEFAULT_SIM.fromPercent;
+	sim.toPercent = DEFAULT_SIM.toPercent;
+	sim.minutes = DEFAULT_SIM.minutes;
 };
 
 /** The discharge-simulation section of the dev-tools panel, joining `bsb/cockpit`. */

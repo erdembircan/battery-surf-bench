@@ -446,6 +446,61 @@ test.describe( 'Dev-tools battery-override panel', () => {
 		expect( await page.content() ).not.toMatch( PHP_NOTICE );
 	} );
 
+	test( 'Reset clears every override in one click, including stopping a running discharge sim', async ( {
+		page,
+	} ) => {
+		await page.goto( '/?bsbSession=cockpit' );
+
+		await page.locator( '.bsb-devtools__pill' ).click();
+
+		// Arm a charging override.
+		await page.locator( '[data-devtools-charging="charging"]' ).click();
+		await expect(
+			page.locator( '[data-devtools-charging="charging"]' )
+		).toHaveClass( /is-selected/ );
+
+		// Shorten the run so the ticker's first tick moves the level within the
+		// test's own wait, then start the discharge sim.
+		const minutesDecrease = page.locator(
+			'[data-devtools-sim-field="minutes"][data-step="-5"]'
+		);
+		for ( let i = 0; i < 5; i++ ) {
+			await minutesDecrease.click();
+		}
+		const toggle = page.locator( '.bsb-devtools__sim-toggle' );
+		await toggle.click();
+		await expect( toggle ).toHaveClass( /is-running/ );
+
+		const armedText = page.locator( '.bsb-devtools__card-armed' );
+		await expect( armedText ).toBeVisible();
+
+		await page.locator( '.bsb-devtools__card-reset' ).click();
+
+		// Sim stopped: the toggle shows the Start state again.
+		await expect( toggle ).not.toHaveClass( /is-running/ );
+
+		// Charging back to System.
+		await expect(
+			page.locator( '[data-devtools-charging="system"]' )
+		).toHaveClass( /is-selected/ );
+
+		// No override armed any more.
+		await expect( armedText ).toBeHidden();
+
+		// Steppers restored to their 90/20/30 defaults.
+		await expect(
+			page.locator( '[data-wp-text="state.devtoolsSimFromDisplay"]' )
+		).toHaveText( '90' );
+		await expect(
+			page.locator( '[data-wp-text="state.devtoolsSimToDisplay"]' )
+		).toHaveText( '20' );
+		await expect(
+			page.locator( '[data-wp-text="state.devtoolsSimMinutesDisplay"]' )
+		).toHaveText( '30' );
+
+		expect( await page.content() ).not.toMatch( PHP_NOTICE );
+	} );
+
 	test( 'the panel also loads on the stored-session detail screen', async ( {
 		page,
 	} ) => {

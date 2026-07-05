@@ -170,6 +170,35 @@ $ease: cubic-bezier(0.22, 1, 0.36, 1);
 	white-space: nowrap;
 }
 
+// The panel-wide reset: a quiet text button, never ornamented — it is the
+// escape hatch, not a call to action, so it reads as muted chrome sitting
+// beside the armed indicator rather than competing with the close control for
+// attention. Always enabled (even while a sim runs — stopping the sim is
+// exactly what it is for), so it carries no `:disabled` styling of its own.
+.bsb-devtools__card-reset {
+	flex: 0 0 auto;
+	appearance: none;
+	border: 0;
+	background: transparent;
+	padding: 0;
+	font-family: inherit;
+	font-size: 11px;
+	font-weight: 600;
+	letter-spacing: 0.02em;
+	color: theme.$coastal-ink-soft;
+	cursor: pointer;
+	transition: color 0.16s ease;
+
+	&:hover {
+		color: theme.$coastal-navy;
+	}
+
+	&:focus-visible {
+		outline: 2px solid theme.$coastal-teal;
+		outline-offset: 2px;
+	}
+}
+
 .bsb-devtools__card-close {
 	flex: 0 0 auto;
 	// Always at the far right, whether or not the armed text beside it is

@@ -68,6 +68,7 @@ describe( 'devtools view', () => {
 			devtoolsResetLevel: expect.any( Function ),
 			devtoolsStepSim: expect.any( Function ),
 			devtoolsToggleSim: expect.any( Function ),
+			devtoolsReset: expect.any( Function ),
 		} );
 		expect( mocks.config?.callbacks ).toMatchObject( {
 			devtoolsPersist: expect.any( Function ),
