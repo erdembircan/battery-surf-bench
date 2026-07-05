@@ -6,7 +6,8 @@
  */
 
 import type { Rng } from './Rng';
-import { FakeCursor } from './FakeCursor';
+import { FakeCursor, framesForDistance, type Point } from './FakeCursor';
+import { easeInOutQuad } from './Ease';
 
 /** A motion primitive the surfer can perform. */
 export interface Motor {
@@ -21,13 +22,6 @@ export interface Motor {
 	/** Waits `ms` without acting — the surfer's own idle/reading time. */
 	idle: ( ms: number ) => Promise< void >;
 }
-
-/**
- * Eases progress with a quad in/out curve.
- * @param t Progress, 0–1.
- */
-const easeInOutQuad = ( t: number ): number =>
-	t < 0.5 ? 2 * t * t : 1 - Math.pow( -2 * t + 2, 2 ) / 2;
 
 /**
  * Waits for the next animation frame, falling back to a short timeout where
@@ -51,9 +45,55 @@ const FRAME_MS = 16;
 const msToFrames = ( ms: number ): number =>
 	Math.max( 1, Math.round( ms / FRAME_MS ) );
 
-/** Shortest and longest single wander leg, in frames, for `pointerDrift`. */
-const DRIFT_LEG_FRAMES_MIN = 15;
-const DRIFT_LEG_FRAMES_MAX = 30;
+/** Radius band each `pointerDrift` wander leg's random offset is drawn from, in px. */
+const WANDER_RADIUS_MIN_PX = 80;
+const WANDER_RADIUS_MAX_PX = 280;
+
+/** Kept clear of the viewport edge, so a wander target never aims off-screen, in px. */
+const WANDER_EDGE_MARGIN_PX = 20;
+
+/** Micro-pause between wander legs, in ms, so drift reads as wander-pause-wander. */
+const WANDER_PAUSE_MS_MIN = 100;
+const WANDER_PAUSE_MS_MAX = 350;
+
+/**
+ * A wander target offset from `from` by a random distance in
+ * [{@link WANDER_RADIUS_MIN_PX}, {@link WANDER_RADIUS_MAX_PX}] at a random
+ * angle, clamped inside the viewport so a leg never aims off-screen.
+ * @param from
+ * @param rng
+ */
+const wanderTarget = ( from: Point, rng: Rng ): Point => {
+	const angle = rng() * Math.PI * 2;
+	const radius =
+		WANDER_RADIUS_MIN_PX +
+		rng() * ( WANDER_RADIUS_MAX_PX - WANDER_RADIUS_MIN_PX );
+	const maxX = Math.max(
+		WANDER_EDGE_MARGIN_PX,
+		window.innerWidth - WANDER_EDGE_MARGIN_PX
+	);
+	const maxY = Math.max(
+		WANDER_EDGE_MARGIN_PX,
+		window.innerHeight - WANDER_EDGE_MARGIN_PX
+	);
+
+	return {
+		x: Math.min(
+			maxX,
+			Math.max(
+				WANDER_EDGE_MARGIN_PX,
+				from.x + Math.cos( angle ) * radius
+			)
+		),
+		y: Math.min(
+			maxY,
+			Math.max(
+				WANDER_EDGE_MARGIN_PX,
+				from.y + Math.sin( angle ) * radius
+			)
+		),
+	};
+};
 
 /** How long the cursor travels to a snippet before the selection sweep starts. */
 const SNIPPET_APPROACH_MS = 500;
@@ -106,21 +146,35 @@ export class DomMotor implements Motor {
 		let framesLeft = msToFrames( ms );
 
 		while ( framesLeft > 0 ) {
+			const from = this.cursor.position;
+			const target = wanderTarget( from, this.rng );
+			const distance = Math.hypot( target.x - from.x, target.y - from.y );
 			const legFrames = Math.min(
 				framesLeft,
-				DRIFT_LEG_FRAMES_MIN +
-					Math.floor(
-						this.rng() *
-							( DRIFT_LEG_FRAMES_MAX - DRIFT_LEG_FRAMES_MIN )
-					)
+				framesForDistance( distance )
 			);
-			const target = {
-				x: this.rng() * window.innerWidth,
-				y: this.rng() * window.innerHeight,
-			};
 
-			await this.cursor.travelTo( target, legFrames, this.rng );
+			await this.cursor.travelTo( target, this.rng, legFrames );
 			framesLeft -= legFrames;
+
+			if ( framesLeft <= 0 ) {
+				break;
+			}
+
+			const pauseFrames = Math.min(
+				framesLeft,
+				msToFrames(
+					WANDER_PAUSE_MS_MIN +
+						this.rng() *
+							( WANDER_PAUSE_MS_MAX - WANDER_PAUSE_MS_MIN )
+				)
+			);
+
+			for ( let i = 0; i < pauseFrames; i++ ) {
+				await this.nextFrameFn();
+			}
+
+			framesLeft -= pauseFrames;
 		}
 	}
 
@@ -150,8 +204,8 @@ export class DomMotor implements Motor {
 
 		await this.cursor.travelTo(
 			{ x: rect.left, y: rect.top + rect.height / 2 },
-			msToFrames( SNIPPET_APPROACH_MS ),
-			this.rng
+			this.rng,
+			msToFrames( SNIPPET_APPROACH_MS )
 		);
 
 		const range = el.ownerDocument.createRange();

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { DomMotor } from './Motor';
-import { SURFING_CLASS } from './FakeCursor';
+import { FakeCursor, SURFING_CLASS, type Point } from './FakeCursor';
+import { mulberry32 } from './Rng';
 
 /** An instant frame source, for tests that would otherwise wait on real rAF ticks. */
 const instantFrames = (): Promise< void > => Promise.resolve();
@@ -76,6 +77,77 @@ describe( 'DomMotor.pointerDrift', () => {
 		expect(
 			document.documentElement.classList.contains( SURFING_CLASS )
 		).toBe( true );
+	} );
+
+	it( 'wanders in bounded legs from its current position rather than teleporting across the viewport', async () => {
+		Object.defineProperty( window, 'innerWidth', {
+			value: 1000,
+			configurable: true,
+		} );
+		Object.defineProperty( window, 'innerHeight', {
+			value: 800,
+			configurable: true,
+		} );
+
+		const travelToSpy = vi.spyOn( FakeCursor.prototype, 'travelTo' );
+		const motor = new DomMotor( mulberry32( 7 ), instantFrames );
+		const start = { x: 500, y: 400 };
+
+		await motor.pointerDrift( 3000 );
+
+		const targets = travelToSpy.mock.calls.map(
+			( call ) => call[ 0 ] as Point
+		);
+		expect( targets.length ).toBeGreaterThan( 0 );
+
+		let from = start;
+		for ( const target of targets ) {
+			const jump = Math.hypot( target.x - from.x, target.y - from.y );
+
+			// The radius band pointerDrift wanders within, plus float slop.
+			expect( jump ).toBeLessThanOrEqual( 280.001 );
+			expect( target.x ).toBeGreaterThanOrEqual( 0 );
+			expect( target.x ).toBeLessThanOrEqual( 1000 );
+			expect( target.y ).toBeGreaterThanOrEqual( 0 );
+			expect( target.y ).toBeLessThanOrEqual( 800 );
+
+			from = target;
+		}
+
+		travelToSpy.mockRestore();
+	} );
+
+	it( 'pauses briefly between wander legs instead of gliding continuously', async () => {
+		let ticks = 0;
+		const countingFrames = (): Promise< void > => {
+			ticks++;
+			return Promise.resolve();
+		};
+		const travelToSpy = vi.spyOn( FakeCursor.prototype, 'travelTo' );
+		const motor = new DomMotor( mulberry32( 3 ), countingFrames );
+		const start = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+
+		await motor.pointerDrift( 3000 );
+
+		const calls = travelToSpy.mock.calls;
+		expect( calls.length ).toBeGreaterThan( 1 );
+
+		// Every travel leg accounts for its own step count, plus one more
+		// tick if it was long enough to overshoot-and-settle. Any tick beyond
+		// that sum must be a between-legs pause tick.
+		let from = start;
+		let travelAndSettleTicks = 0;
+		for ( const call of calls ) {
+			const target = call[ 0 ] as Point;
+			const legFrames = call[ 2 ] as number;
+			const distance = Math.hypot( target.x - from.x, target.y - from.y );
+			travelAndSettleTicks += legFrames + ( distance > 200 ? 1 : 0 );
+			from = target;
+		}
+
+		expect( ticks ).toBeGreaterThan( travelAndSettleTicks );
+
+		travelToSpy.mockRestore();
 	} );
 } );
 

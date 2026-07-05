@@ -77,7 +77,8 @@ classDiagram
     class FakeCursor {
         +position Point
         +moveTo(Point) void
-        +travelTo(Point, frames, Rng) Promise
+        +travelTo(Point, Rng, frames?) Promise
+        +framesForDistance(distance) number$
     }
 
     class Clock {
@@ -108,6 +109,14 @@ classDiagram
         +tickIntervalMs(tempo) number
         +flickPx(tempo) number
         +flickEaseMs(tempo) number
+    }
+
+    %% Shared easing curve — DomMotor's scroll and FakeCursor's travel both
+    %% ease progress through this one function rather than each carrying
+    %% their own copy of the same curve.
+    class Ease {
+        <<module>>
+        +easeInOutQuad(t) number
     }
 
     %% --- Behaviors: one bidder per action, each governed by one primary stat.
@@ -208,6 +217,9 @@ classDiagram
     ScrollBurst --> Bid : noise
     ScrollBurst --> Tempo : flick px & ease
     Bid --> SurferStats : MAX
+
+    DomMotor --> Ease : eases scroll & travel progress
+    FakeCursor --> Ease : eases travel progress
 
     Behavior ..> BehaviorContext : reads
     Behavior ..> Motor : acts through

@@ -7,6 +7,7 @@
  */
 
 import type { Rng } from './Rng';
+import { easeInOutQuad } from './Ease';
 
 /** A viewport position, in CSS pixels. */
 export interface Point {
@@ -22,6 +23,31 @@ const CURSOR_CLASS = 'bsb-surf-cursor';
 
 /** How far the cursor overshoots past a target before settling onto it, in px. */
 const OVERSHOOT_PX = 6;
+
+/** Minimum leg distance, in px, that still gets an overshoot-and-settle; short nudges land directly. */
+const OVERSHOOT_DISTANCE_THRESHOLD_PX = 200;
+
+/** How many px of travel distance a single animation frame covers, for {@link framesForDistance}. */
+const TRAVEL_PX_PER_FRAME = 10;
+
+/** Frame-count clamp band for a travelled leg, however far it goes. */
+const TRAVEL_MIN_FRAMES = 8;
+const TRAVEL_MAX_FRAMES = 60;
+
+/**
+ * The frame count a leg of `distance` px should take: proportional to
+ * distance, so a short nudge is quick and a long sweep is unhurried, clamped
+ * so neither collapses to an instant jump nor drags on indefinitely.
+ * @param distance
+ */
+export const framesForDistance = ( distance: number ): number =>
+	Math.min(
+		TRAVEL_MAX_FRAMES,
+		Math.max(
+			TRAVEL_MIN_FRAMES,
+			Math.round( distance / TRAVEL_PX_PER_FRAME )
+		)
+	);
 
 /**
  * The quadratic-bezier point at progress `t` (0–1), from `a` through control
@@ -126,24 +152,35 @@ export class FakeCursor {
 	}
 
 	/**
-	 * Glides from the current position to `target` over `frames` animation
-	 * ticks, along a jittered quadratic-bezier curve rather than a straight
-	 * line, with a small overshoot-and-settle once it arrives.
+	 * Glides from the current position to `target` along a jittered
+	 * quadratic-bezier curve rather than a straight line, easing in and out
+	 * of the move rather than travelling at constant speed. The frame count
+	 * scales with travel distance ({@link framesForDistance}) unless `frames`
+	 * overrides it; only a long-enough leg gets a small overshoot-and-settle
+	 * once it arrives — a short nudge lands directly on `target`.
 	 * @param target
-	 * @param frames
 	 * @param rng
+	 * @param frames Overrides the distance-derived frame count when given.
 	 */
-	async travelTo( target: Point, frames: number, rng: Rng ): Promise< void > {
+	async travelTo(
+		target: Point,
+		rng: Rng,
+		frames?: number
+	): Promise< void > {
 		const start = this.point;
 		const control = jitteredControlPoint( start, target, rng );
-		const steps = Math.max( 1, frames );
+		const distance = Math.hypot( target.x - start.x, target.y - start.y );
+		const steps = Math.max( 1, frames ?? framesForDistance( distance ) );
 
 		for ( let i = 1; i <= steps; i++ ) {
-			this.moveTo( bezierPoint( start, control, target, i / steps ) );
+			const progress = easeInOutQuad( i / steps );
+			this.moveTo( bezierPoint( start, control, target, progress ) );
 			await this.nextFrame();
 		}
 
-		await this.settle( target, rng );
+		if ( distance > OVERSHOOT_DISTANCE_THRESHOLD_PX ) {
+			await this.settle( target, rng );
+		}
 	}
 
 	/**
