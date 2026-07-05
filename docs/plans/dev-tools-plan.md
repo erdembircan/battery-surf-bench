@@ -197,6 +197,71 @@ target-stop all see the same (possibly overridden) reading. No second code path.
 public surface, the dev-tools script module joining the `bsb/cockpit` store, and the
 override seam in the battery flow. Public API only, abstractions marked. Same PR.
 
+## Milestone 2 — Discharge simulation
+
+A second sub-tool: linearly discharge the mocked battery from a start level to an end
+level over a selectable duration. It is **purely a driver of the existing override
+seam** — a ticker writes the interpolated level into `state.devtools.battery.level`
+(and forces `charging` to discharging on start), and the already-shipped
+`data-wp-watch` seam re-applies it, so display, sample recording, plugged/target-drop
+stops and the panel's own level row all react as if a real battery were draining. No
+new interception mechanism.
+
+### Model
+
+- Sim state joins the devtools slice (shape change → bump the storage key):
+  `sim: { fromPercent, toPercent, minutes, running, startedAt: number|null }`.
+  Defaults: from 90, to 20, minutes 30. All three step by 5; minutes range 5–60,
+  levels 0–100.
+- The simulated level at any instant is a pure function of `(config, now − startedAt)`
+  — extract it as a pure, unit-tested helper. A 1-second ticker (module scope in the
+  devtools bundle) writes it into the level override; ticks stop at progress 1.
+- **Start**: requires `toPercent < fromPercent` (Start disabled otherwise); sets
+  `charging = false` (discharging), `running = true`, `startedAt = now`, starts the
+  ticker. **Stop**: clears the ticker, `running = false` — the current overrides stay
+  frozen where they were (predictable, and the System buttons already exist to clear
+  them). **Completion**: same as stop, holding the end level.
+- The whole slice persists (as before); hydrating with `running: true` **resumes** the
+  sim from `startedAt` — if the end time has already passed, apply the end state and
+  stop. A reload mid-sim keeps simulating; the sim's truth is the timestamp, not the
+  ticker.
+
+### Panel UI
+
+- A second bounded group, title "Discharge", below Battery — the additive-section
+  architecture as designed.
+- Three stepper rows — **no sliders**: "From" (%), "To" (%), "Duration" (min). Each is
+  the deck's own stepper pattern: decrement button, non-selectable value read-out,
+  increment button — discover the shipped duration stepper's markup/SCSS in the cockpit
+  deck and mirror its proportions/behavior at panel scale (the panel stays
+  Hanken/Anton, theme tokens, no mono).
+- One full-width **Start/Stop** button under the steppers: Start (teal, disabled while
+  `to ≥ from`) ⇄ Stop (coral) while running.
+- **While running, every other battery-related control is disabled**: the Battery
+  group's charging tri-state and level row, and the sim's own steppers — only Stop
+  stays live. (This muting is legitimate — gated by a running process, unlike the
+  removed enable toggles.) Progress display is the level row itself ticking down.
+- Armed state needs no new logic: a running sim diverges the level, so
+  `devtoolsIsArmed`, the coral pill and "Override active" already fire.
+
+### Tests
+
+- **Vitest**: the pure interpolation helper (bounds, exact endpoints, clamping);
+  ticker behavior with fake timers (start writes level+charging, stop freezes,
+  completion stops at end level); resume-from-storage (mid-sim → continues; past-end →
+  end state, not running); Start-guard (`to ≥ from`); stepper actions clamp/step.
+- **PHPUnit**: view markup contract for the new group (labels escaped, steppers,
+  Start/Stop bindings).
+- **e2e**: start a short sim (5 min, wide level span so ticks are visible within
+  seconds) → level readout moves, other battery controls muted, Stop visible; Stop →
+  values frozen, controls unmute. Selector sync as always.
+
+### Charts
+
+`docs/contracts/cockpit-frontend-modules.mmd`: the devtools store part gains the sim
+members (state/actions/callbacks it exposes). PHP chart only if the manager's public
+surface changes (labels alone do not).
+
 ## Delivery
 
 Single PR from this branch (`worktree-dev-tools-fresh`), which already carries the
