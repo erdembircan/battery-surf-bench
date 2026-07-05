@@ -263,14 +263,22 @@ test.describe( 'Dev-tools battery-override panel', () => {
 	test( 'a persisted level override positions the slider thumb after a reload', async ( {
 		page,
 	} ) => {
-		// Seed the persisted devtools slice (the current v2 shape — no `enabled`
-		// field) before any module runs, as a prior session would have left it.
+		// Seed the persisted devtools slice (the current v3 shape — includes the
+		// discharge-sim's own config/running fields) before any module runs, as a
+		// prior session would have left it.
 		await page.addInitScript( () => {
 			window.localStorage.setItem(
-				'bsb-devtools-v2',
+				'bsb-devtools-v3',
 				JSON.stringify( {
 					open: true,
 					battery: { charging: null, level: 0.3 },
+					sim: {
+						fromPercent: 90,
+						toPercent: 20,
+						minutes: 30,
+						running: false,
+						startedAt: null,
+					},
 				} )
 			);
 		} );
@@ -297,13 +305,13 @@ test.describe( 'Dev-tools battery-override panel', () => {
 		expect( await page.content() ).not.toMatch( PHP_NOTICE );
 	} );
 
-	test( 'a value stored under the old (pre-redesign) v1 key is ignored', async ( {
+	test( 'a value stored under an old (pre-Milestone-2) key is ignored', async ( {
 		page,
 	} ) => {
-		// The old shape carried a now-removed `enabled` flag under the old
-		// `bsb-devtools-v1` key. The current code reads only `bsb-devtools-v2`,
-		// so this stale blob is never looked up — the panel starts fresh at its
-		// defaults instead of inheriting a stale, no-longer-meaningful shape.
+		// The v1 shape carried a now-removed `enabled` flag; the v2 shape had no
+		// `sim` field at all. The current code reads only `bsb-devtools-v3`, so
+		// either stale blob is never looked up — the panel starts fresh at its
+		// defaults instead of inheriting a shape with no sim to resume.
 		await page.addInitScript( () => {
 			window.localStorage.setItem(
 				'bsb-devtools-v1',
@@ -312,16 +320,128 @@ test.describe( 'Dev-tools battery-override panel', () => {
 					battery: { enabled: true, charging: true, level: 0.9 },
 				} )
 			);
+			window.localStorage.setItem(
+				'bsb-devtools-v2',
+				JSON.stringify( {
+					open: true,
+					battery: { charging: true, level: 0.9 },
+				} )
+			);
 		} );
 
 		await page.goto( '/?bsbSession=cockpit' );
 
-		// Defaults: collapsed, unarmed — the stale v1 blob had no effect.
+		// Defaults: collapsed, unarmed — neither stale blob had any effect.
 		await expect( page.locator( '.bsb-devtools__pill' ) ).toBeVisible();
 		await expect( page.locator( '.bsb-devtools__pill' ) ).not.toHaveClass(
 			/is-armed/
 		);
 		await expect( page.locator( '.bsb-devtools__card' ) ).toBeHidden();
+
+		expect( await page.content() ).not.toMatch( PHP_NOTICE );
+	} );
+
+	test( 'starting the discharge sim moves the level and mutes every other battery control, leaving Stop live', async ( {
+		page,
+	} ) => {
+		await page.goto( '/?bsbSession=cockpit' );
+
+		await page.locator( '.bsb-devtools__pill' ).click();
+
+		// Shorten the run to 5 minutes (the minimum) so the ticker's first tick
+		// produces a visibly different level within the test's own wait.
+		const minutesDecrease = page.locator(
+			'[data-devtools-sim-field="minutes"][data-step="-5"]'
+		);
+		for ( let i = 0; i < 5; i++ ) {
+			await minutesDecrease.click();
+		}
+		await expect(
+			page.locator( '[data-wp-text="state.devtoolsSimMinutesDisplay"]' )
+		).toHaveText( '5' );
+
+		const levelValue = page.locator( '.bsb-devtools__level-value' );
+		const startLevel = await levelValue.textContent();
+
+		const toggle = page.locator( '.bsb-devtools__sim-toggle' );
+		await toggle.click();
+
+		// Running: the toggle reads Stop, and stays enabled/clickable.
+		await expect( toggle ).toHaveClass( /is-running/ );
+		await expect( toggle ).toBeEnabled();
+
+		// Every other battery-related control is muted while the sim runs: the
+		// battery group's body (charging tri-state + level row — the first
+		// `.bsb-devtools__group-body`, the Battery group being rendered before
+		// Discharge), and the sim's own steppers — never the Start/Stop button.
+		await expect(
+			page.locator( '.bsb-devtools__group-body' ).first()
+		).toHaveClass( /is-disabled/ );
+		await expect(
+			page.locator( '.bsb-devtools__sim-steppers' )
+		).toHaveClass( /is-disabled/ );
+		await expect(
+			page.locator( '[data-devtools-charging="system"]' )
+		).toBeDisabled();
+		await expect(
+			page.locator( '.bsb-devtools__level input[type="range"]' )
+		).toBeDisabled();
+		await expect( minutesDecrease ).toBeDisabled();
+
+		// The level readout starts moving toward the configured end (20%),
+		// forced by the sim seeding the override immediately on start.
+		await expect( levelValue ).not.toHaveText( startLevel ?? '' );
+
+		expect( await page.content() ).not.toMatch( PHP_NOTICE );
+	} );
+
+	test( 'stopping the discharge sim freezes the overrides in place and unmutes every control', async ( {
+		page,
+	} ) => {
+		await page.goto( '/?bsbSession=cockpit' );
+
+		await page.locator( '.bsb-devtools__pill' ).click();
+
+		const minutesDecrease = page.locator(
+			'[data-devtools-sim-field="minutes"][data-step="-5"]'
+		);
+		for ( let i = 0; i < 5; i++ ) {
+			await minutesDecrease.click();
+		}
+
+		const toggle = page.locator( '.bsb-devtools__sim-toggle' );
+		await toggle.click();
+		await expect( toggle ).toHaveClass( /is-running/ );
+
+		// Let the ticker run for a moment so the level has actually moved off
+		// its seeded starting value.
+		await page.waitForTimeout( 1500 );
+
+		const levelValue = page.locator( '.bsb-devtools__level-value' );
+		const frozenLevel = await levelValue.textContent();
+
+		await toggle.click();
+
+		// Stopped: the toggle reads Start again, every control unmutes.
+		await expect( toggle ).not.toHaveClass( /is-running/ );
+		await expect(
+			page.locator( '.bsb-devtools__group-body' ).first()
+		).not.toHaveClass( /is-disabled/ );
+		await expect(
+			page.locator( '.bsb-devtools__sim-steppers' )
+		).not.toHaveClass( /is-disabled/ );
+		await expect(
+			page.locator( '[data-devtools-charging="system"]' )
+		).toBeEnabled();
+		await expect(
+			page.locator( '.bsb-devtools__level input[type="range"]' )
+		).toBeEnabled();
+		await expect( minutesDecrease ).toBeEnabled();
+
+		// The overrides stay frozen exactly where they were — no reset, and no
+		// further movement now the ticker is stopped.
+		await page.waitForTimeout( 1500 );
+		await expect( levelValue ).toHaveText( frozenLevel ?? '' );
 
 		expect( await page.content() ).not.toMatch( PHP_NOTICE );
 	} );

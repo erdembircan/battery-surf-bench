@@ -1,11 +1,14 @@
 /**
  * Tests for the battery-override sub-tool slice.
  *
- * The slice's own actions/getters/callbacks read and write the shared
- * `bsb/cockpit` state through `store()`; this file stubs that call to return a
- * single, test-owned state object so the tests exercise these functions the
- * same way the real merged store would use them, without the cockpit's own
- * modules or the Interactivity runtime.
+ * The slice's own actions/getters read and write the shared `bsb/cockpit`
+ * state through `store()`; this file stubs that call to return a single,
+ * test-owned state object so the tests exercise these functions the same way
+ * the real merged store would use them, without the cockpit's own modules or
+ * the Interactivity runtime. The shared shell (panel open/closed,
+ * persistence) is tested in `DevtoolsStore.test.ts`; the discharge-simulation
+ * sub-tool that also writes into `battery.level` is tested in
+ * `DischargeSimStore.test.ts`.
  */
 
 import { vi, describe, it, expect, beforeEach } from 'vitest';
@@ -24,6 +27,13 @@ interface DevtoolsBatteryOverride {
 interface DevtoolsState {
 	open: boolean;
 	battery: DevtoolsBatteryOverride;
+	sim: {
+		fromPercent: number;
+		toPercent: number;
+		minutes: number;
+		running: boolean;
+		startedAt: number | null;
+	};
 }
 
 const mocks = vi.hoisted( () => ( {
@@ -39,15 +49,10 @@ vi.mock( '@wordpress/interactivity', () => ( {
 	getElement: () => ( { ref: mocks.element } ),
 } ) );
 
-import {
-	batteryOverrideStore,
-	hydrateDevtools,
-	DEVTOOLS_STORAGE_KEY,
-} from './BatteryOverrideStore';
+import { batteryOverrideStore } from './BatteryOverrideStore';
 
 /** Typed views over the loosely-typed `StorePart` slice under test. */
 const actions = batteryOverrideStore.actions as unknown as {
-	devtoolsToggleOpen: () => void;
 	devtoolsSetCharging: () => void;
 	devtoolsSetLevel: () => void;
 	devtoolsResetLevel: () => void;
@@ -61,31 +66,26 @@ const derived = batteryOverrideStore.state as unknown as {
 	devtoolsLevelFillPercent: string;
 	devtoolsIsArmed: boolean;
 };
-const callbacks = batteryOverrideStore.callbacks as unknown as {
-	devtoolsPersist: () => void;
-};
 
 beforeEach( () => {
 	mocks.state = {
 		devtools: {
 			open: false,
 			battery: { charging: null, level: null },
+			sim: {
+				fromPercent: 90,
+				toPercent: 20,
+				minutes: 30,
+				running: false,
+				startedAt: null,
+			},
 		},
 		batterySystemPercent: null,
 	};
 	mocks.element = { dataset: {}, value: '' };
-	window.localStorage.clear();
 } );
 
 describe( 'batteryOverrideStore actions', () => {
-	it( 'toggles the panel open state', () => {
-		actions.devtoolsToggleOpen();
-		expect( mocks.state.devtools.open ).toBe( true );
-
-		actions.devtoolsToggleOpen();
-		expect( mocks.state.devtools.open ).toBe( false );
-	} );
-
 	it( 'sets the charging override from the triggering control’s dataset', () => {
 		mocks.element = {
 			dataset: { devtoolsCharging: 'charging' },
@@ -224,89 +224,14 @@ describe( 'batteryOverrideStore derived state', () => {
 		mocks.state.devtools.battery.charging = null;
 		expect( derived.devtoolsIsArmed ).toBe( false );
 
-		// ...but a dragged-in level alone also arms it.
+		// ...but a dragged-in level alone also arms it — this is also how a
+		// running discharge sim arms the panel, since it writes into this same
+		// field (see DischargeSimStore.test.ts).
 		mocks.state.devtools.battery.level = 0.3;
 		expect( derived.devtoolsIsArmed ).toBe( true );
 
 		// Clearing the level back to system disarms it again.
 		mocks.state.devtools.battery.level = null;
 		expect( derived.devtoolsIsArmed ).toBe( false );
-	} );
-} );
-
-describe( 'persistence', () => {
-	it( 'writes the whole slice to localStorage on devtoolsPersist', () => {
-		mocks.state.devtools = {
-			open: true,
-			battery: { charging: true, level: 0.2 },
-		};
-
-		callbacks.devtoolsPersist();
-
-		const stored: unknown = JSON.parse(
-			window.localStorage.getItem( DEVTOOLS_STORAGE_KEY ) ?? 'null'
-		);
-		expect( stored ).toEqual( {
-			open: true,
-			battery: { charging: true, level: 0.2 },
-		} );
-	} );
-
-	it( 'hydrates the shared state from a previously persisted slice', () => {
-		window.localStorage.setItem(
-			DEVTOOLS_STORAGE_KEY,
-			JSON.stringify( {
-				open: true,
-				battery: { charging: false, level: 0.6 },
-			} )
-		);
-
-		hydrateDevtools();
-
-		expect( mocks.state.devtools ).toEqual( {
-			open: true,
-			battery: { charging: false, level: 0.6 },
-		} );
-	} );
-
-	it( 'leaves the default state untouched when nothing is stored', () => {
-		hydrateDevtools();
-
-		expect( mocks.state.devtools.open ).toBe( false );
-	} );
-
-	it( 'ignores a corrupted or stale-shape stored value', () => {
-		window.localStorage.setItem(
-			DEVTOOLS_STORAGE_KEY,
-			JSON.stringify( { nonsense: true } )
-		);
-		hydrateDevtools();
-		expect( mocks.state.devtools.open ).toBe( false );
-
-		window.localStorage.setItem( DEVTOOLS_STORAGE_KEY, '{not json' );
-		hydrateDevtools();
-		expect( mocks.state.devtools.open ).toBe( false );
-	} );
-
-	it( 'ignores a value stored under the old (pre-redesign) v1 key', () => {
-		// The old shape carried a now-removed `enabled` flag under the old key.
-		// The storage key bump means it is simply never looked up again — the
-		// slice starts fresh at its defaults instead of inheriting a stale
-		// `enabled` concept that no longer exists.
-		window.localStorage.setItem(
-			'bsb-devtools-v1',
-			JSON.stringify( {
-				open: true,
-				battery: { enabled: true, charging: true, level: 0.9 },
-			} )
-		);
-
-		hydrateDevtools();
-
-		expect( DEVTOOLS_STORAGE_KEY ).toBe( 'bsb-devtools-v2' );
-		expect( mocks.state.devtools ).toEqual( {
-			open: false,
-			battery: { charging: null, level: null },
-		} );
 	} );
 } );

@@ -2,17 +2,24 @@
  * Tests for the dev-tools composition root.
  *
  * A thin registration module: the individual behaviors it wires together
- * (merging store parts, the battery-override actions/getters, hydration and
- * persistence) are unit-tested on their own ({@link ./BatteryOverrideStore},
- * {@link ../cockpit/StoreParts}). This file only proves the join itself — that
- * importing the module registers the `bsb/cockpit` namespace with the
- * `devtools` slice folded in.
+ * (merging store parts, hydration and persistence, the battery-override and
+ * discharge-sim actions/getters) are unit-tested on their own
+ * ({@link ./DevtoolsStore}, {@link ./BatteryOverrideStore},
+ * {@link ./DischargeSimStore}, {@link ../cockpit/StoreParts}). This file only
+ * proves the join itself — that importing the module registers the
+ * `bsb/cockpit` namespace with the whole `devtools` slice folded in.
  */
 
 import { describe, it, expect, vi } from 'vitest';
 
 interface CapturedConfig {
-	state: { devtools?: { open: boolean; battery: object } };
+	state: {
+		devtools?: {
+			open: boolean;
+			battery: object;
+			sim: object;
+		};
+	};
 	actions: Record< string, unknown >;
 	callbacks: Record< string, unknown >;
 }
@@ -46,12 +53,21 @@ describe( 'devtools view', () => {
 		expect( mocks.config?.state.devtools ).toEqual( {
 			open: false,
 			battery: { charging: null, level: null },
+			sim: {
+				fromPercent: 90,
+				toPercent: 20,
+				minutes: 30,
+				running: false,
+				startedAt: null,
+			},
 		} );
 		expect( mocks.config?.actions ).toMatchObject( {
 			devtoolsToggleOpen: expect.any( Function ),
 			devtoolsSetCharging: expect.any( Function ),
 			devtoolsSetLevel: expect.any( Function ),
 			devtoolsResetLevel: expect.any( Function ),
+			devtoolsStepSim: expect.any( Function ),
+			devtoolsToggleSim: expect.any( Function ),
 		} );
 		expect( mocks.config?.callbacks ).toMatchObject( {
 			devtoolsPersist: expect.any( Function ),

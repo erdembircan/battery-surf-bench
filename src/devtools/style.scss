@@ -394,3 +394,171 @@ $ease: cubic-bezier(0.22, 1, 0.36, 1);
 	font-variant-numeric: tabular-nums;
 	transition: opacity 0.18s ease;
 }
+
+// A group whose controls are gated by a genuinely running process (the
+// discharge sim) — never a decorative master switch. Muted, not removed: the
+// values stay legible, they are just not interactive while the sim owns them.
+.bsb-devtools__group-body.is-disabled,
+.bsb-devtools__sim-steppers.is-disabled {
+	opacity: 0.5;
+	pointer-events: none;
+}
+
+// ── Discharge steppers ───────────────────────────────────────────────────────
+// Mirrors the cockpit deck's own `.bsb-stepper` triad (decrement / readout /
+// increment, `auto 1fr auto`) at panel scale — same structural proportions,
+// but the panel's own Hanken/Anton typography and `theme.$coastal-*` colors
+// used directly, not the rolling-digit `.bsb-odometer` (which hardcodes
+// `theme.$font-mono`, excluded from this panel) or the cockpit's `--*` custom
+// properties (out of scope outside `.wp-block-bsb-cockpit`).
+.bsb-devtools__stepper-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.6rem;
+}
+
+.bsb-devtools__stepper-label {
+	flex: 1 1 auto;
+	font-size: 12px;
+	font-weight: 600;
+	color: theme.$coastal-ink-soft;
+}
+
+.bsb-devtools__stepper {
+	flex: 0 0 auto;
+	display: grid;
+	grid-template-columns: auto 1fr auto;
+	align-items: center;
+	gap: 0.35rem;
+	padding: 0.25rem;
+	border-radius: 10px;
+	background: theme.$coastal-surface;
+	box-shadow: inset 0 1px 3px rgba(31, 58, 95, 0.1);
+}
+
+.bsb-devtools__stepper-btn {
+	appearance: none;
+	cursor: pointer;
+	width: 1.6rem;
+	height: 1.6rem;
+	border: 0;
+	border-radius: 7px;
+	background: #fff;
+	color: theme.$coastal-navy;
+	font-size: 0.95rem;
+	line-height: 1;
+	box-shadow: 0 1px 3px rgba(31, 58, 95, 0.18);
+	transition:
+		background 0.18s ease,
+		transform 0.12s ease,
+		opacity 0.18s ease;
+
+	&:hover {
+		background: theme.$coastal-teal;
+		color: #fff;
+	}
+
+	&:active {
+		transform: scale(0.92);
+	}
+
+	&:focus-visible {
+		outline: 2px solid theme.$coastal-teal;
+		outline-offset: 2px;
+	}
+
+	&:disabled {
+		cursor: not-allowed;
+		opacity: 0.6;
+
+		&:hover {
+			background: #fff;
+			color: theme.$coastal-navy;
+		}
+	}
+}
+
+.bsb-devtools__stepper-readout {
+	display: flex;
+	align-items: baseline;
+	justify-content: center;
+	gap: 0.25rem;
+	min-width: 2.6em;
+	font-size: 13px;
+	font-weight: 700;
+	color: theme.$coastal-navy;
+	font-variant-numeric: tabular-nums;
+}
+
+.bsb-devtools__stepper-unit {
+	font-size: 0.65rem;
+	font-weight: 700;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: theme.$coastal-ink-soft;
+}
+
+// ── Sim Start/Stop toggle ────────────────────────────────────────────────────
+// Mirrors the cockpit deck's own `.bsb-run` two-state pattern (two
+// always-rendered text spans, shown/hidden purely by CSS keyed off
+// `.is-running`) — translated strings can't be swapped client-side via
+// `data-wp-text`, since JS `__()` extraction is not wired for this project.
+.bsb-devtools__sim-toggle {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+	margin-top: 0.15rem;
+	padding: 0.6rem;
+	cursor: pointer;
+	border: 0;
+	border-radius: 10px;
+	background: theme.$coastal-teal;
+	color: #fff;
+	font-family: theme.$font-display;
+	font-size: 12px;
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+	box-shadow: 0 6px 14px -6px rgba(47, 155, 179, 0.5);
+	transition:
+		transform 0.14s ease,
+		box-shadow 0.2s ease,
+		filter 0.2s ease;
+
+	&:hover {
+		transform: translateY(-1px);
+		filter: saturate(1.1);
+	}
+
+	&:active {
+		transform: translateY(0);
+	}
+
+	&:focus-visible {
+		outline: 2px solid theme.$coastal-teal-deep;
+		outline-offset: 2px;
+	}
+
+	&.is-running {
+		background: theme.$coastal-coral;
+		box-shadow: 0 6px 14px -6px rgba(224, 96, 78, 0.5);
+	}
+
+	&:disabled {
+		cursor: not-allowed;
+		opacity: 0.5;
+		box-shadow: none;
+		transform: none;
+	}
+}
+
+// One label per state; the running class decides which shows.
+.bsb-devtools__sim-toggle-text {
+	display: none;
+}
+
+.bsb-devtools__sim-toggle:not(.is-running) .bsb-devtools__sim-toggle-text--start,
+.bsb-devtools__sim-toggle.is-running .bsb-devtools__sim-toggle-text--stop {
+	display: inline;
+}

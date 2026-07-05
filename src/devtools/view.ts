@@ -8,16 +8,28 @@
  * Thin composition root, same convention as the cockpit's own {@link
  * ../cockpit/view}: fold each dev-tool's store part into one `mergeStoreParts`
  * call and join the existing namespace, so the panel shares the exact same
- * reactive `state` the cockpit reads and writes. A second tool is a new
+ * reactive `state` the cockpit reads and writes. A third tool is a new
  * StorePart folded in here, not a rework.
  */
 
 import { store } from '@wordpress/interactivity';
 import { mergeStoreParts } from '../cockpit/StoreParts';
-import { batteryOverrideStore, hydrateDevtools } from './BatteryOverrideStore';
+import { devtoolsShellStore, hydrateDevtools } from './DevtoolsStore';
+import { batteryOverrideStore } from './BatteryOverrideStore';
+import { dischargeSimStore, resumeDischargeSim } from './DischargeSimStore';
 
-store( 'bsb/cockpit', mergeStoreParts( batteryOverrideStore ) );
+store(
+	'bsb/cockpit',
+	mergeStoreParts(
+		devtoolsShellStore,
+		batteryOverrideStore,
+		dischargeSimStore
+	)
+);
 
 // Restore the persisted panel/override state once the slice exists above —
-// not tied to a directive, since it needs no DOM, only the store.
+// not tied to a directive, since it needs no DOM, only the store — then let
+// the discharge sim resume from its own restored `startedAt` if it was left
+// running.
 hydrateDevtools();
+resumeDischargeSim();

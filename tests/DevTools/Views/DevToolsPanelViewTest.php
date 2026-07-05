@@ -125,6 +125,88 @@ final class DevToolsPanelViewTest extends TestCase {
 	}
 
 	/**
+	 * While the sim runs, the battery group's tri-state and level row (its
+	 * body, not the group's title) are muted, and each interactive control
+	 * also carries its own `disabled` binding.
+	 */
+	public function test_render_mutes_the_battery_group_body_while_the_sim_runs(): void {
+		$markup = ( new DevToolsPanelView() )->render();
+
+		$this->assertStringContainsString(
+			'class="bsb-devtools__group-body" data-wp-class--is-disabled="state.devtoolsIsSimRunning"',
+			$markup
+		);
+		$this->assertStringContainsString(
+			'data-devtools-charging="system" data-wp-class--is-selected="state.devtoolsIsChargingSystem" data-wp-on--click="actions.devtoolsSetCharging" data-wp-bind--disabled="state.devtoolsIsSimRunning"',
+			$markup
+		);
+		$this->assertStringContainsString(
+			'data-wp-on--click="actions.devtoolsResetLevel" data-wp-bind--disabled="state.devtoolsIsSimRunning"',
+			$markup
+		);
+		$this->assertStringContainsString(
+			'data-wp-on--input="actions.devtoolsSetLevel" data-wp-bind--disabled="state.devtoolsIsSimRunning"',
+			$markup
+		);
+	}
+
+	/**
+	 * The Discharge group: three steppers (From/To/Duration) wired to the
+	 * shared `devtoolsStepSim` action via `data-devtools-sim-field`/`data-step`,
+	 * and a Start/Stop toggle wired to `devtoolsToggleSim`. The steppers are
+	 * muted while running (a real running process, not a decorative switch);
+	 * the Start/Stop button is deliberately outside that muted wrapper so it
+	 * stays live to allow Stop.
+	 */
+	public function test_render_wires_the_discharge_group(): void {
+		$markup = ( new DevToolsPanelView() )->render();
+
+		$this->assertStringContainsString(
+			'class="bsb-devtools__sim-steppers" data-wp-class--is-disabled="state.devtoolsIsSimRunning"',
+			$markup
+		);
+
+		foreach ( array( 'from', 'to', 'minutes' ) as $field ) {
+			$this->assertStringContainsString( 'data-devtools-sim-field="' . $field . '" data-step="-5"', $markup );
+			$this->assertStringContainsString( 'data-devtools-sim-field="' . $field . '" data-step="5"', $markup );
+		}
+
+		$this->assertStringContainsString( 'data-wp-text="state.devtoolsSimFromDisplay"', $markup );
+		$this->assertStringContainsString( 'data-wp-text="state.devtoolsSimToDisplay"', $markup );
+		$this->assertStringContainsString( 'data-wp-text="state.devtoolsSimMinutesDisplay"', $markup );
+
+		$this->assertStringContainsString( 'data-wp-on--click="actions.devtoolsStepSim"', $markup );
+
+		// The Start/Stop toggle: a single button, two always-rendered spans,
+		// shown/hidden purely via CSS keyed off `is-running` — never a
+		// client-side text swap (no JS `__()` extraction wired for this
+		// project).
+		$this->assertStringContainsString(
+			'class="bsb-devtools__sim-toggle" data-wp-class--is-running="state.devtoolsIsSimRunning" data-wp-on--click="actions.devtoolsToggleSim" data-wp-bind--disabled="state.devtoolsIsSimStartBlocked"',
+			$markup
+		);
+		$this->assertStringContainsString( 'bsb-devtools__sim-toggle-text--start', $markup );
+		$this->assertStringContainsString( 'bsb-devtools__sim-toggle-text--stop', $markup );
+
+		// The button's own markup carries no `is-disabled` muting — only the
+		// steppers wrapper and the battery group body do (asserted above) —
+		// so the Start/Stop button stays live while the sim runs.
+		$button_tag_start = strpos( $markup, '<button type="button" class="bsb-devtools__sim-toggle"' );
+		$this->assertNotFalse( $button_tag_start );
+		$button_tag_end = strpos( $markup, '>', $button_tag_start );
+		$button_tag     = substr( $markup, $button_tag_start, $button_tag_end - $button_tag_start );
+		$this->assertStringNotContainsString( 'is-disabled', $button_tag );
+
+		// Exactly two elements are muted while the sim runs: the battery
+		// group's body, and the discharge group's steppers wrapper — never
+		// the Start/Stop button or either group's title.
+		$this->assertSame(
+			2,
+			substr_count( $markup, 'data-wp-class--is-disabled="state.devtoolsIsSimRunning"' )
+		);
+	}
+
+	/**
 	 * Every raw label handed to the view is escaped into its slot.
 	 */
 	public function test_render_escapes_the_supplied_labels(): void {
