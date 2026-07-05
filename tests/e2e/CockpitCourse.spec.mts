@@ -103,6 +103,17 @@ test.describe( 'Surf engine', () => {
 			initialTransform,
 			{ timeout: 10_000 }
 		);
+
+		// The real OS cursor must be hidden everywhere, not just page-wide on
+		// the root — a text-bearing element inside the article would otherwise
+		// resolve its own `auto` cursor (an I-beam) regardless of the ancestor.
+		const deckCursor = await page.evaluate(
+			() =>
+				getComputedStyle(
+					document.querySelector( '.bsb-article__deck' )!
+				).cursor
+		);
+		expect( deckCursor ).toBe( 'none' );
 	} );
 
 	test( 'stays a static page when the traits URL param is absent', async ( {
@@ -113,6 +124,15 @@ test.describe( 'Surf engine', () => {
 		// No fake cursor and no OS-cursor-hiding class — the engine never booted.
 		await expect( page.locator( '.bsb-surf-cursor' ) ).toHaveCount( 0 );
 		await expect( page.locator( 'html' ) ).not.toHaveClass( /bsb-surfing/ );
+
+		// The real OS cursor stays visible on a static page's content.
+		const deckCursor = await page.evaluate(
+			() =>
+				getComputedStyle(
+					document.querySelector( '.bsb-article__deck' )!
+				).cursor
+		);
+		expect( deckCursor ).not.toBe( 'none' );
 
 		// Poll past the engine's settle beat (1000-3000 ms at speed 1, the
 		// default with no bsbSpeed param) plus a first tick — an incorrectly
