@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Dev-tools panel — coastal pill + field card</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Hanken+Grotesk:wght@400;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --navy: #1f3a5f;
+    --ink-soft: #5b7488;
+    --teal: #2f9bb3;
+    --teal-deep: #1c7e96;
+    --coral: #ff7a5c;
+    --surface: #f1f7fa;
+    --line: #e1edf2;
+    --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html,
+  body {
+    margin: 0;
+    height: 100%;
+  }
+
+  body {
+    font-family: 'Hanken Grotesk', ui-sans-serif, system-ui, sans-serif;
+    color: var(--navy);
+  }
+
+  /* ── demo chrome (not part of the design spec) ─────────────────────────── */
+  .demo-caption {
+    position: fixed;
+    top: 1.4rem;
+    left: 1.6rem;
+    z-index: 10;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--ink-soft);
+    letter-spacing: 0.01em;
+  }
+
+  .demo-controls {
+    position: fixed;
+    top: 3.1rem;
+    left: 1.6rem;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.85rem 1rem;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.72);
+    border: 1px solid var(--line);
+    box-shadow: 0 8px 20px -12px rgba(0, 20, 40, 0.3);
+    backdrop-filter: blur(6px);
+  }
+
+  .demo-controls label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--navy);
+    cursor: pointer;
+  }
+
+  .demo-controls input[type='checkbox'] {
+    width: 1rem;
+    height: 1rem;
+    accent-color: var(--teal);
+    cursor: pointer;
+  }
+
+  /* ── stage ──────────────────────────────────────────────────────────────── */
+  .stage {
+    position: relative;
+    min-height: 100vh;
+    overflow: hidden;
+    background:
+      radial-gradient(120% 70% at 50% -10%, #fff 0%, #f3fafd 40%, transparent 70%),
+      linear-gradient(180deg, #e7f6ff 0%, #fff 60%);
+  }
+
+  /* ── widget anchor, pinned bottom-right like the real floating widget ─────── */
+  .dt-anchor {
+    position: fixed;
+    right: 1.5rem;
+    bottom: 1.5rem;
+    z-index: 5;
+  }
+
+  .dt-swap {
+    position: relative;
+  }
+
+  .dt-swap > * {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+  }
+
+  /* ── collapsed state — the pill ────────────────────────────────────────────
+     A compact rounded pill on the card's own surface: quiet, no decoration. */
+  .dt-pill {
+    appearance: none;
+    display: inline-block;
+    padding: 0.45rem 0.9rem;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--surface);
+    font-family: 'Anton', sans-serif;
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--navy);
+    line-height: 1.2;
+    cursor: pointer;
+    box-shadow: 0 10px 24px -14px rgba(0, 20, 40, 0.3);
+    transition:
+      opacity 0.15s var(--ease),
+      transform 0.18s var(--ease),
+      border-color 0.18s ease,
+      color 0.18s ease,
+      box-shadow 0.18s ease;
+  }
+
+  .dt-pill:hover {
+    transform: translateY(-1px);
+    border-color: var(--teal);
+    box-shadow: 0 12px 26px -14px rgba(0, 20, 40, 0.34);
+  }
+
+  .dt-pill:focus-visible {
+    outline: 2px solid var(--teal);
+    outline-offset: 3px;
+  }
+
+  /* armed: the pill quietly turns coral — text and border only */
+  .dt-pill.is-armed {
+    color: var(--coral);
+    border-color: var(--coral);
+  }
+
+  /* ── expanded state — the field card ───────────────────────────────────── */
+  .dt-card {
+    width: 272px;
+    border-radius: 16px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    box-shadow:
+      0 18px 36px -16px rgba(0, 20, 40, 0.28),
+      0 6px 14px -8px rgba(0, 20, 40, 0.18);
+    overflow: hidden;
+    transform-origin: bottom right;
+  }
+
+  .dt-card__header {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.85rem 0.6rem 0.85rem 1rem;
+  }
+
+  .dt-card__eyebrow {
+    font-family: 'Anton', sans-serif;
+    font-size: 13px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--navy);
+  }
+
+  /* the quiet armed indicator: plain coral text, right-aligned before close */
+  .dt-card__armed {
+    display: none;
+    align-items: center;
+    margin-left: auto;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--coral);
+    white-space: nowrap;
+  }
+
+  .dt-card.is-armed .dt-card__armed {
+    display: inline-flex;
+  }
+
+  .dt-card:not(.is-armed) .dt-card__close {
+    margin-left: auto;
+  }
+
+  .dt-card__close {
+    flex: 0 0 auto;
+    display: grid;
+    place-items: center;
+    width: 1.6rem;
+    height: 1.6rem;
+    border-radius: 50%;
+    border: 1px solid rgba(31, 58, 95, 0.3);
+    background: transparent;
+    color: var(--navy);
+    font-size: 0.95rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: color 0.16s ease, border-color 0.16s ease, background 0.16s ease;
+  }
+
+  .dt-card__close:hover {
+    color: var(--teal-deep);
+    border-color: var(--teal);
+    background: rgba(47, 155, 179, 0.1);
+  }
+
+  .dt-card__close:focus-visible {
+    outline: 2px solid var(--teal);
+    outline-offset: 2px;
+  }
+
+  .dt-card__divider {
+    height: 1px;
+    background: var(--line);
+  }
+
+  /* The card body: breathing room around one bounded group per sub-tool.
+     Stacked with a gap that already supports a second tool's container. */
+  .dt-card__body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+    padding: 0.9rem;
+  }
+
+  /* One bounded group per sub-tool — a contained sub-panel on its own white
+     ground so it reads as a distinct unit inside the card, not loose controls. */
+  .dt-group {
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: #fff;
+    padding: 0.85rem 0.9rem;
+  }
+
+  /* The group head stays crisp when disabled — only the body below mutes. */
+  .dt-group__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .dt-group__title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--navy);
+  }
+
+  .dt-group__divider {
+    height: 1px;
+    margin: 0.75rem 0;
+    background: var(--line);
+  }
+
+  .dt-group__body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    transition: opacity 0.18s ease;
+  }
+
+  .dt-group__body.is-muted {
+    opacity: 0.45;
+    pointer-events: none;
+  }
+
+  /* toggle switch */
+  .dt-switch {
+    position: relative;
+    display: inline-flex;
+    flex: 0 0 auto;
+    width: 36px;
+    height: 20px;
+  }
+
+  .dt-switch--sm {
+    width: 30px;
+    height: 17px;
+  }
+
+  .dt-switch input {
+    position: absolute;
+    inset: 0;
+    margin: 0;
+    opacity: 0;
+    cursor: pointer;
+    z-index: 1;
+  }
+
+  .dt-switch__track {
+    position: absolute;
+    inset: 0;
+    border-radius: 999px;
+    background: var(--line);
+    box-shadow: inset 0 1px 2px rgba(31, 58, 95, 0.16);
+    transition: background 0.2s ease;
+  }
+
+  .dt-switch__knob {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(0, 20, 40, 0.35);
+    transition: transform 0.2s ease;
+  }
+
+  .dt-switch--sm .dt-switch__knob {
+    width: 13px;
+    height: 13px;
+  }
+
+  .dt-switch input:checked ~ .dt-switch__track {
+    background: var(--teal);
+  }
+
+  .dt-switch input:checked ~ .dt-switch__track .dt-switch__knob {
+    transform: translateX(16px);
+  }
+
+  .dt-switch--sm input:checked ~ .dt-switch__track .dt-switch__knob {
+    transform: translateX(13px);
+  }
+
+  .dt-switch input:focus-visible ~ .dt-switch__track {
+    outline: 2px solid var(--teal);
+    outline-offset: 2px;
+  }
+
+  /* charging tri-state segmented control — sits on the group's white ground,
+     so the track uses the card's tint (not white-on-white) with no border of
+     its own, avoiding a double-border effect. */
+  .dt-seg {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    gap: 0.25rem;
+    padding: 0.3rem;
+    border-radius: 10px;
+    background: var(--surface);
+    box-shadow: inset 0 1px 3px rgba(31, 58, 95, 0.1);
+  }
+
+  .dt-seg__option {
+    appearance: none;
+    border: 0;
+    padding: 0.5rem 0.3rem;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--ink-soft);
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
+  }
+
+  .dt-seg__option:hover {
+    color: var(--navy);
+  }
+
+  .dt-seg__option:focus-visible {
+    outline: 2px solid var(--teal);
+    outline-offset: 2px;
+  }
+
+  .dt-seg__option.is-selected {
+    background: var(--teal-deep);
+    color: #fff;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  }
+
+  /* force-level row */
+  .dt-toggle-row {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--navy);
+    cursor: pointer;
+  }
+
+  .dt-level {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+  }
+
+  .dt-level input[type='range'] {
+    flex: 1 1 auto;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 4px;
+    border-radius: 999px;
+    background:
+      linear-gradient(var(--teal), var(--teal)) 0 / var(--fill, 30%) 100% no-repeat,
+      var(--line);
+    cursor: pointer;
+  }
+
+  .dt-level input[type='range']::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 0 0 2px var(--teal), 0 2px 6px rgba(0, 20, 40, 0.3);
+    cursor: pointer;
+    margin-top: 0;
+  }
+
+  .dt-level input[type='range']::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border: 0;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 0 0 2px var(--teal), 0 2px 6px rgba(0, 20, 40, 0.3);
+    cursor: pointer;
+  }
+
+  .dt-level input[type='range']::-moz-range-track {
+    height: 4px;
+    border-radius: 999px;
+    background: var(--line);
+  }
+
+  .dt-level input[type='range']:focus-visible {
+    outline: 2px solid var(--teal);
+    outline-offset: 4px;
+  }
+
+  .dt-level__value {
+    min-width: 2.6em;
+    text-align: right;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--navy);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ── swap motion: pill ⇄ card — a subtle fade + small rise both ways ─────── */
+  .dt-card {
+    opacity: 0;
+    transform: translateY(6px);
+    pointer-events: none;
+    transition: opacity 0.22s var(--ease), transform 0.22s var(--ease);
+  }
+
+  .dt-anchor.is-expanded .dt-pill {
+    opacity: 0;
+    transform: translateY(4px);
+    pointer-events: none;
+  }
+
+  .dt-anchor.is-expanded .dt-card {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .dt-pill,
+    .dt-card {
+      transition: none !important;
+      animation: none !important;
+    }
+  }
+
+  html.force-reduced-motion .dt-pill,
+  html.force-reduced-motion .dt-card {
+    transition: none !important;
+    animation: none !important;
+  }
+</style>
+</head>
+<body>
+
+<p class="demo-caption">Dev-tools panel — coastal pill + field card</p>
+
+<div class="demo-controls">
+  <label>
+    <input type="checkbox" id="demoExpanded" />
+    Expanded
+  </label>
+  <label>
+    <input type="checkbox" id="demoArmed" />
+    Armed
+  </label>
+  <label>
+    <input type="checkbox" id="demoReducedMotion" />
+    Reduced motion
+  </label>
+</div>
+
+<div class="stage">
+
+  <div class="dt-anchor" id="dtAnchor">
+    <div class="dt-swap">
+
+      <!-- collapsed: the pill -->
+      <button type="button" class="dt-pill" id="dtPill" aria-expanded="false" aria-controls="dtCard">DEV</button>
+
+      <!-- expanded: the field card -->
+      <div class="dt-card" id="dtCard">
+        <div class="dt-card__header">
+          <span class="dt-card__eyebrow">Dev tools</span>
+          <span class="dt-card__armed">Override active</span>
+          <button type="button" class="dt-card__close" id="dtClose" aria-label="Close">&times;</button>
+        </div>
+        <div class="dt-card__divider"></div>
+
+        <div class="dt-card__body">
+          <div class="dt-group">
+            <div class="dt-group__head">
+              <span class="dt-group__title">Battery</span>
+              <span class="dt-switch">
+                <input type="checkbox" id="dtBatteryEnabled" checked />
+                <span class="dt-switch__track">
+                  <span class="dt-switch__knob"></span>
+                </span>
+              </span>
+            </div>
+            <div class="dt-group__divider"></div>
+
+            <div class="dt-group__body" id="dtBatteryBody">
+              <div class="dt-seg" role="group" aria-label="Charging state">
+                <button type="button" class="dt-seg__option is-selected" data-charging="system">System</button>
+                <button type="button" class="dt-seg__option" data-charging="charging">Charging</button>
+                <button type="button" class="dt-seg__option" data-charging="discharging">Discharging</button>
+              </div>
+
+              <label class="dt-toggle-row">
+                <span class="dt-switch dt-switch--sm">
+                  <input type="checkbox" id="dtForceLevel" />
+                  <span class="dt-switch__track">
+                    <span class="dt-switch__knob"></span>
+                  </span>
+                </span>
+                Force level
+              </label>
+
+              <div class="dt-level">
+                <input type="range" min="0" max="100" value="30" id="dtLevelRange" style="--fill: 30%" />
+                <span class="dt-level__value" id="dtLevelValue">30%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const anchor = document.getElementById('dtAnchor');
+  const pill = document.getElementById('dtPill');
+  const card = document.getElementById('dtCard');
+  const closeBtn = document.getElementById('dtClose');
+  const demoExpanded = document.getElementById('demoExpanded');
+  const demoArmed = document.getElementById('demoArmed');
+  const batteryEnabled = document.getElementById('dtBatteryEnabled');
+  const batteryBody = document.getElementById('dtBatteryBody');
+  const forceLevel = document.getElementById('dtForceLevel');
+  const segOptions = Array.from(document.querySelectorAll('.dt-seg__option'));
+
+  function setExpanded(expanded) {
+    anchor.classList.toggle('is-expanded', expanded);
+    pill.setAttribute('aria-expanded', String(expanded));
+    demoExpanded.checked = expanded;
+  }
+
+  pill.addEventListener('click', () => setExpanded(true));
+  closeBtn.addEventListener('click', () => setExpanded(false));
+  demoExpanded.addEventListener('change', () => setExpanded(demoExpanded.checked));
+
+  // Armed is DERIVED from the real controls, never set directly: the battery
+  // section must be enabled AND an actual override must be in effect (a
+  // charging choice other than System, or a forced level).
+  function selectedCharging() {
+    const selected = segOptions.find((b) => b.classList.contains('is-selected'));
+    return selected ? selected.dataset.charging : 'system';
+  }
+
+  function isArmed() {
+    return batteryEnabled.checked && (selectedCharging() !== 'system' || forceLevel.checked);
+  }
+
+  function refreshArmed() {
+    const armed = isArmed();
+    pill.classList.toggle('is-armed', armed);
+    card.classList.toggle('is-armed', armed);
+    demoArmed.checked = armed;
+  }
+
+  // demo: the "Armed" toggle is a shortcut that drives the REAL controls — on
+  // arms via battery on + Discharging; off returns to System with level free.
+  demoArmed.addEventListener('change', () => {
+    if (demoArmed.checked) {
+      batteryEnabled.checked = true;
+      batteryBody.classList.remove('is-muted');
+      selectSeg('discharging');
+    } else {
+      selectSeg('system');
+      forceLevel.checked = false;
+    }
+    refreshArmed();
+  });
+
+  // demo: force prefers-reduced-motion regardless of OS setting
+  const demoReducedMotion = document.getElementById('demoReducedMotion');
+  demoReducedMotion.addEventListener('change', () => {
+    document.documentElement.classList.toggle('force-reduced-motion', demoReducedMotion.checked);
+  });
+
+  // battery section enable toggle mutes the body below it
+  batteryEnabled.addEventListener('change', () => {
+    batteryBody.classList.toggle('is-muted', !batteryEnabled.checked);
+    refreshArmed();
+  });
+
+  // charging tri-state
+  function selectSeg(value) {
+    segOptions.forEach((b) => b.classList.toggle('is-selected', b.dataset.charging === value));
+  }
+
+  segOptions.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      selectSeg(btn.dataset.charging);
+      refreshArmed();
+    });
+  });
+
+  forceLevel.addEventListener('change', refreshArmed);
+
+  // force-level range readout
+  const levelRange = document.getElementById('dtLevelRange');
+  const levelValue = document.getElementById('dtLevelValue');
+  levelRange.addEventListener('input', () => {
+    levelValue.textContent = levelRange.value + '%';
+    levelRange.style.setProperty('--fill', levelRange.value + '%');
+  });
+</script>
+
+</body>
+</html>
