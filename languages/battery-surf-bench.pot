@@ -3,13 +3,13 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Battery Surf Bench 1.0.0-dev\n"
-"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/app\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/html\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-07-05T13:08:09+00:00\n"
+"POT-Creation-Date: 2026-07-05T17:34:22+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: battery-surf-bench\n"
@@ -168,7 +168,7 @@ msgid "Rate · 10 min"
 msgstr ""
 
 #: includes/Content/SessionDetail.php:174
-#: includes/DevTools/DevTools.php:168
+#: includes/DevTools/DevTools.php:169
 #: src/cockpit/render.php:198
 msgid "Battery"
 msgstr ""
@@ -232,7 +232,7 @@ msgstr ""
 #: includes/Content/SessionSchema.php:266
 #: includes/Content/SessionSchema.php:422
 #: includes/Content/SessionSchema.php:432
-#: includes/DevTools/DevTools.php:181
+#: includes/DevTools/DevTools.php:182
 #: src/cockpit/render.php:133
 msgid "Duration"
 msgstr ""
@@ -301,82 +301,87 @@ msgid "Override active"
 msgstr ""
 
 #: includes/DevTools/DevTools.php:167
+#: src/cockpit/render.php:148
+msgid "Reset"
+msgstr ""
+
+#: includes/DevTools/DevTools.php:168
 msgid "Close"
 msgstr ""
 
-#: includes/DevTools/DevTools.php:169
+#: includes/DevTools/DevTools.php:170
 msgid "Charging state"
 msgstr ""
 
-#: includes/DevTools/DevTools.php:170
+#: includes/DevTools/DevTools.php:171
 msgid "System"
 msgstr ""
 
-#: includes/DevTools/DevTools.php:171
+#: includes/DevTools/DevTools.php:172
 msgid "Charging"
 msgstr ""
 
-#: includes/DevTools/DevTools.php:172
+#: includes/DevTools/DevTools.php:173
 msgid "Discharging"
 msgstr ""
 
-#: includes/DevTools/DevTools.php:173
+#: includes/DevTools/DevTools.php:174
 msgid "Battery level override"
 msgstr ""
 
-#: includes/DevTools/DevTools.php:174
+#: includes/DevTools/DevTools.php:175
 msgid "Discharge"
 msgstr ""
 
-#: includes/DevTools/DevTools.php:175
+#: includes/DevTools/DevTools.php:176
 msgid "From"
 msgstr ""
 
-#: includes/DevTools/DevTools.php:176
+#: includes/DevTools/DevTools.php:177
 msgid "Decrease start percentage"
 msgstr ""
 
-#: includes/DevTools/DevTools.php:177
+#: includes/DevTools/DevTools.php:178
 msgid "Increase start percentage"
 msgstr ""
 
-#: includes/DevTools/DevTools.php:178
+#: includes/DevTools/DevTools.php:179
 msgid "To"
 msgstr ""
 
-#: includes/DevTools/DevTools.php:179
+#: includes/DevTools/DevTools.php:180
 msgid "Decrease end percentage"
 msgstr ""
 
-#: includes/DevTools/DevTools.php:180
+#: includes/DevTools/DevTools.php:181
 msgid "Increase end percentage"
 msgstr ""
 
-#: includes/DevTools/DevTools.php:182
+#: includes/DevTools/DevTools.php:183
 #: src/cockpit/render.php:137
 msgid "Decrease duration"
 msgstr ""
 
-#: includes/DevTools/DevTools.php:183
+#: includes/DevTools/DevTools.php:184
 #: src/cockpit/render.php:138
 msgid "Increase duration"
 msgstr ""
 
-#: includes/DevTools/DevTools.php:184
+#: includes/DevTools/DevTools.php:185
 msgid "%"
 msgstr ""
 
-#: includes/DevTools/DevTools.php:185
+#: includes/DevTools/DevTools.php:186
 #: src/cockpit/render.php:136
 msgid "min"
 msgstr ""
 
-#: includes/DevTools/DevTools.php:186
+#: includes/DevTools/DevTools.php:187
 #: src/cockpit/render.php:206
 msgid "Start"
 msgstr ""
 
-#: includes/DevTools/DevTools.php:187
+#: includes/DevTools/DevTools.php:188
 #: src/cockpit/render.php:207
 msgid "Stop"
 msgstr ""
@@ -449,10 +454,6 @@ msgstr ""
 
 #: src/cockpit/render.php:147
 msgid "Customize stats"
-msgstr ""
-
-#: src/cockpit/render.php:148
-msgid "Reset"
 msgstr ""
 
 #: src/cockpit/render.php:149
