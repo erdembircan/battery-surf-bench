@@ -207,6 +207,49 @@ final class DevToolsPanelViewTest extends TestCase {
 	}
 
 	/**
+	 * The card header's third zone — `.bsb-devtools__card-actions` — holds
+	 * Reset then Close, after the title and the armed status. Reset is an
+	 * icon-only control: its accessible name lives in `aria-label`, its glyph
+	 * is an `aria-hidden` inline SVG, and it carries no `disabled` binding of
+	 * any kind — it must stay clickable even while a sim is running, since
+	 * stopping the sim is exactly what it is for.
+	 */
+	public function test_render_wires_the_reset_control(): void {
+		$markup = ( new DevToolsPanelView() )->render();
+
+		// The actions container sits after the title and the armed status,
+		// and holds Reset before Close.
+		$armed_position   = strpos( $markup, 'bsb-devtools__card-armed' );
+		$actions_position = strpos( $markup, 'bsb-devtools__card-actions' );
+		$reset_position   = strpos( $markup, 'bsb-devtools__card-reset' );
+		$close_position   = strpos( $markup, 'bsb-devtools__card-close' );
+		$this->assertNotFalse( $armed_position );
+		$this->assertNotFalse( $actions_position );
+		$this->assertNotFalse( $reset_position );
+		$this->assertNotFalse( $close_position );
+		$this->assertTrue( $armed_position < $actions_position );
+		$this->assertTrue( $actions_position < $reset_position );
+		$this->assertTrue( $reset_position < $close_position );
+
+		$button_tag_start = strpos( $markup, '<button type="button" class="bsb-devtools__card-reset"' );
+		$this->assertNotFalse( $button_tag_start );
+		$button_tag_end = strpos( $markup, '</button>', $button_tag_start );
+		$button_tag     = substr( $markup, $button_tag_start, $button_tag_end - $button_tag_start );
+
+		// No visible text label — the accessible name lives in `aria-label`.
+		$this->assertStringContainsString( 'data-wp-on--click="actions.devtoolsReset"', $button_tag );
+		$this->assertStringContainsString( 'aria-label="', $button_tag );
+
+		// The glyph is an inline, decorative SVG — hidden from assistive tech
+		// since the button itself already carries the accessible name.
+		$this->assertStringContainsString( '<svg class="bsb-devtools__card-reset-icon"', $button_tag );
+		$this->assertStringContainsString( 'aria-hidden="true"', $button_tag );
+
+		// No disabled binding of any kind on the reset button's own markup.
+		$this->assertStringNotContainsString( 'disabled', $button_tag );
+	}
+
+	/**
 	 * Every raw label handed to the view is escaped into its slot.
 	 */
 	public function test_render_escapes_the_supplied_labels(): void {
@@ -215,6 +258,7 @@ final class DevToolsPanelViewTest extends TestCase {
 				'dev_label'     => '<b>DEV</b>',
 				'eyebrow_label' => '<script>Dev tools</script>',
 				'armed_label'   => '<i>Override active</i>',
+				'reset_label'   => '"Reset"',
 				'close_label'   => '"Close"',
 				'level_label'   => '"Battery level override"',
 			)
@@ -225,6 +269,7 @@ final class DevToolsPanelViewTest extends TestCase {
 		$this->assertStringNotContainsString( '<script>Dev tools</script>', $markup );
 		$this->assertStringNotContainsString( '<i>Override active</i>', $markup );
 		$this->assertStringContainsString( '&lt;i&gt;Override active&lt;/i&gt;', $markup );
+		$this->assertStringContainsString( 'aria-label="&quot;Reset&quot;"', $markup );
 		$this->assertStringContainsString( 'aria-label="&quot;Close&quot;"', $markup );
 		$this->assertStringContainsString( 'aria-label="&quot;Battery level override&quot;"', $markup );
 	}

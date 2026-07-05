@@ -17,13 +17,15 @@ import { mergeStoreParts } from '../cockpit/StoreParts';
 import { devtoolsShellStore, hydrateDevtools } from './DevtoolsStore';
 import { batteryOverrideStore } from './BatteryOverrideStore';
 import { dischargeSimStore, resumeDischargeSim } from './DischargeSimStore';
+import { resetStore } from './ResetStore';
 
 store(
 	'bsb/cockpit',
 	mergeStoreParts(
 		devtoolsShellStore,
 		batteryOverrideStore,
-		dischargeSimStore
+		dischargeSimStore,
+		resetStore
 	)
 );
 

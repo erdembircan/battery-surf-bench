@@ -16,7 +16,10 @@
  *
  * The shared slice's persistence (`localStorage`, hydration) lives in
  * {@link ./DevtoolsStore} — this module only owns the battery tool's own
- * getters and actions.
+ * getters and actions. It also exports {@link resetBatteryOverride}, a plain
+ * function rather than a `StorePart` action — the panel's cross-cutting Reset
+ * button ({@link ./ResetStore}) composes it directly, so this sub-tool's own
+ * reset logic lives here, next to the fields it clears.
  */
 
 import { store, getElement } from '@wordpress/interactivity';
@@ -34,6 +37,19 @@ const systemPercent = (): number | null => {
 	const { state } = store< DevtoolsStore >( 'bsb/cockpit' );
 
 	return state.batterySystemPercent ?? null;
+};
+
+/**
+ * Clears both battery-override fields back to "follow the system" — the
+ * charging tri-state's own off-state and the level row's own off-state at
+ * once. Exported (rather than folded into a `StorePart` action) so the
+ * panel's cross-cutting Reset button ({@link ./ResetStore}) can call it
+ * directly without a second store member — the panel-wide reset composes
+ * this sub-tool's own reset rather than duplicating its logic.
+ */
+export const resetBatteryOverride = (): void => {
+	current().battery.charging = null;
+	current().battery.level = null;
 };
 
 /**

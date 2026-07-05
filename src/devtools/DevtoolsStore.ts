@@ -36,11 +36,18 @@ export interface DevtoolsStore {
 	};
 }
 
-/** The slice's default, pre-hydration state. */
+/**
+ * The slice's default, pre-hydration state. `sim` is a *copy* of
+ * {@link DEFAULT_SIM}, never the constant itself — the Interactivity store
+ * proxies this object directly, so writes the running app makes (stepping a
+ * field, starting a run) would otherwise write through to the shared
+ * `DEFAULT_SIM` module constant, corrupting the very defaults a later reset
+ * reads back from.
+ */
 const DEFAULT_STATE: DevtoolsState = {
 	open: false,
 	battery: { charging: null, level: null },
-	sim: DEFAULT_SIM,
+	sim: { ...DEFAULT_SIM },
 };
 
 /**

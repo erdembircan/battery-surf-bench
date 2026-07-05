@@ -332,11 +332,12 @@ classDiagram
     %% a `devtools` prefix. In production this module never loads at all.
     %% The devtools slice is itself composed of a shared shell (persistence,
     %% panel open state) plus one StorePart per sub-tool: the battery override,
-    %% and the discharge simulation that drives it. A third tool is a new
+    %% and the discharge simulation that drives it, plus the panel-wide Reset
+    %% action that composes both sub-tools' own resets. A third tool is a new
     %% StorePart folded in here, not a rework of the composition root.
     class DevToolsView {
         <<module>>
-        store('bsb/cockpit', mergeStoreParts(DevtoolsShellStore, BatteryOverrideStore, DischargeSimStore))
+        store('bsb/cockpit', mergeStoreParts(DevtoolsShellStore, BatteryOverrideStore, DischargeSimStore, ResetStore))
     }
 
     class DevtoolsStore {
@@ -353,6 +354,7 @@ classDiagram
         <<module>>
         state: devtoolsIsChargingSystem/On/Off, devtoolsIsLevelForced, devtoolsLevelPercent, devtoolsLevelFillPercent, devtoolsIsArmed
         actions: devtoolsSetCharging, devtoolsSetLevel, devtoolsResetLevel
+        +resetBatteryOverride() void
     }
 
     class DischargeSimStore {
@@ -360,6 +362,18 @@ classDiagram
         state: devtoolsSimFromDisplay/ToDisplay/MinutesDisplay, devtoolsIsSimRunning, devtoolsIsSimStartBlocked
         actions: devtoolsStepSim, devtoolsToggleSim
         +resumeDischargeSim() void
+        +resetDischargeSim() void
+    }
+
+    %% Composes the sub-tools' own exported resets rather than living in
+    %% DevtoolsStore (the shared shell) — both sub-tools already import
+    %% `current` from that shell, so a shell-owned reset would need to import
+    %% each sub-tool's reset back, forming a sub-tool <-> shell import cycle.
+    %% Sitting to the side instead, only this module imports from both
+    %% sub-tools, so no cycle forms.
+    class ResetStore {
+        <<module>>
+        actions: devtoolsReset
     }
 
     class DischargeSim {
@@ -375,6 +389,7 @@ classDiagram
     DevToolsView --> DevtoolsStore : composes (shared shell)
     DevToolsView --> BatteryOverrideStore : composes
     DevToolsView --> DischargeSimStore : composes
+    DevToolsView --> ResetStore : composes
     BatteryOverrideStore --> DevtoolsStore : reads/writes the shared devtools slice
     DischargeSimStore --> DevtoolsStore : reads/writes the shared devtools slice
     DischargeSimStore --> DischargeSim : evaluates the pure model against the clock
@@ -384,6 +399,12 @@ classDiagram
     %% BatteryOverrideStore itself owns — no second interception mechanism, and
     %% no new "armed" logic (devtoolsIsArmed already reads a diverged level).
     DischargeSimStore ..> BatteryOverrideStore : drives battery.level/charging
+
+    %% The panel-wide Reset button composes each sub-tool's own exported
+    %% reset — it never duplicates their logic, and it is the only module that
+    %% depends on both sub-tools at once.
+    ResetStore --> BatteryOverrideStore : calls resetBatteryOverride()
+    ResetStore --> DischargeSimStore : calls resetDischargeSim()
 
     DevtoolsStore ..> BatteryStore : joins bsb/cockpit store (state.devtools.battery)
     BatteryStore ..> DevtoolsStore : reads state.devtools.battery (undefined in production)

@@ -170,13 +170,61 @@ $ease: cubic-bezier(0.22, 1, 0.36, 1);
 	white-space: nowrap;
 }
 
+// The panel-buttons container: the header's third zone, holding Reset then
+// Close as one cluster. Always at the far right, whether or not the armed
+// text beside it is present — simpler than conditioning the margin on an
+// armed class, with the same result once the (possibly-absent) armed text no
+// longer participates in the flex row's gap.
+.bsb-devtools__card-actions {
+	flex: 0 0 auto;
+	margin-left: auto;
+	display: flex;
+	align-items: center;
+	gap: 0.3rem;
+}
+
+// The panel-wide reset: an icon-only button, never ornamented — it is the
+// escape hatch, not a call to action, so it reads as muted chrome sitting
+// beside the close control rather than competing with it for attention. Same
+// footprint/alignment as close so the two read as one control cluster.
+// Always enabled (even while a sim runs — stopping the sim is exactly what
+// it is for), so it carries no `:disabled` styling of its own. The
+// accessible name lives in the button's own `aria-label`; the icon itself is
+// `aria-hidden`.
+.bsb-devtools__card-reset {
+	flex: 0 0 auto;
+	appearance: none;
+	display: grid;
+	place-items: center;
+	width: 1.6rem;
+	height: 1.6rem;
+	border: 0;
+	border-radius: 50%;
+	background: transparent;
+	color: theme.$coastal-ink-soft;
+	cursor: pointer;
+	transition:
+		color 0.16s ease,
+		background 0.16s ease;
+
+	&:hover {
+		color: theme.$coastal-navy;
+		background: rgba(31, 58, 95, 0.08);
+	}
+
+	&:focus-visible {
+		outline: 2px solid theme.$coastal-teal;
+		outline-offset: 2px;
+	}
+}
+
+.bsb-devtools__card-reset-icon {
+	width: 13px;
+	height: 13px;
+}
+
 .bsb-devtools__card-close {
 	flex: 0 0 auto;
-	// Always at the far right, whether or not the armed text beside it is
-	// present — simpler than conditioning the margin on an armed class, with
-	// the same result once the (possibly-absent) armed text no longer
-	// participates in the flex row's gap.
-	margin-left: auto;
 	display: grid;
 	place-items: center;
 	width: 1.6rem;

@@ -30,14 +30,20 @@ export interface DischargeSimState extends DischargeSimConfig {
 	startedAt: number | null;
 }
 
-/** The sim's default, pre-hydration state. */
-export const DEFAULT_SIM: DischargeSimState = {
+/**
+ * The sim's default, pre-hydration state. Frozen: every consumer (the store's
+ * own `DEFAULT_STATE`, a reset restoring the steppers) must read from a copy
+ * of this object, never hold onto the object itself — freezing turns a
+ * write-through regression into a thrown error instead of silently
+ * corrupting the shared defaults.
+ */
+export const DEFAULT_SIM: DischargeSimState = Object.freeze( {
 	fromPercent: 90,
 	toPercent: 20,
 	minutes: 30,
 	running: false,
 	startedAt: null,
-};
+} );
 
 /**
  * The run's total duration in milliseconds.
