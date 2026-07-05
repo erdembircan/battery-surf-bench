@@ -338,6 +338,19 @@ test.describe( 'Cockpit dashboard route', () => {
 			page.locator( 'iframe.bsb-cockpit__viewport' )
 		).not.toHaveAttribute( 'src', /bsbSessionPage/ );
 
+		// The shield intercepts every pointer event during a run, so the
+		// pointer never reaches the iframe document and the course page's own
+		// `cursor: none` never gets a chance to apply — the hide has to live
+		// on this parent-side wrap instead. `getComputedStyle` still resolves
+		// on a `hidden` element, so this holds even before a run starts.
+		const viewportWrapCursor = await page.evaluate(
+			() =>
+				getComputedStyle(
+					document.querySelector( '.bsb-cockpit__viewport-wrap' )!
+				).cursor
+		);
+		expect( viewportWrapCursor ).toBe( 'none' );
+
 		// The interaction shield remains in the markup — it governs the viewport
 		// once a run starts; its behaviour is unit-covered. The view-only state is
 		// surfaced by the notification toast, present but hidden until raised.
