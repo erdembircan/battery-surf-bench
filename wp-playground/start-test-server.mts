@@ -2,7 +2,7 @@ import { runCLI } from '@wp-playground/cli';
 import type { BlueprintDeclaration } from '@wp-playground/blueprints';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { PLAYGROUND_READY_MARKER, PLUGIN_VFS_PATH } from './config.mts';
+import { playgroundReadyLine, PLUGIN_VFS_PATH } from './config.mts';
 import { logServerReady } from './log-server.mts';
 
 const __dirname = dirname( fileURLToPath( import.meta.url ) );
@@ -52,8 +52,10 @@ async function waitForReady(
  *
  * Nothing is written to disk. The plugin directory is mounted into the virtual
  * filesystem so it can be tested without side effects. Once the server can
- * handle requests, a stdout marker is emitted so Playwright's
- * `webServer.wait.stdout` can detect readiness.
+ * handle requests, a stdout marker carrying the bound port is emitted so
+ * Playwright's `webServer.wait.stdout` can both detect readiness and capture
+ * the port for its own config re-evaluation (see
+ * `PLAYGROUND_TEST_PORT_ENV_VAR` in `config.mts`).
  *
  * @param options           - Server options.
  * @param options.port      - Port to listen on.
@@ -84,6 +86,7 @@ export async function startTestServer( {
 		mode: 'non-persistent',
 	} );
 
-	// Signal readiness to Playwright (matched via webServer.wait.stdout).
-	process.stdout.write( `${ PLAYGROUND_READY_MARKER }\n` );
+	// Signal readiness to Playwright (matched via webServer.wait.stdout), and
+	// hand back the bound port via the same line's named capture group.
+	process.stdout.write( `${ playgroundReadyLine( port ) }\n` );
 }
