@@ -33,14 +33,28 @@ async function startRun( page: Page ): Promise< void > {
 }
 
 test.describe( 'Dev-tools battery-override panel', () => {
-	test( 'the panel loads on the cockpit dashboard, collapsed by default', async ( {
+	test( 'the pill and card are mutually exclusive, collapsed by default', async ( {
 		page,
 	} ) => {
 		await page.goto( '/?bsbSession=cockpit' );
 
 		await expect( page.locator( '.bsb-devtools' ) ).toBeAttached();
+
+		// Closed: the pill is on screen, the card is not.
 		await expect( page.locator( '.bsb-devtools__pill' ) ).toBeVisible();
-		await expect( page.locator( '.bsb-devtools__panel' ) ).toBeHidden();
+		await expect( page.locator( '.bsb-devtools__card' ) ).toBeHidden();
+
+		await page.locator( '.bsb-devtools__pill' ).click();
+
+		// Open: the swap, never both — the pill is now hidden, the card visible.
+		await expect( page.locator( '.bsb-devtools__card' ) ).toBeVisible();
+		await expect( page.locator( '.bsb-devtools__pill' ) ).toBeHidden();
+
+		await page.locator( '.bsb-devtools__card-close' ).click();
+
+		// Closing swaps back.
+		await expect( page.locator( '.bsb-devtools__pill' ) ).toBeVisible();
+		await expect( page.locator( '.bsb-devtools__card' ) ).toBeHidden();
 
 		expect( await page.content() ).not.toMatch( PHP_NOTICE );
 	} );
@@ -51,13 +65,46 @@ test.describe( 'Dev-tools battery-override panel', () => {
 		await page.goto( '/?bsbSession=cockpit' );
 
 		await page.locator( '.bsb-devtools__pill' ).click();
-		await expect( page.locator( '.bsb-devtools__panel' ) ).toBeVisible();
+		await expect( page.locator( '.bsb-devtools__card' ) ).toBeVisible();
 
-		const section = page.locator( '.bsb-devtools__section' );
-		await expect( section ).toHaveClass( /is-disabled/ );
+		const groupBody = page.locator( '.bsb-devtools__group-body' );
+		await expect( groupBody ).toHaveClass( /is-muted/ );
 
-		await section.locator( 'input[type="checkbox"]' ).first().click();
-		await expect( section ).not.toHaveClass( /is-disabled/ );
+		await page
+			.locator( '.bsb-devtools__group input[type="checkbox"]' )
+			.first()
+			.click();
+		await expect( groupBody ).not.toHaveClass( /is-muted/ );
+
+		expect( await page.content() ).not.toMatch( PHP_NOTICE );
+	} );
+
+	test( 'an override in effect arms the pill and shows the card header text — enabling alone does not', async ( {
+		page,
+	} ) => {
+		await page.goto( '/?bsbSession=cockpit' );
+
+		await page.locator( '.bsb-devtools__pill' ).click();
+		const armedText = page.locator( '.bsb-devtools__card-armed' );
+
+		// Enabling the sub-tool alone is not "armed" — both fields still follow
+		// the system, so nothing is actually overridden yet.
+		await page
+			.locator( '.bsb-devtools__group input[type="checkbox"]' )
+			.first()
+			.click();
+		await expect( armedText ).toBeHidden();
+
+		// Forcing a charging choice is what arms it.
+		await page.locator( '[data-devtools-charging="discharging"]' ).click();
+		await expect( armedText ).toBeVisible();
+		await expect( armedText ).toHaveText( 'Override active' );
+
+		// Collapse and confirm the pill itself picked up the armed styling.
+		await page.locator( '.bsb-devtools__card-close' ).click();
+		await expect( page.locator( '.bsb-devtools__pill' ) ).toHaveClass(
+			/is-armed/
+		);
 
 		expect( await page.content() ).not.toMatch( PHP_NOTICE );
 	} );
@@ -70,7 +117,7 @@ test.describe( 'Dev-tools battery-override panel', () => {
 		// Open the panel and arm the battery sub-tool.
 		await page.locator( '.bsb-devtools__pill' ).click();
 		await page
-			.locator( '.bsb-devtools__section input[type="checkbox"]' )
+			.locator( '.bsb-devtools__group input[type="checkbox"]' )
 			.first()
 			.click();
 
@@ -142,7 +189,7 @@ test.describe( 'Dev-tools battery-override panel', () => {
 		);
 		await expect( slider ).toHaveValue( '30' );
 		await expect( page.locator( '.bsb-devtools__level-value' ) ).toHaveText(
-			'30'
+			'30%'
 		);
 
 		expect( await page.content() ).not.toMatch( PHP_NOTICE );
@@ -182,6 +229,7 @@ test.describe( 'Dev-tools battery-override panel', () => {
 
 		await expect( page.locator( '.bsb-devtools' ) ).toBeAttached();
 		await expect( page.locator( '.bsb-devtools__pill' ) ).toBeVisible();
+		await expect( page.locator( '.bsb-devtools__card' ) ).toBeHidden();
 
 		expect( await page.content() ).not.toMatch( PHP_NOTICE );
 	} );

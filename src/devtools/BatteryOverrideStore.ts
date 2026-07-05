@@ -175,6 +175,31 @@ export const batteryOverrideStore: StorePart = {
 
 			return level === null ? 50 : Math.round( level * 100 );
 		},
+
+		/**
+		 * The level override as a CSS percentage string, for the slider track's
+		 * `--fill` custom property (`data-wp-style` binds a string value, not a
+		 * bare number).
+		 */
+		get devtoolsLevelFillPercent(): string {
+			const { level } = current().battery;
+
+			return `${ level === null ? 50 : Math.round( level * 100 ) }%`;
+		},
+
+		/**
+		 * Whether an override is actually in effect: the battery sub-tool must be
+		 * enabled AND at least one field must diverge from "follow the system"
+		 * (a charging choice other than `system`, or a forced level). Enabling
+		 * the sub-tool alone is not "armed" — nothing is overridden until a
+		 * field is actually set. Drives the pill's coral state and the card
+		 * header's "Override active" text.
+		 */
+		get devtoolsIsArmed(): boolean {
+			const { enabled, charging, level } = current().battery;
+
+			return enabled && ( charging !== null || level !== null );
+		},
 	},
 	actions: {
 		/** Expands or collapses the floating panel. */

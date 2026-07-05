@@ -1,170 +1,442 @@
 /*
  * Dev-tools panel styles.
  *
- * A floating, collapsible widget fixed to the bottom-right corner of every
- * surface it loads on (the cockpit dashboard, the stored-session detail
- * screen). This is dev-only chrome, not product UI: deliberately minimal and
- * utilitarian, styled independently of the cockpit's own light/dark theme
- * tokens rather than borrowing them, so it stays legible over either.
+ * A floating widget fixed to the bottom-right corner of every surface it
+ * loads on (the cockpit dashboard, the stored-session detail screen), ported
+ * faithfully from the approved mockup (`docs/mockups/dev-tools-panel.html`):
+ * collapsed is a quiet coastal pill; expanded is a field card holding one
+ * bounded white sub-panel per tool. This is dev-only chrome, not product UI,
+ * but it still lives on the shared Coastal Daybreak palette rather than a
+ * one-off dark theme, so it reads as part of the same product.
+ *
+ * The panel mounts outside `.wp-block-bsb-cockpit`, so the cockpit's own
+ * `--*` custom properties (set by `theme.tokens` on that element) are not in
+ * scope here. Rather than re-emitting the whole token mixin — which would
+ * also emit an unused `[data-theme='dark']` override this dev-only,
+ * light-only widget never toggles — this file reads the theme's SCSS
+ * variables directly. `@use`-ing the theme partial also re-declares its
+ * `@font-face` rules in this stylesheet's own compiled output, so Anton and
+ * Hanken Grotesk are available here even on a surface that, hypothetically,
+ * did not already load the cockpit stylesheet.
  */
 
-$bg: #1b1f24;
-$bg-raised: #262b32;
-$border: #3a414a;
-$text: #e7ebef;
-$text-soft: #9aa4b1;
-$accent: #4fd1c5;
-$danger: #f97066;
+@use '../styles/theme';
+
+$ease: cubic-bezier(0.22, 1, 0.36, 1);
 
 .bsb-devtools {
 	position: fixed;
-	right: 1rem;
-	bottom: 1rem;
+	right: 1.5rem;
+	bottom: 1.5rem;
 	z-index: 2147483000;
-	font-family: 'Space Mono', ui-monospace, monospace;
-	font-size: 0.8rem;
-	color: $text;
+	font-family: theme.$font-ui;
+	color: theme.$coastal-navy;
 
-	* {
+	*,
+	*::before,
+	*::after {
 		box-sizing: border-box;
 	}
 }
 
-.bsb-devtools__pill {
-	display: inline-flex;
-	align-items: center;
-	gap: 0.4rem;
-	padding: 0.5rem 0.85rem;
-	border: 1px solid $border;
-	border-radius: 999px;
-	background: $bg;
-	color: $text;
-	cursor: pointer;
-	letter-spacing: 0.08em;
-	text-transform: uppercase;
-	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
-
-	&:hover {
-		border-color: $accent;
-	}
+.bsb-devtools__swap {
+	position: relative;
 }
 
-.bsb-devtools__pill-dot {
-	width: 0.5rem;
-	height: 0.5rem;
-	border-radius: 50%;
-	background: $text-soft;
-
-	.bsb-devtools.is-armed & {
-		background: $accent;
-		box-shadow: 0 0 0 3px rgba($accent, 0.25);
-	}
-}
-
-.bsb-devtools__panel {
+.bsb-devtools__pill,
+.bsb-devtools__card {
 	position: absolute;
 	right: 0;
-	bottom: calc(100% + 0.5rem);
-	width: 15rem;
-	border: 1px solid $border;
-	border-radius: 0.6rem;
-	background: $bg;
-	box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
-	overflow: hidden;
+	bottom: 0;
+	transition:
+		opacity 0.22s $ease,
+		transform 0.22s $ease,
+		visibility 0s linear 0.22s;
+}
 
-	&[hidden] {
-		display: none;
+// The swap between the collapsed pill and the expanded card is mutually
+// exclusive — bound via `data-wp-bind--hidden`, never both on screen — but a
+// bare `hidden` attribute would jump straight to `display: none` with no
+// transition. Overriding `display` lets the fade + rise still animate, while
+// delaying `visibility` (rather than `opacity` alone) is what keeps the
+// hidden one truly hidden — off the accessibility tree and reported hidden by
+// layout tools — the instant its exit transition finishes, not just visually
+// faded.
+.bsb-devtools__pill[hidden],
+.bsb-devtools__card[hidden] {
+	display: block;
+	visibility: hidden;
+	opacity: 0;
+	pointer-events: none;
+}
+
+.bsb-devtools__pill[hidden] {
+	transform: translateY(4px);
+}
+
+.bsb-devtools__card[hidden] {
+	transform: translateY(6px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.bsb-devtools__pill,
+	.bsb-devtools__card {
+		transition: none !important;
 	}
 }
 
-.bsb-devtools__header {
+// ── Collapsed state — the pill ───────────────────────────────────────────────
+.bsb-devtools__pill {
+	appearance: none;
+	display: inline-block;
+	padding: 0.45rem 0.9rem;
+	border: 1px solid theme.$coastal-line;
+	border-radius: 999px;
+	background: theme.$coastal-surface;
+	font-family: theme.$font-display;
+	font-size: 12px;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	color: theme.$coastal-navy;
+	line-height: 1.2;
+	cursor: pointer;
+	box-shadow: 0 10px 24px -14px rgba(0, 20, 40, 0.3);
+	transition:
+		opacity 0.15s $ease,
+		transform 0.18s $ease,
+		border-color 0.18s ease,
+		color 0.18s ease,
+		box-shadow 0.18s ease;
+
+	&:hover {
+		transform: translateY(-1px);
+		border-color: theme.$coastal-teal;
+		box-shadow: 0 12px 26px -14px rgba(0, 20, 40, 0.34);
+	}
+
+	&:focus-visible {
+		outline: 2px solid theme.$coastal-teal;
+		outline-offset: 3px;
+	}
+
+	// Armed: the pill quietly turns coral — text and border only.
+	&.is-armed {
+		color: theme.$coastal-coral;
+		border-color: theme.$coastal-coral;
+	}
+}
+
+// ── Expanded state — the field card ──────────────────────────────────────────
+.bsb-devtools__card {
+	width: 272px;
+	border-radius: 16px;
+	background: theme.$coastal-surface;
+	border: 1px solid theme.$coastal-line;
+	box-shadow:
+		0 18px 36px -16px rgba(0, 20, 40, 0.28),
+		0 6px 14px -8px rgba(0, 20, 40, 0.18);
+	overflow: hidden;
+	transform-origin: bottom right;
+}
+
+.bsb-devtools__card-header {
+	display: flex;
+	align-items: center;
+	gap: 0.6rem;
+	padding: 0.85rem 0.6rem 0.85rem 1rem;
+}
+
+.bsb-devtools__card-eyebrow {
+	font-family: theme.$font-display;
+	font-size: 13px;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	color: theme.$coastal-navy;
+}
+
+// The quiet armed indicator: plain coral text, no dot, no animation.
+.bsb-devtools__card-armed {
+	font-size: 11px;
+	font-weight: 600;
+	letter-spacing: 0.02em;
+	color: theme.$coastal-coral;
+	white-space: nowrap;
+}
+
+.bsb-devtools__card-close {
+	flex: 0 0 auto;
+	// Always at the far right, whether or not the armed text beside it is
+	// present — simpler than conditioning the margin on an armed class, with
+	// the same result once the (possibly-absent) armed text no longer
+	// participates in the flex row's gap.
+	margin-left: auto;
+	display: grid;
+	place-items: center;
+	width: 1.6rem;
+	height: 1.6rem;
+	border-radius: 50%;
+	border: 1px solid rgba(31, 58, 95, 0.3);
+	background: transparent;
+	color: theme.$coastal-navy;
+	font-size: 0.95rem;
+	line-height: 1;
+	cursor: pointer;
+	transition:
+		color 0.16s ease,
+		border-color 0.16s ease,
+		background 0.16s ease;
+
+	&:hover {
+		color: theme.$coastal-teal-deep;
+		border-color: theme.$coastal-teal;
+		background: rgba(47, 155, 179, 0.1);
+	}
+
+	&:focus-visible {
+		outline: 2px solid theme.$coastal-teal;
+		outline-offset: 2px;
+	}
+}
+
+.bsb-devtools__card-divider {
+	height: 1px;
+	background: theme.$coastal-line;
+}
+
+// The card body: breathing room around one bounded group per sub-tool.
+// Stacked with a gap that already supports a second tool's container.
+.bsb-devtools__card-body {
+	display: flex;
+	flex-direction: column;
+	gap: 0.7rem;
+	padding: 0.9rem;
+}
+
+// One bounded group per sub-tool — a contained sub-panel on its own white
+// ground so it reads as a distinct unit inside the card, not loose controls.
+.bsb-devtools__group {
+	border: 1px solid theme.$coastal-line;
+	border-radius: 12px;
+	background: #fff;
+	padding: 0.85rem 0.9rem;
+}
+
+// The group head stays crisp when disabled — only the body below mutes.
+.bsb-devtools__group-head {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	padding: 0.6rem 0.75rem;
-	background: $bg-raised;
-	border-bottom: 1px solid $border;
+}
+
+.bsb-devtools__group-title {
+	font-size: 13px;
 	font-weight: 700;
-	letter-spacing: 0.06em;
-	text-transform: uppercase;
+	color: theme.$coastal-navy;
 }
 
-.bsb-devtools__collapse {
-	background: transparent;
-	border: none;
-	color: $text-soft;
-	cursor: pointer;
-	font-size: 1rem;
-	line-height: 1;
-
-	&:hover {
-		color: $text;
-	}
+.bsb-devtools__group-divider {
+	height: 1px;
+	margin: 0.75rem 0;
+	background: theme.$coastal-line;
 }
 
-.bsb-devtools__section {
-	padding: 0.7rem 0.75rem;
+.bsb-devtools__group-body {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+	transition: opacity 0.18s ease;
 
-	& + & {
-		border-top: 1px solid $border;
-	}
-
-	&.is-disabled .bsb-devtools__section-body {
-		opacity: 0.4;
+	&.is-muted {
+		opacity: 0.45;
 		pointer-events: none;
 	}
 }
 
-.bsb-devtools__section-head {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	font-weight: 700;
-	margin-bottom: 0.5rem;
+// ── Toggle switch ─────────────────────────────────────────────────────────
+.bsb-devtools__switch {
+	position: relative;
+	display: inline-flex;
+	flex: 0 0 auto;
+	width: 36px;
+	height: 20px;
+
+	&--sm {
+		width: 30px;
+		height: 17px;
+	}
+
+	input {
+		position: absolute;
+		inset: 0;
+		margin: 0;
+		opacity: 0;
+		cursor: pointer;
+		z-index: 1;
+
+		&:focus-visible ~ .bsb-devtools__switch-track {
+			outline: 2px solid theme.$coastal-teal;
+			outline-offset: 2px;
+		}
+
+		&:checked ~ .bsb-devtools__switch-track {
+			background: theme.$coastal-teal;
+
+			.bsb-devtools__switch-knob {
+				transform: translateX(16px);
+			}
+		}
+	}
+
+	&--sm
+		input:checked
+		~ .bsb-devtools__switch-track
+		.bsb-devtools__switch-knob {
+		transform: translateX(13px);
+	}
 }
 
-.bsb-devtools__section-body {
-	display: flex;
-	flex-direction: column;
-	gap: 0.5rem;
+.bsb-devtools__switch-track {
+	position: absolute;
+	inset: 0;
+	border-radius: 999px;
+	background: theme.$coastal-line;
+	box-shadow: inset 0 1px 2px rgba(31, 58, 95, 0.16);
+	transition: background 0.2s ease;
 }
 
-.bsb-devtools__tristate {
-	display: flex;
-	gap: 0.3rem;
+.bsb-devtools__switch-knob {
+	position: absolute;
+	top: 2px;
+	left: 2px;
+	width: 16px;
+	height: 16px;
+	border-radius: 50%;
+	background: #fff;
+	box-shadow: 0 1px 3px rgba(0, 20, 40, 0.35);
+	transition: transform 0.2s ease;
+
+	.bsb-devtools__switch--sm & {
+		width: 13px;
+		height: 13px;
+	}
 }
 
-.bsb-devtools__choice {
-	flex: 1;
-	padding: 0.3rem 0.4rem;
-	border: 1px solid $border;
-	border-radius: 0.35rem;
-	background: $bg-raised;
-	color: $text-soft;
+// ── Charging tri-state segmented control ─────────────────────────────────
+// Sits on the group's white ground, so the track uses the card's tint (not
+// white-on-white) with no border of its own, avoiding a double-border effect.
+.bsb-devtools__seg {
+	display: grid;
+	grid-auto-flow: column;
+	grid-auto-columns: 1fr;
+	gap: 0.25rem;
+	padding: 0.3rem;
+	border-radius: 10px;
+	background: theme.$coastal-surface;
+	box-shadow: inset 0 1px 3px rgba(31, 58, 95, 0.1);
+}
+
+.bsb-devtools__seg-option {
+	appearance: none;
+	border: 0;
+	padding: 0.5rem 0.3rem;
+	border-radius: 8px;
+	background: transparent;
+	color: theme.$coastal-ink-soft;
+	font-family: inherit;
+	font-size: 12px;
+	font-weight: 600;
 	cursor: pointer;
-	font: inherit;
+	transition:
+		background 0.18s ease,
+		color 0.18s ease,
+		box-shadow 0.18s ease;
+
+	&:hover {
+		color: theme.$coastal-navy;
+	}
+
+	&:focus-visible {
+		outline: 2px solid theme.$coastal-teal;
+		outline-offset: 2px;
+	}
 
 	&.is-selected {
-		border-color: $accent;
-		color: $text;
+		background: theme.$coastal-teal-deep;
+		color: #fff;
+		box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25);
 	}
+}
+
+// ── Force-level row ───────────────────────────────────────────────────────
+.bsb-devtools__toggle-row {
+	display: flex;
+	align-items: center;
+	gap: 0.55rem;
+	font-size: 12px;
+	font-weight: 600;
+	color: theme.$coastal-navy;
+	cursor: pointer;
 }
 
 .bsb-devtools__level {
 	display: flex;
 	align-items: center;
-	gap: 0.5rem;
+	gap: 0.7rem;
+
+	input[type='range'] {
+		flex: 1 1 auto;
+		appearance: none;
+		height: 4px;
+		border-radius: 999px;
+		background:
+			linear-gradient(theme.$coastal-teal, theme.$coastal-teal) 0 /
+				var(--fill, 30%) 100% no-repeat,
+			theme.$coastal-line;
+		cursor: pointer;
+
+		&::-webkit-slider-thumb {
+			appearance: none;
+			width: 16px;
+			height: 16px;
+			border-radius: 50%;
+			background: #fff;
+			box-shadow:
+				0 0 0 2px theme.$coastal-teal,
+				0 2px 6px rgba(0, 20, 40, 0.3);
+			cursor: pointer;
+			margin-top: 0;
+		}
+
+		&::-moz-range-thumb {
+			width: 16px;
+			height: 16px;
+			border: 0;
+			border-radius: 50%;
+			background: #fff;
+			box-shadow:
+				0 0 0 2px theme.$coastal-teal,
+				0 2px 6px rgba(0, 20, 40, 0.3);
+			cursor: pointer;
+		}
+
+		&::-moz-range-track {
+			height: 4px;
+			border-radius: 999px;
+			background: theme.$coastal-line;
+		}
+
+		&:focus-visible {
+			outline: 2px solid theme.$coastal-teal;
+			outline-offset: 4px;
+		}
+	}
 }
 
 .bsb-devtools__level-value {
-	min-width: 2.4em;
+	min-width: 2.6em;
 	text-align: right;
-	color: $text-soft;
-}
-
-.bsb-devtools__toggle {
-	display: inline-flex;
-	align-items: center;
-	gap: 0.4rem;
-	cursor: pointer;
+	font-size: 13px;
+	font-weight: 700;
+	color: theme.$coastal-navy;
+	font-variant-numeric: tabular-nums;
 }

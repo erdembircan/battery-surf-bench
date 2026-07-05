@@ -162,11 +162,12 @@ class DevTools implements Manager {
 		return $panel . $this->view->render(
 			array(
 				'dev_label'            => __( 'DEV', 'battery-surf-bench' ),
-				'title_label'          => __( 'Dev Tools', 'battery-surf-bench' ),
-				'collapse_label'       => __( 'Collapse dev tools', 'battery-surf-bench' ),
+				'eyebrow_label'        => __( 'Dev tools', 'battery-surf-bench' ),
+				'armed_label'          => __( 'Override active', 'battery-surf-bench' ),
+				'close_label'          => __( 'Close', 'battery-surf-bench' ),
 				'battery_label'        => __( 'Battery', 'battery-surf-bench' ),
-				'enable_label'         => __( 'Enabled', 'battery-surf-bench' ),
-				'charging_group_label' => __( 'Charging override', 'battery-surf-bench' ),
+				'battery_enable_label' => __( 'Enable battery override', 'battery-surf-bench' ),
+				'charging_group_label' => __( 'Charging state', 'battery-surf-bench' ),
 				'system_label'         => __( 'System', 'battery-surf-bench' ),
 				'charging_label'       => __( 'Charging', 'battery-surf-bench' ),
 				'discharging_label'    => __( 'Discharging', 'battery-surf-bench' ),

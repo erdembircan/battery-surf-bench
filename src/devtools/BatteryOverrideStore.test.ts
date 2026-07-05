@@ -57,6 +57,8 @@ const derived = batteryOverrideStore.state as unknown as {
 	devtoolsIsChargingOff: boolean;
 	devtoolsIsLevelForced: boolean;
 	devtoolsLevelPercent: number;
+	devtoolsLevelFillPercent: string;
+	devtoolsIsArmed: boolean;
 };
 const callbacks = batteryOverrideStore.callbacks as unknown as {
 	devtoolsPersist: () => void;
@@ -158,10 +160,35 @@ describe( 'batteryOverrideStore derived state', () => {
 	it( 'reads the level-forced flag and percent, defaulting to 50 when unarmed', () => {
 		expect( derived.devtoolsIsLevelForced ).toBe( false );
 		expect( derived.devtoolsLevelPercent ).toBe( 50 );
+		expect( derived.devtoolsLevelFillPercent ).toBe( '50%' );
 
 		mocks.state.devtools.battery.level = 0.42;
 		expect( derived.devtoolsIsLevelForced ).toBe( true );
 		expect( derived.devtoolsLevelPercent ).toBe( 42 );
+		expect( derived.devtoolsLevelFillPercent ).toBe( '42%' );
+	} );
+
+	it( 'is armed only once enabled AND an override actually diverges from system', () => {
+		// Disarmed: the sub-tool is off entirely.
+		expect( derived.devtoolsIsArmed ).toBe( false );
+
+		// Enabling alone is not armed — nothing is overridden yet (both fields
+		// still follow the system).
+		mocks.state.devtools.battery.enabled = true;
+		expect( derived.devtoolsIsArmed ).toBe( false );
+
+		// A non-system charging choice arms it.
+		mocks.state.devtools.battery.charging = false;
+		expect( derived.devtoolsIsArmed ).toBe( true );
+
+		// Back to system, but a forced level alone also arms it.
+		mocks.state.devtools.battery.charging = null;
+		mocks.state.devtools.battery.level = 0.3;
+		expect( derived.devtoolsIsArmed ).toBe( true );
+
+		// Disabling the sub-tool overrides everything else back to unarmed.
+		mocks.state.devtools.battery.enabled = false;
+		expect( derived.devtoolsIsArmed ).toBe( false );
 	} );
 } );
 
