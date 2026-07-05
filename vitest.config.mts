@@ -17,8 +17,9 @@
  * its own bundled copies internally — identical public surface (so the real
  * `filterSortAndPaginate` still drives the asserted sort), no external global.
  *
- * The suite is scoped to `src/` so it never walks the downloaded Playground
- * WordPress install or the `.claude/` worktrees, matching the ESLint ignores.
+ * The suite is scoped to `src/` and `wp-playground/` so it never walks the
+ * downloaded Playground WordPress install or the `.claude/` worktrees,
+ * matching the ESLint ignores.
  */
 
 import { defineConfig } from 'vitest/config';
@@ -49,6 +50,9 @@ export default defineConfig( {
 	test: {
 		environment: 'jsdom',
 		setupFiles: [ './vitest.setup.ts' ],
-		include: [ 'src/**/*.test.{ts,tsx}' ],
+		include: [
+			'src/**/*.test.{ts,tsx}',
+			'wp-playground/**/*.test.{ts,mts}',
+		],
 	},
 } );
