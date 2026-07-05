@@ -3,13 +3,13 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Battery Surf Bench 1.0.0-dev\n"
-"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/html\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/app\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-07-04T12:36:10+00:00\n"
+"POT-Creation-Date: 2026-07-05T13:08:09+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: battery-surf-bench\n"
@@ -19,8 +19,8 @@ msgstr ""
 #: includes/Admin/Menu.php:58
 #: includes/Admin/Menu.php:59
 #: includes/Admin/Menu.php:83
-#: includes/Cockpit/Cockpit.php:236
-#: includes/Content/SessionDetail.php:164
+#: includes/Cockpit/Cockpit.php:247
+#: includes/Content/SessionDetail.php:168
 #: src/cockpit/render.php:130
 msgid "Battery Surf Bench"
 msgstr ""
@@ -59,7 +59,7 @@ msgid "Open Cockpit"
 msgstr ""
 
 #. translators: %s: login URL.
-#: includes/Cockpit/Cockpit.php:232
+#: includes/Cockpit/Cockpit.php:243
 #, php-format
 msgid "The cockpit requires an administrator. Please <a href=\"%s\">log in</a>."
 msgstr ""
@@ -130,76 +130,77 @@ msgstr ""
 msgid "· INTERRUPTED ·"
 msgstr ""
 
-#: includes/Cockpit/Views/CockpitDashboard.php:45
+#: includes/Cockpit/Views/CockpitDashboard.php:51
 msgid "Battery Surf Bench — Cockpit"
 msgstr ""
 
-#: includes/Content/SessionDetail.php:163
+#: includes/Content/SessionDetail.php:167
 #: src/cockpit/render.php:214
 msgid "Greetings from"
 msgstr ""
 
-#: includes/Content/SessionDetail.php:165
+#: includes/Content/SessionDetail.php:169
 #: src/cockpit/render.php:230
 msgid "BATTERY · SURF · BENCH"
 msgstr ""
 
-#: includes/Content/SessionDetail.php:166
+#: includes/Content/SessionDetail.php:170
 #: src/cockpit/render.php:227
 msgid "Flip"
 msgstr ""
 
-#: includes/Content/SessionDetail.php:167
+#: includes/Content/SessionDetail.php:171
 #: includes/Content/SessionSchema.php:399
 #: src/cockpit/render.php:201
 msgid "100% → 0%"
 msgstr ""
 
-#: includes/Content/SessionDetail.php:168
+#: includes/Content/SessionDetail.php:172
 #: includes/Content/SessionSchema.php:389
 #: src/cockpit/render.php:200
 msgid "Rate · session"
 msgstr ""
 
-#: includes/Content/SessionDetail.php:169
+#: includes/Content/SessionDetail.php:173
 #: includes/Content/SessionSchema.php:379
 #: src/cockpit/render.php:199
 msgid "Rate · 10 min"
 msgstr ""
 
-#: includes/Content/SessionDetail.php:170
+#: includes/Content/SessionDetail.php:174
+#: includes/DevTools/DevTools.php:168
 #: src/cockpit/render.php:198
 msgid "Battery"
 msgstr ""
 
-#: includes/Content/SessionDetail.php:171
+#: includes/Content/SessionDetail.php:175
 #: includes/Content/SessionSchema.php:369
 #: src/cockpit/render.php:223
 msgid "Dropped"
 msgstr ""
 
-#: includes/Content/SessionDetail.php:172
+#: includes/Content/SessionDetail.php:176
 #: src/cockpit/render.php:224
 msgid "pts"
 msgstr ""
 
-#: includes/Content/SessionDetail.php:173
+#: includes/Content/SessionDetail.php:177
 #: includes/Content/SessionSchema.php:359
 #: src/cockpit/render.php:225
 msgid "Elapsed"
 msgstr ""
 
-#: includes/Content/SessionDetail.php:174
+#: includes/Content/SessionDetail.php:178
 #: src/cockpit/render.php:228
 msgid "Measured"
 msgstr ""
 
-#: includes/Content/SessionDetail.php:175
+#: includes/Content/SessionDetail.php:179
 #: src/cockpit/render.php:229
 msgid "Projected 100 → 0"
 msgstr ""
 
-#: includes/Content/SessionDetail.php:176
+#: includes/Content/SessionDetail.php:180
 msgid "Back to sessions"
 msgstr ""
 
@@ -231,6 +232,7 @@ msgstr ""
 #: includes/Content/SessionSchema.php:266
 #: includes/Content/SessionSchema.php:422
 #: includes/Content/SessionSchema.php:432
+#: includes/DevTools/DevTools.php:181
 #: src/cockpit/render.php:133
 msgid "Duration"
 msgstr ""
@@ -286,6 +288,99 @@ msgstr ""
 msgid "Benchmark Session"
 msgstr ""
 
+#: includes/DevTools/DevTools.php:164
+msgid "DEV"
+msgstr ""
+
+#: includes/DevTools/DevTools.php:165
+msgid "Dev tools"
+msgstr ""
+
+#: includes/DevTools/DevTools.php:166
+msgid "Override active"
+msgstr ""
+
+#: includes/DevTools/DevTools.php:167
+msgid "Close"
+msgstr ""
+
+#: includes/DevTools/DevTools.php:169
+msgid "Charging state"
+msgstr ""
+
+#: includes/DevTools/DevTools.php:170
+msgid "System"
+msgstr ""
+
+#: includes/DevTools/DevTools.php:171
+msgid "Charging"
+msgstr ""
+
+#: includes/DevTools/DevTools.php:172
+msgid "Discharging"
+msgstr ""
+
+#: includes/DevTools/DevTools.php:173
+msgid "Battery level override"
+msgstr ""
+
+#: includes/DevTools/DevTools.php:174
+msgid "Discharge"
+msgstr ""
+
+#: includes/DevTools/DevTools.php:175
+msgid "From"
+msgstr ""
+
+#: includes/DevTools/DevTools.php:176
+msgid "Decrease start percentage"
+msgstr ""
+
+#: includes/DevTools/DevTools.php:177
+msgid "Increase start percentage"
+msgstr ""
+
+#: includes/DevTools/DevTools.php:178
+msgid "To"
+msgstr ""
+
+#: includes/DevTools/DevTools.php:179
+msgid "Decrease end percentage"
+msgstr ""
+
+#: includes/DevTools/DevTools.php:180
+msgid "Increase end percentage"
+msgstr ""
+
+#: includes/DevTools/DevTools.php:182
+#: src/cockpit/render.php:137
+msgid "Decrease duration"
+msgstr ""
+
+#: includes/DevTools/DevTools.php:183
+#: src/cockpit/render.php:138
+msgid "Increase duration"
+msgstr ""
+
+#: includes/DevTools/DevTools.php:184
+msgid "%"
+msgstr ""
+
+#: includes/DevTools/DevTools.php:185
+#: src/cockpit/render.php:136
+msgid "min"
+msgstr ""
+
+#: includes/DevTools/DevTools.php:186
+#: src/cockpit/render.php:206
+msgid "Start"
+msgstr ""
+
+#: includes/DevTools/DevTools.php:187
+#: src/cockpit/render.php:207
+msgid "Stop"
+msgstr ""
+
 #: src/cockpit/render.php:54
 #: src/cockpit/render.php:175
 msgid "Balanced"
@@ -334,18 +429,6 @@ msgstr ""
 
 #: src/cockpit/render.php:135
 msgid "Run duration"
-msgstr ""
-
-#: src/cockpit/render.php:136
-msgid "min"
-msgstr ""
-
-#: src/cockpit/render.php:137
-msgid "Decrease duration"
-msgstr ""
-
-#: src/cockpit/render.php:138
-msgid "Increase duration"
 msgstr ""
 
 #: src/cockpit/render.php:139
@@ -422,14 +505,6 @@ msgstr ""
 
 #: src/cockpit/render.php:205
 msgid "left"
-msgstr ""
-
-#: src/cockpit/render.php:206
-msgid "Start"
-msgstr ""
-
-#: src/cockpit/render.php:207
-msgid "Stop"
 msgstr ""
 
 #: src/cockpit/render.php:208
