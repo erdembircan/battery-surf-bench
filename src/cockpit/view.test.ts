@@ -23,6 +23,7 @@ interface CockpitContext {
 	mode: 'duration' | 'targetDrop';
 	durationMinutes: number;
 	speed: number;
+	traits: number[];
 	running: boolean;
 	compact: boolean;
 	soundEnabled: boolean;
@@ -133,6 +134,7 @@ interface CockpitConfig {
 		syncBatteryOverride: () => void;
 		initWakeLock: () => () => void;
 		initSound: () => void;
+		initPageAdvance: () => () => void;
 		syncRunActivity: () => void;
 		rollDuration: () => void;
 		renderSummary: () => void;
@@ -156,6 +158,7 @@ const baseContext = (): CockpitContext => ( {
 	mode: 'duration',
 	durationMinutes: 30,
 	speed: 1,
+	traits: [ 5, 5, 5, 5, 5 ],
 	running: false,
 	compact: false,
 	soundEnabled: true,
@@ -280,7 +283,9 @@ describe( 'bsb/cockpit view store', () => {
 			mocks.context.running = true;
 			mocks.context.pages = [ page( 'article-1' ) ];
 
-			expect( mocks.config?.state.currentSrc ).toBe(
+			const src = new URL( mocks.config?.state.currentSrc ?? '' );
+
+			expect( src.origin + src.pathname ).toBe(
 				'https://example.test/article-1'
 			);
 		} );
@@ -303,9 +308,87 @@ describe( 'bsb/cockpit view store', () => {
 			mocks.context.pages = [ page( 'article-1' ), page( 'gallery' ) ];
 			mocks.context.activeIndex = 1;
 
-			expect( mocks.config?.state.currentSrc ).toBe(
+			const src = new URL( mocks.config?.state.currentSrc ?? '' );
+
+			expect( src.origin + src.pathname ).toBe(
 				'https://example.test/gallery'
 			);
+		} );
+
+		it( 'carries the trait vector and demo speed as query params', () => {
+			mocks.context.running = true;
+			mocks.context.pages = [ page( 'article-1' ) ];
+			mocks.context.traits = [ 2, 8, 10, 2, 3 ];
+			mocks.context.speed = 4;
+
+			const src = new URL( mocks.config?.state.currentSrc ?? '' );
+
+			expect( src.searchParams.get( 'bsbTraits' ) ).toBe( '2,8,10,2,3' );
+			expect( src.searchParams.get( 'bsbSpeed' ) ).toBe( '4' );
+		} );
+	} );
+
+	describe( 'page advance', () => {
+		const dispatchMessage = ( origin: string, data: unknown ): void => {
+			window.dispatchEvent(
+				new MessageEvent( 'message', { origin, data } )
+			);
+		};
+
+		it( 'advances to the next page on a same-origin page-done message', () => {
+			mocks.context.running = true;
+			mocks.context.pages = [ page( 'article-1' ), page( 'gallery' ) ];
+			mocks.context.activeIndex = 0;
+
+			mocks.config?.callbacks.initPageAdvance();
+			dispatchMessage( window.location.origin, { type: 'bsb:pageDone' } );
+
+			expect( mocks.context.activeIndex ).toBe( 1 );
+		} );
+
+		it( 'wraps back to the first page after the last', () => {
+			mocks.context.running = true;
+			mocks.context.pages = [ page( 'article-1' ), page( 'gallery' ) ];
+			mocks.context.activeIndex = 1;
+
+			mocks.config?.callbacks.initPageAdvance();
+			dispatchMessage( window.location.origin, { type: 'bsb:pageDone' } );
+
+			expect( mocks.context.activeIndex ).toBe( 0 );
+		} );
+
+		it( 'ignores a page-done message while idle', () => {
+			mocks.context.running = false;
+			mocks.context.pages = [ page( 'article-1' ), page( 'gallery' ) ];
+			mocks.context.activeIndex = 0;
+
+			mocks.config?.callbacks.initPageAdvance();
+			dispatchMessage( window.location.origin, { type: 'bsb:pageDone' } );
+
+			expect( mocks.context.activeIndex ).toBe( 0 );
+		} );
+
+		it( 'ignores a message from a different origin', () => {
+			mocks.context.running = true;
+			mocks.context.pages = [ page( 'article-1' ), page( 'gallery' ) ];
+			mocks.context.activeIndex = 0;
+
+			mocks.config?.callbacks.initPageAdvance();
+			dispatchMessage( 'https://evil.test', { type: 'bsb:pageDone' } );
+
+			expect( mocks.context.activeIndex ).toBe( 0 );
+		} );
+
+		it( 'detaches the listener once the returned cleanup runs', () => {
+			mocks.context.running = true;
+			mocks.context.pages = [ page( 'article-1' ), page( 'gallery' ) ];
+			mocks.context.activeIndex = 0;
+
+			const cleanup = mocks.config?.callbacks.initPageAdvance();
+			cleanup?.();
+			dispatchMessage( window.location.origin, { type: 'bsb:pageDone' } );
+
+			expect( mocks.context.activeIndex ).toBe( 0 );
 		} );
 	} );
 

@@ -25,9 +25,9 @@ classDiagram
     %% --- Store slices: each owns one surface of the deck and reads CockpitContext.
     class RunStore {
         <<module>>
-        state: currentSrc, run/idle/compact, clock & rate readouts
+        state: currentSrc (carries traits+speed onto the iframe URL), run/idle/compact, clock & rate readouts
         actions: toggleRun (refuses unsupported/charging), toggleCompact
-        callbacks: syncRunActivity, initWakeLock
+        callbacks: syncRunActivity, initWakeLock, initPageAdvance (advances activeIndex on the surf engine's page-done message)
     }
 
     class ConfigStore {
@@ -164,6 +164,19 @@ classDiagram
         +TARGET_MIN, TARGET_MAX, TARGET_STEP
     }
 
+    %% The cockpit's half of the surf engine's transport seam (see
+    %% surf-engine-modules.mmd for the engine-side receiver).
+    class SurferUrl {
+        <<module>>
+        +withSurferParams(string, number[], number) string
+    }
+
+    class PageAdvance {
+        <<module>>
+        +isPageDoneMessage(MessageEvent, string) boolean
+        +nextPageIndex(number, number) number
+    }
+
     %% Dark mode is disabled: the Theme module is retained in the codebase but
     %% intentionally unwired — no slice imports it, so the cockpit renders the
     %% light palette only and nothing reads/writes the stored pref.
@@ -288,6 +301,8 @@ classDiagram
     %% Slice → focused domain delegation.
     RunStore --> RunConfig : normalizes config
     RunStore --> TargetControl : clamps target on start
+    RunStore --> SurferUrl : carries traits+speed onto currentSrc
+    RunStore --> PageAdvance : recognizes page-done, advances activeIndex
     RunStore --> Format : formats readouts
     RunStore --> ScreenWakeLock : creates & owns (composition)
     ConfigStore --> RunConfig : normalizes duration

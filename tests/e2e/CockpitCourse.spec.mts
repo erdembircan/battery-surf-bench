@@ -41,6 +41,142 @@ test.describe( 'Course page route', () => {
 	} );
 } );
 
+test.describe( 'Surf engine', () => {
+	test( 'boots and surfs when the traits URL param is present', async ( {
+		page,
+	} ) => {
+		// Records every `message` the page receives so the engine's page-done
+		// postMessage (sent to `window.parent`, which is the page itself here,
+		// outside an iframe) can be observed after the fact.
+		await page.addInitScript( () => {
+			(
+				window as unknown as { __bsbMessages: unknown[] }
+			 ).__bsbMessages = [];
+			window.addEventListener( 'message', ( event ) => {
+				(
+					window as unknown as { __bsbMessages: unknown[] }
+				 ).__bsbMessages.push( event.data );
+			} );
+		} );
+
+		// Tempo maxed and endurance/literacy/allure/fidget at zero: the surfer
+		// scrolls fast and gets bored fast. Speed 10x compresses every wait so
+		// the whole page session finishes well within the test timeout.
+		await page.goto(
+			'/?bsbSessionPage=article-1&bsbTraits=10,0,0,0,0&bsbSpeed=10'
+		);
+
+		await page.waitForFunction( () => window.scrollY > 0 );
+
+		await page.waitForFunction(
+			() =>
+				(
+					window as unknown as { __bsbMessages: { type?: string }[] }
+				 ).__bsbMessages?.some( ( m ) => m?.type === 'bsb:pageDone' ),
+			{ timeout: 20_000 }
+		);
+
+		await expectNoPhpNotices( page );
+	} );
+
+	test( 'drives a visible fake cursor while surfing', async ( { page } ) => {
+		// Fidget maxed, everything else at zero: FidgetWiggle/MicroScroll
+		// dominate early ticks, so the cursor moves promptly and repeatedly.
+		await page.goto(
+			'/?bsbSessionPage=article-1&bsbTraits=0,0,0,0,10&bsbSpeed=10'
+		);
+
+		const cursor = page.locator( '.bsb-surf-cursor' );
+		await expect( cursor ).toBeAttached();
+
+		const initialTransform = await cursor.evaluate(
+			( el ) => ( el as HTMLElement ).style.transform
+		);
+
+		await page.waitForFunction(
+			( initial ) => {
+				const el = document.querySelector(
+					'.bsb-surf-cursor'
+				) as HTMLElement | null;
+				return !! el && el.style.transform !== initial;
+			},
+			initialTransform,
+			{ timeout: 10_000 }
+		);
+
+		// Sample the painted position repeatedly while the cursor keeps
+		// drifting, and confirm every sample stays inside the viewport — a
+		// jittered curve or overshoot bowing past an edge would otherwise
+		// carry it off-screen instead of just wandering within bounds.
+		const viewport = page.viewportSize();
+		const samples: { x: number; y: number }[] = [];
+		for ( let i = 0; i < 10; i++ ) {
+			const transform = await cursor.evaluate(
+				( el ) => ( el as HTMLElement ).style.transform
+			);
+			const match = transform.match(
+				/translate\(([-\d.]+)px,\s*([-\d.]+)px\)/
+			);
+			if ( match ) {
+				samples.push( {
+					x: parseFloat( match[ 1 ] ),
+					y: parseFloat( match[ 2 ] ),
+				} );
+			}
+			await page.waitForTimeout( 150 );
+		}
+
+		expect( samples.length ).toBeGreaterThan( 0 );
+		for ( const sample of samples ) {
+			expect( sample.x ).toBeGreaterThanOrEqual( 0 );
+			expect( sample.y ).toBeGreaterThanOrEqual( 0 );
+			if ( viewport ) {
+				expect( sample.x ).toBeLessThanOrEqual( viewport.width );
+				expect( sample.y ).toBeLessThanOrEqual( viewport.height );
+			}
+		}
+
+		// The real OS cursor must be hidden everywhere, not just page-wide on
+		// the root — a text-bearing element inside the article would otherwise
+		// resolve its own `auto` cursor (an I-beam) regardless of the ancestor.
+		const deckCursor = await page.evaluate(
+			() =>
+				getComputedStyle(
+					document.querySelector( '.bsb-article__deck' )!
+				).cursor
+		);
+		expect( deckCursor ).toBe( 'none' );
+	} );
+
+	test( 'stays a static page when the traits URL param is absent', async ( {
+		page,
+	} ) => {
+		await page.goto( '/?bsbSessionPage=article-1' );
+
+		// No fake cursor and no OS-cursor-hiding class — the engine never booted.
+		await expect( page.locator( '.bsb-surf-cursor' ) ).toHaveCount( 0 );
+		await expect( page.locator( 'html' ) ).not.toHaveClass( /bsb-surfing/ );
+
+		// The real OS cursor stays visible on a static page's content.
+		const deckCursor = await page.evaluate(
+			() =>
+				getComputedStyle(
+					document.querySelector( '.bsb-article__deck' )!
+				).cursor
+		);
+		expect( deckCursor ).not.toBe( 'none' );
+
+		// Poll past the engine's settle beat (1000-3000 ms at speed 1, the
+		// default with no bsbSpeed param) plus a first tick — an incorrectly
+		// booting engine would move scrollY inside this window instead of
+		// leaving it pinned at 0 the whole time.
+		for ( let i = 0; i < 4; i++ ) {
+			await page.waitForTimeout( 1000 );
+			expect( await page.evaluate( () => window.scrollY ) ).toBe( 0 );
+		}
+	} );
+} );
+
 test.describe( 'Cockpit surfer profile', () => {
 	test( 'renders the surfer field: chips, customize sliders, derived archetype', async ( {
 		page,
@@ -141,15 +277,19 @@ test.describe( 'Cockpit dashboard route', () => {
 	} ) => {
 		await page.goto( '/?bsbSession=cockpit' );
 
-		// The interactive region and viewport iframe are present. The dev-tools
-		// panel is a second, separate `bsb/cockpit` region (joined via the
+		// The interactive region and viewport iframe are present, wired to
+		// listen for the surf engine's page-done handshake. The dev-tools panel
+		// is a second, separate `bsb/cockpit` region (joined via the
 		// store-merge mechanism), so this locator is scoped to the cockpit
 		// block's own wrapper.
 		await expect(
 			page.locator(
 				'.wp-block-bsb-cockpit[data-wp-interactive="bsb/cockpit"]'
 			)
-		).toBeAttached();
+		).toHaveAttribute(
+			'data-wp-init---page-advance',
+			'callbacks.initPageAdvance'
+		);
 
 		// The control deck is rendered alongside the stage, with the run
 		// control wired to the store.
@@ -229,6 +369,19 @@ test.describe( 'Cockpit dashboard route', () => {
 		await expect(
 			page.locator( 'iframe.bsb-cockpit__viewport' )
 		).not.toHaveAttribute( 'src', /bsbSessionPage/ );
+
+		// The shield intercepts every pointer event during a run, so the
+		// pointer never reaches the iframe document and the course page's own
+		// `cursor: none` never gets a chance to apply — the hide has to live
+		// on this parent-side wrap instead. `getComputedStyle` still resolves
+		// on a `hidden` element, so this holds even before a run starts.
+		const viewportWrapCursor = await page.evaluate(
+			() =>
+				getComputedStyle(
+					document.querySelector( '.bsb-cockpit__viewport-wrap' )!
+				).cursor
+		);
+		expect( viewportWrapCursor ).toBe( 'none' );
 
 		// The interaction shield remains in the markup — it governs the viewport
 		// once a run starts; its behaviour is unit-covered. The view-only state is

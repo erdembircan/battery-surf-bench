@@ -53,6 +53,7 @@ const customScriptConfig = {
 			'style.scss'
 		),
 		course: path.resolve( process.cwd(), 'src', 'course', 'style.scss' ),
+		surfer: path.resolve( process.cwd(), 'src', 'surfer', 'index.ts' ),
 		'cockpit-dashboard': path.resolve(
 			process.cwd(),
 			'src',

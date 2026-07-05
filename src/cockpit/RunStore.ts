@@ -15,6 +15,8 @@ import { normalizeDuration, normalizeMode, normalizeSpeed } from './RunConfig';
 import { clampTarget, targetCap } from './TargetControl';
 import { ScreenWakeLock, type WakeLockSentinelLike } from './WakeLock';
 import { formatClock, formatTimeToEmpty, formatRate } from './Format';
+import { withSurferParams } from './SurferUrl';
+import { isPageDoneMessage, nextPageIndex } from './PageAdvance';
 
 /** The run slice of the `bsb/cockpit` store. */
 export const runStore: StorePart = {
@@ -23,16 +25,20 @@ export const runStore: StorePart = {
 		 * URL of the active course page, bound onto the viewport iframe. Empty
 		 * until a run starts, so the benchmarked pages are not fetched while the
 		 * idle screen is showing — the iframe loads only once surfing begins.
+		 * Carries the surfer's trait vector and demo speed as query params, the
+		 * only channel the engine running inside the iframe reads them from.
 		 */
 		get currentSrc(): string {
-			const { pages, activeIndex, running } =
+			const { pages, activeIndex, running, traits, speed } =
 				getContext< CockpitContext >();
 
 			if ( ! running ) {
 				return '';
 			}
 
-			return pages[ activeIndex ]?.url ?? '';
+			const url = pages[ activeIndex ]?.url;
+
+			return url ? withSurferParams( url, traits, speed ) : '';
 		},
 
 		/** Whether no run is live — hides the readouts pill until one starts. */
@@ -280,6 +286,37 @@ export const runStore: StorePart = {
 				clearInterval( instance.clock );
 				instance.clock = null;
 			}
+		},
+
+		/**
+		 * Listens for the surf engine's page-done handshake and advances the
+		 * viewport to the next course page once it arrives. The listener stays
+		 * attached for the block's lifetime and no-ops while idle (checked per
+		 * message, not toggled with `running`), same as {@see initWakeLock}'s
+		 * visibility listener.
+		 *
+		 * @return A cleanup that detaches the listener.
+		 */
+		initPageAdvance(): () => void {
+			const context = getContext< CockpitContext >();
+
+			const onMessage = ( event: MessageEvent ): void => {
+				if (
+					! context.running ||
+					! isPageDoneMessage( event, window.location.origin )
+				) {
+					return;
+				}
+
+				context.activeIndex = nextPageIndex(
+					context.activeIndex,
+					context.pages.length
+				);
+			};
+
+			window.addEventListener( 'message', onMessage );
+
+			return () => window.removeEventListener( 'message', onMessage );
 		},
 	},
 };

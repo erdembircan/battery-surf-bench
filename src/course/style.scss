@@ -673,3 +673,38 @@ $tag-bg: #eef3f8; // light-blue tag chip
 		max-width: none;
 	}
 }
+
+// The surf engine hides the OS cursor for the whole page while it drives (see
+// FakeCursor.ts) and paints its own instead. Scoped outside `.bsb-course-content`
+// since both apply page-wide, not just within the article wrapper. The `*`
+// descendant selector is required because `cursor` doesn't inherit through
+// the initial value `auto` — every element (text, links, buttons) resolves
+// its own `auto` cursor regardless of what the ancestor sets, so without it
+// the real cursor reappears as an I-beam over text or a pointer over links.
+.bsb-surfing,
+.bsb-surfing * {
+	cursor: none;
+}
+
+.bsb-surf-cursor {
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 24px;
+	height: 24px;
+	pointer-events: none;
+	z-index: 999999;
+	will-change: transform;
+
+	svg {
+		display: block;
+		width: 100%;
+		height: 100%;
+	}
+
+	path {
+		fill: $ink;
+		stroke: $white;
+		stroke-width: 1;
+	}
+}

@@ -19,6 +19,7 @@ use Mockery;
 use WP_Post;
 use WP_Query;
 
+use function has_action;
 use function has_filter;
 
 /**
@@ -35,12 +36,13 @@ final class CourseRouterTest extends TestCase {
 	/**
 	 * Builds a router over the real catalog.
 	 *
+	 * @param Assets|null $assets Asset service double, or a fresh mock when omitted.
 	 * @return CourseRouter The router under test.
 	 */
-	private function router(): CourseRouter {
+	private function router( ?Assets $assets = null ): CourseRouter {
 		$catalog = new CourseCatalog( '/plugin/includes/Course/content' );
 
-		return new CourseRouter( $catalog, self::PARAM, Mockery::mock( Assets::class ), 'build/style-course.css' );
+		return new CourseRouter( $catalog, self::PARAM, $assets ?? Mockery::mock( Assets::class ), 'build/style-course.css', 'build/surfer.js' );
 	}
 
 	/**
@@ -119,5 +121,48 @@ final class CourseRouterTest extends TestCase {
 		$original       = array( 'sidebar' );
 
 		$this->assertSame( $original, $this->router()->maybe_render( $original, $query ) );
+	}
+
+	/**
+	 * Serving a page hooks both the stylesheet and the surf engine script to
+	 * `wp_enqueue_scripts`, so a course page loads its markup styling and its
+	 * behavioral engine.
+	 */
+	public function test_serving_a_page_hooks_the_style_and_script_enqueue(): void {
+		$this->stage_slug( 'article-1' );
+		$router = $this->router();
+
+		$router->maybe_render( array(), new WP_Query() );
+
+		$this->assertNotFalse( has_action( 'wp_enqueue_scripts', array( $router, 'enqueue_style' ) ) );
+		$this->assertNotFalse( has_action( 'wp_enqueue_scripts', array( $router, 'enqueue_script' ) ) );
+	}
+
+	/**
+	 * The style hook enqueues the course stylesheet through the asset service.
+	 */
+	public function test_enqueue_style_enqueues_the_course_stylesheet(): void {
+		$assets = Mockery::mock( Assets::class );
+		$assets->shouldReceive( 'enqueue' )->once()->with( 'build/style-course.css' );
+
+		$this->router( $assets )->enqueue_style();
+
+		// The Mockery expectation above is the assertion; acknowledge it so
+		// PHPUnit does not flag the test as risky.
+		$this->addToAssertionCount( 1 );
+	}
+
+	/**
+	 * The script hook enqueues the surf engine bundle through the asset service.
+	 */
+	public function test_enqueue_script_enqueues_the_surf_engine(): void {
+		$assets = Mockery::mock( Assets::class );
+		$assets->shouldReceive( 'enqueue' )->once()->with( 'build/surfer.js' );
+
+		$this->router( $assets )->enqueue_script();
+
+		// The Mockery expectation above is the assertion; acknowledge it so
+		// PHPUnit does not flag the test as risky.
+		$this->addToAssertionCount( 1 );
 	}
 }
