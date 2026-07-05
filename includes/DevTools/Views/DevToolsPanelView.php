@@ -34,11 +34,15 @@ defined( 'ABSPATH' ) || exit;
  * legitimate — gated by a genuinely running process — unlike the removed
  * enable switches, which gated nothing real.
  *
- * The card header's Reset control is the panel's one cross-cutting escape
- * hatch: it clears every override at once, including stopping a running sim,
- * and stays enabled the whole time — unlike the battery group's own controls,
- * it is never disabled while a sim runs, since stopping the sim is exactly
- * what it is there to do.
+ * The card header divides into exactly three zones: the title (the eyebrow),
+ * the override status (the armed indicator), and a panel-buttons container
+ * (`.bsb-devtools__card-actions`) holding Reset then Close. Reset is the
+ * panel's one cross-cutting escape hatch — it clears every override at once,
+ * including stopping a running sim — rendered as an icon-only control (its
+ * accessible name lives in `aria-label`, matching Close) and stays enabled
+ * the whole time: unlike the battery group's own controls, it is never
+ * disabled while a sim runs, since stopping the sim is exactly what it is
+ * there to do.
  *
  * The panel sits outside the `bsb/cockpit` block, so it carries its own
  * `data-wp-interactive="bsb/cockpit"` region but has no cockpit context — every
@@ -60,7 +64,7 @@ class DevToolsPanelView implements View {
 	 *     @type string $dev_label              Raw label on the collapsed pill.
 	 *     @type string $eyebrow_label           Raw card header eyebrow.
 	 *     @type string $armed_label             Raw "override active" header text.
-	 *     @type string $reset_label             Raw label for the panel-wide reset control.
+	 *     @type string $reset_label             Raw accessible label for the panel-wide reset control.
 	 *     @type string $close_label             Raw accessible label for the close control.
 	 *     @type string $battery_label           Raw battery group heading.
 	 *     @type string $charging_group_label    Raw accessible group label for the charging tri-state.
@@ -89,7 +93,7 @@ class DevToolsPanelView implements View {
 		$dev               = esc_html( (string) ( $data['dev_label'] ?? '' ) );
 		$eyebrow           = esc_html( (string) ( $data['eyebrow_label'] ?? '' ) );
 		$armed             = esc_html( (string) ( $data['armed_label'] ?? '' ) );
-		$reset             = esc_html( (string) ( $data['reset_label'] ?? '' ) );
+		$reset             = esc_attr( (string) ( $data['reset_label'] ?? '' ) );
 		$close             = esc_attr( (string) ( $data['close_label'] ?? '' ) );
 		$battery           = esc_html( (string) ( $data['battery_label'] ?? '' ) );
 		$charging_group    = esc_attr( (string) ( $data['charging_group_label'] ?? '' ) );
@@ -121,8 +125,10 @@ class DevToolsPanelView implements View {
 			<div class="bsb-devtools__card-header">
 				<span class="bsb-devtools__card-eyebrow">{$eyebrow}</span>
 				<span class="bsb-devtools__card-armed" hidden data-wp-bind--hidden="!state.devtoolsIsArmed">{$armed}</span>
-				<button type="button" class="bsb-devtools__card-reset" data-wp-on--click="actions.devtoolsReset">{$reset}</button>
-				<button type="button" class="bsb-devtools__card-close" data-wp-on--click="actions.devtoolsToggleOpen" aria-label="{$close}">&times;</button>
+				<div class="bsb-devtools__card-actions">
+					<button type="button" class="bsb-devtools__card-reset" data-wp-on--click="actions.devtoolsReset" aria-label="{$reset}"><svg class="bsb-devtools__card-reset-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg></button>
+					<button type="button" class="bsb-devtools__card-close" data-wp-on--click="actions.devtoolsToggleOpen" aria-label="{$close}">&times;</button>
+				</div>
 			</div>
 			<div class="bsb-devtools__card-divider"></div>
 
