@@ -17,7 +17,6 @@ interface MockElement {
 }
 
 interface DevtoolsBatteryOverride {
-	enabled: boolean;
 	charging: boolean | null;
 	level: number | null;
 }
@@ -28,7 +27,10 @@ interface DevtoolsState {
 }
 
 const mocks = vi.hoisted( () => ( {
-	state: undefined as unknown as { devtools: DevtoolsState },
+	state: undefined as unknown as {
+		devtools: DevtoolsState;
+		batterySystemPercent?: number | null;
+	},
 	element: { dataset: {}, value: '' } as MockElement,
 } ) );
 
@@ -46,10 +48,9 @@ import {
 /** Typed views over the loosely-typed `StorePart` slice under test. */
 const actions = batteryOverrideStore.actions as unknown as {
 	devtoolsToggleOpen: () => void;
-	devtoolsToggleBatteryEnabled: () => void;
 	devtoolsSetCharging: () => void;
-	devtoolsToggleLevel: () => void;
 	devtoolsSetLevel: () => void;
+	devtoolsResetLevel: () => void;
 };
 const derived = batteryOverrideStore.state as unknown as {
 	devtoolsIsChargingSystem: boolean;
@@ -68,8 +69,9 @@ beforeEach( () => {
 	mocks.state = {
 		devtools: {
 			open: false,
-			battery: { enabled: false, charging: null, level: null },
+			battery: { charging: null, level: null },
 		},
+		batterySystemPercent: null,
 	};
 	mocks.element = { dataset: {}, value: '' };
 	window.localStorage.clear();
@@ -82,14 +84,6 @@ describe( 'batteryOverrideStore actions', () => {
 
 		actions.devtoolsToggleOpen();
 		expect( mocks.state.devtools.open ).toBe( false );
-	} );
-
-	it( 'toggles the battery sub-tool armed state', () => {
-		actions.devtoolsToggleBatteryEnabled();
-		expect( mocks.state.devtools.battery.enabled ).toBe( true );
-
-		actions.devtoolsToggleBatteryEnabled();
-		expect( mocks.state.devtools.battery.enabled ).toBe( false );
 	} );
 
 	it( 'sets the charging override from the triggering control’s dataset', () => {
@@ -121,26 +115,44 @@ describe( 'batteryOverrideStore actions', () => {
 		expect( mocks.state.devtools.battery.charging ).toBe( true );
 	} );
 
-	it( 'arms the level override at a seeded value, then disarms it', () => {
-		actions.devtoolsToggleLevel();
-		expect( mocks.state.devtools.battery.level ).toBe( 0.5 );
-
-		actions.devtoolsToggleLevel();
+	it( 'dragging the slider arms the level override directly — no toggle to flip first', () => {
 		expect( mocks.state.devtools.battery.level ).toBeNull();
-	} );
 
-	it( 'sets the level override from the triggering range input’s value', () => {
 		mocks.element = { dataset: {}, value: '30' };
-
 		actions.devtoolsSetLevel();
 
 		expect( mocks.state.devtools.battery.level ).toBeCloseTo( 0.3 );
+	} );
+
+	it( 'snaps the forced level to the nearest 5% step regardless of the raw input value', () => {
+		mocks.element = { dataset: {}, value: '33' };
+		actions.devtoolsSetLevel();
+		// 33 rounds to the nearest step of 5 → 35.
+		expect( mocks.state.devtools.battery.level ).toBeCloseTo( 0.35 );
+
+		mocks.element = { dataset: {}, value: '2' };
+		actions.devtoolsSetLevel();
+		// 2 rounds down to 0.
+		expect( mocks.state.devtools.battery.level ).toBeCloseTo( 0 );
+
+		mocks.element = { dataset: {}, value: '98' };
+		actions.devtoolsSetLevel();
+		// 98 rounds up to 100.
+		expect( mocks.state.devtools.battery.level ).toBeCloseTo( 1 );
 	} );
 
 	it( 'ignores a non-numeric range value', () => {
 		mocks.element = { dataset: {}, value: 'not-a-number' };
 
 		actions.devtoolsSetLevel();
+
+		expect( mocks.state.devtools.battery.level ).toBeNull();
+	} );
+
+	it( 'the level System button clears a dragged-in level back to null', () => {
+		mocks.state.devtools.battery.level = 0.7;
+
+		actions.devtoolsResetLevel();
 
 		expect( mocks.state.devtools.battery.level ).toBeNull();
 	} );
@@ -157,10 +169,8 @@ describe( 'batteryOverrideStore derived state', () => {
 		expect( derived.devtoolsIsChargingOff ).toBe( true );
 	} );
 
-	it( 'reads the level-forced flag and percent, defaulting to 50 when unarmed', () => {
+	it( 'reads the level-forced flag and the forced percent once a level is dragged in', () => {
 		expect( derived.devtoolsIsLevelForced ).toBe( false );
-		expect( derived.devtoolsLevelPercent ).toBe( 50 );
-		expect( derived.devtoolsLevelFillPercent ).toBe( '50%' );
 
 		mocks.state.devtools.battery.level = 0.42;
 		expect( derived.devtoolsIsLevelForced ).toBe( true );
@@ -168,26 +178,58 @@ describe( 'batteryOverrideStore derived state', () => {
 		expect( derived.devtoolsLevelFillPercent ).toBe( '42%' );
 	} );
 
-	it( 'is armed only once enabled AND an override actually diverges from system', () => {
-		// Disarmed: the sub-tool is off entirely.
+	it( 'falls back to the published system percentage while following the system', () => {
+		mocks.state.batterySystemPercent = 67;
+
+		expect( derived.devtoolsIsLevelForced ).toBe( false );
+		expect( derived.devtoolsLevelPercent ).toBe( 67 );
+		expect( derived.devtoolsLevelFillPercent ).toBe( '67%' );
+	} );
+
+	it( 'live-updates the system-percent fallback as new readings are published', () => {
+		mocks.state.batterySystemPercent = 67;
+		expect( derived.devtoolsLevelPercent ).toBe( 67 );
+
+		// A later reading arrives (the production battery seam publishes a new
+		// value); the getter must reflect it immediately, not a stale snapshot.
+		mocks.state.batterySystemPercent = 54;
+		expect( derived.devtoolsLevelPercent ).toBe( 54 );
+		expect( derived.devtoolsLevelFillPercent ).toBe( '54%' );
+	} );
+
+	it( 'a forced level wins over the published system percentage', () => {
+		mocks.state.batterySystemPercent = 67;
+		mocks.state.devtools.battery.level = 0.2;
+
+		expect( derived.devtoolsLevelPercent ).toBe( 20 );
+		expect( derived.devtoolsLevelFillPercent ).toBe( '20%' );
+	} );
+
+	it( 'falls back to 50 only when neither a forced level nor a system percentage exists', () => {
+		mocks.state.batterySystemPercent = null;
+
+		expect( derived.devtoolsLevelPercent ).toBe( 50 );
+		expect( derived.devtoolsLevelFillPercent ).toBe( '50%' );
+	} );
+
+	it( 'is armed once any field diverges from system — there is no separate enable switch', () => {
+		// Disarmed: both fields still follow the system.
 		expect( derived.devtoolsIsArmed ).toBe( false );
 
-		// Enabling alone is not armed — nothing is overridden yet (both fields
-		// still follow the system).
-		mocks.state.devtools.battery.enabled = true;
-		expect( derived.devtoolsIsArmed ).toBe( false );
-
-		// A non-system charging choice arms it.
+		// A non-system charging choice arms it on its own.
 		mocks.state.devtools.battery.charging = false;
 		expect( derived.devtoolsIsArmed ).toBe( true );
 
-		// Back to system, but a forced level alone also arms it.
+		// Back to system...
 		mocks.state.devtools.battery.charging = null;
+		expect( derived.devtoolsIsArmed ).toBe( false );
+
+		// ...but a dragged-in level alone also arms it.
 		mocks.state.devtools.battery.level = 0.3;
 		expect( derived.devtoolsIsArmed ).toBe( true );
 
-		// Disabling the sub-tool overrides everything else back to unarmed.
-		mocks.state.devtools.battery.enabled = false;
+		// Clearing the level back to system disarms it again.
+		mocks.state.devtools.battery.level = null;
 		expect( derived.devtoolsIsArmed ).toBe( false );
 	} );
 } );
@@ -196,7 +238,7 @@ describe( 'persistence', () => {
 	it( 'writes the whole slice to localStorage on devtoolsPersist', () => {
 		mocks.state.devtools = {
 			open: true,
-			battery: { enabled: true, charging: true, level: 0.2 },
+			battery: { charging: true, level: 0.2 },
 		};
 
 		callbacks.devtoolsPersist();
@@ -206,7 +248,7 @@ describe( 'persistence', () => {
 		);
 		expect( stored ).toEqual( {
 			open: true,
-			battery: { enabled: true, charging: true, level: 0.2 },
+			battery: { charging: true, level: 0.2 },
 		} );
 	} );
 
@@ -215,7 +257,7 @@ describe( 'persistence', () => {
 			DEVTOOLS_STORAGE_KEY,
 			JSON.stringify( {
 				open: true,
-				battery: { enabled: true, charging: false, level: 0.6 },
+				battery: { charging: false, level: 0.6 },
 			} )
 		);
 
@@ -223,7 +265,7 @@ describe( 'persistence', () => {
 
 		expect( mocks.state.devtools ).toEqual( {
 			open: true,
-			battery: { enabled: true, charging: false, level: 0.6 },
+			battery: { charging: false, level: 0.6 },
 		} );
 	} );
 
@@ -244,5 +286,27 @@ describe( 'persistence', () => {
 		window.localStorage.setItem( DEVTOOLS_STORAGE_KEY, '{not json' );
 		hydrateDevtools();
 		expect( mocks.state.devtools.open ).toBe( false );
+	} );
+
+	it( 'ignores a value stored under the old (pre-redesign) v1 key', () => {
+		// The old shape carried a now-removed `enabled` flag under the old key.
+		// The storage key bump means it is simply never looked up again — the
+		// slice starts fresh at its defaults instead of inheriting a stale
+		// `enabled` concept that no longer exists.
+		window.localStorage.setItem(
+			'bsb-devtools-v1',
+			JSON.stringify( {
+				open: true,
+				battery: { enabled: true, charging: true, level: 0.9 },
+			} )
+		);
+
+		hydrateDevtools();
+
+		expect( DEVTOOLS_STORAGE_KEY ).toBe( 'bsb-devtools-v2' );
+		expect( mocks.state.devtools ).toEqual( {
+			open: false,
+			battery: { charging: null, level: null },
+		} );
 	} );
 } );

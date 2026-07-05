@@ -6,6 +6,12 @@
  * one, and this namespacing is what keeps the tool from ever clobbering a
  * production member.
  *
+ * There is no separate "enabled" switch for the sub-tool: every field already
+ * has its own explicit off-state (`null` follows the system), so a field
+ * being set *is* the override being in effect — the same mental model for
+ * charging (System / Charging / Discharging) and level (System, or a dragged
+ * value).
+ *
  * The whole `devtools` slice (panel open/closed, the battery section) is
  * persisted to `localStorage` so a reload does not snap the override back to
  * the real charging state mid-investigation; {@link hydrateDevtools} restores
@@ -25,19 +31,31 @@ export interface DevtoolsState {
 	battery: BatteryOverrideState;
 }
 
-/** The merged store shape the slice's actions/callbacks re-fetch by namespace. */
+/**
+ * The merged store shape the slice's actions/callbacks re-fetch by namespace.
+ * `batterySystemPercent` is production-owned (published by
+ * `src/cockpit/BatteryStore.ts`) — read here, never written.
+ */
 interface DevtoolsStore {
-	state: { devtools: DevtoolsState };
+	state: {
+		devtools: DevtoolsState;
+		batterySystemPercent?: number | null;
+	};
 }
 
 /** The slice's default, pre-hydration state. */
 const DEFAULT_STATE: DevtoolsState = {
 	open: false,
-	battery: { enabled: false, charging: null, level: null },
+	battery: { charging: null, level: null },
 };
 
-/** `localStorage` key the slice persists under; bump the suffix on a shape change. */
-export const DEVTOOLS_STORAGE_KEY = 'bsb-devtools-v1';
+/**
+ * `localStorage` key the slice persists under; bump the suffix on a shape
+ * change — a stored value under a stale key is simply never read again
+ * (`readStored()` looks up the current key only), so an old-shape blob is
+ * inert rather than corrupting the new one.
+ */
+export const DEVTOOLS_STORAGE_KEY = 'bsb-devtools-v2';
 
 /**
  * Narrows an unknown value to a well-formed {@link DevtoolsState}, so a
@@ -62,10 +80,9 @@ const isDevtoolsState = ( value: unknown ): value is DevtoolsState => {
 		return false;
 	}
 
-	const { enabled, charging, level } = battery as Record< string, unknown >;
+	const { charging, level } = battery as Record< string, unknown >;
 
 	return (
-		typeof enabled === 'boolean' &&
 		( charging === null || typeof charging === 'boolean' ) &&
 		( level === null || typeof level === 'number' )
 	);
@@ -126,6 +143,36 @@ const current = (): DevtoolsState => {
 };
 
 /**
+ * The raw system battery percentage published by the production cockpit
+ * ({@link ../cockpit/BatteryStore}), or null before any real reading exists
+ * (or on a platform with no Battery Status API and nothing synthesized).
+ *
+ * @return The live system percentage, or null.
+ */
+const systemPercent = (): number | null => {
+	const { state } = store< DevtoolsStore >( 'bsb/cockpit' );
+
+	return state.batterySystemPercent ?? null;
+};
+
+/**
+ * The level row's displayed percentage: the forced value while armed, the
+ * live system reading while following it, falling back to 50 only when no
+ * system reading exists at all.
+ *
+ * @return The percentage the level row should display, 0–100.
+ */
+const displayedLevelPercent = (): number => {
+	const { level } = current().battery;
+
+	if ( level !== null ) {
+		return Math.round( level * 100 );
+	}
+
+	return systemPercent() ?? 50;
+};
+
+/**
  * Restores the persisted devtools slice onto the shared state. Called once,
  * right after this module registers its store slice — not bound to a directive
  * — since by then the store already exists and `localStorage` needs no DOM.
@@ -139,7 +186,6 @@ export const hydrateDevtools = (): void => {
 
 	const state = current();
 	state.open = stored.open;
-	state.battery.enabled = stored.battery.enabled;
 	state.battery.charging = stored.battery.charging;
 	state.battery.level = stored.battery.level;
 };
@@ -164,41 +210,42 @@ export const batteryOverrideStore: StorePart = {
 			return current().battery.charging === false;
 		},
 
-		/** Whether the level override is armed. */
+		/** Whether the level override is armed (a value has been dragged in). */
 		get devtoolsIsLevelForced(): boolean {
 			return current().battery.level !== null;
 		},
 
-		/** The level override as a 0–100 slider value, defaulting to 50 when unarmed. */
+		/**
+		 * The level row's 0–100 slider value: the forced level while armed, the
+		 * live system battery percentage while following it (updating as new
+		 * readings arrive), or 50 only when no system reading exists at all
+		 * (no Battery Status API and nothing synthesized).
+		 */
 		get devtoolsLevelPercent(): number {
-			const { level } = current().battery;
-
-			return level === null ? 50 : Math.round( level * 100 );
+			return displayedLevelPercent();
 		},
 
 		/**
-		 * The level override as a CSS percentage string, for the slider track's
+		 * The level row's percentage as a CSS string, for the slider track's
 		 * `--fill` custom property (`data-wp-style` binds a string value, not a
 		 * bare number).
 		 */
 		get devtoolsLevelFillPercent(): string {
-			const { level } = current().battery;
-
-			return `${ level === null ? 50 : Math.round( level * 100 ) }%`;
+			return `${ displayedLevelPercent() }%`;
 		},
 
 		/**
-		 * Whether an override is actually in effect: the battery sub-tool must be
-		 * enabled AND at least one field must diverge from "follow the system"
-		 * (a charging choice other than `system`, or a forced level). Enabling
-		 * the sub-tool alone is not "armed" — nothing is overridden until a
-		 * field is actually set. Drives the pill's coral state and the card
-		 * header's "Override active" text.
+		 * Whether an override is actually in effect: a charging choice other
+		 * than System, or a dragged-in level. There is no separate "enabled"
+		 * switch — each field already carries its own off-state (`null`
+		 * follows the system), so a field being set is what "armed" means.
+		 * Drives the pill's coral state and the card header's "Override
+		 * active" text.
 		 */
 		get devtoolsIsArmed(): boolean {
-			const { enabled, charging, level } = current().battery;
+			const { charging, level } = current().battery;
 
-			return enabled && ( charging !== null || level !== null );
+			return charging !== null || level !== null;
 		},
 	},
 	actions: {
@@ -206,12 +253,6 @@ export const batteryOverrideStore: StorePart = {
 		devtoolsToggleOpen(): void {
 			const state = current();
 			state.open = ! state.open;
-		},
-
-		/** Arms or disarms the battery sub-tool; disarmed ignores every field. */
-		devtoolsToggleBatteryEnabled(): void {
-			const state = current();
-			state.battery.enabled = ! state.battery.enabled;
 		},
 
 		/**
@@ -235,13 +276,16 @@ export const batteryOverrideStore: StorePart = {
 				choice === 'system' ? null : choice === 'charging';
 		},
 
-		/** Arms the level override (seeding it at the current slider value) or disarms it. */
-		devtoolsToggleLevel(): void {
-			const state = current();
-			state.battery.level = state.battery.level === null ? 0.5 : null;
-		},
-
-		/** Sets the level override from the triggering range input's value (0–100). */
+		/**
+		 * Sets the level override from the triggering range input's value
+		 * (0–100), snapped to the nearest 5% step — the input's own `step="5"`
+		 * already yields that from a real drag or keyboard nudge, but this
+		 * quantizes defensively regardless of how the value arrived, so a
+		 * forced level is always a multiple of 5. Dragging the slider is
+		 * itself what arms the override — there is no separate toggle to flip
+		 * first. This is the *forced* value only; the System-mirrored display
+		 * (see {@link displayedLevelPercent}) shows the real reading unsnapped.
+		 */
 		devtoolsSetLevel(): void {
 			const { ref } = getElement();
 			const raw = Number( ( ref as HTMLInputElement | null )?.value );
@@ -250,7 +294,20 @@ export const batteryOverrideStore: StorePart = {
 				return;
 			}
 
-			current().battery.level = Math.min( 1, Math.max( 0, raw / 100 ) );
+			const snapped = Math.round( raw / 5 ) * 5;
+			current().battery.level = Math.min(
+				1,
+				Math.max( 0, snapped / 100 )
+			);
+		},
+
+		/**
+		 * Clears the level override back to "follow the system" — the
+		 * level row's System button, the same off-state gesture as picking
+		 * System in the charging row.
+		 */
+		devtoolsResetLevel(): void {
+			current().battery.level = null;
 		},
 	},
 	callbacks: {

@@ -48,26 +48,33 @@ $ease: cubic-bezier(0.22, 1, 0.36, 1);
 	position: absolute;
 	right: 0;
 	bottom: 0;
+	// Revealing (this rule is the transition's *target* the moment `hidden` is
+	// removed): a brief, subtle entrance — the only animation in this swap.
+	// Opening must feel near-instant, so this stays short (well under the
+	// mockup's original 220ms) and carries no `visibility`/delay of its own,
+	// so the incoming element becomes hit-testable immediately rather than
+	// waiting out a transition first.
 	transition:
-		opacity 0.22s $ease,
-		transform 0.22s $ease,
-		visibility 0s linear 0.22s;
+		opacity 0.12s $ease,
+		transform 0.12s $ease;
 }
 
 // The swap between the collapsed pill and the expanded card is mutually
-// exclusive — bound via `data-wp-bind--hidden`, never both on screen — but a
-// bare `hidden` attribute would jump straight to `display: none` with no
-// transition. Overriding `display` lets the fade + rise still animate, while
-// delaying `visibility` (rather than `opacity` alone) is what keeps the
-// hidden one truly hidden — off the accessibility tree and reported hidden by
-// layout tools — the instant its exit transition finishes, not just visually
-// faded.
+// exclusive — bound via `data-wp-bind--hidden`, never both on screen. Hiding
+// is instant (`transition: none`): no fade-out to wait for, so a click swaps
+// the pair immediately in either direction, and the outgoing element is
+// genuinely gone — off the accessibility tree and reported hidden by layout
+// tools — the same frame `hidden` is set, not a transition-delay later.
+// Overriding `display` only matters for the *other* direction: it lets the
+// reveal's entrance transition (above) actually animate instead of jumping
+// from `display: none`.
 .bsb-devtools__pill[hidden],
 .bsb-devtools__card[hidden] {
 	display: block;
 	visibility: hidden;
 	opacity: 0;
 	pointer-events: none;
+	transition: none;
 }
 
 .bsb-devtools__pill[hidden] {
@@ -221,7 +228,6 @@ $ease: cubic-bezier(0.22, 1, 0.36, 1);
 	padding: 0.85rem 0.9rem;
 }
 
-// The group head stays crisp when disabled — only the body below mutes.
 .bsb-devtools__group-head {
 	display: flex;
 	align-items: center;
@@ -244,81 +250,6 @@ $ease: cubic-bezier(0.22, 1, 0.36, 1);
 	display: flex;
 	flex-direction: column;
 	gap: 0.75rem;
-	transition: opacity 0.18s ease;
-
-	&.is-muted {
-		opacity: 0.45;
-		pointer-events: none;
-	}
-}
-
-// ── Toggle switch ─────────────────────────────────────────────────────────
-.bsb-devtools__switch {
-	position: relative;
-	display: inline-flex;
-	flex: 0 0 auto;
-	width: 36px;
-	height: 20px;
-
-	&--sm {
-		width: 30px;
-		height: 17px;
-	}
-
-	input {
-		position: absolute;
-		inset: 0;
-		margin: 0;
-		opacity: 0;
-		cursor: pointer;
-		z-index: 1;
-
-		&:focus-visible ~ .bsb-devtools__switch-track {
-			outline: 2px solid theme.$coastal-teal;
-			outline-offset: 2px;
-		}
-
-		&:checked ~ .bsb-devtools__switch-track {
-			background: theme.$coastal-teal;
-
-			.bsb-devtools__switch-knob {
-				transform: translateX(16px);
-			}
-		}
-	}
-
-	&--sm
-		input:checked
-		~ .bsb-devtools__switch-track
-		.bsb-devtools__switch-knob {
-		transform: translateX(13px);
-	}
-}
-
-.bsb-devtools__switch-track {
-	position: absolute;
-	inset: 0;
-	border-radius: 999px;
-	background: theme.$coastal-line;
-	box-shadow: inset 0 1px 2px rgba(31, 58, 95, 0.16);
-	transition: background 0.2s ease;
-}
-
-.bsb-devtools__switch-knob {
-	position: absolute;
-	top: 2px;
-	left: 2px;
-	width: 16px;
-	height: 16px;
-	border-radius: 50%;
-	background: #fff;
-	box-shadow: 0 1px 3px rgba(0, 20, 40, 0.35);
-	transition: transform 0.2s ease;
-
-	.bsb-devtools__switch--sm & {
-		width: 13px;
-		height: 13px;
-	}
 }
 
 // ── Charging tri-state segmented control ─────────────────────────────────
@@ -367,24 +298,32 @@ $ease: cubic-bezier(0.22, 1, 0.36, 1);
 	}
 }
 
-// ── Force-level row ───────────────────────────────────────────────────────
-.bsb-devtools__toggle-row {
-	display: flex;
-	align-items: center;
-	gap: 0.55rem;
-	font-size: 12px;
-	font-weight: 600;
-	color: theme.$coastal-navy;
-	cursor: pointer;
-}
-
+// ── Level row ──────────────────────────────────────────────────────────────
+// The level's own "System" choice (follow the real reading), styled from the
+// same `.bsb-devtools__seg-option` shape/typography as the charging tri-state
+// so both rows read as the same control family — same mental model as
+// charging: touching the slider is itself the override, System is its
+// explicit off-state. `flex: 0 0 auto` keeps it from stretching in the row
+// (it sits outside the `.bsb-devtools__seg` grid this class is normally used
+// inside, but its own box is self-contained).
 .bsb-devtools__level {
 	display: flex;
 	align-items: center;
 	gap: 0.7rem;
 
+	> .bsb-devtools__seg-option {
+		flex: 0 0 auto;
+	}
+
 	input[type='range'] {
 		flex: 1 1 auto;
+		// Flex items default to `min-width: auto`, i.e. their intrinsic content
+		// size — for a range input that is the UA's default track width, wider
+		// than this row has room for once the System button and the fixed-width
+		// readout also claim their space. Without this the slider refuses to
+		// shrink and the row overflows the card. Explicit `0` lets it shrink to
+		// whatever room is actually left.
+		min-width: 0;
 		appearance: none;
 		height: 4px;
 		border-radius: 999px;
@@ -393,6 +332,7 @@ $ease: cubic-bezier(0.22, 1, 0.36, 1);
 				var(--fill, 30%) 100% no-repeat,
 			theme.$coastal-line;
 		cursor: pointer;
+		transition: opacity 0.18s ease;
 
 		&::-webkit-slider-thumb {
 			appearance: none;
@@ -430,13 +370,27 @@ $ease: cubic-bezier(0.22, 1, 0.36, 1);
 			outline-offset: 4px;
 		}
 	}
+
+	// Following the system: the track/thumb/readout mute to a ghost of their
+	// active look — the slider still sits at (and stays draggable to) its
+	// last value, dragging it is what re-arms the override.
+	&.is-inactive input[type='range'],
+	&.is-inactive .bsb-devtools__level-value {
+		opacity: 0.5;
+	}
 }
 
 .bsb-devtools__level-value {
-	min-width: 2.6em;
+	// A fixed (not minimum) width sized for the widest value ("100%") — so the
+	// slider's own length never shifts as the reading's digit count changes
+	// (0% ↔ 100%) — and `flex: none` so it never gets squeezed by the slider
+	// claiming the row's flexible space.
+	flex: 0 0 auto;
+	width: 2.8em;
 	text-align: right;
 	font-size: 13px;
 	font-weight: 700;
 	color: theme.$coastal-navy;
 	font-variant-numeric: tabular-nums;
+	transition: opacity 0.18s ease;
 }

@@ -10,8 +10,6 @@ import { type BatteryReading } from './BatteryMonitor';
 
 /** The dev-tools battery override slice, as it lives on the shared cockpit state. */
 export interface BatteryOverrideState {
-	/** Master switch for the sub-tool; disabled ignores every field below. */
-	enabled: boolean;
 	/** Forced charging state, or null to follow whatever the reading reports. */
 	charging: boolean | null;
 	/** Forced level (0–1), or null to follow whatever the reading reports. */
@@ -21,12 +19,14 @@ export interface BatteryOverrideState {
 /**
  * Resolves the reading the rest of the cockpit acts on: the raw Battery Status
  * API reading with the dev-tools override substituted in. Passthrough
- * (returns `raw` unchanged) when there is no override, the override is
- * disabled, or neither of its fields is set — the production path with no dev
- * tools loaded. When the platform reports no reading at all (the Battery
- * Status API is absent) but the override is enabled with both fields set, a
- * full reading is synthesized so the tool works on a browser with no battery
- * API (Safari, Firefox).
+ * (returns `raw` unchanged) when there is no override or neither of its
+ * fields is set — the production path with no dev tools loaded. There is no
+ * separate "enabled" switch: every field already has its own explicit
+ * off-state (`null` follows the system), so a field being set *is* the
+ * override being in effect. When the platform reports no reading at all (the
+ * Battery Status API is absent) but both fields are set, a full reading is
+ * synthesized so the tool works on a browser with no battery API (Safari,
+ * Firefox).
  *
  * @param raw      The raw Battery Status API reading, or null where the platform reports no battery support.
  * @param override The dev-tools battery override slice, if the dev-tools module has joined the store.
@@ -36,7 +36,7 @@ export const resolveReading = (
 	raw: BatteryReading | null,
 	override?: BatteryOverrideState
 ): BatteryReading | null => {
-	if ( ! override || ! override.enabled ) {
+	if ( ! override ) {
 		return raw;
 	}
 

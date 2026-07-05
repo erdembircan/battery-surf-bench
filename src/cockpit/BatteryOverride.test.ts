@@ -10,7 +10,6 @@ const raw = { level: 0.62, charging: false };
 const override = (
 	partial: Partial< BatteryOverrideState > = {}
 ): BatteryOverrideState => ( {
-	enabled: true,
 	charging: null,
 	level: null,
 	...partial,
@@ -19,15 +18,6 @@ const override = (
 describe( 'resolveReading', () => {
 	it( 'passes the raw reading through when there is no override', () => {
 		expect( resolveReading( raw ) ).toEqual( raw );
-	} );
-
-	it( 'passes the raw reading through when the override is disabled', () => {
-		expect(
-			resolveReading(
-				raw,
-				override( { enabled: false, charging: true, level: 0.5 } )
-			)
-		).toEqual( raw );
 	} );
 
 	it( 'passes the raw reading through when neither field is set', () => {

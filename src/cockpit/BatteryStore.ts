@@ -22,14 +22,24 @@ import { BatteryMonitor, type BatteryReading } from './BatteryMonitor';
 import { targetCap } from './TargetControl';
 import { resolveReading, type BatteryOverrideState } from './BatteryOverride';
 
-/** The slice of the merged `bsb/cockpit` state the override seam reads. */
-interface OverrideState {
+/** The slice of the merged `bsb/cockpit` state the override seam reads and writes. */
+interface SharedBatteryState {
 	devtools?: { battery?: BatteryOverrideState };
+	/**
+	 * The raw system battery percentage from the most recent real reading —
+	 * never the dev-tools-overridden one — or null where no real reading
+	 * exists yet (or ever will: no Battery Status API and nothing
+	 * synthesized). Published here (rather than kept only on the reactive
+	 * context) so the dev-tools panel, which has no cockpit context, can show
+	 * the level row's "System" state as the actual live reading rather than a
+	 * fixed placeholder.
+	 */
+	batterySystemPercent: number | null;
 }
 
-/** The merged store shape {@link currentOverride} re-fetches by namespace. */
-interface OverrideStore {
-	state: OverrideState;
+/** The merged store shape {@link currentOverride}/{@link publishSystemPercent} re-fetch by namespace. */
+interface SharedBatteryStore {
+	state: SharedBatteryState;
 }
 
 /**
@@ -42,9 +52,22 @@ interface OverrideStore {
  * @return The override slice, or undefined where dev tools have not joined the store.
  */
 const currentOverride = (): BatteryOverrideState | undefined => {
-	const { state } = store< OverrideStore >( 'bsb/cockpit' );
+	const { state } = store< SharedBatteryStore >( 'bsb/cockpit' );
 
 	return state.devtools?.battery;
+};
+
+/**
+ * Publishes the raw system battery percentage from a real reading onto the
+ * shared state, so it survives independent of whatever the dev-tools override
+ * currently substitutes for display.
+ *
+ * @param percent The raw system level as a 0–100 percentage.
+ */
+const publishSystemPercent = ( percent: number ): void => {
+	const { state } = store< SharedBatteryStore >( 'bsb/cockpit' );
+
+	state.batterySystemPercent = percent;
 };
 
 /**
@@ -110,6 +133,14 @@ export const applyReading = (
 /** The battery slice of the `bsb/cockpit` store. */
 export const batteryStore: StorePart = {
 	state: {
+		/**
+		 * The raw system battery percentage from the most recent real reading,
+		 * or null before any reading has arrived (or ever will, on a platform
+		 * with no Battery Status API). See {@link SharedBatteryState} — read
+		 * by the dev-tools panel, never written by it.
+		 */
+		batterySystemPercent: null as number | null,
+
 		/** Current battery level as a readout number, or an em dash if unknown. */
 		get batteryDisplay(): string {
 			const { batteryLevel } = getContext< CockpitContext >();
@@ -206,6 +237,7 @@ export const batteryStore: StorePart = {
 				getBattery: provider,
 				onReading: ( reading ) => {
 					instance.lastReading = reading;
+					publishSystemPercent( Math.round( reading.level * 100 ) );
 
 					const resolved = resolveReading(
 						reading,

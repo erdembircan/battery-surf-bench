@@ -20,6 +20,9 @@ use ErdemBircan\BatterySurfBench\Tests\TestCase;
  * cockpit context here), the pill and card mutually exclusive on
  * `state.devtools.open`, and every raw label the manager hands it escaped
  * into its slot.
+ *
+ * The battery group has no enable switch: every control already carries its
+ * own explicit off-state, so there is nothing for a master switch to gate.
  */
 final class DevToolsPanelViewTest extends TestCase {
 
@@ -52,8 +55,9 @@ final class DevToolsPanelViewTest extends TestCase {
 
 	/**
 	 * The pill turns coral, and the card header's "Override active" text
-	 * appears, only from the derived `devtoolsIsArmed` getter — never from the
-	 * sub-tool's plain `enabled` flag, which alone overrides nothing.
+	 * appears, only from the derived `devtoolsIsArmed` getter — which reads
+	 * whether a field actually diverges from the system, never a plain
+	 * `enabled` flag (there is none any more).
 	 */
 	public function test_render_wires_the_armed_indicators_to_the_derived_getter(): void {
 		$markup = ( new DevToolsPanelView() )->render();
@@ -63,41 +67,44 @@ final class DevToolsPanelViewTest extends TestCase {
 			'data-wp-bind--hidden="!state.devtoolsIsArmed"',
 			$markup
 		);
-		// Never bound to plain `enabled` — that was the pre-review bug.
-		$this->assertStringNotContainsString(
-			'data-wp-class--is-armed="state.devtools.battery.enabled"',
-			$markup
-		);
 	}
 
 	/**
-	 * The battery group's body mutes when the sub-tool is disabled, the
-	 * charging tri-state and level controls are wired, and the slider drives
-	 * both its readout text and its `--fill` track custom property.
+	 * The battery group has no enable switch and no muting: the charging
+	 * tri-state and the level row are always live. The level row carries its
+	 * own "System" button (the same off-state gesture as the charging
+	 * tri-state's System choice) alongside the slider, which drives both its
+	 * readout text and its `--fill` track custom property.
 	 */
 	public function test_render_wires_the_battery_group(): void {
 		$markup = ( new DevToolsPanelView() )->render();
 
-		$this->assertStringContainsString(
-			'data-wp-on--change="actions.devtoolsToggleBatteryEnabled"',
-			$markup
-		);
-		$this->assertStringContainsString(
-			'data-wp-bind--checked="state.devtools.battery.enabled"',
-			$markup
-		);
-		$this->assertStringContainsString(
-			'data-wp-class--is-muted="!state.devtools.battery.enabled"',
-			$markup
-		);
+		// No switch, no enable action, no muting machinery.
+		$this->assertStringNotContainsString( 'devtoolsToggleBatteryEnabled', $markup );
+		$this->assertStringNotContainsString( 'battery.enabled', $markup );
+		$this->assertStringNotContainsString( 'is-muted', $markup );
+		$this->assertStringNotContainsString( 'switch', $markup );
+		$this->assertStringNotContainsString( 'devtoolsToggleLevel"', $markup );
+
 		$this->assertStringContainsString( 'data-wp-on--click="actions.devtoolsSetCharging"', $markup );
 		$this->assertStringContainsString( 'data-devtools-charging="system"', $markup );
 		$this->assertStringContainsString( 'data-devtools-charging="charging"', $markup );
 		$this->assertStringContainsString( 'data-devtools-charging="discharging"', $markup );
+
+		// The level row's own System button clears a dragged-in level.
 		$this->assertStringContainsString(
-			'data-wp-bind--checked="state.devtoolsIsLevelForced"',
+			'data-wp-class--is-selected="!state.devtoolsIsLevelForced"',
 			$markup
 		);
+		$this->assertStringContainsString( 'data-wp-on--click="actions.devtoolsResetLevel"', $markup );
+		$this->assertStringContainsString(
+			'data-wp-class--is-inactive="!state.devtoolsIsLevelForced"',
+			$markup
+		);
+
+		// A forced level is always a multiple of 5 — the slider's own step,
+		// backed by the action's defensive snap.
+		$this->assertStringContainsString( 'step="5"', $markup );
 		$this->assertStringContainsString(
 			'data-wp-bind--value="state.devtoolsLevelPercent"',
 			$markup
@@ -123,11 +130,11 @@ final class DevToolsPanelViewTest extends TestCase {
 	public function test_render_escapes_the_supplied_labels(): void {
 		$markup = ( new DevToolsPanelView() )->render(
 			array(
-				'dev_label'            => '<b>DEV</b>',
-				'eyebrow_label'        => '<script>Dev tools</script>',
-				'armed_label'          => '<i>Override active</i>',
-				'close_label'          => '"Close"',
-				'battery_enable_label' => '"Enable"',
+				'dev_label'     => '<b>DEV</b>',
+				'eyebrow_label' => '<script>Dev tools</script>',
+				'armed_label'   => '<i>Override active</i>',
+				'close_label'   => '"Close"',
+				'level_label'   => '"Battery level override"',
 			)
 		);
 
@@ -137,6 +144,6 @@ final class DevToolsPanelViewTest extends TestCase {
 		$this->assertStringNotContainsString( '<i>Override active</i>', $markup );
 		$this->assertStringContainsString( '&lt;i&gt;Override active&lt;/i&gt;', $markup );
 		$this->assertStringContainsString( 'aria-label="&quot;Close&quot;"', $markup );
-		$this->assertStringContainsString( 'aria-label="&quot;Enable&quot;"', $markup );
+		$this->assertStringContainsString( 'aria-label="&quot;Battery level override&quot;"', $markup );
 	}
 }

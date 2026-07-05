@@ -45,14 +45,13 @@ describe( 'devtools view', () => {
 		expect( mocks.namespace ).toBe( 'bsb/cockpit' );
 		expect( mocks.config?.state.devtools ).toEqual( {
 			open: false,
-			battery: { enabled: false, charging: null, level: null },
+			battery: { charging: null, level: null },
 		} );
 		expect( mocks.config?.actions ).toMatchObject( {
 			devtoolsToggleOpen: expect.any( Function ),
-			devtoolsToggleBatteryEnabled: expect.any( Function ),
 			devtoolsSetCharging: expect.any( Function ),
-			devtoolsToggleLevel: expect.any( Function ),
 			devtoolsSetLevel: expect.any( Function ),
+			devtoolsResetLevel: expect.any( Function ),
 		} );
 		expect( mocks.config?.callbacks ).toMatchObject( {
 			devtoolsPersist: expect.any( Function ),

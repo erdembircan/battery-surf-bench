@@ -166,12 +166,11 @@ class DevTools implements Manager {
 				'armed_label'          => __( 'Override active', 'battery-surf-bench' ),
 				'close_label'          => __( 'Close', 'battery-surf-bench' ),
 				'battery_label'        => __( 'Battery', 'battery-surf-bench' ),
-				'battery_enable_label' => __( 'Enable battery override', 'battery-surf-bench' ),
 				'charging_group_label' => __( 'Charging state', 'battery-surf-bench' ),
 				'system_label'         => __( 'System', 'battery-surf-bench' ),
 				'charging_label'       => __( 'Charging', 'battery-surf-bench' ),
 				'discharging_label'    => __( 'Discharging', 'battery-surf-bench' ),
-				'level_label'          => __( 'Force level', 'battery-surf-bench' ),
+				'level_label'          => __( 'Battery level override', 'battery-surf-bench' ),
 			)
 		);
 	}
