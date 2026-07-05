@@ -183,4 +183,68 @@ describe( 'DomMotor.selectSnippet', () => {
 
 		expect( getSelection()?.toString() ).toBe( '' );
 	} );
+
+	it( 'skips a candidate whose rect sits below the fold, picking a visible one instead', async () => {
+		document.body.innerHTML = `<p>${ 'word '.repeat(
+			20
+		) }</p><p>${ 'word '.repeat( 20 ) }</p>`;
+		const [ offscreen, onscreen ] = document.querySelectorAll( 'p' );
+		offscreen.getBoundingClientRect = () =>
+			( {
+				top: 5000,
+				bottom: 5020,
+				left: 10,
+				right: 110,
+				width: 100,
+				height: 20,
+			} ) as DOMRect;
+		onscreen.getBoundingClientRect = () =>
+			( {
+				top: 100,
+				bottom: 120,
+				left: 10,
+				right: 110,
+				width: 100,
+				height: 20,
+			} ) as DOMRect;
+
+		// Recorded mid-sweep, before the selection is cleared at the end —
+		// rng() = 0 always picks the first remaining candidate, so the
+		// offscreen paragraph would win if it weren't filtered out first.
+		const observedParents: ( Element | null )[] = [];
+		const recordingFrames = (): Promise< void > => {
+			observedParents.push(
+				getSelection()?.anchorNode?.parentElement ?? null
+			);
+			return Promise.resolve();
+		};
+
+		await new DomMotor( () => 0, recordingFrames ).selectSnippet();
+
+		expect( observedParents ).toContain( onscreen );
+		expect( observedParents ).not.toContain( offscreen );
+	} );
+
+	it( 'does nothing when every candidate sits outside the viewport', async () => {
+		document.body.innerHTML = `<p>${ 'word '.repeat( 20 ) }</p>`;
+		const [ offscreen ] = document.querySelectorAll( 'p' );
+		offscreen.getBoundingClientRect = () =>
+			( {
+				top: -500,
+				bottom: -480,
+				left: 10,
+				right: 110,
+				width: 100,
+				height: 20,
+			} ) as DOMRect;
+
+		const travelToSpy = vi.spyOn( FakeCursor.prototype, 'travelTo' );
+
+		await new DomMotor( () => 0.1, instantFrames ).selectSnippet();
+
+		expect( getSelection()?.toString() ).toBe( '' );
+		expect( travelToSpy ).not.toHaveBeenCalled();
+
+		travelToSpy.mockRestore();
+	} );
 } );

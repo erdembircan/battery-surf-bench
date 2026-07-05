@@ -104,6 +104,38 @@ test.describe( 'Surf engine', () => {
 			{ timeout: 10_000 }
 		);
 
+		// Sample the painted position repeatedly while the cursor keeps
+		// drifting, and confirm every sample stays inside the viewport — a
+		// jittered curve or overshoot bowing past an edge would otherwise
+		// carry it off-screen instead of just wandering within bounds.
+		const viewport = page.viewportSize();
+		const samples: { x: number; y: number }[] = [];
+		for ( let i = 0; i < 10; i++ ) {
+			const transform = await cursor.evaluate(
+				( el ) => ( el as HTMLElement ).style.transform
+			);
+			const match = transform.match(
+				/translate\(([-\d.]+)px,\s*([-\d.]+)px\)/
+			);
+			if ( match ) {
+				samples.push( {
+					x: parseFloat( match[ 1 ] ),
+					y: parseFloat( match[ 2 ] ),
+				} );
+			}
+			await page.waitForTimeout( 150 );
+		}
+
+		expect( samples.length ).toBeGreaterThan( 0 );
+		for ( const sample of samples ) {
+			expect( sample.x ).toBeGreaterThanOrEqual( 0 );
+			expect( sample.y ).toBeGreaterThanOrEqual( 0 );
+			if ( viewport ) {
+				expect( sample.x ).toBeLessThanOrEqual( viewport.width );
+				expect( sample.y ).toBeLessThanOrEqual( viewport.height );
+			}
+		}
+
 		// The real OS cursor must be hidden everywhere, not just page-wide on
 		// the root — a text-bearing element inside the article would otherwise
 		// resolve its own `auto` cursor (an I-beam) regardless of the ancestor.

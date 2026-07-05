@@ -1,5 +1,10 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { FakeCursor, SURFING_CLASS, framesForDistance } from './FakeCursor';
+import {
+	FakeCursor,
+	SURFING_CLASS,
+	framesForDistance,
+	type Point,
+} from './FakeCursor';
 
 /** A fake frame source that resolves instantly and counts how often it's called. */
 const countingFrames = (): {
@@ -119,11 +124,12 @@ describe( 'FakeCursor.travelTo', () => {
 		const frames = countingFrames();
 		const cursor = new FakeCursor( document, { x: 0, y: 0 }, frames.next );
 
-		// Distance 50px stays under the overshoot threshold.
-		await cursor.travelTo( { x: 50, y: 0 }, cycleRng( [ 0.5 ] ), 10 );
+		// Distance ~70px stays under the overshoot threshold; y=50 keeps the
+		// target clear of the viewport-edge clamp margin.
+		await cursor.travelTo( { x: 50, y: 50 }, cycleRng( [ 0.5 ] ), 10 );
 
 		expect( frames.count() ).toBe( 10 );
-		expect( cursor.position ).toEqual( { x: 50, y: 0 } );
+		expect( cursor.position ).toEqual( { x: 50, y: 50 } );
 	} );
 
 	it( 'never runs fewer than one travel step', async () => {
@@ -195,5 +201,62 @@ describe( 'FakeCursor.travelTo', () => {
 
 		expect( first ).toBeLessThan( middle );
 		expect( last ).toBeLessThan( middle );
+	} );
+} );
+
+describe( 'FakeCursor viewport clamping', () => {
+	it( 'clamps an out-of-bounds moveTo point inside the viewport', () => {
+		Object.defineProperty( window, 'innerWidth', {
+			value: 500,
+			configurable: true,
+		} );
+		Object.defineProperty( window, 'innerHeight', {
+			value: 400,
+			configurable: true,
+		} );
+		const cursor = new FakeCursor( document, { x: 0, y: 0 }, () =>
+			Promise.resolve()
+		);
+
+		cursor.moveTo( { x: -100, y: 9000 } );
+
+		expect( cursor.position.x ).toBeGreaterThanOrEqual( 0 );
+		expect( cursor.position.x ).toBeLessThanOrEqual( 500 );
+		expect( cursor.position.y ).toBeGreaterThanOrEqual( 0 );
+		expect( cursor.position.y ).toBeLessThanOrEqual( 400 );
+	} );
+
+	it( 'keeps a travelTo curve that would bow past an edge inside the viewport', async () => {
+		Object.defineProperty( window, 'innerWidth', {
+			value: 1000,
+			configurable: true,
+		} );
+		Object.defineProperty( window, 'innerHeight', {
+			value: 800,
+			configurable: true,
+		} );
+		const frames = countingFrames();
+		// Both endpoints sit near the left edge; a vertical leg bends the
+		// bezier control point horizontally, off-screen, at a max rng draw.
+		const cursor = new FakeCursor(
+			document,
+			{ x: 10, y: 10 },
+			frames.next
+		);
+		const positions: Point[] = [];
+		document.addEventListener( 'mousemove', ( e ) => {
+			const event = e as MouseEvent;
+			positions.push( { x: event.clientX, y: event.clientY } );
+		} );
+
+		await cursor.travelTo( { x: 10, y: 100 }, cycleRng( [ 1 ] ), 10 );
+
+		expect( positions.length ).toBeGreaterThan( 0 );
+		for ( const position of positions ) {
+			expect( position.x ).toBeGreaterThanOrEqual( 0 );
+			expect( position.x ).toBeLessThanOrEqual( 1000 );
+			expect( position.y ).toBeGreaterThanOrEqual( 0 );
+			expect( position.y ).toBeLessThanOrEqual( 800 );
+		}
 	} );
 } );

@@ -24,6 +24,14 @@ const CURSOR_CLASS = 'bsb-surf-cursor';
 /** How far the cursor overshoots past a target before settling onto it, in px. */
 const OVERSHOOT_PX = 6;
 
+/**
+ * Kept clear of the viewport edge when clamping a painted position, in px —
+ * both endpoints of a travelled leg can sit safely on-screen while the
+ * jittered bezier control point (bend up to 80px) or the overshoot still
+ * bows the curve past the edge partway through.
+ */
+const EDGE_MARGIN_PX = 4;
+
 /** Minimum leg distance, in px, that still gets an overshoot-and-settle; short nudges land directly. */
 const OVERSHOOT_DISTANCE_THRESHOLD_PX = 200;
 
@@ -88,6 +96,23 @@ const jitteredControlPoint = ( a: Point, b: Point, rng: Rng ): Point => {
 };
 
 /**
+ * Clamps `point` inside `view`'s viewport, kept back from the edge by
+ * {@link EDGE_MARGIN_PX}, so a painted position can never land off-screen.
+ * @param point
+ * @param view
+ */
+const clampToViewport = ( point: Point, view: Window ): Point => ( {
+	x: Math.min(
+		Math.max( point.x, EDGE_MARGIN_PX ),
+		view.innerWidth - EDGE_MARGIN_PX
+	),
+	y: Math.min(
+		Math.max( point.y, EDGE_MARGIN_PX ),
+		view.innerHeight - EDGE_MARGIN_PX
+	),
+} );
+
+/**
  * Builds the cursor's DOM element. Static positioning, sizing and colour all
  * live in the course stylesheet under {@link CURSOR_CLASS}; this only ever
  * writes the element's `transform`.
@@ -105,6 +130,7 @@ const buildElement = ( doc: Document ): HTMLElement => {
 
 export class FakeCursor {
 	private readonly doc: Document;
+	private readonly view: Window;
 	private readonly el: HTMLElement;
 	private readonly nextFrame: () => Promise< void >;
 	private point: Point;
@@ -121,6 +147,9 @@ export class FakeCursor {
 		nextFrame: () => Promise< void >
 	) {
 		this.doc = doc;
+		// `defaultView`, not a global `window`, so a test's own document can
+		// control the viewport dimensions clamping is measured against.
+		this.view = doc.defaultView ?? window;
 		this.point = start;
 		this.nextFrame = nextFrame;
 		this.el = buildElement( doc );
@@ -136,17 +165,19 @@ export class FakeCursor {
 	}
 
 	/**
-	 * Moves the cursor straight to `point` and dispatches a matching `mousemove`.
+	 * Moves the cursor straight to `point` — clamped inside the viewport, the
+	 * one choke point every paint and dispatched `mousemove` goes through, so
+	 * neither a jittered curve nor an overshoot can ever land off-screen.
 	 * @param point
 	 */
 	moveTo( point: Point ): void {
-		this.point = point;
+		this.point = clampToViewport( point, this.view );
 		this.paint();
 		this.doc.dispatchEvent(
 			new MouseEvent( 'mousemove', {
 				bubbles: true,
-				clientX: point.x,
-				clientY: point.y,
+				clientX: this.point.x,
+				clientY: this.point.y,
 			} )
 		);
 	}

@@ -95,6 +95,20 @@ const wanderTarget = ( from: Point, rng: Rng ): Point => {
 	};
 };
 
+/**
+ * Whether `el` sits inside the current viewport — at least the horizontal
+ * line `selectSnippet`'s cursor sweep would follow across it. An offscreen
+ * candidate's rect is viewport-relative (negative `top`, or `top` past
+ * `innerHeight`), which would otherwise send the cursor travelling off-screen
+ * to "reach" it.
+ * @param el
+ */
+const isInViewport = ( el: Element ): boolean => {
+	const rect = el.getBoundingClientRect();
+
+	return rect.top >= 0 && rect.bottom <= window.innerHeight && rect.left >= 0;
+};
+
 /** How long the cursor travels to a snippet before the selection sweep starts. */
 const SNIPPET_APPROACH_MS = 500;
 
@@ -181,7 +195,11 @@ export class DomMotor implements Motor {
 	async selectSnippet(): Promise< void > {
 		const candidates = Array.from(
 			document.querySelectorAll( 'p, li, blockquote' )
-		).filter( ( el ) => ( el.textContent ?? '' ).trim().length > 20 );
+		).filter(
+			( el ) =>
+				( el.textContent ?? '' ).trim().length > 20 &&
+				isInViewport( el )
+		);
 
 		if ( candidates.length === 0 ) {
 			return;
