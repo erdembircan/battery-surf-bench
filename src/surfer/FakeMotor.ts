@@ -2,7 +2,13 @@ import type { Motor } from './Motor';
 
 /** One motion command a {@link FakeMotor} recorded. */
 export interface RecordedCommand {
-	kind: 'scrollBy' | 'pointerDrift' | 'selectSnippet' | 'playVideo' | 'idle';
+	kind:
+		| 'scrollBy'
+		| 'pointerDrift'
+		| 'selectSnippet'
+		| 'playVideo'
+		| 'lingerImage'
+		| 'idle';
 	args: readonly number[];
 }
 
@@ -31,6 +37,11 @@ export class FakeMotor implements Motor {
 
 	playVideo(): Promise< void > {
 		this.commands.push( { kind: 'playVideo', args: [] } );
+		return Promise.resolve();
+	}
+
+	lingerImage( ms: number ): Promise< void > {
+		this.commands.push( { kind: 'lingerImage', args: [ ms ] } );
 		return Promise.resolve();
 	}
 

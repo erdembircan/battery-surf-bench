@@ -42,10 +42,10 @@ describe( 'LingerImage.bid', () => {
 } );
 
 describe( 'LingerImage.run', () => {
-	it( 'drifts the pointer within the knowledge-base linger range', async () => {
+	it( 'attends an image within the knowledge-base linger range', async () => {
 		const motor = new FakeMotor();
 		await new LingerImage().run( motor, makeContext( [ 0, 0, 0, 5, 0 ] ) );
-		expect( motor.commands[ 0 ].kind ).toBe( 'pointerDrift' );
+		expect( motor.commands[ 0 ].kind ).toBe( 'lingerImage' );
 		const [ ms ] = motor.commands[ 0 ].args;
 		expect( ms ).toBeGreaterThanOrEqual( 1500 );
 		expect( ms ).toBeLessThanOrEqual( 4000 );

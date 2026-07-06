@@ -1,9 +1,9 @@
 /**
- * Sits and watches when a page offers a video. A page with no `<video>`
- * zeroes this behavior's bid via `hasVideo` rather than a branch. Replay
- * emerges for free: winning this behavior again later just plays again.
- * Duration is the video-page dwell from
- * `docs/knowledge-base/surf-behavior-profile.md` (60–90 s).
+ * Sits and watches when a page offers a video or a recognized video-host
+ * embed (YouTube, Vimeo). A page with neither zeroes this behavior's bid via
+ * `hasVideo` rather than a branch. Replay emerges for free: winning this
+ * behavior again later just plays again. Duration is the video-page dwell
+ * from `docs/knowledge-base/surf-behavior-profile.md` (60–90 s).
  */
 
 import type { Behavior, BehaviorContext } from '../Behavior';
