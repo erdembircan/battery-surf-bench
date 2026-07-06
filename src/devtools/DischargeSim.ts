@@ -28,6 +28,15 @@ export interface DischargeSimState extends DischargeSimConfig {
 	running: boolean;
 	/** Wall-clock start time (ms since epoch), or null while not running. */
 	startedAt: number | null;
+	/**
+	 * The sim's own live output — the level (0–1) its ticker last computed, or
+	 * null while not running. This is the sim's own layer, entirely separate
+	 * from the manual battery override's `level` field: the sim never writes
+	 * to that field, so stopping or completing a run never leaves a manual
+	 * override behind. See `EffectiveBatteryOverride` for how the two layers
+	 * combine into the single override the cockpit acts on.
+	 */
+	currentLevel: number | null;
 }
 
 /**
@@ -43,6 +52,7 @@ export const DEFAULT_SIM: DischargeSimState = Object.freeze( {
 	minutes: 30,
 	running: false,
 	startedAt: null,
+	currentLevel: null,
 } );
 
 /**

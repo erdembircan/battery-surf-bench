@@ -15,6 +15,7 @@ interface MockDevtoolsState {
 		minutes: number;
 		running: boolean;
 		startedAt: number | null;
+		currentLevel: number | null;
 	};
 }
 
@@ -45,6 +46,7 @@ const defaultSim = () => ( {
 	minutes: 30,
 	running: false,
 	startedAt: null,
+	currentLevel: null,
 } );
 
 beforeEach( () => {
@@ -85,6 +87,29 @@ describe( 'persistence', () => {
 			open: true,
 			battery: { charging: true, level: 0.2 },
 		} );
+	} );
+
+	it( 'a running sim ticking never changes what gets persisted — the manual battery layer stays put', () => {
+		mocks.state.devtools = {
+			open: true,
+			battery: { charging: null, level: null },
+			sim: { ...defaultSim(), running: true, startedAt: 12345 },
+		};
+
+		// Simulate several ticker writes to the sim's own output field — the
+		// persisted `battery` must never move in response.
+		for ( const level of [ 0.9, 0.7, 0.5, 0.3 ] ) {
+			mocks.state.devtools.sim.currentLevel = level;
+			callbacks.devtoolsPersist();
+
+			const stored: unknown = JSON.parse(
+				window.localStorage.getItem( DEVTOOLS_STORAGE_KEY ) ?? 'null'
+			);
+			expect( stored ).toEqual( {
+				open: true,
+				battery: { charging: null, level: null },
+			} );
+		}
 	} );
 
 	it( 'hydrates open and battery from a previously persisted slice', () => {

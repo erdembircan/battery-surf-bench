@@ -21,10 +21,14 @@ import { applyReadouts, stopRun } from './RunLifecycle';
 import { BatteryMonitor, type BatteryReading } from './BatteryMonitor';
 import { targetCap } from './TargetControl';
 import { resolveReading, type BatteryOverrideState } from './BatteryOverride';
+import { effectiveBatteryOverride } from '../devtools/EffectiveBatteryOverride';
 
 /** The slice of the merged `bsb/cockpit` state the override seam reads and writes. */
 interface SharedBatteryState {
-	devtools?: { battery?: BatteryOverrideState };
+	devtools?: {
+		battery?: BatteryOverrideState;
+		sim?: { running: boolean; currentLevel: number | null };
+	};
 	/**
 	 * The raw system battery percentage from the most recent real reading —
 	 * never the dev-tools-overridden one — or null where no real reading
@@ -43,18 +47,28 @@ interface SharedBatteryStore {
 }
 
 /**
- * Reads the dev-tools battery override off the shared cockpit state. Re-fetches
- * the store by namespace (rather than closing over a reference captured at
- * import time) because the dev-tools module — if present at all — joins the
- * store from a separate script module, after this one has already registered
- * its slice.
+ * Reads the dev-tools battery override off the shared cockpit state — the
+ * single effective value resolved from the manual override layer and a
+ * running discharge sim (see {@link ../devtools/EffectiveBatteryOverride}).
+ * Re-fetches the store by namespace (rather than closing over a reference
+ * captured at import time) because the dev-tools module — if present at all
+ * — joins the store from a separate script module, after this one has
+ * already registered its slice.
  *
- * @return The override slice, or undefined where dev tools have not joined the store.
+ * @return The effective override, or undefined where dev tools have not joined the store.
  */
 const currentOverride = (): BatteryOverrideState | undefined => {
 	const { state } = store< SharedBatteryStore >( 'bsb/cockpit' );
+	const { devtools } = state;
 
-	return state.devtools?.battery;
+	if ( ! devtools?.battery ) {
+		return undefined;
+	}
+
+	return effectiveBatteryOverride( {
+		battery: devtools.battery,
+		sim: devtools.sim,
+	} );
 };
 
 /**

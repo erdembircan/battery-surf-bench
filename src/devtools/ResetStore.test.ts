@@ -14,6 +14,7 @@ interface MockSim {
 	minutes: number;
 	running: boolean;
 	startedAt: number | null;
+	currentLevel: number | null;
 }
 
 interface MockDevtoolsState {
@@ -50,6 +51,7 @@ const defaultSim = (): MockSim => ( {
 	minutes: 30,
 	running: false,
 	startedAt: null,
+	currentLevel: null,
 } );
 
 beforeEach( () => {
@@ -82,7 +84,7 @@ describe( 'devtoolsReset', () => {
 		expect( mocks.state.devtools.battery.level ).toBeNull();
 	} );
 
-	it( 'stops a running sim and the ticker no longer writes battery.level afterward', () => {
+	it( 'stops a running sim and the ticker no longer writes afterward', () => {
 		simActions.devtoolsToggleSim();
 		expect( mocks.state.devtools.sim.running ).toBe( true );
 
@@ -90,10 +92,12 @@ describe( 'devtoolsReset', () => {
 
 		expect( mocks.state.devtools.sim.running ).toBe( false );
 		expect( mocks.state.devtools.sim.startedAt ).toBeNull();
+		expect( mocks.state.devtools.sim.currentLevel ).toBeNull();
 
 		// The ticker really stopped: advancing the clock must not resurrect a
-		// forced level, since the reset already cleared it back to null.
+		// forced level, on either the sim's own field or the manual layer.
 		vi.advanceTimersByTime( 60_000 );
+		expect( mocks.state.devtools.sim.currentLevel ).toBeNull();
 		expect( mocks.state.devtools.battery.level ).toBeNull();
 	} );
 
@@ -146,6 +150,7 @@ describe( 'devtoolsReset against the real DEFAULT_STATE wiring (regression)', ()
 		realDevtools.battery.level = null;
 		realDevtools.sim.running = false;
 		realDevtools.sim.startedAt = null;
+		realDevtools.sim.currentLevel = null;
 		realDevtools.sim.fromPercent = 90;
 		realDevtools.sim.toPercent = 20;
 		realDevtools.sim.minutes = 30;

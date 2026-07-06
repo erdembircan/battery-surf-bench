@@ -16,6 +16,7 @@ interface MockSim {
 	minutes: number;
 	running: boolean;
 	startedAt: number | null;
+	currentLevel: number | null;
 }
 
 interface MockDevtoolsState {
@@ -54,6 +55,7 @@ const defaultSim = (): MockSim => ( {
 	minutes: 30,
 	running: false,
 	startedAt: null,
+	currentLevel: null,
 } );
 
 const step = ( field: string, amount: number ): void => {
@@ -154,63 +156,95 @@ describe( 'the Start-guard', () => {
 } );
 
 describe( 'starting and ticking', () => {
-	it( 'start forces discharging, seeds the level immediately, and begins ticking', () => {
+	it( 'start seeds the sim’s own currentLevel immediately, begins ticking, and never touches the manual battery layer', () => {
 		actions.devtoolsToggleSim();
 
 		expect( mocks.state.devtools.sim.running ).toBe( true );
 		expect( mocks.state.devtools.sim.startedAt ).toBe( Date.now() );
-		expect( mocks.state.devtools.battery.charging ).toBe( false );
-		expect( mocks.state.devtools.battery.level ).toBeCloseTo( 0.9 );
+		expect( mocks.state.devtools.sim.currentLevel ).toBeCloseTo( 0.9 );
+		expect( mocks.state.devtools.battery.charging ).toBeNull();
+		expect( mocks.state.devtools.battery.level ).toBeNull();
 
 		vi.advanceTimersByTime( 1000 );
 
 		expect( derived.devtoolsIsSimRunning ).toBe( true );
 	} );
 
-	it( 'the ticker interpolates the level as time passes', () => {
+	it( 'the ticker interpolates sim.currentLevel as time passes, without writing to battery', () => {
 		// 90 → 20 over 10 minutes, ticking every second.
 		mocks.state.devtools.sim.minutes = 10;
 		actions.devtoolsToggleSim();
 
 		vi.advanceTimersByTime( 5 * 60 * 1000 ); // halfway
 
-		expect( mocks.state.devtools.battery.level ).toBeCloseTo( 0.55 );
-		expect( mocks.state.devtools.battery.charging ).toBe( false );
+		expect( mocks.state.devtools.sim.currentLevel ).toBeCloseTo( 0.55 );
 		expect( mocks.state.devtools.sim.running ).toBe( true );
+		expect( mocks.state.devtools.battery.charging ).toBeNull();
+		expect( mocks.state.devtools.battery.level ).toBeNull();
 	} );
 
-	it( 'completion stops the ticker at the end level and clears running', () => {
+	it( 'tick never mutates state.battery, even across a full run', () => {
+		mocks.state.devtools.sim.minutes = 5;
+		actions.devtoolsToggleSim();
+
+		for ( let i = 0; i < 5 * 60; i++ ) {
+			vi.advanceTimersByTime( 1000 );
+			expect( mocks.state.devtools.battery ).toEqual( {
+				charging: null,
+				level: null,
+			} );
+		}
+	} );
+
+	it( 'completion clears running and reverts — currentLevel back to null, no frozen level left behind', () => {
 		mocks.state.devtools.sim.minutes = 5;
 		actions.devtoolsToggleSim();
 
 		vi.advanceTimersByTime( 5 * 60 * 1000 + 1000 );
 
-		expect( mocks.state.devtools.battery.level ).toBeCloseTo( 0.2 );
 		expect( mocks.state.devtools.sim.running ).toBe( false );
+		expect( mocks.state.devtools.sim.currentLevel ).toBeNull();
+		expect( mocks.state.devtools.battery.level ).toBeNull();
 
-		// The ticker really stopped — further time must not change the level.
-		mocks.state.devtools.battery.level = 0.2;
+		// The ticker really stopped — further time must not resurrect a level.
 		vi.advanceTimersByTime( 60_000 );
-		expect( mocks.state.devtools.battery.level ).toBeCloseTo( 0.2 );
+		expect( mocks.state.devtools.sim.currentLevel ).toBeNull();
 	} );
 
-	it( 'stop freezes the current overrides in place — no reset', () => {
+	it( 'stop reverts — manual battery layer untouched by start/tick/stop', () => {
 		mocks.state.devtools.sim.minutes = 10;
 		actions.devtoolsToggleSim();
 		vi.advanceTimersByTime( 2 * 60 * 1000 );
 
-		const levelWhenStopped = mocks.state.devtools.battery.level;
+		expect( mocks.state.devtools.sim.currentLevel ).not.toBeNull();
+
 		actions.devtoolsToggleSim(); // Stop
 
 		expect( mocks.state.devtools.sim.running ).toBe( false );
-		expect( mocks.state.devtools.battery.level ).toBeCloseTo(
-			levelWhenStopped as number
-		);
+		expect( mocks.state.devtools.sim.currentLevel ).toBeNull();
+		// The manual layer was never armed to begin with — stopping reverts to
+		// exactly that, not to a level frozen from the run.
+		expect( mocks.state.devtools.battery ).toEqual( {
+			charging: null,
+			level: null,
+		} );
 
 		// No further ticking after stop.
 		vi.advanceTimersByTime( 60_000 );
-		expect( mocks.state.devtools.battery.level ).toBeCloseTo(
-			levelWhenStopped as number
-		);
+		expect( mocks.state.devtools.sim.currentLevel ).toBeNull();
+	} );
+
+	it( 'a pre-existing manual override survives start → tick → stop unchanged', () => {
+		mocks.state.devtools.battery = { charging: true, level: 0.55 };
+		mocks.state.devtools.sim.minutes = 10;
+
+		actions.devtoolsToggleSim(); // Start
+		vi.advanceTimersByTime( 3 * 60 * 1000 );
+		actions.devtoolsToggleSim(); // Stop
+
+		expect( mocks.state.devtools.battery ).toEqual( {
+			charging: true,
+			level: 0.55,
+		} );
 	} );
 } );
