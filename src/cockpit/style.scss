@@ -370,8 +370,8 @@ body.bsb-cockpit-dashboard {
 	@extend %bsb-deck-iconbtn;
 
 	&::before {
-		mask-image: theme.$speaker-off-icon;
-		-webkit-mask-image: theme.$speaker-off-icon;
+		mask-image: theme.$icon-speaker-off;
+		-webkit-mask-image: theme.$icon-speaker-off;
 	}
 
 	&.is-on {
@@ -379,8 +379,8 @@ body.bsb-cockpit-dashboard {
 
 		&::before {
 			background: var(--paper-accent);
-			mask-image: theme.$speaker-on-icon;
-			-webkit-mask-image: theme.$speaker-on-icon;
+			mask-image: theme.$icon-speaker-on;
+			-webkit-mask-image: theme.$icon-speaker-on;
 		}
 	}
 }
@@ -398,8 +398,8 @@ body.bsb-cockpit-dashboard {
 	}
 
 	&::before {
-		mask-image: theme.$chevron-down;
-		-webkit-mask-image: theme.$chevron-down;
+		mask-image: theme.$icon-chevron-down;
+		-webkit-mask-image: theme.$icon-chevron-down;
 		transform: rotate(180deg);
 	}
 }
@@ -856,11 +856,11 @@ body.bsb-cockpit-dashboard {
 		width: 1rem;
 		height: 1rem;
 		clip-path: none;
-		mask-image: theme.$plug-icon;
+		mask-image: theme.$icon-plug;
 		mask-repeat: no-repeat;
 		mask-position: center;
 		mask-size: contain;
-		-webkit-mask-image: theme.$plug-icon;
+		-webkit-mask-image: theme.$icon-plug;
 		-webkit-mask-repeat: no-repeat;
 		-webkit-mask-position: center;
 		-webkit-mask-size: contain;
@@ -964,7 +964,7 @@ body.bsb-cockpit-dashboard {
 		--toast-accent-deep: #{theme.$coastal-coral-deep};
 		--toast-accent-line: #{rgba(theme.$coastal-coral-deep, 0.45)};
 		--toast-accent-halo: #{rgba(theme.$coastal-coral, 0.1)};
-		--toast-icon: #{theme.$warning-icon};
+		--toast-icon: #{theme.$icon-warning};
 	}
 
 	&.is-notice {
@@ -972,7 +972,7 @@ body.bsb-cockpit-dashboard {
 		--toast-accent-deep: #{theme.$coastal-teal-deep};
 		--toast-accent-line: #{rgba(theme.$coastal-teal-deep, 0.4)};
 		--toast-accent-halo: #{rgba(theme.$coastal-teal, 0.12)};
-		--toast-icon: #{theme.$lock-icon};
+		--toast-icon: #{theme.$icon-lock};
 	}
 }
 
@@ -1351,8 +1351,8 @@ body.bsb-cockpit-dashboard {
 	width: 1.1rem;
 	height: 1.1rem;
 	background: theme.$coastal-coral-deep;
-	-webkit-mask: theme.$globe-icon center / contain no-repeat;
-	mask: theme.$globe-icon center / contain no-repeat;
+	-webkit-mask: theme.$icon-globe center / contain no-repeat;
+	mask: theme.$icon-globe center / contain no-repeat;
 }
 
 // a blank, light, hand-stuck postage stamp: just a perforated (scalloped) edge
@@ -1536,8 +1536,8 @@ body.bsb-cockpit-dashboard {
 	@extend %bsb-pill-iconbtn;
 
 	&::before {
-		mask-image: theme.$chevron-down;
-		-webkit-mask-image: theme.$chevron-down;
+		mask-image: theme.$icon-chevron-down;
+		-webkit-mask-image: theme.$icon-chevron-down;
 	}
 }
 
@@ -1549,8 +1549,8 @@ body.bsb-cockpit-dashboard {
 	transition: background 0.18s ease;
 
 	&::before {
-		mask-image: theme.$speaker-off-icon;
-		-webkit-mask-image: theme.$speaker-off-icon;
+		mask-image: theme.$icon-speaker-off;
+		-webkit-mask-image: theme.$icon-speaker-off;
 	}
 
 	&.is-on {
@@ -1558,8 +1558,8 @@ body.bsb-cockpit-dashboard {
 		box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.5);
 
 		&::before {
-			mask-image: theme.$speaker-on-icon;
-			-webkit-mask-image: theme.$speaker-on-icon;
+			mask-image: theme.$icon-speaker-on;
+			-webkit-mask-image: theme.$icon-speaker-on;
 		}
 	}
 }
@@ -1799,13 +1799,11 @@ body.bsb-cockpit-dashboard {
 }
 
 .bsb-flipcard__flip-icon {
-	$flip-glyph: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M12 6V3L8 7l4 4V8a4 4 0 1 1-4 4H6a6 6 0 1 0 6-6z'/%3E%3C/svg%3E");
-
 	width: 0.95rem;
 	height: 0.95rem;
 	background: currentColor;
-	mask: $flip-glyph center / contain no-repeat;
-	-webkit-mask: $flip-glyph center / contain no-repeat;
+	mask: theme.$icon-flip center / contain no-repeat;
+	-webkit-mask: theme.$icon-flip center / contain no-repeat;
 	animation: bsb-flipcard-nudge 3s ease-in-out infinite;
 }
 
@@ -1996,14 +1994,12 @@ body.bsb-cockpit-dashboard {
 }
 
 .bsb-stat__arrow {
-	$arrow-glyph: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M4 11h12.2l-4.6-4.6L13 5l7 7-7 7-1.4-1.4 4.6-4.6H4z'/%3E%3C/svg%3E");
-
 	width: 0.72em;
 	height: 0.72em;
 	margin: 0 0.12em;
 	background: var(--paper-accent);
-	mask: $arrow-glyph center / contain no-repeat;
-	-webkit-mask: $arrow-glyph center / contain no-repeat;
+	mask: theme.$icon-arrow-right center / contain no-repeat;
+	-webkit-mask: theme.$icon-arrow-right center / contain no-repeat;
 }
 
 .bsb-summary__actions {

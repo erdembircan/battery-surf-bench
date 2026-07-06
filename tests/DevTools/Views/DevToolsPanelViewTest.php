@@ -210,7 +210,7 @@ final class DevToolsPanelViewTest extends TestCase {
 	 * The card header's third zone — `.bsb-devtools__card-actions` — holds
 	 * Reset then Close, after the title and the armed status. Reset is an
 	 * icon-only control: its accessible name lives in `aria-label`, its glyph
-	 * is an `aria-hidden` masked icon span (the theme's `$reset-icon`), and it
+	 * is an `aria-hidden` masked icon span (the theme's `$icon-reset`), and it
 	 * carries no `disabled` binding of any kind — it must stay clickable even
 	 * while a sim is running, since stopping the sim is exactly what it is
 	 * for. It is only visible once an override is armed, reusing
@@ -252,7 +252,7 @@ final class DevToolsPanelViewTest extends TestCase {
 		$this->assertStringContainsString( 'data-wp-bind--hidden="!state.devtoolsIsArmed"', $button_tag );
 
 		// The glyph is a decorative, masked icon span (themed via
-		// `$reset-icon`, not an inline SVG) — hidden from assistive tech
+		// `$icon-reset`, not an inline SVG) — hidden from assistive tech
 		// since the button itself already carries the accessible name.
 		$this->assertStringContainsString( '<span class="bsb-devtools__card-reset-icon"', $button_tag );
 		$this->assertStringContainsString( 'aria-hidden="true"', $button_tag );

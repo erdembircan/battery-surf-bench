@@ -113,17 +113,16 @@ const clampToViewport = ( point: Point, view: Window ): Point => ( {
 } );
 
 /**
- * Builds the cursor's DOM element. Static positioning, sizing and colour all
- * live in the course stylesheet under {@link CURSOR_CLASS}; this only ever
- * writes the element's `transform`.
+ * Builds the cursor's DOM element. Static positioning, sizing, colour and the
+ * arrow-pointer glyph itself (a CSS background painted via
+ * `theme.icon-cursor()`) all live in the course stylesheet under
+ * {@link CURSOR_CLASS}; this only ever writes the element's `transform`.
  * @param doc
  */
 const buildElement = ( doc: Document ): HTMLElement => {
 	const el = doc.createElement( 'div' );
 	el.className = CURSOR_CLASS;
 	el.setAttribute( 'aria-hidden', 'true' );
-	el.innerHTML =
-		'<svg viewBox="0 0 24 24" width="24" height="24"><path d="M4 2 L4 20 L9 16 L12 22 L15 20.5 L12 14.5 L18 14.5 Z"/></svg>';
 
 	return el;
 };
