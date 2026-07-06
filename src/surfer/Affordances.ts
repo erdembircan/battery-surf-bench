@@ -27,9 +27,26 @@ export interface Affordances {
 /** Content text length, in characters, at which `textDensity` saturates to 1. */
 const TEXT_DENSITY_SATURATION_CHARS = 1200;
 
-/** Matches a recognized video-host embed iframe (YouTube or Vimeo). */
-const VIDEO_EMBED_SELECTOR =
+/**
+ * Matches a recognized video-host embed iframe (YouTube or Vimeo). Exported
+ * as the single source of this rule — {@link ./Motor}'s `DomMotor` reads it
+ * too, when targeting the same embed to attend and (for a real `<video>`)
+ * play, so a new host is added in one place, never two.
+ */
+export const VIDEO_EMBED_SELECTOR =
 	'iframe[src*="youtube.com/embed"], iframe[src*="youtube-nocookie.com/embed"], iframe[src*="player.vimeo.com"]';
+
+/**
+ * The page's content root: `<main>` where the theme renders one, else
+ * `<body>`. Block themes render page content inside `<main>`; the admin bar
+ * and theme header/footer chrome live outside it. The single source of this
+ * rule — {@link ./Motor}'s `DomMotor.lingerImage` and `.playVideo` also scope
+ * their candidate search through this, so the root a behavior is bid on is
+ * exactly the root its motor verb searches.
+ * @param doc
+ */
+export const contentRoot = ( doc: Document ): Element =>
+	doc.querySelector( 'main' ) ?? doc.body;
 
 /**
  * Reads {@link Affordances} from the live document.
@@ -46,10 +63,7 @@ export const senseAffordances = ( doc: Document ): Affordances => {
 			? clamp01( ( scrollable - scrollEl.scrollTop ) / scrollable )
 			: 0;
 
-	// Block themes render page content inside `<main>`; the admin bar and
-	// theme header/footer chrome live outside it. Falls back to `<body>`
-	// where a page has no `<main>`.
-	const root = doc.querySelector( 'main' ) ?? doc.body;
+	const root = contentRoot( doc );
 	const charCount = root.textContent?.trim().length ?? 0;
 	const textDensity = clamp01( charCount / TEXT_DENSITY_SATURATION_CHARS );
 

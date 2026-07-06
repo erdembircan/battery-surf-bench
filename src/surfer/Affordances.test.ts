@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { senseAffordances } from './Affordances';
+import {
+	senseAffordances,
+	contentRoot,
+	VIDEO_EMBED_SELECTOR,
+} from './Affordances';
 
 /**
  * Builds a jsdom document with the given content markup. When `chrome` is
@@ -119,5 +123,27 @@ describe( 'senseAffordances', () => {
 			`<nav>${ 'chrome-link '.repeat( 400 ) }</nav>`
 		);
 		expect( senseAffordances( doc ).textDensity ).toBeLessThan( 0.05 );
+	} );
+} );
+
+describe( 'contentRoot', () => {
+	it( 'returns the <main> element when the page has one', () => {
+		const doc = docFrom( '<p>content</p>', '<nav>chrome</nav>' );
+		expect( contentRoot( doc ).tagName ).toBe( 'MAIN' );
+	} );
+
+	it( 'falls back to <body> when the page has no <main>', () => {
+		const doc = docFrom( '<p>content</p>' );
+		expect( contentRoot( doc ) ).toBe( doc.body );
+	} );
+} );
+
+describe( 'VIDEO_EMBED_SELECTOR', () => {
+	it( 'is the single source senseAffordances matches video-host embeds with', () => {
+		const doc = docFrom(
+			'<iframe src="https://player.vimeo.com/video/123"></iframe>'
+		);
+		const embed = contentRoot( doc ).querySelector( VIDEO_EMBED_SELECTOR );
+		expect( embed ).not.toBeNull();
 	} );
 } );

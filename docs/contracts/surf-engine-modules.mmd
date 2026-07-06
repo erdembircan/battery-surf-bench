@@ -58,6 +58,8 @@ classDiagram
     class Affordances {
         <<module>>
         +senseAffordances(Document) Affordances
+        +contentRoot(Document) Element
+        +VIDEO_EMBED_SELECTOR
     }
 
     class Motor {
@@ -211,6 +213,7 @@ classDiagram
     EngineBoot --> RealClock : creates
     EngineBoot --> Rng : seeds the one PRNG instance
     EngineBoot --> Affordances : provides senseAffordances
+    DomMotor --> Affordances : shares contentRoot & VIDEO_EMBED_SELECTOR (lingerImage, playVideo)
     EngineBoot --> SurferStats : normalizeTraits
     EngineBoot --> RunConfig : normalizeSpeed
     EngineBoot ..> RunStore : postMessage 'bsb:pageDone'

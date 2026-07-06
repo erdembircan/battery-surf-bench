@@ -8,6 +8,7 @@
 import type { Rng } from './Rng';
 import { FakeCursor, framesForDistance, type Point } from './FakeCursor';
 import { easeInOutQuad } from './Ease';
+import { contentRoot, VIDEO_EMBED_SELECTOR } from './Affordances';
 
 /** A motion primitive the surfer can perform. */
 export interface Motor {
@@ -139,10 +140,6 @@ const SNIPPET_SWEEP_MS = 700;
 
 /** How long the finished selection is held before it is cleared. */
 const SNIPPET_HOLD_MS = 600;
-
-/** Matches a recognized video-host embed iframe (same rule as Affordances). */
-const VIDEO_EMBED_SELECTOR =
-	'iframe[src*="youtube.com/embed"], iframe[src*="youtube-nocookie.com/embed"], iframe[src*="player.vimeo.com"]';
 
 /** How long scrolling a target's centre to the viewport middle takes, in ms. */
 const SCROLL_TO_MIDDLE_MS = 600;
@@ -289,7 +286,7 @@ export class DomMotor implements Motor {
 	}
 
 	async playVideo(): Promise< void > {
-		const root = document.querySelector( 'main' ) ?? document.body;
+		const root = contentRoot( document );
 		const target: Element | null =
 			root.querySelector( 'video' ) ??
 			root.querySelector( VIDEO_EMBED_SELECTOR );
@@ -324,7 +321,7 @@ export class DomMotor implements Motor {
 	}
 
 	async lingerImage( ms: number ): Promise< void > {
-		const root = document.querySelector( 'main' ) ?? document.body;
+		const root = contentRoot( document );
 		const candidates = Array.from(
 			root.querySelectorAll( 'img, figure svg' )
 		).filter( ( el ) => {
