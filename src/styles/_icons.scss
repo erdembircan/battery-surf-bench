@@ -60,6 +60,9 @@ $icon-globe: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' v
 // A flip/refresh glyph, masked onto the summary flipcard's "tap to flip" nudge.
 $icon-flip: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M12 6V3L8 7l4 4V8a4 4 0 1 1-4 4H6a6 6 0 1 0 6-6z'/%3E%3C/svg%3E");
 
+// A plus glyph, masked onto the summary's "New run" control (a fresh run).
+$icon-plus: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M11 4h2v7h7v2h-7v7h-2v-7H4v-2h7z'/%3E%3C/svg%3E");
+
 // A right-facing arrow, masked onto the battery start→end stat's value
 // (replaces a unicode → that renders misshapen and baseline-off in the
 // display font).

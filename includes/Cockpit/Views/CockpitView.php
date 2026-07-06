@@ -339,7 +339,7 @@ HTML;
 				'front'              => $photo_fill,
 				'frank'              => $frank,
 				'footer'             => sprintf(
-					'<button type="button" class="bsb-summary__new" data-wp-on--click="actions.newRun">%s</button>',
+					'<button type="button" class="bsb-summary__newrun" data-wp-on--click="actions.newRun"><span class="bsb-summary__newrun-icon" aria-hidden="true"></span>%s</button>',
 					$new_run_label
 				),
 				'flip_label'         => $data['flip_label'] ?? '',

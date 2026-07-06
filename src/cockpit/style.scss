@@ -2022,6 +2022,34 @@ body.bsb-cockpit-dashboard {
 	box-shadow: 0 10px 22px var(--accent-shadow);
 }
 
+// The live cockpit's "New run" control mirrors the flip badge's paper pill — a
+// small ink-toned ghost pill with a leading glyph — rather than the solid accent
+// slab, so it reads as a quiet twin of the corner Flip badge on the same report
+// face. The stored-session detail page keeps the solid `.bsb-summary__new` pill
+// for its "back to listing" link.
+.bsb-summary__newrun {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.4rem;
+	padding: 0.38rem 0.7rem;
+	border: 1px solid color-mix(in srgb, var(--paper-ink) 22%, transparent);
+	border-radius: 999px;
+	background: color-mix(in srgb, var(--paper-ink) 8%, transparent);
+	color: var(--paper-ink);
+	font:
+		700 0.7rem/1 theme.$font-ui;
+	letter-spacing: 0.04em;
+	cursor: pointer;
+}
+
+.bsb-summary__newrun-icon {
+	width: 0.9rem;
+	height: 0.9rem;
+	background: currentColor;
+	mask: theme.$icon-plus center / contain no-repeat;
+	-webkit-mask: theme.$icon-plus center / contain no-repeat;
+}
+
 // The detail page's footer is a link back to the listing rather than the live
 // "New run" button; it wears the same pill. It is an <a>, so wp-admin's global
 // anchor styles tint and underline it on hover and ring it with a box-shadow +
