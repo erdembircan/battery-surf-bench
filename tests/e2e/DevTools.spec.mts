@@ -360,9 +360,16 @@ test.describe( 'Dev-tools battery-override panel', () => {
 		await toggle.click();
 		await expect( toggle ).toHaveClass( /is-running/ );
 
+		// Let the ticker actually move the level at least once — the bug this
+		// guards against is the sim's ticked value leaking into the manual
+		// override's own field and getting persisted as if it were a
+		// deliberately-armed override.
+		await page.waitForTimeout( 1500 );
+
 		// The persisted blob never carries a `sim` field, whether the sim was
-		// ever started or not. Poll briefly for the reactive persist watcher
-		// to have caught up with the click.
+		// ever started or not, and its `battery` layer stays at "follow the
+		// system" — the sim's ticked level never reaches it. Poll briefly for
+		// the reactive persist watcher to have caught up with the click.
 		await expect
 			.poll( () =>
 				page.evaluate(
@@ -375,16 +382,23 @@ test.describe( 'Dev-tools battery-override panel', () => {
 			( key ) => window.localStorage.getItem( key ),
 			'bsb-devtools-v4'
 		);
-		expect( JSON.parse( stored ?? '{}' ) ).not.toHaveProperty( 'sim' );
+		const parsed = JSON.parse( stored ?? '{}' );
+		expect( parsed ).not.toHaveProperty( 'sim' );
+		expect( parsed.battery ).toEqual( { charging: null, level: null } );
 
 		await page.reload();
 
 		// The reload starts a fresh session: the sim is not running, and the
-		// panel reopens (from the persisted `open`) without resuming anything.
+		// panel reopens (from the persisted `open`) without resuming anything
+		// — the level and charging readouts follow the system again, not a
+		// value the sim last computed before the reload.
 		await expect( page.locator( '.bsb-devtools__card' ) ).toBeVisible();
 		await expect(
 			page.locator( '.bsb-devtools__sim-toggle' )
 		).not.toHaveClass( /is-running/ );
+		await expect(
+			page.locator( '[data-devtools-charging="system"]' )
+		).toHaveClass( /is-selected/ );
 
 		expect( await page.content() ).not.toMatch( PHP_NOTICE );
 	} );
@@ -443,7 +457,7 @@ test.describe( 'Dev-tools battery-override panel', () => {
 		expect( await page.content() ).not.toMatch( PHP_NOTICE );
 	} );
 
-	test( 'stopping the discharge sim freezes the overrides in place and unmutes every control', async ( {
+	test( 'stopping the discharge sim reverts to the pre-sim state and unmutes every control', async ( {
 		page,
 	} ) => {
 		await page.goto( '/?bsbSession=cockpit' );
@@ -457,16 +471,26 @@ test.describe( 'Dev-tools battery-override panel', () => {
 			await minutesDecrease.click();
 		}
 
+		const levelValue = page.locator( '.bsb-devtools__level-value' );
+		const preSimLevel = await levelValue.textContent();
+
+		// Neither battery control is armed before the sim starts.
+		await expect(
+			page.locator( '[data-devtools-charging="system"]' )
+		).toHaveClass( /is-selected/ );
+
 		const toggle = page.locator( '.bsb-devtools__sim-toggle' );
 		await toggle.click();
 		await expect( toggle ).toHaveClass( /is-running/ );
 
 		// Let the ticker run for a moment so the level has actually moved off
-		// its seeded starting value.
+		// its pre-sim value, and the charging readout shows the sim forcing
+		// discharging.
 		await page.waitForTimeout( 1500 );
-
-		const levelValue = page.locator( '.bsb-devtools__level-value' );
-		const frozenLevel = await levelValue.textContent();
+		await expect( levelValue ).not.toHaveText( preSimLevel ?? '' );
+		await expect(
+			page.locator( '[data-devtools-charging="discharging"]' )
+		).toHaveClass( /is-selected/ );
 
 		await toggle.click();
 
@@ -486,10 +510,17 @@ test.describe( 'Dev-tools battery-override panel', () => {
 		).toBeEnabled();
 		await expect( minutesDecrease ).toBeEnabled();
 
-		// The overrides stay frozen exactly where they were — no reset, and no
-		// further movement now the ticker is stopped.
+		// The sim never touched the manual layer, so stopping it reverts —
+		// exactly the pre-sim reading, not the level the sim last computed —
+		// and the charging readout is back to System with nothing forced.
+		await expect( levelValue ).toHaveText( preSimLevel ?? '' );
+		await expect(
+			page.locator( '[data-devtools-charging="system"]' )
+		).toHaveClass( /is-selected/ );
+
+		// No further movement now the ticker is stopped.
 		await page.waitForTimeout( 1500 );
-		await expect( levelValue ).toHaveText( frozenLevel ?? '' );
+		await expect( levelValue ).toHaveText( preSimLevel ?? '' );
 
 		expect( await page.content() ).not.toMatch( PHP_NOTICE );
 	} );

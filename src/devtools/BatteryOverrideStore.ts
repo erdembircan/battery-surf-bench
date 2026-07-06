@@ -10,9 +10,12 @@
  * has its own explicit off-state (`null` follows the system), so a field
  * being set *is* the override being in effect — the same mental model for
  * charging (System / Charging / Discharging) and level (System, or a dragged
- * value — including one driven by the discharge-simulation sub-tool, see
- * {@link ./DischargeSimStore}, which writes into this same `level` field
- * rather than introducing a second one).
+ * value). This module's own getters and actions read and write its manual
+ * `battery` layer only; while a discharge sim (see {@link ./DischargeSimStore})
+ * is running it wins over this layer entirely, resolved by the pure
+ * {@link ./EffectiveBatteryOverride} — the getters below route through that
+ * resolver so the panel reflects a running sim, but the actions never need to
+ * know the sim exists.
  *
  * The shared slice's persistence (`localStorage`, hydration) lives in
  * {@link ./DevtoolsStore} — this module only owns the battery tool's own
@@ -25,6 +28,7 @@
 import { store, getElement } from '@wordpress/interactivity';
 import { type StorePart } from '../cockpit/StoreParts';
 import { current, type DevtoolsStore } from './DevtoolsStore';
+import { effectiveBatteryOverride } from './EffectiveBatteryOverride';
 
 /**
  * The raw system battery percentage published by the production cockpit
@@ -53,14 +57,15 @@ export const resetBatteryOverride = (): void => {
 };
 
 /**
- * The level row's displayed percentage: the forced value while armed, the
- * live system reading while following it, falling back to 50 only when no
- * system reading exists at all.
+ * The level row's displayed percentage: the forced value while armed
+ * (including a level a running discharge sim is driving), the live system
+ * reading while following it, falling back to 50 only when no system reading
+ * exists at all.
  *
  * @return The percentage the level row should display, 0–100.
  */
 const displayedLevelPercent = (): number => {
-	const { level } = current().battery;
+	const { level } = effectiveBatteryOverride( current() );
 
 	if ( level !== null ) {
 		return Math.round( level * 100 );
@@ -72,24 +77,31 @@ const displayedLevelPercent = (): number => {
 /** The battery-override section of the dev-tools panel, joining `bsb/cockpit`. */
 export const batteryOverrideStore: StorePart = {
 	state: {
-		/** Whether the charging override follows the real (system) reading. */
+		/**
+		 * Whether the charging override follows the real (system) reading —
+		 * false while a discharge sim is running, since a running sim always
+		 * forces discharging.
+		 */
 		get devtoolsIsChargingSystem(): boolean {
-			return current().battery.charging === null;
+			return effectiveBatteryOverride( current() ).charging === null;
 		},
 
 		/** Whether charging is forced on. */
 		get devtoolsIsChargingOn(): boolean {
-			return current().battery.charging === true;
+			return effectiveBatteryOverride( current() ).charging === true;
 		},
 
-		/** Whether charging is forced off (discharging). */
+		/**
+		 * Whether charging is forced off (discharging) — true either from a
+		 * manual choice or because a discharge sim is currently running.
+		 */
 		get devtoolsIsChargingOff(): boolean {
-			return current().battery.charging === false;
+			return effectiveBatteryOverride( current() ).charging === false;
 		},
 
 		/** Whether the level override is armed (a value has been dragged in, or a discharge sim is driving it). */
 		get devtoolsIsLevelForced(): boolean {
-			return current().battery.level !== null;
+			return effectiveBatteryOverride( current() ).level !== null;
 		},
 
 		/**
@@ -113,16 +125,23 @@ export const batteryOverrideStore: StorePart = {
 
 		/**
 		 * Whether an override is actually in effect: a charging choice other
-		 * than System, or a forced level (dragged in by hand, or driven by a
-		 * running discharge sim). There is no separate "enabled" switch — each
-		 * field already carries its own off-state (`null` follows the system),
-		 * so a field being set is what "armed" means. Drives the pill's coral
-		 * state and the card header's "Override active" text.
+		 * than System, a forced level (dragged in by hand), or a running
+		 * discharge sim — checked directly here (not through the resolver)
+		 * since a sim with `{null, null}` still sitting underneath in the
+		 * manual layer must still read as armed. There is no separate
+		 * "enabled" switch otherwise — each manual field already carries its
+		 * own off-state (`null` follows the system), so a field being set is
+		 * what "armed" means. Drives the pill's coral state and the card
+		 * header's "Override active" text.
 		 */
 		get devtoolsIsArmed(): boolean {
-			const { charging, level } = current().battery;
+			const { battery, sim } = current();
 
-			return charging !== null || level !== null;
+			return (
+				battery.charging !== null ||
+				battery.level !== null ||
+				sim.running
+			);
 		},
 	},
 	actions: {

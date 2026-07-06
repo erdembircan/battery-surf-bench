@@ -33,6 +33,7 @@ interface DevtoolsState {
 		minutes: number;
 		running: boolean;
 		startedAt: number | null;
+		currentLevel: number | null;
 	};
 }
 
@@ -78,6 +79,7 @@ beforeEach( () => {
 				minutes: 30,
 				running: false,
 				startedAt: null,
+				currentLevel: null,
 			},
 		},
 		batterySystemPercent: null,
@@ -224,14 +226,55 @@ describe( 'batteryOverrideStore derived state', () => {
 		mocks.state.devtools.battery.charging = null;
 		expect( derived.devtoolsIsArmed ).toBe( false );
 
-		// ...but a dragged-in level alone also arms it — this is also how a
-		// running discharge sim arms the panel, since it writes into this same
-		// field (see DischargeSimStore.test.ts).
+		// ...but a dragged-in level alone also arms it.
 		mocks.state.devtools.battery.level = 0.3;
 		expect( derived.devtoolsIsArmed ).toBe( true );
 
 		// Clearing the level back to system disarms it again.
 		mocks.state.devtools.battery.level = null;
 		expect( derived.devtoolsIsArmed ).toBe( false );
+	} );
+
+	it( 'is armed while a discharge sim is running, even with the manual layer at {null, null}', () => {
+		expect( mocks.state.devtools.battery ).toEqual( {
+			charging: null,
+			level: null,
+		} );
+		expect( derived.devtoolsIsArmed ).toBe( false );
+
+		mocks.state.devtools.sim.running = true;
+		expect( derived.devtoolsIsArmed ).toBe( true );
+
+		mocks.state.devtools.sim.running = false;
+		expect( derived.devtoolsIsArmed ).toBe( false );
+	} );
+
+	it( 'while running, the getters reflect the sim’s forced level and discharging — not the manual layer', () => {
+		mocks.state.devtools.sim.running = true;
+		mocks.state.devtools.sim.currentLevel = 0.35;
+
+		expect( derived.devtoolsIsChargingSystem ).toBe( false );
+		expect( derived.devtoolsIsChargingOff ).toBe( true );
+		expect( derived.devtoolsIsChargingOn ).toBe( false );
+		expect( derived.devtoolsIsLevelForced ).toBe( true );
+		expect( derived.devtoolsLevelPercent ).toBe( 35 );
+		expect( derived.devtoolsLevelFillPercent ).toBe( '35%' );
+	} );
+
+	it( 'once stopped, the getters revert to reading the manual layer again', () => {
+		mocks.state.devtools.battery = { charging: true, level: 0.6 };
+		mocks.state.devtools.sim.running = true;
+		mocks.state.devtools.sim.currentLevel = 0.1;
+
+		// While running, the sim wins outright.
+		expect( derived.devtoolsLevelPercent ).toBe( 10 );
+		expect( derived.devtoolsIsChargingOff ).toBe( true );
+
+		mocks.state.devtools.sim.running = false;
+		mocks.state.devtools.sim.currentLevel = null;
+
+		// Stopped: the manual layer underneath is exactly what's left.
+		expect( derived.devtoolsLevelPercent ).toBe( 60 );
+		expect( derived.devtoolsIsChargingOn ).toBe( true );
 	} );
 } );

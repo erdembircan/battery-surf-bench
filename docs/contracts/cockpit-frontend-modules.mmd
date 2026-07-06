@@ -337,8 +337,12 @@ classDiagram
     %% Battery-override seam: every reading (real or dev-tools-forced) resolves
     %% through BatteryOverride before BatteryStore's exported applyReading acts
     %% on it, so display, sample recording and the stop conditions share one
-    %% truth. Passthrough when no override is present or armed.
+    %% truth. Passthrough when no override is present or armed. The override
+    %% BatteryStore feeds into BatteryOverride is itself the effective one —
+    %% see EffectiveBatteryOverride below, which composes the dev-tools panel's
+    %% manual layer with a running discharge sim.
     BatteryStore --> BatteryOverride : resolves reading before applying it
+    BatteryStore --> EffectiveBatteryOverride : resolves the effective dev-tools override
 
     %% --- Dev-tools module (src/devtools/), enqueued only in a dev environment.
     %% A separate script module from CockpitView above; it joins the SAME
@@ -346,12 +350,12 @@ classDiagram
     %% override on collision), which is why every member it contributes carries
     %% a `devtools` prefix. In production this module never loads at all.
     %% The devtools slice is itself composed of a shared shell (persistence,
-    %% panel open state) plus one StorePart per sub-tool: the battery override,
-    %% and the discharge simulation that drives it, plus the panel-wide Reset
-    %% action that composes both sub-tools' own resets. A third tool is a new
-    %% StorePart folded in here, not a rework of the composition root. Only
-    %% `open` and `battery` persist across a reload — the discharge sim is a
-    %% live-session-only driver and is never written to or restored from
+    %% panel open state) plus one StorePart per sub-tool: the manual battery
+    %% override, and the discharge simulation — each own its own state field
+    %% (`battery`, `sim`) and never writes to the other's. A third tool is a
+    %% new StorePart folded in here, not a rework of the composition root.
+    %% Only `open` and `battery` persist across a reload — the discharge sim is
+    %% a live-session-only driver and is never written to or restored from
     %% storage.
     class DevToolsView {
         <<module>>
@@ -380,6 +384,11 @@ classDiagram
         state: devtoolsSimFromDisplay/ToDisplay/MinutesDisplay, devtoolsIsSimRunning, devtoolsIsSimStartBlocked
         actions: devtoolsStepSim, devtoolsToggleSim
         +resetDischargeSim() void
+    }
+
+    class EffectiveBatteryOverride {
+        <<module>>
+        +effectiveBatteryOverride(devtools) BatteryOverrideState
     }
 
     %% Composes the sub-tools' own exported resets rather than living in
@@ -411,11 +420,15 @@ classDiagram
     DischargeSimStore --> DevtoolsStore : reads/writes the shared devtools slice
     DischargeSimStore --> DischargeSim : evaluates the pure model against the clock
 
-    %% The discharge sim is purely a driver of the existing override seam: its
-    %% ticker writes into the same `devtools.battery.level`/`charging` fields
-    %% BatteryOverrideStore itself owns — no second interception mechanism, and
-    %% no new "armed" logic (devtoolsIsArmed already reads a diverged level).
-    DischargeSimStore ..> BatteryOverrideStore : drives battery.level/charging
+    %% The discharge sim writes only its own `sim.currentLevel`/`running`
+    %% fields — never `devtools.battery`, which BatteryOverrideStore's manual
+    %% actions alone own. The two layers are combined into the single
+    %% effective override by the pure EffectiveBatteryOverride resolver: a
+    %% running sim always wins outright; otherwise the manual layer passes
+    %% through unchanged. BatteryOverrideStore's own getters (armed/level/
+    %% charging) route through the same resolver so the panel reflects a
+    %% running sim, while its actions still only ever touch `battery`.
+    BatteryOverrideStore --> EffectiveBatteryOverride : resolves the effective override for its getters
 
     %% The panel-wide Reset button composes each sub-tool's own exported
     %% reset — it never duplicates their logic, and it is the only module that

@@ -110,6 +110,10 @@ interface CockpitConfig {
 				charging: boolean | null;
 				level: number | null;
 			};
+			sim?: {
+				running: boolean;
+				currentLevel: number | null;
+			};
 		};
 	};
 	actions: {
@@ -946,6 +950,21 @@ describe( 'bsb/cockpit view store', () => {
 				mocks.config!.state.devtools = { battery: override };
 			};
 
+			/**
+			 * Arms a running discharge sim on the merged state, as the devtools
+			 * module's `DischargeSimStore` would — the sim always means actively
+			 * discharging at whatever level it last computed, resolved ahead of
+			 * the manual `battery` layer by `effectiveBatteryOverride`.
+			 *
+			 * @param currentLevel The sim's live level (0–1) for the instant under test.
+			 */
+			const setRunningSim = ( currentLevel: number ): void => {
+				mocks.config!.state.devtools = {
+					battery: { charging: null, level: null },
+					sim: { running: true, currentLevel },
+				};
+			};
+
 			it( 'forces charging through the override, stopping a live run despite a discharging reading', async () => {
 				const mockBattery = {
 					level: 0.5,
@@ -985,6 +1004,28 @@ describe( 'bsb/cockpit view store', () => {
 
 				await vi.waitFor( () =>
 					expect( mocks.context.batteryLevel ).toBe( 50 )
+				);
+				expect( mocks.context.batteryCharging ).toBe( false );
+
+				cleanup();
+			} );
+
+			it( 'a running discharge sim drives the resolved reading, forcing discharging at its live level', async () => {
+				const mockBattery = {
+					level: 0.5,
+					charging: false,
+					addEventListener: vi.fn(),
+					removeEventListener: vi.fn(),
+				};
+				( navigator as { getBattery?: unknown } ).getBattery = () =>
+					Promise.resolve( mockBattery );
+
+				setRunningSim( 0.42 );
+
+				const cleanup = mocks.config!.callbacks.initBattery();
+
+				await vi.waitFor( () =>
+					expect( mocks.context.batteryLevel ).toBe( 42 )
 				);
 				expect( mocks.context.batteryCharging ).toBe( false );
 

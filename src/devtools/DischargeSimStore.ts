@@ -1,14 +1,17 @@
 /**
  * The discharge-simulation sub-tool: the dev-tools panel's second section,
- * additive alongside the battery-override tool rather than a rework of it.
- * It is purely a *driver* of the existing battery-override seam — a 1-second
- * ticker evaluates the pure model ({@link ./DischargeSim}) against the clock
- * and writes the result into `state.devtools.battery.level` (forcing
- * `charging` to discharging on start), so display, sample recording, the
- * plugged/target-drop stops and the panel's own level row all react exactly
- * as they would to a real draining battery. No new interception mechanism,
- * and no new "armed" logic — a running sim diverges `battery.level`, which
- * `devtoolsIsArmed` (in {@link ./BatteryOverrideStore}) already reads.
+ * additive alongside the battery-override tool rather than a rework of it. A
+ * 1-second ticker evaluates the pure model ({@link ./DischargeSim}) against
+ * the clock and writes the result into its own `sim.currentLevel` output
+ * field — never into `state.devtools.battery`, the manual override's own
+ * field. The two layers are combined into the single effective override by
+ * the pure resolver {@link ./EffectiveBatteryOverride}, which every consumer
+ * (display, sample recording, the plugged/target-drop stops, the panel's own
+ * level row) reads instead of the manual layer directly. Because the sim
+ * never touches the manual layer, stopping it (or letting it complete) simply
+ * stops it winning — whatever the manual override held underneath (or
+ * nothing, if it was never armed) is exactly what's left, with no separate
+ * reset needed for the battery fields.
  *
  * Also exports {@link resetDischargeSim}, a plain function rather than a
  * `StorePart` action — the panel's cross-cutting Reset button ({@link
@@ -39,13 +42,13 @@ let tickerId: ReturnType< typeof setInterval > | undefined;
 const TICK_MS = 1000;
 
 /**
- * Writes the simulated level (and forces discharging) for the current
- * instant, stopping the ticker and freezing `running` false once the run's
- * end is reached.
+ * Writes the simulated level for the current instant into the sim's own
+ * `currentLevel` output field — never the manual override's `battery` field
+ * — stopping the ticker and reverting (`running` false, `currentLevel` null)
+ * once the run's end is reached.
  */
 const tick = (): void => {
-	const state = current();
-	const { sim } = state;
+	const { sim } = current();
 
 	if ( ! sim.running || sim.startedAt === null ) {
 		stopTicker();
@@ -53,12 +56,12 @@ const tick = (): void => {
 	}
 
 	const elapsed = Date.now() - sim.startedAt;
-	state.battery.level = simulatedLevel( sim, elapsed );
-	state.battery.charging = false;
+	sim.currentLevel = simulatedLevel( sim, elapsed );
 
 	if ( isSimComplete( sim, elapsed ) ) {
 		stopTicker();
 		sim.running = false;
+		sim.currentLevel = null;
 	}
 };
 
@@ -81,13 +84,15 @@ const stopTicker = (): void => {
 
 /**
  * Stops a running sim and restores its full state to {@link DEFAULT_SIM} —
- * `running`, `startedAt`, and the `fromPercent`/`toPercent`/`minutes`
- * steppers. Exported (rather than folded into a `StorePart` action) so the
- * panel's cross-cutting Reset button ({@link ./ResetStore}) can call it
- * directly without a second store member. Does not touch `battery.level`/
- * `charging` — clearing those back to "follow the system" is the battery
- * sub-tool's own reset ({@link ./BatteryOverrideStore}.resetBatteryOverride),
- * which the panel-wide reset composes alongside this one.
+ * `running`, `startedAt`, `currentLevel`, and the
+ * `fromPercent`/`toPercent`/`minutes` steppers. Exported (rather than folded
+ * into a `StorePart` action) so the panel's cross-cutting Reset button
+ * ({@link ./ResetStore}) can call it directly without a second store member.
+ * Does not touch `battery.level`/`charging` — clearing those back to "follow
+ * the system" is the battery sub-tool's own reset ({@link
+ * ./BatteryOverrideStore}.resetBatteryOverride), which the panel-wide reset
+ * composes alongside this one; this sub-tool's own state never reached that
+ * field in the first place.
  */
 export const resetDischargeSim = (): void => {
 	stopTicker();
@@ -95,6 +100,7 @@ export const resetDischargeSim = (): void => {
 	const { sim } = current();
 	sim.running = false;
 	sim.startedAt = null;
+	sim.currentLevel = null;
 	sim.fromPercent = DEFAULT_SIM.fromPercent;
 	sim.toPercent = DEFAULT_SIM.toPercent;
 	sim.minutes = DEFAULT_SIM.minutes;
@@ -169,20 +175,22 @@ export const dischargeSimStore: StorePart = {
 
 		/**
 		 * Starts the sim (guarded by the same `to < from` rule the button's
-		 * `disabled` binding enforces) or stops it. Starting forces discharging
-		 * and seeds the level at the configured start immediately, so the
-		 * panel does not wait a full tick to show the run has begun. Stopping
-		 * only clears the ticker and flips `running` false — the overrides
-		 * stay frozen exactly where they were; the System buttons already exist
-		 * to clear them.
+		 * `disabled` binding enforces) or stops it. Starting seeds
+		 * `currentLevel` at the configured start immediately, so the panel does
+		 * not wait a full tick to show the run has begun — it never touches
+		 * `battery.charging`/`battery.level`, the manual override's own fields.
+		 * Stopping clears the ticker, flips `running` false, and clears
+		 * `currentLevel` back to null: since the sim never wrote to the manual
+		 * layer, there is nothing to revert there — whatever override (or lack
+		 * of one) was underneath is simply what the cockpit sees again.
 		 */
 		devtoolsToggleSim(): void {
-			const state = current();
-			const { sim } = state;
+			const { sim } = current();
 
 			if ( sim.running ) {
 				stopTicker();
 				sim.running = false;
+				sim.currentLevel = null;
 				return;
 			}
 
@@ -192,8 +200,7 @@ export const dischargeSimStore: StorePart = {
 
 			sim.startedAt = Date.now();
 			sim.running = true;
-			state.battery.charging = false;
-			state.battery.level = simulatedLevel( sim, 0 );
+			sim.currentLevel = simulatedLevel( sim, 0 );
 			startTicker();
 		},
 	},
