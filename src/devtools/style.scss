@@ -220,8 +220,8 @@ $ease: cubic-bezier(0.22, 1, 0.36, 1);
 	// This selector sets its own `display`, which overrides the user-agent
 	// `display: none` that `[hidden]` would otherwise apply on its own — so
 	// without this guard the `hidden` binding above would leave the button
-	// visible as an empty grid cell. Re-assert `display: none` explicitly so
-	// `[hidden]` wins.
+	// (and its circular-arrow icon) visible. Re-assert `display: none`
+	// explicitly so `[hidden]` wins.
 	&[hidden] {
 		display: none;
 	}
