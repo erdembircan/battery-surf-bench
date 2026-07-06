@@ -1,4 +1,10 @@
 @use "sass:color";
+// Icons only, not the whole theme partial: `@use`-ing `../styles/theme`
+// itself would also emit its `@font-face` rules (Anton, Hanken Grotesk,
+// Space Mono, Pacifico, Caveat) into this stylesheet, which doesn't use any
+// of those fonts. Aliased to `theme` so the call below reads the same as
+// every other `theme.$icon-*`/`theme.icon-*()` consumer.
+@use '../styles/icons' as theme;
 
 // Typography
 $font-serif: georgia, "Times New Roman", times, serif;
@@ -699,16 +705,7 @@ $tag-bg: #eef3f8; // light-blue tag chip
 	pointer-events: none;
 	z-index: 999999;
 	will-change: transform;
-
-	svg {
-		display: block;
-		width: 100%;
-		height: 100%;
-	}
-
-	path {
-		fill: $ink;
-		stroke: $white;
-		stroke-width: 1;
-	}
+	background-image: theme.icon-cursor($ink, $white);
+	background-size: 100% 100%;
+	background-repeat: no-repeat;
 }
