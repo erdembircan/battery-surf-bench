@@ -1,0 +1,41 @@
+name: Setup Playwright
+description: Install the Chromium browser needed for e2e, reusing a cached binary across runs
+
+runs:
+  using: composite
+  steps:
+    # The cache key must be pinned to the exact installed Playwright version:
+    # the CLI refuses to drive a browser binary that doesn't match its own
+    # version, so a stale cached binary would break the run rather than speed
+    # it up. Reading it from the installed package (via `playwright --version`)
+    # keeps the key in lockstep with whatever version the lockfile resolves,
+    # without hand-maintaining a version string here. This step must run
+    # before the cache step below, since the cache key references its output.
+    - run: |
+        echo "PLAYWRIGHT_VERSION=$(pnpm exec playwright --version | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')" >> "$GITHUB_ENV"
+      shell: bash
+
+    - uses: actions/cache@v5
+      id: playwright-cache
+      with:
+        path: ~/.cache/ms-playwright
+        key: playwright-${{ runner.os }}-${{ env.PLAYWRIGHT_VERSION }}
+
+    # No `--with-deps` here, deliberately: a probe run on ubuntu-latest showed
+    # `ldd` reports zero missing shared libraries for the Chromium binary --
+    # the runner image already ships everything Chromium needs, and a plain
+    # `playwright install chromium` (no apt) passed the full e2e suite green.
+    # `--with-deps` would only reinstall libraries already present, while
+    # adding an apt call against an external mirror whose latency is
+    # unbounded (fine most of the time, but can spike to minutes under mirror
+    # traffic) for zero benefit.
+    #
+    # This runs unconditionally rather than being gated on cache-hit/miss: on
+    # a hit it's a near-instant no-op since the binary is already restored to
+    # ~/.cache/ms-playwright, and on a miss it performs the actual download.
+    # Running it every time is deliberate robustness against a partial or
+    # corrupt cache, and it never touches apt either way. The cache's benefit
+    # is removing the browser download's dependency on external CDN traffic
+    # on a hit.
+    - run: pnpm exec playwright install chromium
+      shell: bash
