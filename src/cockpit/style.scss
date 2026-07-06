@@ -1765,12 +1765,21 @@ body.bsb-cockpit-dashboard {
 	min-height: 0;
 }
 
-// the discreet flip indicator, on both faces in the same corner
-.bsb-flipcard__flip {
+// Both flip badges — and any extra back-face actions beside them — cluster in
+// this absolutely-placed corner so they share one baseline in the same spot on
+// every face.
+.bsb-flipcard__corner {
 	position: absolute;
 	right: 1rem;
 	bottom: 1rem;
 	z-index: 4;
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+// the discreet flip indicator, on both faces in the same corner
+.bsb-flipcard__flip {
 	display: inline-flex;
 	align-items: center;
 	gap: 0.4rem;
@@ -2024,9 +2033,9 @@ body.bsb-cockpit-dashboard {
 
 // The live cockpit's "New run" control mirrors the flip badge's paper pill — a
 // small ink-toned ghost pill with a leading glyph — rather than the solid accent
-// slab, so it reads as a quiet twin of the corner Flip badge on the same report
-// face. The stored-session detail page keeps the solid `.bsb-summary__new` pill
-// for its "back to listing" link.
+// slab, and it is placed alongside the Flip badge in the shared `.bsb-flipcard__corner`
+// so the two read as a quiet, aligned pair on the report face. The stored-session
+// detail page keeps the solid `.bsb-summary__new` pill for its "back to listing" link.
 .bsb-summary__newrun {
 	display: inline-flex;
 	align-items: center;

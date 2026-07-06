@@ -42,16 +42,20 @@ class FlipPostcard implements View {
 	 *     @type string $flip_state  Store getter bound to the card's flipped class
 	 *                               (e.g. `state.isFlipped`).
 	 *     @type string $modifier    Optional extra class on the card (e.g. `bsb-flipcard--idle`).
+	 *     @type string $back_actions Already-escaped markup placed in the back face's
+	 *                               corner, before the flip badge (e.g. the cockpit's
+	 *                               New run button).
 	 * }
 	 * @return string The flip-card markup.
 	 */
 	public function render( array $data = array() ): string {
-		$front       = isset( $data['front'] ) ? (string) $data['front'] : '';
-		$back        = isset( $data['back'] ) ? (string) $data['back'] : '';
-		$flip_label  = esc_html( isset( $data['flip_label'] ) ? (string) $data['flip_label'] : '' );
-		$flip_action = esc_attr( isset( $data['flip_action'] ) ? (string) $data['flip_action'] : '' );
-		$flip_state  = esc_attr( isset( $data['flip_state'] ) ? (string) $data['flip_state'] : '' );
-		$modifier    = isset( $data['modifier'] ) ? ' ' . esc_attr( (string) $data['modifier'] ) : '';
+		$front        = isset( $data['front'] ) ? (string) $data['front'] : '';
+		$back         = isset( $data['back'] ) ? (string) $data['back'] : '';
+		$flip_label   = esc_html( isset( $data['flip_label'] ) ? (string) $data['flip_label'] : '' );
+		$flip_action  = esc_attr( isset( $data['flip_action'] ) ? (string) $data['flip_action'] : '' );
+		$flip_state   = esc_attr( isset( $data['flip_state'] ) ? (string) $data['flip_state'] : '' );
+		$modifier     = isset( $data['modifier'] ) ? ' ' . esc_attr( (string) $data['modifier'] ) : '';
+		$back_actions = isset( $data['back_actions'] ) ? (string) $data['back_actions'] : '';
 
 		// The outer card owns the 3D perspective on a card-sized wrapper; the inner
 		// element is the one that turns (it holds preserve-3d and the flip rotation).
@@ -63,11 +67,11 @@ class FlipPostcard implements View {
 	<div class="bsb-flipcard__inner">
 		<div class="bsb-flipcard__face bsb-flipcard__face--front">
 			{$front}
-			<button type="button" class="bsb-flipcard__flip" data-wp-on--click="{$flip_action}"><span class="bsb-flipcard__flip-icon" aria-hidden="true"></span>{$flip_label}</button>
+			<div class="bsb-flipcard__corner"><button type="button" class="bsb-flipcard__flip" data-wp-on--click="{$flip_action}"><span class="bsb-flipcard__flip-icon" aria-hidden="true"></span>{$flip_label}</button></div>
 		</div>
 		<div class="bsb-flipcard__face bsb-flipcard__face--back">
 			{$back}
-			<button type="button" class="bsb-flipcard__flip bsb-flipcard__flip--paper" data-wp-on--click="{$flip_action}"><span class="bsb-flipcard__flip-icon" aria-hidden="true"></span>{$flip_label}</button>
+			<div class="bsb-flipcard__corner">{$back_actions}<button type="button" class="bsb-flipcard__flip bsb-flipcard__flip--paper" data-wp-on--click="{$flip_action}"><span class="bsb-flipcard__flip-icon" aria-hidden="true"></span>{$flip_label}</button></div>
 		</div>
 	</div>
 </div>

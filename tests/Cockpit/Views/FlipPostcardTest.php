@@ -83,4 +83,50 @@ final class FlipPostcardTest extends TestCase {
 		// The face contents are placed verbatim (already escaped by their views).
 		$this->assertStringContainsString( '<span class="front-content"></span>', $markup );
 	}
+
+	/**
+	 * Both faces cluster their flip badge in a shared, absolutely-placed corner
+	 * so the badge sits in the same spot on every face. An optional back_actions
+	 * slot (e.g. the cockpit's "New run" button) is placed in the back face's
+	 * corner, before the flip badge, so the two read as one aligned pair — it
+	 * never leaks onto the front face.
+	 */
+	public function test_render_places_back_actions_in_the_back_corner(): void {
+		$markup = ( new FlipPostcard() )->render(
+			array(
+				'front'        => '<span class="front-content"></span>',
+				'back'         => '<span class="back-content"></span>',
+				'flip_label'   => 'Flip',
+				'flip_action'  => 'actions.toggleFlip',
+				'flip_state'   => 'state.isFlipped',
+				'back_actions' => '<button class="probe-action"></button>',
+			)
+		);
+
+		// Both faces wrap their flip badge in the shared corner.
+		$this->assertSame( 2, substr_count( $markup, 'class="bsb-flipcard__corner"' ) );
+		// The probe appears exactly once, inside the back face's corner, ahead of
+		// the flip badge.
+		$this->assertSame( 1, substr_count( $markup, 'probe-action' ) );
+		$this->assertStringContainsString( '<div class="bsb-flipcard__corner"><button class="probe-action"></button><button type="button" class="bsb-flipcard__flip bsb-flipcard__flip--paper"', $markup );
+	}
+
+	/**
+	 * Without a back_actions slot, the front and back corners hold nothing but
+	 * their own flip badge — no stray markup leaks in.
+	 */
+	public function test_render_without_back_actions_leaves_corners_bare(): void {
+		$markup = ( new FlipPostcard() )->render(
+			array(
+				'front'       => '<span class="front-content"></span>',
+				'back'        => '<span class="back-content"></span>',
+				'flip_label'  => 'Flip',
+				'flip_action' => 'actions.toggleFlip',
+				'flip_state'  => 'state.isFlipped',
+			)
+		);
+
+		$this->assertStringContainsString( '<div class="bsb-flipcard__corner"><button type="button" class="bsb-flipcard__flip"', $markup );
+		$this->assertStringContainsString( '<div class="bsb-flipcard__corner"><button type="button" class="bsb-flipcard__flip bsb-flipcard__flip--paper"', $markup );
+	}
 }

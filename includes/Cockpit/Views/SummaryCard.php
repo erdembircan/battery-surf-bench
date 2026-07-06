@@ -20,13 +20,15 @@ defined( 'ABSPATH' ) || exit;
  * page show an identical card — only the wiring around it differs.
  *
  * Both consumers seed the same store fields and bind the same getters; this view
- * varies only in three places the caller controls: whether the overlay ships
+ * varies only in a few places the caller controls: whether the overlay ships
  * `hidden` (the cockpit raises it on run end, the detail page shows it at once),
  * an optional "Started" stat the detail page adds (the live summary has no
- * wall-clock start to show), and the footer slot (the cockpit's "New run" button
- * versus the detail page's "back to listing" link). The picture front, the
- * franked stamp and the footer arrive as already-escaped markup and are placed
- * verbatim; this view escapes only its own text slots.
+ * wall-clock start to show), the footer slot (the detail page's "back to
+ * listing" link; the cockpit leaves it empty) and the back_actions slot (the
+ * cockpit's "New run" button, placed beside the flip badge in the shared card
+ * corner; the detail page leaves it empty). The picture front, the franked
+ * stamp, the footer and the back_actions arrive as already-escaped markup and
+ * are placed verbatim; this view escapes only its own text slots.
  */
 class SummaryCard implements View {
 
@@ -38,7 +40,11 @@ class SummaryCard implements View {
 	 *
 	 *     @type string $front              Already-escaped markup for the picture front face.
 	 *     @type string $frank              Already-escaped franked-stamp markup for the back.
-	 *     @type string $footer             Already-escaped footer markup (e.g. the "New run" button).
+	 *     @type string $footer             Already-escaped footer markup (e.g. the detail page's
+	 *                                      "back to listing" link).
+	 *     @type string $back_actions       Already-escaped markup placed in the card's corner
+	 *                                      beside the flip badge (e.g. the cockpit's "New run"
+	 *                                      button).
 	 *     @type string $flip_label         Raw label for the flip badge (the view escapes it).
 	 *     @type string $tte_label          Raw label for the time-to-empty stat.
 	 *     @type string $rate_session_label Raw label for the session drain-rate stat.
@@ -57,6 +63,7 @@ class SummaryCard implements View {
 		$front              = isset( $data['front'] ) ? (string) $data['front'] : '';
 		$frank              = isset( $data['frank'] ) ? (string) $data['frank'] : '';
 		$footer             = isset( $data['footer'] ) ? (string) $data['footer'] : '';
+		$back_actions       = isset( $data['back_actions'] ) ? (string) $data['back_actions'] : '';
 		$flip_label         = isset( $data['flip_label'] ) ? (string) $data['flip_label'] : '';
 		$tte_label          = esc_html( isset( $data['tte_label'] ) ? (string) $data['tte_label'] : '' );
 		$rate_session_label = esc_html( isset( $data['rate_session_label'] ) ? (string) $data['rate_session_label'] : '' );
@@ -68,6 +75,12 @@ class SummaryCard implements View {
 		$measured_label     = esc_html( isset( $data['measured_label'] ) ? (string) $data['measured_label'] : '' );
 		$projected_label    = esc_html( isset( $data['projected_label'] ) ? (string) $data['projected_label'] : '' );
 		$start_hidden       = ! isset( $data['start_hidden'] ) || (bool) $data['start_hidden'];
+
+		$actions = '' === $footer ? '' : <<<HTML
+			<div class="bsb-summary__actions">
+				{$footer}
+			</div>
+		HTML;
 
 		$summary_back = <<<HTML
 {$frank}
@@ -90,20 +103,19 @@ class SummaryCard implements View {
 				<div class="bsb-stat"><span class="bsb-stat__label">{$dropped_label}</span><span class="bsb-stat__value"><span data-wp-text="context.summaryDropped"></span><span class="bsb-stat__unit">{$pts_label}</span></span></div>
 				<div class="bsb-stat"><span class="bsb-stat__label">{$elapsed_run_label}</span><span class="bsb-stat__value" data-wp-text="state.summaryElapsed"></span></div>
 			</div>
-			<div class="bsb-summary__actions">
-				{$footer}
-			</div>
+			{$actions}
 		</div>
 HTML;
 
 		$summary_card = ( new FlipPostcard() )->render(
 			array(
-				'front'       => $front,
-				'back'        => $summary_back,
-				'flip_label'  => $flip_label,
-				'flip_action' => 'actions.toggleFlip',
-				'flip_state'  => 'state.isFlipped',
-				'modifier'    => 'bsb-flipcard--summary',
+				'front'        => $front,
+				'back'         => $summary_back,
+				'flip_label'   => $flip_label,
+				'flip_action'  => 'actions.toggleFlip',
+				'flip_state'   => 'state.isFlipped',
+				'modifier'     => 'bsb-flipcard--summary',
+				'back_actions' => $back_actions,
 			)
 		);
 
