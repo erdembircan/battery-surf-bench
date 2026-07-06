@@ -17,3 +17,4 @@ jobs:
       - uses: ./.github/actions/setup-node
       - uses: ./.github/actions/setup-playwright
       - run: pnpm test:e2e
+# cache-hit probe run 2
