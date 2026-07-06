@@ -264,26 +264,21 @@ When you notice a defect — a bug, a failing or skipped test, a lint violation,
 - **A pipe masks the exit code.** In `cmd | tail`, the shell reports `tail`'s status (always `0`), hiding a real non-zero failure.
 - **Instead:** run the command with full output and confirm the genuine exit code, e.g. `composer lint; echo "EXIT=$?"`. Read the whole report, or `grep` for the error summary. Reserve truncation for genuinely verbose commands that clearly succeed at the end (installs, builds), and even then check the real status (e.g. `${PIPESTATUS[0]}`).
 
-## Workflows — Run Them Locally, Then Do What They Do
+## CI — Wait for Every Check to Finish Green
 
-**GitHub Actions is disabled.** The workflow definitions are parked under `.github_bak/` (renamed from `.github/` so Actions never triggers). They are not dead — they remain the **authoritative definition of what must pass and what side effects must happen** for each git operation. Nothing runs them for you anymore, so **you replay them locally and carry out the operations they define.**
+CI runs after every push to a pull request and after every merge. Before treating any work as done — or moving on to anything that depends on it — **wait until all CI checks have finished and are green.**
 
-`.github_bak/workflows/` is the single source of truth. **Read the relevant workflow file each time** and do exactly what it does — do not rely on a description here, and never restate its jobs, commands, or steps in this document (a copy here is a second source of truth that silently rots when the workflow changes).
-
-The mandate, before any work counts as done:
-
-- **Committing to a PR branch** → replay the PR-triggered workflow. Run each job's steps locally; every one green before you push. Then commit (Conventional Commits format), push, and **open the PR yourself** for me to review — don't stop to ask (see the auto-commit-and-PR convention).
-- **Merging / pushing to `master`** → replay the push-to-`master` workflow. Run its jobs locally, **and** reproduce by hand every side effect it performs automatically on CI — anything it commits back to the repo (e.g. a regenerated artifact) you must generate and commit yourself, with the same conditions the workflow applies. Master must never be left in a state where a workflow step would have failed or a generated artifact is stale.
-
-A red step is a stop-and-fix, exactly as a red CI check was. Never report success on a partial or skipped replay.
-
-Each job declares its own setup. If a job needs a tool that isn't installed locally, obtain it the way the workflow's setup steps do, or via the tool's official container image.
-
-In particular, **WP-CLI (`wp`) is not installed locally and won't be — run every `wp` operation through a Docker container** (its official image), not a local binary. That's the standing decision; the actual `wp` subcommand and flags are still derived from the workflow and the project script it runs, never copied here.
+- **The visible checks are not necessarily the whole set.** A check that passes can trigger further checks that are queued, not yet started, or not yet visible at the moment you look. Discover which checks the repository actually runs and wait for the complete set to settle — including any that appear only after earlier ones pass.
+- **Never act on a partial or pending result.** Do not merge, report success, or walk away while any check is still running, queued, or yet to be triggered. "Green" means every check that will run has run and passed.
+- **If any check ends red, stop and fix it before proceeding.** Never leave a branch — or the default branch — in a failing state.
 
 ### Squash-Merging — Always Supply Your Own Commit Message
 
-When squash-merging a PR into `master`, **always provide an explicit commit subject and body** — never accept GitHub's auto-generated squash message. Pass it explicitly: `gh pr merge <n> --squash -t "[TYPE]: <description>" -b "<concise human summary>"` (or edit the squash message in the web UI before confirming). The subject follows the Conventional Commits format below; the body is a short hand-written summary, never the raw concatenated list of squashed commits. After the merge, replay the merge-checks workflow locally as described above.
+When squash-merging a PR into `master`, **always provide an explicit commit subject and body** — never accept GitHub's auto-generated squash message.
+
+- **Why this matters.** GitHub's default squash message concatenates the message of *every* squashed commit into the body. If any of those commits carries a CI directive such as `[skip ci]` (common on docs/mockup commits), it lands in the merge commit message, and GitHub then **skips every workflow for that push to `master`** — merge checks, e2e, the i18n `.pot` regeneration, all of it — silently. The merge looks done, but nothing was validated and generated artifacts go stale.
+- **How.** Pass the message explicitly: `gh pr merge <n> --squash -t "[TYPE]: <description>" -b "<concise human summary>"` (or edit the squash message in the GitHub web UI before confirming). The subject follows the Conventional Commits format below; the body is a short hand-written summary, never the raw list of squashed commits.
+- **Never** let `[skip ci]` (or any other skip directive) reach a commit that will be squashed into `master`.
 
 ## File Reads & Writes
 
