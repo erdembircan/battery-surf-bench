@@ -45,6 +45,8 @@ export class SurfLoop {
 	private readonly appetite = new Appetite();
 	private boredom = 0;
 	private running = false;
+	/** Clock time the loop began at, so each tick can derive `elapsedMs` from it. */
+	private startedAt = 0;
 
 	constructor( deps: SurfLoopDeps ) {
 		this.deps = deps;
@@ -66,11 +68,19 @@ export class SurfLoop {
 
 	private context(): BehaviorContext {
 		const { traits, senseAffordances, rng, clock, speed } = this.deps;
-		return { traits, affordances: senseAffordances(), rng, clock, speed };
+		return {
+			traits,
+			affordances: senseAffordances(),
+			rng,
+			clock,
+			speed,
+			elapsedMs: ( clock.now() - this.startedAt ) * speed,
+		};
 	}
 
 	private async loop(): Promise< void > {
 		const { rng, speed, clock } = this.deps;
+		this.startedAt = clock.now();
 		const settleMs =
 			SETTLE_MS_MIN + rng() * ( SETTLE_MS_MAX - SETTLE_MS_MIN );
 		await clock.wait( settleMs / speed );

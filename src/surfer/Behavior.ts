@@ -34,6 +34,8 @@ export interface BehaviorContext {
 	rng: Rng;
 	clock: Clock;
 	speed: number;
+	/** Engine-time milliseconds since the loop started (real elapsed × `speed`). */
+	elapsedMs: number;
 }
 
 /** One action the surfer can bid to perform. */
