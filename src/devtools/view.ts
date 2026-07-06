@@ -16,7 +16,7 @@ import { store } from '@wordpress/interactivity';
 import { mergeStoreParts } from '../cockpit/StoreParts';
 import { devtoolsShellStore, hydrateDevtools } from './DevtoolsStore';
 import { batteryOverrideStore } from './BatteryOverrideStore';
-import { dischargeSimStore, resumeDischargeSim } from './DischargeSimStore';
+import { dischargeSimStore } from './DischargeSimStore';
 import { resetStore } from './ResetStore';
 
 store(
@@ -30,8 +30,7 @@ store(
 );
 
 // Restore the persisted panel/override state once the slice exists above —
-// not tied to a directive, since it needs no DOM, only the store — then let
-// the discharge sim resume from its own restored `startedAt` if it was left
-// running.
+// not tied to a directive, since it needs no DOM, only the store. The
+// discharge sim is never part of the persisted shape, so there is nothing of
+// its own to resume here.
 hydrateDevtools();
-resumeDischargeSim();

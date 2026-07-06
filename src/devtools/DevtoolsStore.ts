@@ -24,6 +24,16 @@ export interface DevtoolsState {
 }
 
 /**
+ * The subset of {@link DevtoolsState} that survives a reload. The discharge
+ * sim is deliberately excluded — it is a live, in-session driver only, never
+ * something a reload should resume: a page opened later with the surf engine
+ * running would otherwise inherit a phantom drain from a session the user may
+ * not even remember starting. `open` and `battery` are the only fields a
+ * returning session should see again.
+ */
+type PersistedDevtoolsState = Pick< DevtoolsState, 'open' | 'battery' >;
+
+/**
  * The merged store shape sub-tool modules re-fetch by namespace.
  * `batterySystemPercent` is production-owned (published by
  * `src/cockpit/BatteryStore.ts`) — read by the battery sub-tool, never
@@ -54,47 +64,41 @@ const DEFAULT_STATE: DevtoolsState = {
  * `localStorage` key the slice persists under; bump the suffix on a shape
  * change — a stored value under a stale key is simply never read again
  * (`readStored()` looks up the current key only), so an old-shape blob is
- * inert rather than corrupting the new one.
+ * inert rather than corrupting the new one. Bumped to v4 when the discharge
+ * sim stopped being part of the persisted shape at all.
  */
-export const DEVTOOLS_STORAGE_KEY = 'bsb-devtools-v3';
+export const DEVTOOLS_STORAGE_KEY = 'bsb-devtools-v4';
 
 /**
- * Narrows an unknown value to a well-formed {@link DevtoolsState}, so a
- * corrupted or stale-shape stored value is discarded rather than crashing the
- * panel.
+ * Narrows an unknown value to a well-formed {@link PersistedDevtoolsState}, so
+ * a corrupted or stale-shape stored value is discarded rather than crashing
+ * the panel.
  *
  * @param value The parsed `localStorage` value to check.
- * @return Whether the value is a well-formed devtools state.
+ * @return Whether the value is a well-formed persisted devtools state.
  */
-const isDevtoolsState = ( value: unknown ): value is DevtoolsState => {
+const isPersistedDevtoolsState = (
+	value: unknown
+): value is PersistedDevtoolsState => {
 	if ( typeof value !== 'object' || value === null ) {
 		return false;
 	}
 
-	const { open, battery, sim } = value as Record< string, unknown >;
+	const { open, battery } = value as Record< string, unknown >;
 
 	if (
 		typeof open !== 'boolean' ||
 		typeof battery !== 'object' ||
-		battery === null ||
-		typeof sim !== 'object' ||
-		sim === null
+		battery === null
 	) {
 		return false;
 	}
 
 	const { charging, level } = battery as Record< string, unknown >;
-	const { fromPercent, toPercent, minutes, running, startedAt } =
-		sim as Record< string, unknown >;
 
 	return (
 		( charging === null || typeof charging === 'boolean' ) &&
-		( level === null || typeof level === 'number' ) &&
-		typeof fromPercent === 'number' &&
-		typeof toPercent === 'number' &&
-		typeof minutes === 'number' &&
-		typeof running === 'boolean' &&
-		( startedAt === null || typeof startedAt === 'number' )
+		( level === null || typeof level === 'number' )
 	);
 };
 
@@ -104,7 +108,7 @@ const isDevtoolsState = ( value: unknown ): value is DevtoolsState => {
  *
  * @return The stored state, or null.
  */
-const readStored = (): DevtoolsState | null => {
+const readStored = (): PersistedDevtoolsState | null => {
 	try {
 		const raw = window.localStorage.getItem( DEVTOOLS_STORAGE_KEY );
 
@@ -114,20 +118,20 @@ const readStored = (): DevtoolsState | null => {
 
 		const parsed: unknown = JSON.parse( raw );
 
-		return isDevtoolsState( parsed ) ? parsed : null;
+		return isPersistedDevtoolsState( parsed ) ? parsed : null;
 	} catch {
 		return null;
 	}
 };
 
 /**
- * Persists the devtools slice. Failures (private browsing, quota, storage
- * disabled) are swallowed — the override still works for the session, it just
- * will not survive a reload.
+ * Persists the devtools slice's persisted subset. Failures (private browsing,
+ * quota, storage disabled) are swallowed — the override still works for the
+ * session, it just will not survive a reload.
  *
- * @param state The devtools state to persist.
+ * @param state The persisted subset of devtools state to write.
  */
-const writeStored = ( state: DevtoolsState ): void => {
+const writeStored = ( state: PersistedDevtoolsState ): void => {
 	try {
 		window.localStorage.setItem(
 			DEVTOOLS_STORAGE_KEY,
@@ -156,10 +160,9 @@ export const current = (): DevtoolsState => {
  * Restores the persisted devtools slice onto the shared state. Called once,
  * right after this module registers its store slice — not bound to a
  * directive — since by then the store already exists and `localStorage` needs
- * no DOM. Restores the raw fields only; resuming a running discharge sim from
- * its restored `startedAt` is the sim module's own concern
- * ({@link ./DischargeSimStore}.resumeDischargeSim), called separately right
- * after this.
+ * no DOM. Restores `open` and `battery` only; the discharge sim is never
+ * persisted, so it always starts a fresh session at its {@link DEFAULT_SIM}
+ * default, never running.
  */
 export const hydrateDevtools = (): void => {
 	const stored = readStored();
@@ -172,11 +175,6 @@ export const hydrateDevtools = (): void => {
 	state.open = stored.open;
 	state.battery.charging = stored.battery.charging;
 	state.battery.level = stored.battery.level;
-	state.sim.fromPercent = stored.sim.fromPercent;
-	state.sim.toPercent = stored.sim.toPercent;
-	state.sim.minutes = stored.sim.minutes;
-	state.sim.running = stored.sim.running;
-	state.sim.startedAt = stored.sim.startedAt;
 };
 
 /** The shared shell: panel open/closed and the whole slice's persistence. */
@@ -193,9 +191,11 @@ export const devtoolsShellStore: StorePart = {
 	},
 	callbacks: {
 		/**
-		 * Persists the devtools slice on every change. Bound via
-		 * `data-wp-watch--devtools-persist` on the panel; reading the slice here is
-		 * what makes it re-run reactively whenever any field changes.
+		 * Persists the devtools slice's persisted subset on every change. Bound
+		 * via `data-wp-watch--devtools-persist` on the panel; reading the slice
+		 * here is what makes it re-run reactively whenever any field changes.
+		 * Only `open` and `battery` are written — the discharge sim is a
+		 * live-session-only driver and never lands in storage.
 		 */
 		devtoolsPersist(): void {
 			const state = current();
@@ -203,7 +203,6 @@ export const devtoolsShellStore: StorePart = {
 			writeStored( {
 				open: state.open,
 				battery: { ...state.battery },
-				sim: { ...state.sim },
 			} );
 		},
 	},

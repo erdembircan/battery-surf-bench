@@ -80,35 +80,6 @@ const stopTicker = (): void => {
 };
 
 /**
- * Resumes a sim restored as `running` from a previous session. The sim's
- * truth is the persisted `startedAt` timestamp, not the ticker (which never
- * survives a reload) — so this recomputes exactly where the run should be:
- * past its end, it freezes the end level and stops; still mid-flight, it
- * applies the current instant immediately and restarts the ticker. Called
- * once, right after {@link ./DevtoolsStore}.hydrateDevtools restores the raw
- * fields.
- */
-export const resumeDischargeSim = (): void => {
-	const state = current();
-	const { sim } = state;
-
-	if ( ! sim.running || sim.startedAt === null ) {
-		return;
-	}
-
-	const elapsed = Date.now() - sim.startedAt;
-	state.battery.level = simulatedLevel( sim, elapsed );
-	state.battery.charging = false;
-
-	if ( isSimComplete( sim, elapsed ) ) {
-		sim.running = false;
-		return;
-	}
-
-	startTicker();
-};
-
-/**
  * Stops a running sim and restores its full state to {@link DEFAULT_SIM} —
  * `running`, `startedAt`, and the `fromPercent`/`toPercent`/`minutes`
  * steppers. Exported (rather than folded into a `StorePart` action) so the

@@ -263,22 +263,15 @@ test.describe( 'Dev-tools battery-override panel', () => {
 	test( 'a persisted level override positions the slider thumb after a reload', async ( {
 		page,
 	} ) => {
-		// Seed the persisted devtools slice (the current v3 shape — includes the
-		// discharge-sim's own config/running fields) before any module runs, as a
+		// Seed the persisted devtools slice (the current v4 shape — `open` and
+		// `battery` only, no discharge-sim fields) before any module runs, as a
 		// prior session would have left it.
 		await page.addInitScript( () => {
 			window.localStorage.setItem(
-				'bsb-devtools-v3',
+				'bsb-devtools-v4',
 				JSON.stringify( {
 					open: true,
 					battery: { charging: null, level: 0.3 },
-					sim: {
-						fromPercent: 90,
-						toPercent: 20,
-						minutes: 30,
-						running: false,
-						startedAt: null,
-					},
 				} )
 			);
 		} );
@@ -305,13 +298,14 @@ test.describe( 'Dev-tools battery-override panel', () => {
 		expect( await page.content() ).not.toMatch( PHP_NOTICE );
 	} );
 
-	test( 'a value stored under an old (pre-Milestone-2) key is ignored', async ( {
+	test( 'a value stored under an old (pre-Milestone-3) key is ignored', async ( {
 		page,
 	} ) => {
 		// The v1 shape carried a now-removed `enabled` flag; the v2 shape had no
-		// `sim` field at all. The current code reads only `bsb-devtools-v3`, so
-		// either stale blob is never looked up — the panel starts fresh at its
-		// defaults instead of inheriting a shape with no sim to resume.
+		// `sim` field at all; the v3 shape carried a `sim` field the panel would
+		// resume a running sim from. The current code reads only
+		// `bsb-devtools-v4`, so every stale blob is never looked up — the panel
+		// starts fresh at its defaults instead of inheriting anything from them.
 		await page.addInitScript( () => {
 			window.localStorage.setItem(
 				'bsb-devtools-v1',
@@ -327,16 +321,70 @@ test.describe( 'Dev-tools battery-override panel', () => {
 					battery: { charging: true, level: 0.9 },
 				} )
 			);
+			window.localStorage.setItem(
+				'bsb-devtools-v3',
+				JSON.stringify( {
+					open: true,
+					battery: { charging: true, level: 0.9 },
+					sim: {
+						fromPercent: 90,
+						toPercent: 20,
+						minutes: 30,
+						running: true,
+						startedAt: Date.now() - 60_000,
+					},
+				} )
+			);
 		} );
 
 		await page.goto( '/?bsbSession=cockpit' );
 
-		// Defaults: collapsed, unarmed — neither stale blob had any effect.
+		// Defaults: collapsed, unarmed — none of the stale blobs had any effect.
 		await expect( page.locator( '.bsb-devtools__pill' ) ).toBeVisible();
 		await expect( page.locator( '.bsb-devtools__pill' ) ).not.toHaveClass(
 			/is-armed/
 		);
 		await expect( page.locator( '.bsb-devtools__card' ) ).toBeHidden();
+
+		expect( await page.content() ).not.toMatch( PHP_NOTICE );
+	} );
+
+	test( 'the discharge sim never persists and never resumes across a reload', async ( {
+		page,
+	} ) => {
+		await page.goto( '/?bsbSession=cockpit' );
+
+		await page.locator( '.bsb-devtools__pill' ).click();
+
+		const toggle = page.locator( '.bsb-devtools__sim-toggle' );
+		await toggle.click();
+		await expect( toggle ).toHaveClass( /is-running/ );
+
+		// The persisted blob never carries a `sim` field, whether the sim was
+		// ever started or not. Poll briefly for the reactive persist watcher
+		// to have caught up with the click.
+		await expect
+			.poll( () =>
+				page.evaluate(
+					( key ) => window.localStorage.getItem( key ),
+					'bsb-devtools-v4'
+				)
+			)
+			.not.toBeNull();
+		const stored = await page.evaluate(
+			( key ) => window.localStorage.getItem( key ),
+			'bsb-devtools-v4'
+		);
+		expect( JSON.parse( stored ?? '{}' ) ).not.toHaveProperty( 'sim' );
+
+		await page.reload();
+
+		// The reload starts a fresh session: the sim is not running, and the
+		// panel reopens (from the persisted `open`) without resuming anything.
+		await expect( page.locator( '.bsb-devtools__card' ) ).toBeVisible();
+		await expect(
+			page.locator( '.bsb-devtools__sim-toggle' )
+		).not.toHaveClass( /is-running/ );
 
 		expect( await page.content() ).not.toMatch( PHP_NOTICE );
 	} );

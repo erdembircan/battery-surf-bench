@@ -69,7 +69,7 @@ describe( 'devtoolsShellStore actions', () => {
 } );
 
 describe( 'persistence', () => {
-	it( 'writes the whole slice — battery and sim — to localStorage on devtoolsPersist', () => {
+	it( 'writes only open and battery to localStorage on devtoolsPersist — never the discharge sim', () => {
 		mocks.state.devtools = {
 			open: true,
 			battery: { charging: true, level: 0.2 },
@@ -81,32 +81,57 @@ describe( 'persistence', () => {
 		const stored: unknown = JSON.parse(
 			window.localStorage.getItem( DEVTOOLS_STORAGE_KEY ) ?? 'null'
 		);
-		expect( stored ).toEqual( mocks.state.devtools );
+		expect( stored ).toEqual( {
+			open: true,
+			battery: { charging: true, level: 0.2 },
+		} );
 	} );
 
-	it( 'hydrates the shared state from a previously persisted slice', () => {
+	it( 'hydrates open and battery from a previously persisted slice', () => {
 		window.localStorage.setItem(
 			DEVTOOLS_STORAGE_KEY,
 			JSON.stringify( {
 				open: true,
 				battery: { charging: false, level: 0.6 },
-				sim: { ...defaultSim(), fromPercent: 80, toPercent: 10 },
 			} )
 		);
 
 		hydrateDevtools();
 
-		expect( mocks.state.devtools ).toEqual( {
-			open: true,
-			battery: { charging: false, level: 0.6 },
-			sim: { ...defaultSim(), fromPercent: 80, toPercent: 10 },
+		expect( mocks.state.devtools.open ).toBe( true );
+		expect( mocks.state.devtools.battery ).toEqual( {
+			charging: false,
+			level: 0.6,
 		} );
+	} );
+
+	it( 'never restores the discharge sim, even from a running sim left over in storage', () => {
+		// The persisted shape no longer has a `sim` field at all, but a value
+		// written before this change (or by another tab still on old code)
+		// could still carry one — hydrate must not resurrect a "running" sim
+		// from it under any circumstance.
+		window.localStorage.setItem(
+			DEVTOOLS_STORAGE_KEY,
+			JSON.stringify( {
+				open: true,
+				battery: { charging: false, level: 0.6 },
+				sim: { ...defaultSim(), running: true, startedAt: 12345 },
+			} )
+		);
+
+		hydrateDevtools();
+
+		expect( mocks.state.devtools.sim ).toEqual( defaultSim() );
 	} );
 
 	it( 'leaves the default state untouched when nothing is stored', () => {
 		hydrateDevtools();
 
 		expect( mocks.state.devtools.open ).toBe( false );
+		expect( mocks.state.devtools.battery ).toEqual( {
+			charging: null,
+			level: null,
+		} );
 		expect( mocks.state.devtools.sim ).toEqual( defaultSim() );
 	} );
 
@@ -122,22 +147,39 @@ describe( 'persistence', () => {
 		hydrateDevtools();
 		expect( mocks.state.devtools.open ).toBe( false );
 
-		// A stored value missing the (now required) `sim` shape is rejected too.
+		// A stored value missing `battery` entirely is rejected too.
 		window.localStorage.setItem(
 			DEVTOOLS_STORAGE_KEY,
-			JSON.stringify( {
-				open: true,
-				battery: { charging: null, level: null },
-			} )
+			JSON.stringify( { open: true } )
 		);
 		hydrateDevtools();
 		expect( mocks.state.devtools.open ).toBe( false );
 	} );
 
+	it( 'ignores a value stored under the previous (pre-Milestone-3) v3 key', () => {
+		// The v3 shape carried a `sim` field the panel would resume a running
+		// sim from. The storage key bump means it is simply never looked up
+		// again — the slice starts fresh at its defaults, sim never included.
+		window.localStorage.setItem(
+			'bsb-devtools-v3',
+			JSON.stringify( {
+				open: true,
+				battery: { charging: true, level: 0.9 },
+				sim: { ...defaultSim(), running: true, startedAt: 12345 },
+			} )
+		);
+
+		hydrateDevtools();
+
+		expect( DEVTOOLS_STORAGE_KEY ).toBe( 'bsb-devtools-v4' );
+		expect( mocks.state.devtools ).toEqual( {
+			open: false,
+			battery: { charging: null, level: null },
+			sim: defaultSim(),
+		} );
+	} );
+
 	it( 'ignores a value stored under the old (pre-Milestone-2) v2 key', () => {
-		// The v2 shape had no `sim` field at all. The storage key bump means it
-		// is simply never looked up again — the slice starts fresh at its
-		// defaults instead of inheriting a shape with no sim to resume.
 		window.localStorage.setItem(
 			'bsb-devtools-v2',
 			JSON.stringify( {
@@ -148,7 +190,6 @@ describe( 'persistence', () => {
 
 		hydrateDevtools();
 
-		expect( DEVTOOLS_STORAGE_KEY ).toBe( 'bsb-devtools-v3' );
 		expect( mocks.state.devtools ).toEqual( {
 			open: false,
 			battery: { charging: null, level: null },
