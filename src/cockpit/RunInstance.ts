@@ -99,6 +99,7 @@ export const __resetInstance = (): void => {
 	runInstance.clock = null;
 	runInstance.chime = null;
 	runInstance.startedAtWall = null;
+	runInstance.idleFlipTimer = null;
 	runInstance.toasts = new ToastQueue();
 	runInstance.toastTimer = null;
 	runInstance.noticeShownThisRun = false;

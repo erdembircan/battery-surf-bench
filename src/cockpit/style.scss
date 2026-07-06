@@ -1091,12 +1091,15 @@ body.bsb-cockpit-dashboard {
 // Same frosted-pill construction as .bsb-cockpit__toast above (radius,
 // background, border, blur, typography) — duplicated here rather than shared
 // through a mixin so an edit to the bark can never drift the toast's compiled
-// CSS (the toast's visual identity and its e2e are load-bearing). Only the
-// entrance/exit direction and the single teal accent differ; icon selection is
-// by the `[data-bark]` attribute rather than a per-kind class, since every
+// CSS (the toast's visual identity and its e2e are load-bearing). The
+// entrance/exit direction and the single teal accent differ, and — unlike the
+// toast, which needs it for its clickable dismiss button — this pill carries
+// no `pointer-events: auto`: it is purely decorative and must stay inert
+// inside the `pointer-events: none` layer, or it would swallow pointer input
+// over the viewport and mask the shield's not-allowed cursor. Icon selection
+// is by the `[data-bark]` attribute rather than a per-kind class, since every
 // bark shares one accent.
 .bsb-cockpit__bark {
-	pointer-events: auto;
 	display: inline-flex;
 	align-items: center;
 	gap: 0.55rem;

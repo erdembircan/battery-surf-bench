@@ -470,9 +470,7 @@ test.describe( 'Cockpit behavior barks', () => {
 
 	// Live assertion: starting a run at the fastest demo speed should raise a
 	// bark within a generous window — six of the engine's nine behaviors bark,
-	// so one should win quickly. Verified locally across repeated runs per the
-	// plan's flake protocol before landing; see the PR description for the
-	// outcome of that check.
+	// so one should win quickly.
 	test( 'raises a bark pill during a live, fast run', async ( { page } ) => {
 		await page.goto( '/?bsbSession=cockpit' );
 
