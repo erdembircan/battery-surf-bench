@@ -12,6 +12,7 @@ import { RealClock } from './Clock';
 import { senseAffordances } from './Affordances';
 import { DomMotor } from './Motor';
 import { SurfLoop } from './SurfLoop';
+import { whenDocumentLoaded } from './PageLoad';
 import { ScrollBurst } from './Behaviors/ScrollBurst';
 import { ReadPause } from './Behaviors/ReadPause';
 import { GlanceBack } from './Behaviors/GlanceBack';
@@ -78,5 +79,5 @@ if ( params.has( TRAITS_PARAM ) ) {
 		},
 	} );
 
-	loop.start();
+	whenDocumentLoaded( window, () => loop.start() );
 }

@@ -2,8 +2,16 @@ import { describe, it, expect, vi } from 'vitest';
 import { SurfLoop } from './SurfLoop';
 import { FakeMotor } from './FakeMotor';
 import { FakeClock } from './FakeClock';
+import { mulberry32 } from './Rng';
 import { ScrollBurst } from './Behaviors/ScrollBurst';
-import { MoveOn } from './Behaviors/MoveOn';
+import { ReadPause } from './Behaviors/ReadPause';
+import { GlanceBack } from './Behaviors/GlanceBack';
+import { WatchVideo } from './Behaviors/WatchVideo';
+import { LingerImage } from './Behaviors/LingerImage';
+import { FidgetWiggle } from './Behaviors/FidgetWiggle';
+import { MicroScroll } from './Behaviors/MicroScroll';
+import { SelectSnippet } from './Behaviors/SelectSnippet';
+import { MoveOn, MIN_DWELL_MS } from './Behaviors/MoveOn';
 import { openAffordances } from './TestFixtures';
 
 const neutralRng = () => 0.5;
@@ -118,6 +126,96 @@ describe( 'SurfLoop', () => {
 		);
 
 		expect( motor.commands.length ).toBe( commandsAtBottom );
+	} );
+
+	it( 'scrolls before MoveOn wins the page, for the seed that used to bounce first (seed 7)', async () => {
+		// Regression for the bounce flake: the full behavior roster, seed 7,
+		// traits [10,0,0,0,0], speed 10 used to let MoveOn win before any
+		// scroll behavior ever had — MoveOn's dwell floor now rules that out.
+		const motor = new FakeMotor();
+		const onPageDone = vi.fn();
+		const loop = new SurfLoop( {
+			behaviors: [
+				new ScrollBurst(),
+				new ReadPause(),
+				new GlanceBack(),
+				new WatchVideo(),
+				new LingerImage(),
+				new FidgetWiggle(),
+				new MicroScroll(),
+				new SelectSnippet(),
+				new MoveOn(),
+			],
+			motor,
+			clock: new FakeClock(),
+			rng: mulberry32( 7 ),
+			traits: [ 10, 0, 0, 0, 0 ],
+			senseAffordances: () => openAffordances,
+			speed: 10,
+			onPageDone,
+		} );
+
+		loop.start();
+		await vi.waitFor(
+			() => expect( onPageDone ).toHaveBeenCalledTimes( 1 ),
+			{ timeout: 10000 }
+		);
+
+		expect(
+			motor.commands.some(
+				( c ) => c.kind === 'scrollBy' && c.args[ 0 ] > 0
+			)
+		).toBe( true );
+	} );
+
+	it( 'never fires onPageDone before MIN_DWELL_MS of engine time, even with boredom-maximizing traits', async () => {
+		const onPageDone = vi.fn();
+		const clock = new FakeClock();
+		const speed = 10;
+		const loop = new SurfLoop( {
+			behaviors: [ new MoveOn() ],
+			motor: new FakeMotor(),
+			clock,
+			rng: neutralRng,
+			// Zero endurance maximizes boredom growth per tick.
+			traits: [ 10, 0, 0, 0, 0 ],
+			senseAffordances: () => openAffordances,
+			speed,
+			onPageDone,
+		} );
+
+		loop.start();
+		await vi.waitFor( () =>
+			expect( onPageDone ).toHaveBeenCalledTimes( 1 )
+		);
+
+		expect( clock.now() * speed ).toBeGreaterThanOrEqual( MIN_DWELL_MS );
+	} );
+
+	it( 'never fires onPageDone before the dwell floor on an unscrollable page', async () => {
+		const onPageDone = vi.fn();
+		const clock = new FakeClock();
+		const speed = 10;
+		const loop = new SurfLoop( {
+			behaviors: [ new ScrollBurst(), new MoveOn() ],
+			motor: new FakeMotor(),
+			clock,
+			rng: neutralRng,
+			traits: [ 10, 0, 0, 0, 0 ],
+			senseAffordances: () => ( {
+				...openAffordances,
+				scrollRemaining: 0,
+			} ),
+			speed,
+			onPageDone,
+		} );
+
+		loop.start();
+		await vi.waitFor( () =>
+			expect( onPageDone ).toHaveBeenCalledTimes( 1 )
+		);
+
+		expect( clock.now() * speed ).toBeGreaterThanOrEqual( MIN_DWELL_MS );
 	} );
 
 	it( 'stop() prevents any further ticks', async () => {

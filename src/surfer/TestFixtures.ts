@@ -13,11 +13,13 @@ export const openAffordances: Affordances = {
 	imageCount: 4,
 };
 
-const instantClock: Clock = { wait: () => Promise.resolve() };
+const instantClock: Clock = { wait: () => Promise.resolve(), now: () => 0 };
 
 /**
  * Builds a {@link BehaviorContext} for a bid/run test, with sane defaults
- * that can be overridden per case.
+ * that can be overridden per case. `elapsedMs` defaults well past `MoveOn`'s
+ * leave-readiness ramp, so every other behavior's tests are unaffected by the
+ * dwell floor; `MoveOn`'s own tests override it explicitly.
  * @param traits
  * @param overrides
  */
@@ -30,5 +32,6 @@ export const makeContext = (
 	rng: neutralRng,
 	clock: instantClock,
 	speed: 1,
+	elapsedMs: 60000,
 	...overrides,
 } );

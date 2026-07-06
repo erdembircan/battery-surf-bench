@@ -14,8 +14,9 @@ classDiagram
     %% page. Boots the engine only when the traits URL param is present.
     class EngineBoot {
         <<module>>
-        boot guard on the traits URL param; builds and starts SurfLoop; posts
-        'bsb:pageDone' to the parent frame when the page's session ends
+        boot guard on the traits URL param; builds and starts SurfLoop once
+        the document has loaded; posts 'bsb:pageDone' to the parent frame
+        when the page's session ends
     }
 
     %% --- Orchestration: the tick loop and its inputs.
@@ -45,7 +46,7 @@ classDiagram
 
     class BehaviorContext {
         <<types>>
-        traits, affordances, rng, clock, speed
+        traits, affordances, rng, clock, speed, elapsedMs
     }
 
     %% --- Sensing, motion and time seams the behaviors act through.
@@ -84,10 +85,12 @@ classDiagram
     class Clock {
         <<interface>>
         +wait(ms) Promise
+        +now() number
     }
 
     class RealClock {
         +wait(ms) Promise
+        +now() number
     }
 
     class Rng {
@@ -168,11 +171,18 @@ classDiagram
         +bid(BehaviorContext, appetite, boredom) number
         +run(Motor, BehaviorContext) Promise
     }
-    %% MoveOn: bids accumulated boredom; SurfLoop halts the page on this key.
+    %% MoveOn: bids boredom × leave-readiness, a dwell-floor affordance that
+    %% ramps 0 to 1 over time on page; SurfLoop halts the page on this key.
     class MoveOn {
         +key string
         +bid(BehaviorContext, appetite, boredom) number
         +run() Promise
+    }
+
+    %% Boot's document-load gate.
+    class PageLoad {
+        <<module>>
+        +whenDocumentLoaded(Window, callback) void
     }
 
     ScrollBurst ..|> Behavior
@@ -188,6 +198,7 @@ classDiagram
     RealClock ..|> Clock
 
     EngineBoot --> SurfLoop : builds deps & starts
+    EngineBoot --> PageLoad : gates start on document load
     EngineBoot --> DomMotor : creates
     DomMotor --> FakeCursor : creates & owns (composition)
     EngineBoot --> RealClock : creates
