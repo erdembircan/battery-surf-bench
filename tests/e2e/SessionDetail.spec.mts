@@ -106,6 +106,18 @@ test.describe( 'Stored-session detail screen', () => {
 		// The drain graph is rebuilt client-side from the seeded samples.
 		await expect( page.locator( '.bsb-summary__graph' ) ).toBeVisible();
 
+		// Regression guard: the card must NOT inherit wp-admin's global
+		// `line-height: 1.4em` (a fixed ~18px length at the 13px admin base). That
+		// bloated the stat rows until they collided with the absolutely-positioned
+		// flip/back corner — the live cockpit escapes it only because the front end
+		// dequeues every WP/theme stylesheet. The detail wrapper resets it to the
+		// browser default, so the stat rows stay compact and clear the corner.
+		const statLineHeight = await page
+			.locator( '.bsb-session-detail .bsb-summary__stats .bsb-stat' )
+			.first()
+			.evaluate( ( el ) => getComputedStyle( el ).lineHeight );
+		expect( statLineHeight ).toBe( 'normal' );
+
 		expect( await page.content() ).not.toMatch( PHP_NOTICE );
 		expect( consoleErrors ).toEqual( [] );
 	} );

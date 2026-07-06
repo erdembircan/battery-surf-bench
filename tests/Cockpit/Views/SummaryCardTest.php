@@ -16,8 +16,9 @@ use ErdemBircan\BatterySurfBench\Tests\TestCase;
  * The summary card's consumers are the cockpit block and the session detail
  * page. Both rely on it raising the `.bsb-summary` overlay around the shared
  * flip card, binding the frozen readouts the store paints, and placing the
- * picture front, the franked stamp and a footer it is handed. The detail page
- * additionally relies on it showing at once and carrying a "Started" stat.
+ * picture front, the franked stamp and whatever footer/back_actions markup they
+ * hand it. The detail page additionally relies on it showing at once and
+ * carrying a "Started" stat.
  */
 final class SummaryCardTest extends TestCase {
 
@@ -65,15 +66,30 @@ final class SummaryCardTest extends TestCase {
 	}
 
 	/**
-	 * The picture front, the franked stamp and the footer are placed verbatim —
-	 * they arrive as already-escaped child markup.
+	 * The picture front, the franked stamp, the footer and the back_actions slot
+	 * are placed verbatim — they arrive as already-escaped child markup.
 	 */
-	public function test_places_the_front_stamp_and_footer_verbatim(): void {
-		$markup = $this->card();
+	public function test_places_the_front_stamp_footer_and_back_actions_verbatim(): void {
+		$markup = $this->card( array( 'back_actions' => '<!--BACKACTIONS-->' ) );
 
 		$this->assertStringContainsString( '<!--FRONT-->', $markup );
 		$this->assertStringContainsString( '<!--FRANK-->', $markup );
 		$this->assertStringContainsString( '<!--FOOTER-->', $markup );
+		$this->assertStringContainsString( '<!--BACKACTIONS-->', $markup );
+	}
+
+	/**
+	 * The footer sits in its own `.bsb-summary__actions` row (the detail page's
+	 * "back to listing" link), but that row is conditional: the live cockpit
+	 * passes no footer (its "New run" button goes through back_actions instead),
+	 * and an empty footer must not leave a stray empty div behind.
+	 */
+	public function test_footer_row_is_conditional_on_a_non_empty_footer(): void {
+		$this->assertStringContainsString( 'class="bsb-summary__actions"', $this->card() );
+		$this->assertStringNotContainsString(
+			'class="bsb-summary__actions"',
+			$this->card( array( 'footer' => '' ) )
+		);
 	}
 
 	/**

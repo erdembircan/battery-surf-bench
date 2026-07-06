@@ -333,13 +333,14 @@ HTML;
 		// stamp and the run report on the back, raised by the `.bsb-summary`
 		// overlay. The same view renders the stored-session detail page's card, so
 		// the two stay identical; here it ships `hidden` (the store raises it on
-		// run end) with the live "New run" button as its footer.
+		// run end) with the live "New run" button placed beside the flip badge in
+		// the shared card corner, rather than as a footer.
 		$summary = ( new SummaryCard() )->render(
 			array(
 				'front'              => $photo_fill,
 				'frank'              => $frank,
-				'footer'             => sprintf(
-					'<button type="button" class="bsb-summary__new" data-wp-on--click="actions.newRun">%s</button>',
+				'back_actions'       => sprintf(
+					'<button type="button" class="bsb-summary__newrun" data-wp-on--click="actions.newRun"><span class="bsb-summary__newrun-icon" aria-hidden="true"></span>%s</button>',
 					$new_run_label
 				),
 				'flip_label'         => $data['flip_label'] ?? '',
