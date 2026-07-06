@@ -2,9 +2,11 @@
  * The orchestrator. Owns the tick loop, boredom, and appetite —
  * behaviors themselves stay stateless pure bidders. Each tick: collect bids,
  * draw a winner, notify `onBehaviorRun` with its key (so the cockpit can bark
- * a flavor quip for the novelty ones), run it, update appetite/boredom, wait
- * the tempo-scaled interval. When `MoveOn` wins, the loop halts and fires
- * `onPageDone` (after notifying `onBehaviorRun`, so `moveOn` barks too).
+ * a flavor quip for the novelty ones), run it, accrue appetite/boredom by how
+ * much sim time the iteration actually cost (not a flat step, so a
+ * long-running behavior can't starve leave pressure), wait the tempo-scaled
+ * interval. When `MoveOn` wins, the loop halts and fires `onPageDone` (after
+ * notifying `onBehaviorRun`, so `moveOn` barks too).
  */
 
 import type { Behavior, BehaviorContext } from './Behavior';
@@ -93,6 +95,15 @@ export class SurfLoop {
 			SETTLE_MS_MIN + rng() * ( SETTLE_MS_MAX - SETTLE_MS_MIN );
 		await clock.wait( settleMs / speed );
 
+		// Marks the clock time boredom/appetite were last accrued from, so
+		// each iteration can charge for the sim time that actually passed
+		// since then — the winner's own run duration plus the tick wait that
+		// followed the previous iteration — rather than a flat one tick
+		// regardless of how long that iteration took. Initialized here, after
+		// the settle wait, so the settle beat itself never pre-charges
+		// boredom before the surfer has taken a single action.
+		let lastTickAt = clock.now();
+
 		while ( this.running ) {
 			const ctx = this.context();
 			const bids = this.deps.behaviors.map( ( b ) => ( {
@@ -118,14 +129,30 @@ export class SurfLoop {
 				this.appetite.consume( winner.key );
 			}
 
-			this.appetite.recoverTick();
+			const interval = tickIntervalMs( ctx.traits[ TEMPO ] ?? 0 );
+
+			// Elapsed sim time since the last accrual, expressed in units of
+			// this iteration's own tick interval — the surfer's natural beat
+			// is the reference unit, so a normal, fast-resolving iteration
+			// still counts as ~1 "tick", while a behavior that runs far
+			// longer than one tick (e.g. watchVideo's 60-90s dwell against a
+			// ~1s tick) counts as the many ticks' worth of leave pressure and
+			// appetite recovery it actually cost in wall-clock terms. Without
+			// this, a long-running behavior would starve the loop and
+			// produce almost no boredom growth for the real time it held the
+			// page, letting it re-win indefinitely with nothing to stop it.
+			const dtMs = ( clock.now() - lastTickAt ) * speed;
+			lastTickAt = clock.now();
+			const steps = dtMs / interval;
+
+			this.appetite.recover( steps );
 			this.boredom +=
 				BOREDOM_RATE *
+				steps *
 				( 1 -
 					ENDURANCE_DAMP *
 						( ( ctx.traits[ ENDURANCE ] ?? 0 ) / MAX ) );
 
-			const interval = tickIntervalMs( ctx.traits[ TEMPO ] ?? 0 );
 			await clock.wait( interval / speed );
 		}
 	}

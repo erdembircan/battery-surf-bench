@@ -1,5 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { SurfLoop } from './SurfLoop';
+import type { Behavior, BehaviorContext } from './Behavior';
+import type { Motor } from './Motor';
 import { FakeMotor } from './FakeMotor';
 import { FakeClock } from './FakeClock';
 import { mulberry32 } from './Rng';
@@ -94,6 +96,51 @@ describe( 'SurfLoop', () => {
 		const highEnduranceTicks = await runUntilDone( 10 );
 
 		expect( highEnduranceTicks ).toBeGreaterThan( lowEnduranceTicks );
+	} );
+
+	it( 'does not let a long-running behavior (e.g. watchVideo) suppress leave pressure and camp indefinitely', async () => {
+		// A behavior whose run() spends a long stretch of sim time in one
+		// go, exactly like watchVideo's 60-90s dwell — before the time-scaled
+		// accrual fix, boredom grew by a flat per-tick amount no matter how
+		// long a win's run() took, so a behavior like this could re-win for
+		// dozens of rounds (tens of minutes of real dwell) before enough
+		// boredom accumulated to let MoveOn compete.
+		let runs = 0;
+		class LongBehavior implements Behavior {
+			readonly key = 'longBehavior';
+			bid(): number {
+				return 1;
+			}
+			async run( _motor: Motor, ctx: BehaviorContext ): Promise< void > {
+				runs++;
+				await ctx.clock.wait( 90_000 );
+			}
+		}
+
+		const onPageDone = vi.fn();
+		const clock = new FakeClock();
+		const loop = new SurfLoop( {
+			behaviors: [ new LongBehavior(), new MoveOn() ],
+			motor: new FakeMotor(),
+			clock,
+			rng: neutralRng,
+			traits: [ 0, 0, 0, 0, 0 ],
+			senseAffordances: () => openAffordances,
+			speed: 1,
+			onPageDone,
+		} );
+
+		loop.start();
+		await vi.waitFor( () =>
+			expect( onPageDone ).toHaveBeenCalledTimes( 1 )
+		);
+
+		// A single long win already banks tens of tick-equivalents of
+		// boredom, so MoveOn realistically competes within the first couple
+		// of rounds — not the dozens of re-wins (many minutes of dwell) the
+		// flat per-tick accrual would have allowed.
+		expect( runs ).toBeLessThanOrEqual( 2 );
+		expect( clock.now() ).toBeLessThan( 150_000 );
 	} );
 
 	it( 're-senses affordances every tick, so scroll quiets once the page bottoms out', async () => {

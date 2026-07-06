@@ -1,8 +1,9 @@
 /**
  * Satiation bookkeeping. Running a behavior consumes its
- * novelty; it recovers a little every tick. This is what keeps a strong trait
- * from looping the same action forever — the bid stays high, but appetite
- * drags it back down until something else gets a turn.
+ * novelty; it recovers in proportion to elapsed sim time, in tick-equivalent
+ * steps (see `SurfLoop`). This is what keeps a strong trait from looping the
+ * same action forever — the bid stays high, but appetite drags it back down
+ * until something else gets a turn.
  */
 
 /** Fraction of appetite left after a behavior runs. */
@@ -31,10 +32,16 @@ export class Appetite {
 		this.values.set( key, this.valueFor( key ) * SATIATION );
 	}
 
-	/** Recovers every tracked behavior's appetite a step, capped at 1. */
-	recoverTick(): void {
+	/**
+	 * Recovers every tracked behavior's appetite by `steps` tick-equivalents
+	 * of elapsed sim time, capped at 1. `steps` of 1 matches the old flat
+	 * per-tick recovery; a long-running behavior's iteration passes a larger
+	 * `steps` so its own dwell doesn't stall every other behavior's recovery.
+	 * @param steps
+	 */
+	recover( steps: number ): void {
 		for ( const [ key, value ] of this.values ) {
-			this.values.set( key, Math.min( 1, value + RECOVERY ) );
+			this.values.set( key, Math.min( 1, value + RECOVERY * steps ) );
 		}
 	}
 }
