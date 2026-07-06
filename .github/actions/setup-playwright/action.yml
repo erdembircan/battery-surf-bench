@@ -1,0 +1,45 @@
+name: Setup Playwright
+description: Install the Playwright browser needed for e2e, reusing a cached binary across runs
+
+inputs:
+  browser:
+    description: Playwright browser to install
+    required: false
+    default: "chromium"
+
+runs:
+  using: composite
+  steps:
+    # The cache key must be pinned to the exact installed Playwright version:
+    # the CLI refuses to drive a browser binary that doesn't match its own
+    # version, so a stale cached binary would break the run rather than speed
+    # it up. Deriving it from `node_modules` (already installed by setup-node)
+    # keeps the key in lockstep with whatever version the lockfile resolves,
+    # without hand-maintaining a version string here.
+    - run: |
+        PW_VERSION=$(pnpm exec playwright --version | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
+        echo "PLAYWRIGHT_VERSION=$PW_VERSION" >> "$GITHUB_ENV"
+      shell: bash
+
+    # Only the downloaded browser binary is cacheable. System libraries
+    # (`--with-deps`) are installed via apt into the runner's OS image, which
+    # GitHub Actions cache cannot persist across jobs, so they still have to
+    # run every time regardless of cache outcome.
+    - uses: actions/cache@v5
+      id: playwright-cache
+      with:
+        path: ~/.cache/ms-playwright
+        key: playwright-${{ runner.os }}-${{ env.PLAYWRIGHT_VERSION }}
+
+    # Cache miss: no matching binary for this Playwright version has been
+    # cached before, so download the browser and install its system deps.
+    - if: steps.playwright-cache.outputs.cache-hit != 'true'
+      run: pnpm exec playwright install --with-deps ${{ inputs.browser }}
+      shell: bash
+
+    # Cache hit: the browser binary was restored from cache, so only the
+    # system deps need installing -- skipping the ~150MB download is the
+    # whole point of the cache.
+    - if: steps.playwright-cache.outputs.cache-hit == 'true'
+      run: pnpm exec playwright install-deps ${{ inputs.browser }}
+      shell: bash

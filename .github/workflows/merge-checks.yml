@@ -92,8 +92,10 @@ jobs:
       # the autoloader must exist in the mounted plugin directory.
       - uses: ./.github/actions/setup-php
       - uses: ./.github/actions/setup-node
-      # `--with-deps` pulls the system libraries Chromium needs on CI runners.
-      - run: pnpm exec playwright install --with-deps chromium
+      # Caches the downloaded browser binary across runs, keyed on the exact
+      # Playwright version; system deps still install via apt every run
+      # regardless of cache outcome (see .github/actions/setup-playwright).
+      - uses: ./.github/actions/setup-playwright
       # `pretest:e2e` builds the plugin; the Playwright config starts the
       # WordPress Playground server itself.
       - run: pnpm test:e2e
