@@ -25,10 +25,11 @@ defined( 'ABSPATH' ) || exit;
  * card to its report back, the same self-reveal "New run" gives the startup card.
  *
  * The card itself is the shared {@see SummaryCard}; this view supplies its
- * picture front, its franked stamp, and a footer link back to the listing
- * instead of the live "New run" button. The block render template prepares the
- * raw (translated) values and the seeded context; this view escapes each into
- * its slot and owns the wrapper markup.
+ * picture front, its franked stamp, and a link back to the listing — placed in
+ * the card's corner beside the flip badge, the same slot and ghost-pill
+ * treatment the live cockpit gives its "New run" button — instead of that live
+ * button. The block render template prepares the raw (translated) values and the
+ * seeded context; this view escapes each into its slot and owns the wrapper markup.
  */
 class SessionDetailView implements View {
 
@@ -79,10 +80,13 @@ class SessionDetailView implements View {
 		);
 		$frank = ( new FrankedStamp() )->render( array( 'brand' => $summary_brand ) );
 
-		// The footer is a link back to the listing rather than the live "New run"
-		// button — the run is already over and stored.
-		$footer = sprintf(
-			'<a class="bsb-summary__new bsb-summary__back" href="%s">%s</a>',
+		// The back-to-listing link rides in the card's corner beside the flip badge
+		// — the same slot and ghost-pill treatment the live cockpit gives its "New
+		// run" button — so the detail card reads identically. It is an <a>
+		// (navigation), wearing the shared pill via `.bsb-summary__newrun` plus its
+		// own anchor resets and a back-arrow glyph.
+		$back_actions = sprintf(
+			'<a class="bsb-summary__newrun bsb-summary__back" href="%s"><span class="bsb-summary__back-icon" aria-hidden="true"></span>%s</a>',
 			$back_url,
 			$back_label
 		);
@@ -91,7 +95,7 @@ class SessionDetailView implements View {
 			array(
 				'front'              => $front,
 				'frank'              => $frank,
-				'footer'             => $footer,
+				'back_actions'       => $back_actions,
 				'flip_label'         => $data['flip_label'] ?? '',
 				'tte_label'          => $data['tte_label'] ?? '',
 				'rate_session_label' => $data['rate_session_label'] ?? '',

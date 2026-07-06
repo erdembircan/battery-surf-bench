@@ -2017,25 +2017,12 @@ body.bsb-cockpit-dashboard {
 	padding-top: 0.8rem;
 }
 
-.bsb-summary__new {
-	padding: 0.65rem 1.7rem;
-	border: 0;
-	border-radius: 11px;
-	background: var(--accent-grad);
-	color: var(--accent-ink);
-	font:
-		400 0.92rem/1 theme.$font-display;
-	letter-spacing: 0.05em;
-	text-transform: uppercase;
-	cursor: pointer;
-	box-shadow: 0 10px 22px var(--accent-shadow);
-}
-
 // The live cockpit's "New run" control mirrors the flip badge's paper pill — a
 // small ink-toned ghost pill with a leading glyph — rather than the solid accent
 // slab, and it is placed alongside the Flip badge in the shared `.bsb-flipcard__corner`
 // so the two read as a quiet, aligned pair on the report face. The stored-session
-// detail page keeps the solid `.bsb-summary__new` pill for its "back to listing" link.
+// detail page's "back to listing" link reuses this same pill (with its own
+// back-arrow glyph) in the same corner, so the two cards read identically.
 .bsb-summary__newrun {
 	display: inline-flex;
 	align-items: center;
@@ -2059,13 +2046,23 @@ body.bsb-cockpit-dashboard {
 	-webkit-mask: theme.$icon-plus center / contain no-repeat;
 }
 
-// The detail page's footer is a link back to the listing rather than the live
-// "New run" button; it wears the same pill. It is an <a>, so wp-admin's global
-// anchor styles tint and underline it on hover and ring it with a box-shadow +
-// outline on focus/click. Scope under the detail wrapper to outweigh those admin
-// rules and pin every interactive state to the resting button look — same ink,
-// no underline, just the button's drop shadow, no focus ring — so it behaves
-// exactly like the cockpit's "New run" button.
+// The detail page's back-to-listing link wears the shared `.bsb-summary__newrun`
+// pill but leads with a back-arrow (the mirror of the stat arrow) rather than the
+// "New run" plus, so the glyph reads as "return to the listing".
+.bsb-summary__back-icon {
+	width: 0.9rem;
+	height: 0.9rem;
+	background: currentColor;
+	mask: theme.$icon-arrow-left center / contain no-repeat;
+	-webkit-mask: theme.$icon-arrow-left center / contain no-repeat;
+}
+
+// The detail page's back-to-listing link wears the shared `.bsb-summary__newrun`
+// ghost pill. It is an <a>, so wp-admin's global anchor styles tint and underline
+// it on hover and ring it with a box-shadow + outline on focus/click. Scope under
+// the detail wrapper to outweigh those admin rules and pin every interactive state
+// to the resting ghost-pill look — same ink, no underline, the pill's own rounded
+// corners, no focus ring — so it behaves exactly like the cockpit's "New run" pill.
 .bsb-summary__back {
 	display: inline-flex;
 	align-items: center;
@@ -2077,13 +2074,13 @@ body.bsb-cockpit-dashboard {
 	&:focus,
 	&:focus-visible,
 	&:active {
-		color: var(--accent-ink);
+		color: var(--paper-ink);
 		text-decoration: none;
-		// Re-assert the button's own pill radius and drop shadow: wp-admin's
-		// `a:focus` otherwise squares the corners to 2px and replaces the shadow
-		// with its focus ring, which read as a border on click.
-		border-radius: 11px;
-		box-shadow: 0 10px 22px var(--accent-shadow);
+		// Re-assert the ghost pill's own rounded corners and drop the admin ring:
+		// wp-admin's `a:focus` otherwise squares the corners to 2px and adds a
+		// box-shadow focus ring, which read as a border on click.
+		border-radius: 999px;
+		box-shadow: none;
 		outline: none;
 	}
 }
