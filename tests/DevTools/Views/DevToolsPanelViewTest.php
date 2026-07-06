@@ -212,7 +212,10 @@ final class DevToolsPanelViewTest extends TestCase {
 	 * icon-only control: its accessible name lives in `aria-label`, its glyph
 	 * is an `aria-hidden` inline SVG, and it carries no `disabled` binding of
 	 * any kind — it must stay clickable even while a sim is running, since
-	 * stopping the sim is exactly what it is for.
+	 * stopping the sim is exactly what it is for. It is only visible once an
+	 * override is armed, reusing `state.devtoolsIsArmed` (the same getter
+	 * already driving the armed-text span and the pill), starting hidden
+	 * before hydration like those other bound elements.
 	 */
 	public function test_render_wires_the_reset_control(): void {
 		$markup = ( new DevToolsPanelView() )->render();
@@ -239,6 +242,13 @@ final class DevToolsPanelViewTest extends TestCase {
 		// No visible text label — the accessible name lives in `aria-label`.
 		$this->assertStringContainsString( 'data-wp-on--click="actions.devtoolsReset"', $button_tag );
 		$this->assertStringContainsString( 'aria-label="', $button_tag );
+
+		// Hidden until an override is armed: a static `hidden` so it starts
+		// hidden before hydration, paired with the bound attribute that
+		// reuses the same `devtoolsIsArmed` getter as the armed-text span
+		// and the pill.
+		$this->assertStringContainsString( ' hidden ', $button_tag );
+		$this->assertStringContainsString( 'data-wp-bind--hidden="!state.devtoolsIsArmed"', $button_tag );
 
 		// The glyph is an inline, decorative SVG — hidden from assistive tech
 		// since the button itself already carries the accessible name.
