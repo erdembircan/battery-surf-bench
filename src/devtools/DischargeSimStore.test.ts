@@ -1,7 +1,6 @@
 /**
  * Tests for the discharge-simulation sub-tool slice: the ticker (via fake
- * timers), the Start/Stop action, the stepper actions, and resuming a sim
- * left running from a previous session.
+ * timers), the Start/Stop action, and the stepper actions.
  */
 
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
@@ -35,7 +34,7 @@ vi.mock( '@wordpress/interactivity', () => ( {
 	getElement: () => ( { ref: mocks.element } ),
 } ) );
 
-import { dischargeSimStore, resumeDischargeSim } from './DischargeSimStore';
+import { dischargeSimStore } from './DischargeSimStore';
 
 const actions = dischargeSimStore.actions as unknown as {
 	devtoolsStepSim: () => void;
@@ -213,56 +212,5 @@ describe( 'starting and ticking', () => {
 		expect( mocks.state.devtools.battery.level ).toBeCloseTo(
 			levelWhenStopped as number
 		);
-	} );
-} );
-
-describe( 'resumeDischargeSim', () => {
-	it( 'does nothing when the restored sim was not running', () => {
-		resumeDischargeSim();
-		expect( mocks.state.devtools.battery.level ).toBeNull();
-	} );
-
-	it( 'continues a mid-flight sim from its persisted startedAt', () => {
-		const startedAt = Date.now() - 5 * 60 * 1000; // 5 minutes ago
-		mocks.state.devtools.sim = {
-			fromPercent: 90,
-			toPercent: 20,
-			minutes: 10,
-			running: true,
-			startedAt,
-		};
-
-		resumeDischargeSim();
-
-		// Halfway through a 10-minute 90→20 run.
-		expect( mocks.state.devtools.battery.level ).toBeCloseTo( 0.55 );
-		expect( mocks.state.devtools.battery.charging ).toBe( false );
-		expect( mocks.state.devtools.sim.running ).toBe( true );
-
-		// And it keeps ticking from here.
-		vi.advanceTimersByTime( 5 * 60 * 1000 );
-		expect( mocks.state.devtools.battery.level ).toBeCloseTo( 0.2 );
-		expect( mocks.state.devtools.sim.running ).toBe( false );
-	} );
-
-	it( 'freezes a sim whose end time already passed, and stops it', () => {
-		const startedAt = Date.now() - 20 * 60 * 1000; // 20 minutes ago
-		mocks.state.devtools.sim = {
-			fromPercent: 90,
-			toPercent: 20,
-			minutes: 10, // ended 10 minutes ago
-			running: true,
-			startedAt,
-		};
-
-		resumeDischargeSim();
-
-		expect( mocks.state.devtools.battery.level ).toBeCloseTo( 0.2 );
-		expect( mocks.state.devtools.battery.charging ).toBe( false );
-		expect( mocks.state.devtools.sim.running ).toBe( false );
-
-		// No ticker was started — the level must not keep changing.
-		vi.advanceTimersByTime( 60_000 );
-		expect( mocks.state.devtools.battery.level ).toBeCloseTo( 0.2 );
 	} );
 } );

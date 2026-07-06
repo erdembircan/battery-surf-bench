@@ -349,7 +349,10 @@ classDiagram
     %% panel open state) plus one StorePart per sub-tool: the battery override,
     %% and the discharge simulation that drives it, plus the panel-wide Reset
     %% action that composes both sub-tools' own resets. A third tool is a new
-    %% StorePart folded in here, not a rework of the composition root.
+    %% StorePart folded in here, not a rework of the composition root. Only
+    %% `open` and `battery` persist across a reload — the discharge sim is a
+    %% live-session-only driver and is never written to or restored from
+    %% storage.
     class DevToolsView {
         <<module>>
         store('bsb/cockpit', mergeStoreParts(DevtoolsShellStore, BatteryOverrideStore, DischargeSimStore, ResetStore))
@@ -376,7 +379,6 @@ classDiagram
         <<module>>
         state: devtoolsSimFromDisplay/ToDisplay/MinutesDisplay, devtoolsIsSimRunning, devtoolsIsSimStartBlocked
         actions: devtoolsStepSim, devtoolsToggleSim
-        +resumeDischargeSim() void
         +resetDischargeSim() void
     }
 
