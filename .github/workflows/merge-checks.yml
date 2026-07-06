@@ -97,29 +97,3 @@ jobs:
       # `pretest:e2e` builds the plugin; the Playwright config starts the
       # WordPress Playground server itself.
       - run: pnpm test:e2e
-
-  zip:
-    # Only package a master that has passed every check, including e2e.
-    needs: [e2e]
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v6
-      - uses: ./.github/actions/setup-php
-      - uses: ./.github/actions/setup-node
-      # Compile the production assets that the archive bundles from the
-      # working tree.
-      - run: pnpm build
-      # Reduce vendor/ to runtime-only deps before archiving -- the caller's
-      # responsibility; `composer zip` only packs whatever is on disk.
-      - run: composer install --no-dev --optimize-autoloader
-      # `composer zip` runs `composer archive`, packing the working tree and
-      # applying the `export-ignore` list in .gitattributes.
-      - run: composer zip
-      # Commit the rebuilt distributable back to master so the latest plugin
-      # archive is always available under zip/. [skip ci] prevents a loop.
-      - uses: EndBug/add-and-commit@v10
-        with:
-          add: zip/battery-surf-bench.zip
-          message: "[CHORE]: rebuild distributable plugin zip [skip ci]"

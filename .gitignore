@@ -15,3 +15,7 @@ wp-playground/wordpress/
 
 # Resolved LiveReload port, published by start.mts for the watcher each run
 wp-playground/.livereload-port
+
+# Distributable plugin archive — generated locally via `composer zip`,
+# uploaded to the WordPress.org plugin repo, never committed.
+zip/
