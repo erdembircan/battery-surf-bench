@@ -1647,6 +1647,14 @@ body.bsb-cockpit-dashboard {
 	left: 160px;
 	overflow: hidden;
 	font-family: theme.$font-ui;
+	// Reset the line-height wp-admin imposes (`1.4em`, a fixed ~18px length at its
+	// 13px base) back to the browser default the postcard is built against. The
+	// live cockpit renders on the front end with every theme/WP stylesheet
+	// dequeued — a clean slate — so its small-font rows (the stat labels, legend)
+	// get compact `normal` line boxes. In wp-admin that global line-height can't be
+	// dequeued (the admin chrome needs it), and the card would otherwise inherit
+	// it, inflating the stats grid until it collides with the flip/back corner.
+	line-height: normal;
 	color: var(--text);
 	-webkit-font-smoothing: antialiased;
 
