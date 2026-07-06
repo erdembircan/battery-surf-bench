@@ -85,6 +85,27 @@ final class CockpitViewTest extends TestCase {
 	}
 
 	/**
+	 * The behavior-start bark is rendered as one bound pill inside the viewport
+	 * wrap: hidden until a bark is raised, its behavior key bound onto the
+	 * `data-bark` attribute the stylesheet selects an icon from, its phase
+	 * driving the animation classes, and an `animationend` hook driving its
+	 * lifecycle. The layer is `aria-hidden`, since barks are decorative.
+	 */
+	public function test_render_includes_the_behavior_bark(): void {
+		$markup = $this->render();
+
+		$this->assertStringContainsString( 'data-wp-init---bark="callbacks.initBark"', $markup );
+		$this->assertStringContainsString( 'class="bsb-cockpit__bark-layer" aria-hidden="true"', $markup );
+		$this->assertStringContainsString( 'data-wp-bind--hidden="!state.hasBark"', $markup );
+		$this->assertStringContainsString( 'data-wp-bind--data-bark="state.barkKey"', $markup );
+		$this->assertStringContainsString( 'data-wp-class--is-entering="state.isBarkEntering"', $markup );
+		$this->assertStringContainsString( 'data-wp-class--is-holding="state.isBarkHolding"', $markup );
+		$this->assertStringContainsString( 'data-wp-class--is-leaving="state.isBarkLeaving"', $markup );
+		$this->assertStringContainsString( 'data-wp-on--animationend="callbacks.onBarkAnimationEnd"', $markup );
+		$this->assertStringContainsString( 'data-wp-text="state.barkMessage"', $markup );
+	}
+
+	/**
 	 * Before a run the stage shows the startup postcard, not the iframe: the idle
 	 * screen is hidden while running and the viewport-wrap (shipped hidden) is
 	 * hidden while idle, so the benchmarked page never loads on the idle screen.

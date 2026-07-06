@@ -32,6 +32,14 @@ const SPEED_PARAM = 'bsbSpeed';
 /** Posted to the parent frame when the page's surf session ends. */
 const PAGE_DONE_MESSAGE = { type: 'bsb:pageDone' } as const;
 
+/**
+ * The message type posted to the parent frame when a behavior starts running.
+ * The cockpit-side receiver ({@see src/cockpit/BehaviorStart.ts}) owns its own
+ * copy of this literal — the engine bundle and the cockpit module share no
+ * imports across the frame boundary, exactly as `bsb:pageDone` does today.
+ */
+const BEHAVIOR_START_TYPE = 'bsb:behaviorStart';
+
 /** A fresh, unpredictable seed for the engine's one PRNG instance. */
 const randomSeed = (): number => {
 	if (
@@ -74,6 +82,12 @@ if ( params.has( TRAITS_PARAM ) ) {
 		onPageDone: () => {
 			window.parent.postMessage(
 				PAGE_DONE_MESSAGE,
+				window.location.origin
+			);
+		},
+		onBehaviorRun: ( key ) => {
+			window.parent.postMessage(
+				{ type: BEHAVIOR_START_TYPE, key },
 				window.location.origin
 			);
 		},

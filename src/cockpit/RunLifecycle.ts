@@ -12,6 +12,7 @@ import { RunSession } from './RunSession';
 import { buildGraph, type GraphViewport, type GraphModel } from './DrainGraph';
 import { buildSessionPayload, postSession } from './SessionUpload';
 import { enqueueToast } from './Toasts';
+import { clearBark } from './Barks';
 import { parseUserAgent } from './UserAgent';
 
 /**
@@ -158,6 +159,10 @@ const persistSession = (
  * (fire-and-forget) so every cause of a run ending records the session, with no
  * separate save step.
  *
+ * Ending also clears any behavior-start bark immediately (showing, pending and
+ * timers alike) so a stopped run never leaves a quip hanging over the idle
+ * viewport.
+ *
  * @param context  The reactive cockpit context to mark ended.
  * @param instance The per-instance run state to wind up.
  * @param reason   Why the run ended, recorded for the summary's verdict.
@@ -169,6 +174,7 @@ export const stopRun = (
 ): void => {
 	freezeSummary( context, instance );
 	persistSession( context, instance, reason );
+	clearBark( context, instance );
 	context.running = false;
 	context.ended = true;
 	context.endReason = reason;

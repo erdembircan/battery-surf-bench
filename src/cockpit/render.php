@@ -21,6 +21,7 @@
 
 namespace ErdemBircan\BatterySurfBench;
 
+use ErdemBircan\BatterySurfBench\Cockpit\BarkStrings;
 use ErdemBircan\BatterySurfBench\Cockpit\SummaryReasons;
 use ErdemBircan\BatterySurfBench\Cockpit\Views\CockpitView;
 
@@ -109,6 +110,18 @@ $bsb_context = array(
 		'error'  => __( "Couldn't save this run — check your connection.", 'battery-surf-bench' ),
 		'notice' => __( 'View only while the run is surfing.', 'battery-surf-bench' ),
 	),
+	// The behavior-start bark shown over the top of the running viewport: the
+	// behavior key showing (empty when none), its resolved flavor text, and its
+	// animation phase. Empty until the surf engine's behaviorStart handshake
+	// raises one.
+	'barkBehavior'        => '',
+	'barkText'            => '',
+	'barkPhase'           => '',
+	// Translated bark quips by behavior key, two variants each, picked at
+	// random when the behavior starts; see {@see BarkStrings} for the keys
+	// (mirroring the engine's exported `*_KEY` constants, which PHP cannot
+	// import) and their wording.
+	'barkStrings'         => BarkStrings::text(),
 );
 
 // The viewport's `src` is owned by the Interactivity API: `data-wp-bind--src`

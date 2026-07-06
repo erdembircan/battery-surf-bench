@@ -16,10 +16,15 @@ classDiagram
         <<module>>
         boot guard on the traits URL param; builds and starts SurfLoop once
         the document has loaded; posts 'bsb:pageDone' to the parent frame
-        when the page's session ends
+        when the page's session ends; posts 'bsb:behaviorStart' with the
+        winner's key each time one begins running
     }
 
     %% --- Orchestration: the tick loop and its inputs.
+    %% onBehaviorRun (an optional SurfLoopDeps callback) is notified with each
+    %% auction winner's key as it begins running, including MoveOn (before the
+    %% loop halts and fires onPageDone) — the engine stays flavor-free, only
+    %% posting every winner's key; the cockpit's string table decides what barks.
     class SurfLoop {
         +start() void
         +stop() void
@@ -207,6 +212,7 @@ classDiagram
     EngineBoot --> SurferStats : normalizeTraits
     EngineBoot --> RunConfig : normalizeSpeed
     EngineBoot ..> RunStore : postMessage 'bsb:pageDone'
+    EngineBoot ..> BarkStore : postMessage 'bsb:behaviorStart' (every winner's key)
 
     SurfLoop --> Behavior : bids & runs each tick
     SurfLoop --> Arbiter : draws a winner
@@ -250,4 +256,11 @@ classDiagram
         <<module>>
         cockpit-side receiver — currentSrc carries traits+speed onto the
         iframe URL; a page-done listener advances activeIndex
+    }
+
+    class BarkStore {
+        <<module>>
+        cockpit-side receiver — recognizes 'bsb:behaviorStart' while running
+        and raises a bark for the winner's key (a key with no translated
+        strings is silently ignored)
     }

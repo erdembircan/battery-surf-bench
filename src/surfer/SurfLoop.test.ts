@@ -3,7 +3,7 @@ import { SurfLoop } from './SurfLoop';
 import { FakeMotor } from './FakeMotor';
 import { FakeClock } from './FakeClock';
 import { mulberry32 } from './Rng';
-import { ScrollBurst } from './Behaviors/ScrollBurst';
+import { ScrollBurst, SCROLL_BURST_KEY } from './Behaviors/ScrollBurst';
 import { ReadPause } from './Behaviors/ReadPause';
 import { GlanceBack } from './Behaviors/GlanceBack';
 import { WatchVideo } from './Behaviors/WatchVideo';
@@ -11,7 +11,7 @@ import { LingerImage } from './Behaviors/LingerImage';
 import { FidgetWiggle } from './Behaviors/FidgetWiggle';
 import { MicroScroll } from './Behaviors/MicroScroll';
 import { SelectSnippet } from './Behaviors/SelectSnippet';
-import { MoveOn, MIN_DWELL_MS } from './Behaviors/MoveOn';
+import { MoveOn, MIN_DWELL_MS, MOVE_ON_KEY } from './Behaviors/MoveOn';
 import { openAffordances } from './TestFixtures';
 
 const neutralRng = () => 0.5;
@@ -216,6 +216,77 @@ describe( 'SurfLoop', () => {
 		);
 
 		expect( clock.now() * speed ).toBeGreaterThanOrEqual( MIN_DWELL_MS );
+	} );
+
+	it( 'notifies onBehaviorRun with the winning behavior key', async () => {
+		const motor = new FakeMotor();
+		const onPageDone = vi.fn();
+		const onBehaviorRun = vi.fn();
+		const loop = new SurfLoop( {
+			behaviors: [ new ScrollBurst(), new MoveOn() ],
+			motor,
+			clock: new FakeClock(),
+			rng: () => 0.999999, // always resolves to the last positive-bid entry
+			traits: [ 0, 0, 0, 0, 0 ],
+			senseAffordances: () => openAffordances,
+			speed: 1,
+			onPageDone,
+			onBehaviorRun,
+		} );
+
+		loop.start();
+		await vi.waitFor( () =>
+			expect( onPageDone ).toHaveBeenCalledTimes( 1 )
+		);
+
+		expect( onBehaviorRun ).toHaveBeenCalledWith( SCROLL_BURST_KEY );
+	} );
+
+	it( 'notifies onBehaviorRun with the MoveOn key before onPageDone fires', async () => {
+		const onPageDone = vi.fn();
+		const calls: string[] = [];
+		const onBehaviorRun = vi.fn( ( key: string ) => calls.push( key ) );
+		const loop = new SurfLoop( {
+			behaviors: [ new MoveOn() ],
+			motor: new FakeMotor(),
+			clock: new FakeClock(),
+			rng: neutralRng,
+			traits: [ 0, 0, 0, 0, 0 ],
+			senseAffordances: () => openAffordances,
+			speed: 1,
+			onPageDone: () => {
+				calls.push( 'pageDone' );
+				onPageDone();
+			},
+			onBehaviorRun,
+		} );
+
+		loop.start();
+		await vi.waitFor( () =>
+			expect( onPageDone ).toHaveBeenCalledTimes( 1 )
+		);
+
+		expect( onBehaviorRun ).toHaveBeenCalledWith( MOVE_ON_KEY );
+		expect( calls ).toEqual( [ MOVE_ON_KEY, 'pageDone' ] );
+	} );
+
+	it( 'runs safely with no onBehaviorRun dep wired', async () => {
+		const onPageDone = vi.fn();
+		const loop = new SurfLoop( {
+			behaviors: [ new ScrollBurst(), new MoveOn() ],
+			motor: new FakeMotor(),
+			clock: new FakeClock(),
+			rng: neutralRng,
+			traits: [ 0, 0, 0, 0, 0 ],
+			senseAffordances: () => openAffordances,
+			speed: 1,
+			onPageDone,
+		} );
+
+		loop.start();
+		await vi.waitFor( () =>
+			expect( onPageDone ).toHaveBeenCalledTimes( 1 )
+		);
 	} );
 
 	it( 'stop() prevents any further ticks', async () => {

@@ -1,8 +1,10 @@
 /**
  * The orchestrator. Owns the tick loop, boredom, and appetite —
  * behaviors themselves stay stateless pure bidders. Each tick: collect bids,
- * draw a winner, run it, update appetite/boredom, wait the tempo-scaled
- * interval. When `MoveOn` wins, the loop halts and fires `onPageDone`.
+ * draw a winner, notify `onBehaviorRun` with its key (so the cockpit can bark
+ * a flavor quip for the novelty ones), run it, update appetite/boredom, wait
+ * the tempo-scaled interval. When `MoveOn` wins, the loop halts and fires
+ * `onPageDone` (after notifying `onBehaviorRun`, so `moveOn` barks too).
  */
 
 import type { Behavior, BehaviorContext } from './Behavior';
@@ -37,6 +39,12 @@ export interface SurfLoopDeps {
 	senseAffordances: () => Affordances;
 	speed: number;
 	onPageDone: () => void;
+	/**
+	 * Notified with the auction winner's key as each behavior begins its
+	 * `run()`, so the cockpit can bark a flavor quip for the novelty ones.
+	 * Optional so existing tests and callers stay valid without wiring it.
+	 */
+	onBehaviorRun?: ( key: string ) => void;
 }
 
 /** Runs the auction-driven tick loop for a single page visit. */
@@ -98,6 +106,8 @@ export class SurfLoop {
 			const winner = pickBehavior( bids, rng );
 
 			if ( winner ) {
+				this.deps.onBehaviorRun?.( winner.key );
+
 				if ( winner.key === MOVE_ON_KEY ) {
 					this.running = false;
 					this.deps.onPageDone();

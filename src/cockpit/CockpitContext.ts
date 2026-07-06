@@ -91,6 +91,17 @@ export interface CockpitContext {
 	// Translated toast messages by kind, seeded by the server so the strings stay
 	// localizable; the queue resolves the current message from here.
 	toastStrings: Record< ToastKind, string >;
+	// The behavior-start bark: the behavior key showing (empty when none), its
+	// resolved flavor text, and its animation phase. The pending slot lives
+	// off-context in the per-instance state; only the one showing rides the
+	// reactive context.
+	barkBehavior: string;
+	barkText: string;
+	barkPhase: ToastPhase;
+	// Translated bark quips by behavior key, two variants each; the cockpit
+	// picks one at random when the behavior starts. A behavior key absent here
+	// never barks (the mechanical, frequent behaviors have no entry).
+	barkStrings: Record< string, string[] >;
 	// The stored run's samples, seeded by the session detail page so its summary
 	// can rebuild the drain graph client-side (the chart geometry is TS, so the
 	// server cannot precompute it). Absent in the live cockpit, which builds the

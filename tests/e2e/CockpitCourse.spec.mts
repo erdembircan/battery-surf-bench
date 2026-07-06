@@ -430,3 +430,76 @@ test.describe( 'Cockpit dashboard route', () => {
 		await expectNoPhpNotices( page );
 	} );
 } );
+
+test.describe( 'Cockpit behavior barks', () => {
+	test( 'wires the behavior-start bark pill inside the viewport, hidden at rest', async ( {
+		page,
+	} ) => {
+		await page.goto( '/?bsbSession=cockpit' );
+
+		// The layer sits inside the viewport wrap (so it reads as "inside" the
+		// simulated page) and is aria-hidden — barks are decorative, not
+		// announced information.
+		const barkLayer = page.locator(
+			'.bsb-cockpit__viewport-wrap .bsb-cockpit__bark-layer'
+		);
+		await expect( barkLayer ).toBeAttached();
+		await expect( barkLayer ).toHaveAttribute( 'aria-hidden', 'true' );
+
+		// The pill itself ships hidden and carries the store bindings its
+		// lifecycle depends on.
+		const bark = barkLayer.locator( '.bsb-cockpit__bark' );
+		await expect( bark ).toBeHidden();
+		await expect( bark ).toHaveAttribute(
+			'data-wp-bind--hidden',
+			'!state.hasBark'
+		);
+		await expect( bark ).toHaveAttribute(
+			'data-wp-on--animationend',
+			'callbacks.onBarkAnimationEnd'
+		);
+
+		await expect(
+			page.locator(
+				'.wp-block-bsb-cockpit[data-wp-interactive="bsb/cockpit"]'
+			)
+		).toHaveAttribute( 'data-wp-init---bark', 'callbacks.initBark' );
+
+		await expectNoPhpNotices( page );
+	} );
+
+	// Live assertion: starting a run at the fastest demo speed should raise a
+	// bark within a generous window — six of the engine's nine behaviors bark,
+	// so one should win quickly. Verified locally across repeated runs per the
+	// plan's flake protocol before landing; see the PR description for the
+	// outcome of that check.
+	test( 'raises a bark pill during a live, fast run', async ( { page } ) => {
+		await page.goto( '/?bsbSession=cockpit' );
+
+		// The e2e blueprint's host reports charging, which blocks a live run;
+		// force discharging through the dev-tools override, as the other cockpit
+		// e2e specs that need a live run already do (see DevTools.spec.mts).
+		await page.locator( '.bsb-devtools__pill' ).click();
+		await page.locator( '[data-devtools-charging="discharging"]' ).click();
+		await page.locator( '.bsb-devtools__card-close' ).click();
+
+		// Reveal the deck by flipping the startup postcard, pick the fastest
+		// demo speed, then start the run.
+		await page
+			.locator(
+				'.bsb-flipcard--idle .bsb-flipcard__flip[data-wp-on--click="actions.toggleIdleFlip"]'
+			)
+			.first()
+			.click();
+		await page
+			.locator( '.bsb-seg--speed .bsb-seg__option[data-speed="10"]' )
+			.click();
+		await page
+			.locator( '.bsb-run[data-wp-on--click="actions.toggleRun"]' )
+			.click();
+
+		await expect( page.locator( '.bsb-cockpit__bark' ) ).toBeVisible( {
+			timeout: 30_000,
+		} );
+	} );
+} );
