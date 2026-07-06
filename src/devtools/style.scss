@@ -230,6 +230,9 @@ $ease: cubic-bezier(0.22, 1, 0.36, 1);
 .bsb-devtools__card-reset-icon {
 	width: 13px;
 	height: 13px;
+	background-color: currentColor;
+	mask: theme.$reset-icon center / contain no-repeat;
+	-webkit-mask: theme.$reset-icon center / contain no-repeat;
 }
 
 .bsb-devtools__card-close {
