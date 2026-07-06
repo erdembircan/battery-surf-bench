@@ -903,16 +903,6 @@ body.bsb-cockpit-dashboard {
 	cursor: not-allowed;
 }
 
-// The shield intercepts every pointer event, so the pointer never actually
-// enters the iframe document — the course page's own `cursor: none` (see
-// src/course/style.scss) never gets a chance to apply. The real cursor
-// visible during a run is the parent cockpit page's, hovering the shield, so
-// the hide has to live here instead.
-.bsb-cockpit__viewport-wrap,
-.bsb-cockpit__viewport-wrap * {
-	cursor: none;
-}
-
 // The bottom notification toast: a small frosted pill that rises from the
 // bottom of the dashboard, above everything, to surface an event the run would
 // otherwise swallow — a failed session upload (error) or the view-only state of

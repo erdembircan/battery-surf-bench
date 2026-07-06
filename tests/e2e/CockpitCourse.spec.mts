@@ -136,16 +136,19 @@ test.describe( 'Surf engine', () => {
 			}
 		}
 
-		// The real OS cursor must be hidden everywhere, not just page-wide on
-		// the root — a text-bearing element inside the article would otherwise
-		// resolve its own `auto` cursor (an I-beam) regardless of the ancestor.
+		// The real OS cursor must show as the disabled `not-allowed` affordance
+		// everywhere, not just page-wide on the root — a text-bearing element
+		// inside the article would otherwise resolve its own `auto` cursor (an
+		// I-beam) regardless of the ancestor. It stays visible (unlike the old
+		// `cursor: none`) so wiggling the mouse never looks like it broke —
+		// the dummy surf cursor sampled above is the thing visibly acting.
 		const deckCursor = await page.evaluate(
 			() =>
 				getComputedStyle(
 					document.querySelector( '.bsb-article__deck' )!
 				).cursor
 		);
-		expect( deckCursor ).toBe( 'none' );
+		expect( deckCursor ).toBe( 'not-allowed' );
 	} );
 
 	test( 'stays a static page when the traits URL param is absent', async ( {
@@ -153,18 +156,19 @@ test.describe( 'Surf engine', () => {
 	} ) => {
 		await page.goto( '/?bsbSessionPage=article-1' );
 
-		// No fake cursor and no OS-cursor-hiding class — the engine never booted.
+		// No fake cursor and no surfing-affordance class — the engine never booted.
 		await expect( page.locator( '.bsb-surf-cursor' ) ).toHaveCount( 0 );
 		await expect( page.locator( 'html' ) ).not.toHaveClass( /bsb-surfing/ );
 
-		// The real OS cursor stays visible on a static page's content.
+		// The real OS cursor stays its normal self on a static page's content —
+		// no `not-allowed` affordance without a run actually driving the page.
 		const deckCursor = await page.evaluate(
 			() =>
 				getComputedStyle(
 					document.querySelector( '.bsb-article__deck' )!
 				).cursor
 		);
-		expect( deckCursor ).not.toBe( 'none' );
+		expect( deckCursor ).not.toBe( 'not-allowed' );
 
 		// Poll past the engine's settle beat (1000-3000 ms at speed 1, the
 		// default with no bsbSpeed param) plus a first tick — an incorrectly
@@ -370,18 +374,17 @@ test.describe( 'Cockpit dashboard route', () => {
 			page.locator( 'iframe.bsb-cockpit__viewport' )
 		).not.toHaveAttribute( 'src', /bsbSessionPage/ );
 
-		// The shield intercepts every pointer event during a run, so the
-		// pointer never reaches the iframe document and the course page's own
-		// `cursor: none` never gets a chance to apply — the hide has to live
-		// on this parent-side wrap instead. `getComputedStyle` still resolves
-		// on a `hidden` element, so this holds even before a run starts.
+		// The wrap itself carries no cursor override of its own — only its
+		// `.bsb-cockpit__shield` child does — so it resolves to the ordinary
+		// `auto` cursor. `getComputedStyle` still resolves on a `hidden`
+		// element, so this holds even before a run starts.
 		const viewportWrapCursor = await page.evaluate(
 			() =>
 				getComputedStyle(
 					document.querySelector( '.bsb-cockpit__viewport-wrap' )!
 				).cursor
 		);
-		expect( viewportWrapCursor ).toBe( 'none' );
+		expect( viewportWrapCursor ).toBe( 'auto' );
 
 		// The interaction shield remains in the markup — it governs the viewport
 		// once a run starts; its behaviour is unit-covered. The view-only state is
