@@ -126,7 +126,7 @@ class DevToolsPanelView implements View {
 				<span class="bsb-devtools__card-eyebrow">{$eyebrow}</span>
 				<span class="bsb-devtools__card-armed" hidden data-wp-bind--hidden="!state.devtoolsIsArmed">{$armed}</span>
 				<div class="bsb-devtools__card-actions">
-					<button type="button" class="bsb-devtools__card-reset" data-wp-on--click="actions.devtoolsReset" aria-label="{$reset}"><svg class="bsb-devtools__card-reset-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg></button>
+					<button type="button" class="bsb-devtools__card-reset" hidden data-wp-bind--hidden="!state.devtoolsIsArmed" data-wp-on--click="actions.devtoolsReset" aria-label="{$reset}"><span class="bsb-devtools__card-reset-icon" aria-hidden="true"></span></button>
 					<button type="button" class="bsb-devtools__card-close" data-wp-on--click="actions.devtoolsToggleOpen" aria-label="{$close}">&times;</button>
 				</div>
 			</div>

@@ -532,11 +532,20 @@ test.describe( 'Dev-tools battery-override panel', () => {
 
 		await page.locator( '.bsb-devtools__pill' ).click();
 
+		const resetButton = page.locator( '.bsb-devtools__card-reset' );
+
+		// Pristine: nothing armed, so Reset has nothing to do and stays
+		// hidden.
+		await expect( resetButton ).toBeHidden();
+
 		// Arm a charging override.
 		await page.locator( '[data-devtools-charging="charging"]' ).click();
 		await expect(
 			page.locator( '[data-devtools-charging="charging"]' )
 		).toHaveClass( /is-selected/ );
+
+		// An override is now active: Reset becomes visible.
+		await expect( resetButton ).toBeVisible();
 
 		// Shorten the run so the ticker's first tick moves the level within the
 		// test's own wait, then start the discharge sim.
@@ -553,7 +562,7 @@ test.describe( 'Dev-tools battery-override panel', () => {
 		const armedText = page.locator( '.bsb-devtools__card-armed' );
 		await expect( armedText ).toBeVisible();
 
-		await page.locator( '.bsb-devtools__card-reset' ).click();
+		await resetButton.click();
 
 		// Sim stopped: the toggle shows the Start state again.
 		await expect( toggle ).not.toHaveClass( /is-running/ );
@@ -563,8 +572,10 @@ test.describe( 'Dev-tools battery-override panel', () => {
 			page.locator( '[data-devtools-charging="system"]' )
 		).toHaveClass( /is-selected/ );
 
-		// No override armed any more.
+		// No override armed any more: Reset hides again along with the armed
+		// text.
 		await expect( armedText ).toBeHidden();
+		await expect( resetButton ).toBeHidden();
 
 		// Steppers restored to their 90/20/30 defaults.
 		await expect(
