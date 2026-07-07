@@ -64,14 +64,14 @@ describe( 'mapOrderToRows', () => {
 		expect( rows[ 0 ].badge ).toBe( 'post' );
 	} );
 
-	it( 'falls back to a placeholder title while a user page has not resolved yet', () => {
+	it( 'falls back to a neutral placeholder, never the raw id, while a user page has not resolved yet', () => {
 		const order: OrderEntry[] = [ { kind: 'user', id: 99 } ];
 
 		const rows = mapOrderToRows( order, catalog, {} );
 
 		expect( rows[ 0 ] ).toEqual( {
 			key: 'user:99',
-			title: '#99',
+			title: '—',
 			badge: 'page',
 			removable: true,
 			entry: order[ 0 ],

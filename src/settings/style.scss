@@ -11,8 +11,7 @@
  * markup are owned by the shared `admin-chrome` partial (`AdminHeaderView`/
  * `AdminPillView` render the header and New Benchmark pill in PHP; the React
  * `SaveButton` renders the shared solid-pill classes directly); this
- * stylesheet only adds what is genuinely this screen's own: the save flash
- * and the picker panes.
+ * stylesheet only adds what is genuinely this screen's own: the picker panes.
  *
  * `@use`-ing the shared theme also emits its `@font-face` rules, so Anton,
  * Hanken Grotesk and Space Mono load on the admin screen.
@@ -24,22 +23,6 @@
 // ── The deck shell ───────────────────────────────────────────────────────────
 .bsb-settings {
 	@include admin-chrome.deck;
-}
-
-// The app portals its own Save button (its own dirty/saving state) into this
-// flash, so it stays screen-specific rather than moving to the shared partial.
-.bsb-settings__save-flash {
-	display: none;
-	align-items: center;
-	gap: 0.4rem;
-	font-size: 0.78rem;
-	font-weight: 600;
-	color: theme.$coastal-teal-deep;
-	margin-right: 0.9rem;
-
-	&.is-shown {
-		display: inline-flex;
-	}
 }
 
 // ── Scrollable body ──────────────────────────────────────────────────────────

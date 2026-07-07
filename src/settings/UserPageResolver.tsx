@@ -1,13 +1,19 @@
 /**
- * Resolves titles and post types for the saved order's user pages.
+ * Fallback resolver for user pages the server-side seed
+ * (`config.userPages`, applied in `App.tsx`) could not cover — most commonly
+ * a saved id the PHP screen holds to a stricter eligibility bar (e.g. it
+ * skips a password-protected post the current user can still read) than the
+ * REST collection query this component runs. On a normal load every eligible
+ * saved id is already seeded, so this typically renders no queries at all;
+ * `App.tsx` only passes it ids not already present in its `userPages` state.
  *
- * The saved order only carries post ids, so their titles and post types are
- * fetched separately. A site can have well over 100 selected user pages, and
- * the REST `include` parameter is capped at 100 like every other collection
- * query, so ids are split into chunks of at most 100 and each chunk is
- * queried per selectable post type (a post id belongs to exactly one type, so
- * the query for the wrong type simply returns nothing for it) — never a
- * single request assumed to return everything.
+ * The saved order only carries post ids, so an unseeded id's title and post
+ * type are fetched separately. A site can have well over 100 selected user
+ * pages, and the REST `include` parameter is capped at 100 like every other
+ * collection query, so ids are split into chunks of at most 100 and each
+ * chunk is queried per selectable post type (a post id belongs to exactly one
+ * type, so the query for the wrong type simply returns nothing for it) —
+ * never a single request assumed to return everything.
  *
  * Each chunk is resolved by its own `useEntityRecords` call, so this renders
  * one invisible query component per chunk rather than looping the hook inside

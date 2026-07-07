@@ -8,8 +8,7 @@
  * `RowMapping.test.ts`); here they are replaced with minimal stubs that
  * expose the handlers App wires to them, so what is asserted is App's own
  * observable contract: what it renders into the Selected pane, what it saves,
- * and how it reflects dirty/saving/saved state through the portaled Save
- * button.
+ * and how it reflects dirty/saving state through the portaled Save button.
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -72,19 +71,22 @@ const config: SettingsConfig = {
 		{ slug: 'article-1', title: 'The Hidden Cost of a Browser Tab' },
 	],
 	initialBrowse: { records: [], totalItems: 0, totalPages: 1 },
+	userPages: {},
 };
 
 /**
  * Renders the app with a save slot present in the DOM, the way the PHP view
  * renders it in the header.
  *
+ * @param overrides Partial config overriding the shared default, for tests
+ *                  that need a different saved order or seed.
  * @return The injected slot element.
  */
-function renderWithSaveSlot() {
+function renderWithSaveSlot( overrides: Partial< SettingsConfig > = {} ) {
 	const slot = document.createElement( 'span' );
 	slot.className = 'bsb-settings__save-slot';
 	document.body.appendChild( slot );
-	render( <SettingsApp config={ config } /> );
+	render( <SettingsApp config={ { ...config, ...overrides } } /> );
 	return slot;
 }
 
@@ -120,6 +122,35 @@ describe( 'SettingsApp sequence state', () => {
 
 		expect( screen.getByTestId( 'row-count' ) ).toHaveTextContent( '1' );
 		expect( screen.queryByText( 'Pricing' ) ).not.toBeInTheDocument();
+	} );
+} );
+
+describe( 'SettingsApp seeded user page titles', () => {
+	it( 'renders a saved user page from its server-seeded title on first render, never the raw id', () => {
+		renderWithSaveSlot( {
+			courseOrder: [
+				{ kind: 'bundled', slug: 'article-1' },
+				{ kind: 'user', id: 5 },
+			],
+			userPages: { 5: { title: 'Contact', type: 'page' } },
+		} );
+
+		expect( screen.getByText( 'Contact' ) ).toBeInTheDocument();
+		expect( screen.queryByText( '5' ) ).not.toBeInTheDocument();
+		expect( screen.queryByText( '#5' ) ).not.toBeInTheDocument();
+	} );
+
+	it( 'shows a neutral placeholder, never the raw id, for a user page with no seeded or resolved title', () => {
+		renderWithSaveSlot( {
+			courseOrder: [
+				{ kind: 'bundled', slug: 'article-1' },
+				{ kind: 'user', id: 99 },
+			],
+		} );
+
+		expect( screen.getByText( '—' ) ).toBeInTheDocument();
+		expect( screen.queryByText( '99' ) ).not.toBeInTheDocument();
+		expect( screen.queryByText( '#99' ) ).not.toBeInTheDocument();
 	} );
 } );
 
@@ -159,7 +190,7 @@ describe( 'SettingsApp save button', () => {
 		} );
 	} );
 
-	it( 'disables Save again and shows the Saved flash once the save resolves', async () => {
+	it( 'disables Save again once the save resolves', async () => {
 		const slot = renderWithSaveSlot();
 		fireEvent.click( screen.getByText( 'stub-add' ) );
 		fireEvent.click( slot.querySelector( 'button' )! );
@@ -167,7 +198,6 @@ describe( 'SettingsApp save button', () => {
 		await waitFor( () =>
 			expect( slot.querySelector( 'button' ) ).toBeDisabled()
 		);
-		expect( slot.textContent ).toContain( 'Saved' );
 	} );
 
 	it( 'returns saving to false and keeps the sequence dirty and retry-able when the save fails', async () => {
@@ -188,9 +218,6 @@ describe( 'SettingsApp save button', () => {
 		await waitFor( () =>
 			expect( slot.querySelector( 'button' ) ).not.toBeDisabled()
 		);
-		expect(
-			slot.querySelector( '.bsb-settings__save-flash' )
-		).not.toHaveClass( 'is-shown' );
 
 		consoleError.mockRestore();
 	} );

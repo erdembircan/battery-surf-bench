@@ -44,12 +44,14 @@ export function SettingsApp( { config }: { config: SettingsConfig } ) {
 	const [ order, setOrder ] = useState< OrderEntry[] >( () =>
 		healBundled( config.courseOrder, config.bundledCatalog )
 	);
+	// Seeded from the server-resolved titles so every eligible saved user page
+	// paints its real title on first render instead of a raw post id — the
+	// resolver below only has to catch up on whatever this could not seed.
 	const [ userPages, setUserPages ] = useState<
 		Record< number, ResolvedUserPage >
-	>( {} );
+	>( () => ( { ...config.userPages } ) );
 	const [ dirty, setDirty ] = useState( false );
 	const [ saving, setSaving ] = useState( false );
-	const [ saved, setSaved ] = useState( false );
 
 	const userIds = useMemo(
 		() =>
@@ -66,6 +68,14 @@ export function SettingsApp( { config }: { config: SettingsConfig } ) {
 
 	const selectedIds = useMemo( () => new Set( userIds ), [ userIds ] );
 
+	// Only ids the seed and any prior resolution haven't already covered need
+	// fetching — on a normal load every eligible saved id was already seeded
+	// server-side, so this is empty and the resolver mounts no queries at all.
+	const unresolvedIds = useMemo(
+		() => userIds.filter( ( id ) => ! userPages[ id ] ),
+		[ userIds, userPages ]
+	);
+
 	const rows = useMemo(
 		() => mapOrderToRows( order, config.bundledCatalog, userPages ),
 		[ order, config.bundledCatalog, userPages ]
@@ -79,13 +89,11 @@ export function SettingsApp( { config }: { config: SettingsConfig } ) {
 	);
 
 	/**
-	 * Marks the sequence dirty and clears any leftover "Saved" flash — any
-	 * further change means the previous save no longer describes the current
-	 * sequence.
+	 * Marks the sequence dirty — any further change means the previous save no
+	 * longer describes the current sequence.
 	 */
 	function markDirty(): void {
 		setDirty( true );
-		setSaved( false );
 	}
 
 	/**
@@ -144,7 +152,6 @@ export function SettingsApp( { config }: { config: SettingsConfig } ) {
 				data: { [ config.optionKey ]: order },
 			} );
 			setDirty( false );
-			setSaved( true );
 		} catch ( error ) {
 			// Keep the sequence dirty so the user can retry; surface, don't swallow.
 			// eslint-disable-next-line no-console
@@ -198,7 +205,7 @@ export function SettingsApp( { config }: { config: SettingsConfig } ) {
 			</div>
 
 			<UserPageResolver
-				ids={ userIds }
+				ids={ unresolvedIds }
 				postTypes={ config.postTypes }
 				onResolved={ handleResolved }
 			/>
@@ -208,7 +215,6 @@ export function SettingsApp( { config }: { config: SettingsConfig } ) {
 					<SaveButton
 						dirty={ dirty }
 						saving={ saving }
-						saved={ saved }
 						onSave={ handleSave }
 					/>,
 					saveSlot

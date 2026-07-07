@@ -29,6 +29,7 @@ const config: SettingsConfig = {
 	courseOrder: [],
 	bundledCatalog: [],
 	initialBrowse: { records: [], totalItems: 0, totalPages: 1 },
+	userPages: {},
 };
 
 beforeEach( () => {

@@ -49,8 +49,9 @@ export interface InitialBrowse {
 /**
  * The configuration the PHP screen localizes for the settings app: the
  * selectable post types, the option's REST key, the saved order, the bundled
- * catalog the order folds into locked rows, and the Browse pane's seeded
- * first page.
+ * catalog the order folds into locked rows, the Browse pane's seeded first
+ * page, and each saved user page's title and type, resolved server-side so
+ * the sequence paints titles on first render instead of a raw post id.
  */
 export interface SettingsConfig {
 	postTypes: string[];
@@ -58,6 +59,7 @@ export interface SettingsConfig {
 	courseOrder: OrderEntry[];
 	bundledCatalog: BundledCatalogEntry[];
 	initialBrowse: InitialBrowse;
+	userPages: Record< number, ResolvedUserPage >;
 }
 
 /**
