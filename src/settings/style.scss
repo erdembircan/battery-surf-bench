@@ -578,7 +578,12 @@
 	// hover backgrounds above regardless of row parity — this slot must always
 	// read as an empty placeholder, never as a real (if dim) row.
 	&.is-drag-placeholder {
-		background: #{rgba(theme.$coastal-teal, 0.08)};
+		// A distinctly visible light-teal drop-zone fill — 0.08 read as
+		// hollow/near-transparent, making it hard to tell a drag was even
+		// happening. 0.18 stays a fill (not a solid surface), but is clearly
+		// present without competing with the tilted real row riding the
+		// cursor in the DragOverlay.
+		background: #{rgba(theme.$coastal-teal, 0.18)};
 		border: 2px dashed theme.$coastal-teal;
 		border-radius: 9px;
 
