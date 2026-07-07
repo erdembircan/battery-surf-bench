@@ -2,14 +2,13 @@
  * Behavioral tests for the pure surf-course order operations.
  *
  * These are the operations every mutation in the settings app funnels
- * through — add, remove, reorder, dedupe and heal — so they are tested here
- * as plain data transforms, independent of any component.
+ * through — add, remove, reorder and heal — so they are tested here as plain
+ * data transforms, independent of any component.
  */
 
 import { describe, it, expect } from 'vitest';
 import {
 	addUserPage,
-	dedupe,
 	entryKey,
 	hasUserPage,
 	healBundled,
@@ -104,23 +103,6 @@ describe( 'reorderByKey', () => {
 		expect( reorderByKey( order, 'user:999', entryKey( userA ) ) ).toBe(
 			order
 		);
-	} );
-} );
-
-describe( 'dedupe', () => {
-	it( 'keeps only the first occurrence of a repeated bundled slug', () => {
-		expect( dedupe( [ bundledA, bundledA, bundledB ] ) ).toEqual( [
-			bundledA,
-			bundledB,
-		] );
-	} );
-
-	it( 'keeps only the first occurrence of a repeated user id', () => {
-		expect( dedupe( [ userA, userB, userA ] ) ).toEqual( [ userA, userB ] );
-	} );
-
-	it( 'leaves an order with no duplicates unchanged', () => {
-		expect( dedupe( [ bundledA, userA ] ) ).toEqual( [ bundledA, userA ] );
 	} );
 } );
 

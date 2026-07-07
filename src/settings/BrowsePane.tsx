@@ -1,20 +1,17 @@
 /**
  * The Browse pane: a paginated, server-searched list of the site's own posts
- * and pages, fed straight from `useEntityRecords` — the same data layer
- * Sessions uses for its DataViews grid, minus the `<DataViews>` component
- * itself (decision #7: too opinionated to theme onto this bespoke picker).
- *
- * "All" queries both selectable post types unconditionally (an `enabled`
- * option skips the network request for whichever type isn't shown) so the
- * number of hook calls this component makes never changes across renders,
- * keeping the rules of hooks intact while still never issuing a single
- * request for more than one page's worth of results.
+ * and pages, fed by a single `/wp/v2/search` query ({@see useSearchResults}) —
+ * the one core collection that already unifies multiple post types behind
+ * genuine server pagination and server search, so the "All" tab is one
+ * correctly-paginated request rather than two per-type requests merged and
+ * sliced client-side (which drops items past 10 total results and 400s once
+ * one type's page cursor runs past its own last page).
  */
 
-import { useEntityRecords } from '@wordpress/core-data';
 import { useEffect, useState } from '@wordpress/element';
 import { __, sprintf } from '@wordpress/i18n';
-import type { ContentRecord } from './Types';
+import { useSearchResults } from './SearchQuery';
+import type { SearchRecord } from './Types';
 
 /** Rows fetched per page — deliberately small, since this is a real REST page, not a client-side slice. */
 const PER_PAGE = 10;
@@ -47,7 +44,7 @@ function useDebouncedValue< T >( value: T, delay: number ): T {
  * Renders one browse row: title, type badge, and an Add / Added action.
  *
  * @param props         Component props.
- * @param props.record  The post or page to render.
+ * @param props.record  The search result to render.
  * @param props.isAdded Whether this record is already in the surf sequence.
  * @param props.onAdd   Called when the row's Add button is activated.
  */
@@ -56,12 +53,11 @@ function BrowseRow( {
 	isAdded,
 	onAdd,
 }: {
-	record: ContentRecord;
+	record: SearchRecord;
 	isAdded: boolean;
 	onAdd: () => void;
 } ) {
-	const title =
-		record.title?.rendered || __( '(untitled)', 'battery-surf-bench' );
+	const title = record.title || __( '(untitled)', 'battery-surf-bench' );
 
 	return (
 		<div className="bsb-browse__row">
@@ -69,10 +65,10 @@ function BrowseRow( {
 				<span className="bsb-browse__row-title">{ title }</span>
 				<span
 					className={ `bsb-badge bsb-badge--${
-						record.type === 'post' ? 'post' : 'page'
+						record.subtype === 'post' ? 'post' : 'page'
 					}` }
 				>
-					{ record.type === 'post'
+					{ record.subtype === 'post'
 						? __( 'Post', 'battery-surf-bench' )
 						: __( 'Page', 'battery-surf-bench' ) }
 				</span>
@@ -103,7 +99,7 @@ function BrowseRow( {
  * @param props             Component props.
  * @param props.postTypes   The selectable post types (`['page','post']`).
  * @param props.selectedIds Post ids already in the surf sequence, so their rows show as Added.
- * @param props.onAdd       Called with a record's id, type and title when its row is added.
+ * @param props.onAdd       Called with a record's id, subtype and title when its row is added.
  */
 export function BrowsePane( {
 	postTypes,
@@ -112,7 +108,7 @@ export function BrowsePane( {
 }: {
 	postTypes: string[];
 	selectedIds: Set< number >;
-	onAdd: ( id: number, type: string, title: string ) => void;
+	onAdd: ( id: number, subtype: string, title: string ) => void;
 } ) {
 	const [ type, setType ] = useState< BrowseType >( 'all' );
 	const [ search, setSearch ] = useState( '' );
@@ -124,46 +120,14 @@ export function BrowsePane( {
 		setPage( 1 );
 	}, [ type, debouncedSearch ] );
 
-	const queryArgs = {
+	const subtype = type === 'all' ? postTypes.join( ',' ) : type;
+
+	const { records, totalItems, totalPages, isResolving } = useSearchResults( {
 		search: debouncedSearch,
+		subtype,
 		page,
-		per_page: PER_PAGE,
-		status: 'publish',
-		_fields: 'id,title,link,type',
-	};
-
-	const pageEnabled = postTypes.includes( 'page' ) && type !== 'post';
-	const postEnabled = postTypes.includes( 'post' ) && type !== 'page';
-
-	const pageResult = useEntityRecords< ContentRecord >(
-		'postType',
-		'page',
-		queryArgs,
-		{ enabled: pageEnabled }
-	);
-	const postResult = useEntityRecords< ContentRecord >(
-		'postType',
-		'post',
-		queryArgs,
-		{ enabled: postEnabled }
-	);
-
-	const records: ContentRecord[] = [
-		...( pageEnabled ? pageResult.records ?? [] : [] ),
-		...( postEnabled ? postResult.records ?? [] : [] ),
-	].slice( 0, PER_PAGE );
-
-	const totalItems =
-		( pageEnabled ? pageResult.totalItems ?? 0 : 0 ) +
-		( postEnabled ? postResult.totalItems ?? 0 : 0 );
-	const totalPages = Math.max(
-		1,
-		pageEnabled ? pageResult.totalPages ?? 1 : 1,
-		postEnabled ? postResult.totalPages ?? 1 : 1
-	);
-	const isResolving =
-		( pageEnabled && pageResult.isResolving ) ||
-		( postEnabled && postResult.isResolving );
+		perPage: PER_PAGE,
+	} );
 
 	const rangeStart = totalItems === 0 ? 0 : ( page - 1 ) * PER_PAGE + 1;
 	const rangeEnd = totalItems === 0 ? 0 : rangeStart + records.length - 1;
@@ -262,15 +226,11 @@ export function BrowsePane( {
 				) }
 				{ records.map( ( record ) => (
 					<BrowseRow
-						key={ `${ record.type }-${ record.id }` }
+						key={ `${ record.subtype }-${ record.id }` }
 						record={ record }
 						isAdded={ selectedIds.has( record.id ) }
 						onAdd={ () =>
-							onAdd(
-								record.id,
-								record.type,
-								record.title?.rendered ?? ''
-							)
+							onAdd( record.id, record.subtype, record.title )
 						}
 					/>
 				) ) }

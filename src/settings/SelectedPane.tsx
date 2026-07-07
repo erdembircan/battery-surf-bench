@@ -29,7 +29,7 @@ import {
 	verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { useState } from '@wordpress/element';
+import { useEffect, useRef, useState } from '@wordpress/element';
 import { __, sprintf } from '@wordpress/i18n';
 import type { OrderEntry, RowBadge, SequenceRow } from './Types';
 
@@ -199,6 +199,22 @@ export function SelectedPane( {
 	const [ activeKey, setActiveKey ] = useState< string | null >( null );
 	const [ removingKey, setRemovingKey ] = useState< string | null >( null );
 
+	// Tracks the in-flight removal timer so it can be cancelled if the pane
+	// unmounts (e.g. the whole app navigates away) before the collapse
+	// animation finishes — otherwise the timer still fires afterwards and
+	// calls `onRemove`/`setRemovingKey` against a component that is gone.
+	const removalTimer = useRef< ReturnType< typeof setTimeout > | null >(
+		null
+	);
+
+	useEffect( () => {
+		return () => {
+			if ( removalTimer.current ) {
+				clearTimeout( removalTimer.current );
+			}
+		};
+	}, [] );
+
 	const sensors = useSensors(
 		useSensor( PointerSensor ),
 		useSensor( KeyboardSensor, {
@@ -218,7 +234,8 @@ export function SelectedPane( {
 			return;
 		}
 		setRemovingKey( row.key );
-		setTimeout( () => {
+		removalTimer.current = setTimeout( () => {
+			removalTimer.current = null;
 			onRemove( row.entry );
 			setRemovingKey( null );
 		}, REMOVE_ANIMATION_MS );

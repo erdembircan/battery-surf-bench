@@ -47,14 +47,28 @@ export interface SettingsConfig {
 }
 
 /**
- * A post or page as the REST collection returns it, trimmed to the fields the
- * picker reads (`_fields=id,title,link,type`).
+ * A post or page as the `postType` REST collection returns it, trimmed to the
+ * fields the user-page resolver reads (`_fields=id,title,type`).
  */
 export interface ContentRecord {
 	id: number;
 	title?: { rendered?: string };
 	link?: string;
 	type: string;
+}
+
+/**
+ * A single result from the core `/wp/v2/search` endpoint, trimmed to the
+ * fields the Browse pane reads (`_fields=id,title,url,subtype`). Unlike a
+ * `postType` collection record, `title` is a plain string and the post type
+ * lives in `subtype` (`type` is the generic search result kind — always
+ * `'post'` once the query is filtered with `type=post`).
+ */
+export interface SearchRecord {
+	id: number;
+	title: string;
+	url: string;
+	subtype: string;
 }
 
 /**

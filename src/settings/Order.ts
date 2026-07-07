@@ -104,37 +104,6 @@ export function reorderByKey(
 }
 
 /**
- * Drops duplicate entries, keeping each bundled slug's and each user id's
- * first occurrence.
- *
- * @param order The order to dedupe.
- * @return The deduplicated order.
- */
-export function dedupe( order: OrderEntry[] ): OrderEntry[] {
-	const seenSlugs = new Set< string >();
-	const seenIds = new Set< number >();
-	const result: OrderEntry[] = [];
-
-	for ( const entry of order ) {
-		if ( entry.kind === 'bundled' ) {
-			if ( seenSlugs.has( entry.slug ) ) {
-				continue;
-			}
-			seenSlugs.add( entry.slug );
-		} else {
-			if ( seenIds.has( entry.id ) ) {
-				continue;
-			}
-			seenIds.add( entry.id );
-		}
-
-		result.push( entry );
-	}
-
-	return result;
-}
-
-/**
  * Re-inserts any bundled catalog page missing from the order, appended in
  * catalog order — the client-side mirror of the PHP sanitizer's healing pass,
  * so the Selected pane never renders without every bundled page even before a
