@@ -114,8 +114,20 @@ function SequenceRowItem( {
 	onMoveDown: () => void;
 	onTransitionEnd: ( propertyName: string ) => void;
 } ) {
-	const { attributes, listeners, setNodeRef, transform, transition } =
-		useSortable( { id: row.key } );
+	const {
+		attributes,
+		listeners,
+		setNodeRef,
+		transform,
+		transition,
+		isDragging,
+	} = useSortable( {
+		id: row.key,
+		// Matches the mock's SortableJS `animation: 180` exactly, so the
+		// gap-open when a sibling slides aside takes the same 180ms rather
+		// than dnd-kit's own default (200ms).
+		transition: { duration: 180, easing: 'ease' },
+	} );
 
 	const style = {
 		transform: CSS.Transform.toString( transform ),
@@ -132,7 +144,7 @@ function SequenceRowItem( {
 			style={ style }
 			className={ `bsb-pages-row bsb-pages-row--custom${
 				isRemoving ? ' is-removing' : ''
-			}` }
+			}${ isDragging ? ' is-drag-placeholder' : '' }` }
 			onTransitionEnd={ ( event ) =>
 				onTransitionEnd( event.propertyName )
 			}

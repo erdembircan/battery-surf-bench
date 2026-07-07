@@ -565,6 +565,27 @@
 		border-top-width: 0;
 		pointer-events: none;
 	}
+
+	// The source row's own slot while its clone floats in the DragOverlay
+	// (`.bsb-pages-row--dragging`, below): an EMPTY dashed drop target, not a
+	// faded copy of the row — the maintainer's explicit call, overriding the
+	// mock's `.bsb-drag-ghost` (which keeps content faintly visible via
+	// `opacity: 0.4` on the whole row; that reads as a real, if dim, entry).
+	// Every direct child is hidden via `visibility` (not `display: none` or
+	// omitting them from the render), so the grid still sizes this row to its
+	// normal full height/width — only rendering is suppressed, the box itself
+	// keeps its footprint. Declared last so it wins over the zebra stripe and
+	// hover backgrounds above regardless of row parity — this slot must always
+	// read as an empty placeholder, never as a real (if dim) row.
+	&.is-drag-placeholder {
+		background: #{rgba(theme.$coastal-teal, 0.08)};
+		border: 2px dashed theme.$coastal-teal;
+		border-radius: 9px;
+
+		> * {
+			visibility: hidden;
+		}
+	}
 }
 
 .bsb-pages-row__handle {

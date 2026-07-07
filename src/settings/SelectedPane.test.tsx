@@ -11,8 +11,36 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { SelectedPane } from './SelectedPane';
 import type { SequenceRow } from './Types';
+
+// `isDragging` only ever flips true from inside a real pointer/keyboard drag
+// gesture, which jsdom cannot meaningfully simulate (dnd-kit's sensors lean on
+// real pointer capture and element geometry). Everything else from
+// `@dnd-kit/sortable` — `SortableContext`, the real drag-settle `transition`,
+// etc. — stays real; only `useSortable`'s `isDragging` is overridden, per row
+// id, so the placeholder tests exercise the actual mapping from that flag to
+// the `is-drag-placeholder` class — including that it lands on the dragged
+// row alone, not every row — the same boundary-mocking `BrowsePane.test.tsx`
+// uses for its own data-layer hook.
+const dndKit = vi.hoisted( () => ( { draggingId: null as string | null } ) );
+
+vi.mock( '@dnd-kit/sortable', async () => {
+	const actual =
+		await vi.importActual< typeof import('@dnd-kit/sortable') >(
+			'@dnd-kit/sortable'
+		);
+	return {
+		...actual,
+		useSortable: (
+			args: Parameters< typeof actual.useSortable >[ 0 ]
+		) => ( {
+			...actual.useSortable( args ),
+			isDragging: args.id === dndKit.draggingId,
+		} ),
+	};
+} );
+
+const { SelectedPane } = await import( './SelectedPane' );
 
 const bundledRow: SequenceRow = {
 	key: 'bundled:article-1',
@@ -43,6 +71,19 @@ function findRow( title: string ): HTMLElement {
 }
 
 /**
+ * Finds the DOM row carrying the given title text — unlike {@link findRow},
+ * this also works for a locked bundled row, which has no remove button.
+ *
+ * @param title The row's title.
+ * @return The row element.
+ */
+function findRowByTitle( title: string ): HTMLElement {
+	return screen
+		.getByText( title, { selector: '.bsb-pages-row__title' } )
+		.closest( '.bsb-pages-row--custom' ) as HTMLElement;
+}
+
+/**
  * Fires a `transitionend` event carrying the given `propertyName` — jsdom has
  * no `TransitionEvent` constructor, so `fireEvent.transitionEnd()`'s init
  * dict silently drops that field (a plain `Event`'s constructor ignores
@@ -63,6 +104,7 @@ function fireTransitionEnd( row: HTMLElement, propertyName: string ): void {
 
 beforeEach( () => {
 	vi.useFakeTimers();
+	dndKit.draggingId = null;
 } );
 
 afterEach( () => {
@@ -232,5 +274,52 @@ describe( 'SelectedPane remove', () => {
 		vi.advanceTimersByTime( 500 );
 
 		expect( onRemove ).not.toHaveBeenCalled();
+	} );
+} );
+
+describe( 'SelectedPane drag placeholder', () => {
+	it( 'marks only the dragged row a placeholder, leaving the rest normal', () => {
+		dndKit.draggingId = userRow.key;
+
+		render(
+			<SelectedPane
+				rows={ [ bundledRow, userRow ] }
+				onRemove={ vi.fn() }
+				onReorder={ vi.fn() }
+			/>
+		);
+
+		expect( findRow( 'Pricing' ) ).toHaveClass( 'is-drag-placeholder' );
+		expect(
+			findRowByTitle( 'The Hidden Cost of a Browser Tab' )
+		).not.toHaveClass( 'is-drag-placeholder' );
+	} );
+
+	it( 'never marks a row a drag placeholder while nothing is being dragged', () => {
+		render(
+			<SelectedPane
+				rows={ [ bundledRow, userRow ] }
+				onRemove={ vi.fn() }
+				onReorder={ vi.fn() }
+			/>
+		);
+
+		expect( findRow( 'Pricing' ) ).not.toHaveClass( 'is-drag-placeholder' );
+	} );
+
+	it( 'marks a locked bundled row a placeholder too — bundled rows are only locked against removal, not reordering', () => {
+		dndKit.draggingId = bundledRow.key;
+
+		render(
+			<SelectedPane
+				rows={ [ bundledRow, userRow ] }
+				onRemove={ vi.fn() }
+				onReorder={ vi.fn() }
+			/>
+		);
+
+		expect(
+			findRowByTitle( 'The Hidden Cost of a Browser Tab' )
+		).toHaveClass( 'is-drag-placeholder' );
 	} );
 } );
