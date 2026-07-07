@@ -138,6 +138,21 @@ classDiagram
         +render(array data) string
     }
 
+    class StartBenchmark {
+        +__construct(string parent_slug, string page_slug, string capability, string cockpit_param, string cockpit_value, string nav_script, string menu_style, StartBenchmarkView view, Assets assets)
+        +register() void
+        +add_page() void
+        +redirect() void
+        +render() void
+        +add_bar_node(WP_Admin_Bar wp_admin_bar) void
+        +enqueue() void
+        +enqueue_bar_style() void
+    }
+
+    class StartBenchmarkView {
+        +render(array data) string
+    }
+
     class CoursePage {
         +__construct(string slug, string title, string content)
         +slug() string
@@ -218,6 +233,7 @@ classDiagram
     BatterySurfBench --> SessionSchema : creates & owns (composition)
     BatterySurfBench --> SessionType : creates & owns (composition)
     BatterySurfBench --> SessionsScreen : creates & owns (composition)
+    BatterySurfBench --> StartBenchmark : creates & owns (composition)
     BatterySurfBench --> CourseCatalog : creates & owns (composition)
     BatterySurfBench --> CourseLibrary : creates & owns (composition)
     BatterySurfBench --> CourseRouter : creates & owns (composition)
@@ -256,6 +272,10 @@ classDiagram
     SessionsScreen --> Assets : uses
     SessionsScreen ..> SessionsScreenView : renders via
     SessionsScreenView ..|> View : implements
+    StartBenchmark ..|> Manager : implements
+    StartBenchmark --> Assets : uses
+    StartBenchmark ..> StartBenchmarkView : renders via
+    StartBenchmarkView ..|> View : implements
     CourseLibrary --> CourseCatalog : uses
     CourseRouter ..|> Manager : implements
     CourseRouter --> CourseCatalog : uses

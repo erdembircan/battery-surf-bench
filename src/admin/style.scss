@@ -1,5 +1,6 @@
 /*
- * Paints the plugin's admin-menu icon.
+ * Paints the plugin's admin-menu icon, and the admin-bar "Start Benchmark"
+ * button's icon.
  *
  * The menu is registered with the icon set to `none` (see `admin_menu.icon` in
  * Config.php), so WordPress leaves `div.wp-menu-image` empty and lets the icon
@@ -29,4 +30,21 @@
 	-webkit-mask: url("../../assets/images/menu-icon.svg") no-repeat center / 30px auto;
 	mask: url("../../assets/images/menu-icon.svg") no-repeat center / 30px auto;
 	transition: background-color .1s ease-in-out;
+}
+
+// The admin-bar "Start Benchmark" launcher: the same surfer-battery mark as the
+// sidebar menu, painted before the toolbar label so the button reads as this
+// plugin's benchmark launcher rather than a bare text link. currentColor makes
+// it inherit the toolbar's text colour (and its hover/focus brightening) exactly
+// like a native toolbar icon.
+#wpadminbar #wp-admin-bar-bsb-start-benchmark > .ab-item::before {
+	content: "";
+	display: inline-block;
+	width: 20px;
+	height: 20px;
+	margin-right: 5px;
+	vertical-align: middle;
+	background-color: currentColor;
+	-webkit-mask: url("../../assets/images/menu-icon.svg") no-repeat center / contain;
+	mask: url("../../assets/images/menu-icon.svg") no-repeat center / contain;
 }
