@@ -210,14 +210,20 @@
 	}
 }
 
-// ── The shared notice (`Notice.tsx` / `ErrorBoundary`'s fallback) ───────────
-// Free-text, dismissible messages for both admin screens, built on the same
-// `%bsb-toast` placeholder the cockpit's front-end toast extends
-// (`src/cockpit/style.scss`) — so the two render pixel-identical at rest;
-// only the class names and text source (kind lookup vs free text) differ. No
-// enter/leave phase animation here (see `_toast.scss`'s module note): the
-// cockpit's slide-up choreography belongs to its fixed bottom pill, not an
-// inline admin message.
+// ── The shared toast layer + notice (`Notice.tsx` / `ErrorBoundary`'s fallback) ───
+// Runtime notices (a Browse fetch failure, a save success/failure) render in
+// this fixed, bottom-center layer — the SAME placement as the cockpit's
+// front-end toast (`.bsb-cockpit__toast-layer`), not inline near whatever
+// triggered them. Both extend the shared `%bsb-toast-layer`/`%bsb-toast`
+// placeholders (`_toast.scss`) so the two are pixel-identical, layer included.
+// Only `ErrorBoundary`'s crash fallback is the one exception: it replaces the
+// app's whole UI, so its `<Notice>` renders inline in that fallback body, not
+// in this layer. No enter/leave phase animation here (see `_toast.scss`'s
+// module note): the admin `<Notice>` mounts/unmounts on plain React state.
+.bsb-toast-layer {
+	@extend %bsb-toast-layer;
+}
+
 .bsb-toast {
 	@extend %bsb-toast;
 

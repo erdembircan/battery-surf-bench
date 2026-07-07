@@ -140,6 +140,39 @@ test.describe( 'Settings screen', () => {
 
 		expect( await page.content() ).not.toMatch( PHP_NOTICE );
 	} );
+
+	test( 'a successful save raises a bottom success toast, in the same fixed layer the cockpit toast uses', async ( {
+		page,
+	} ) => {
+		// Guarantees the Sample Page browse row still shows an "Add" button —
+		// an earlier test in this file (or a re-run of this one) may already
+		// have saved it into the sequence, which would otherwise leave the row
+		// showing "Added" and this test waiting forever for a control that
+		// isn't there.
+		await resetCourseOrder( page );
+
+		try {
+			await page.goto( '/wp-admin/admin.php?page=battery-surf-bench' );
+
+			const browseRow = page
+				.locator( '.bsb-browse__row', { hasText: DEFAULT_PAGE_TITLE } )
+				.first();
+			await browseRow.getByRole( 'button', { name: 'Add' } ).click();
+
+			const saveButton = page.getByRole( 'button', {
+				name: 'Save changes',
+			} );
+			await saveButton.click();
+
+			const toast = page.locator( '.bsb-toast-layer .bsb-toast' );
+			await expect( toast ).toBeVisible();
+			await expect( toast ).toHaveClass( /is-success/ );
+			await expect( toast ).toHaveText( 'Saved' );
+			await expect( toast ).toHaveAttribute( 'role', 'status' );
+		} finally {
+			await resetCourseOrder( page );
+		}
+	} );
 } );
 
 /** The `/wp/v2/settings` collection: hosts the `bsb_course_order` field. */

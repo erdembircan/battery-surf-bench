@@ -16,13 +16,17 @@
 // site's `is-error` therefore uses the exact same `$coastal-coral`/
 // `$icon-warning` the cockpit already did, not a re-derived approximation.
 //
+// Admin notices render in the SAME fixed, bottom-center layer the cockpit
+// toast uses (`%bsb-toast-layer` below) — not inline near whatever triggered
+// them — so the placement, not just the pill's colours, is shared.
+//
 // What is deliberately NOT shared: the cockpit's enter/hold/leave phase
 // animation (`is-entering`/`is-holding`/`is-leaving`, the `bsb-toast-in`/`-out`
-// keyframes). That choreography — a pill sliding up from below the viewport —
-// is specific to the cockpit's fixed, bottom-anchored `.bsb-cockpit__toast-layer`
-// and has no sensible equivalent for an admin `<Notice>` rendered inline in
-// the page flow; it stays local to `src/cockpit/style.scss`, unchanged. What
-// this partial shares is the toast's resting "shape" — exactly the part the
+// keyframes). That choreography is driven by the cockpit's own Interactivity
+// lifecycle (`ToastStore.ts`'s `animationend`-driven phase machine); the admin
+// `<Notice>` mounts/unmounts on plain React state instead, so it renders at
+// rest immediately rather than animating in. What this partial shares is the
+// toast's resting "shape" and its layer's placement — exactly the parts the
 // admin `<Notice>` and the cockpit toast must render identically.
 //
 // Consumers must set `--toast-bg` / `--toast-ink` / `--toast-shadow` on an
@@ -30,6 +34,21 @@
 // `theme.tokens` (with its dark-mode override); the admin chrome partial
 // (`_admin-chrome.scss`) sets the same light-only values once for both admin
 // screens, since admin has no dark mode.
+
+// The fixed, bottom-center layer both the cockpit toast and the admin
+// `<Notice>` render inside — centers its child pill above everything, letting
+// pointer events through everywhere except the pill itself (`%bsb-toast`
+// already sets `pointer-events: auto` to punch back through this).
+%bsb-toast-layer {
+	position: fixed;
+	inset-inline: 0;
+	inset-block-end: 2.5rem;
+	display: flex;
+	justify-content: center;
+	padding-inline: 1rem;
+	pointer-events: none;
+	z-index: 1000;
+}
 
 // The resting pill shape: layout, surface, border, shadow and text sizing.
 // No `font-family` or `white-space` here — the cockpit's single-line pill sets

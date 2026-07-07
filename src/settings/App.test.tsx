@@ -11,8 +11,14 @@
  * and how it reflects dirty/saving state through the portaled Save button.
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import {
+	render,
+	screen,
+	fireEvent,
+	waitFor,
+	within,
+} from '@testing-library/react';
 import type { SettingsConfig } from './Types';
 
 const hooks = vi.hoisted( () => ( {
@@ -26,12 +32,22 @@ vi.mock( '@wordpress/api-fetch', () => ( {
 vi.mock( './BrowsePane', () => ( {
 	BrowsePane: ( {
 		onAdd,
+		onFetchError,
 	}: {
 		onAdd: ( id: number, type: string, title: string ) => void;
+		onFetchError?: ( isError: boolean ) => void;
 	} ) => (
-		<button onClick={ () => onAdd( 5, 'page', 'Pricing' ) }>
-			stub-add
-		</button>
+		<>
+			<button onClick={ () => onAdd( 5, 'page', 'Pricing' ) }>
+				stub-add
+			</button>
+			<button onClick={ () => onFetchError?.( true ) }>
+				stub-fetch-error
+			</button>
+			<button onClick={ () => onFetchError?.( false ) }>
+				stub-fetch-recover
+			</button>
+		</>
 	),
 } ) );
 
@@ -220,5 +236,129 @@ describe( 'SettingsApp save button', () => {
 		);
 
 		consoleError.mockRestore();
+	} );
+} );
+
+describe( 'SettingsApp save outcome notice', () => {
+	afterEach( () => {
+		vi.useRealTimers();
+	} );
+
+	it( 'shows a success notice once a save resolves', async () => {
+		const slot = renderWithSaveSlot();
+		fireEvent.click( screen.getByText( 'stub-add' ) );
+		fireEvent.click( slot.querySelector( 'button' )! );
+
+		const notice = await screen.findByRole( 'status' );
+		expect( notice ).toHaveTextContent( 'Saved' );
+		expect( notice ).toHaveClass( 'is-success' );
+	} );
+
+	it( 'auto-dismisses the success notice after a few seconds', async () => {
+		vi.useFakeTimers( { shouldAdvanceTime: true } );
+		const slot = renderWithSaveSlot();
+		fireEvent.click( screen.getByText( 'stub-add' ) );
+		fireEvent.click( slot.querySelector( 'button' )! );
+
+		await vi.waitFor( () =>
+			expect( screen.getByRole( 'status' ) ).toBeInTheDocument()
+		);
+
+		await vi.advanceTimersByTimeAsync( 10000 );
+
+		expect( screen.queryByRole( 'status' ) ).not.toBeInTheDocument();
+	} );
+
+	it( 'shows a persistent error notice when a save fails, with no auto-dismiss', async () => {
+		vi.useFakeTimers( { shouldAdvanceTime: true } );
+		const consoleError = vi
+			.spyOn( console, 'error' )
+			.mockImplementation( () => {} );
+		hooks.apiFetch
+			.mockReset()
+			.mockRejectedValue( new Error( 'network error' ) );
+		const slot = renderWithSaveSlot();
+		fireEvent.click( screen.getByText( 'stub-add' ) );
+		fireEvent.click( slot.querySelector( 'button' )! );
+
+		const notice = await vi.waitFor( () => screen.getByRole( 'alert' ) );
+		expect( notice ).toHaveTextContent( 'Save failed' );
+		expect( notice ).toHaveClass( 'is-error' );
+
+		await vi.advanceTimersByTimeAsync( 60000 );
+
+		expect( screen.getByRole( 'alert' ) ).toBeInTheDocument();
+
+		consoleError.mockRestore();
+	} );
+
+	it( 'dismisses the notice when its close control is activated', async () => {
+		const slot = renderWithSaveSlot();
+		fireEvent.click( screen.getByText( 'stub-add' ) );
+		fireEvent.click( slot.querySelector( 'button' )! );
+
+		const notice = await screen.findByRole( 'status' );
+		fireEvent.click(
+			within( notice ).getByRole( 'button', { name: 'Dismiss' } )
+		);
+
+		expect( screen.queryByRole( 'status' ) ).not.toBeInTheDocument();
+	} );
+
+	it( 'clears the previous notice as soon as a new save attempt starts', async () => {
+		hooks.apiFetch.mockReset().mockRejectedValueOnce( new Error( 'boom' ) );
+		const consoleError = vi
+			.spyOn( console, 'error' )
+			.mockImplementation( () => {} );
+		const slot = renderWithSaveSlot();
+		fireEvent.click( screen.getByText( 'stub-add' ) );
+		fireEvent.click( slot.querySelector( 'button' )! );
+
+		await screen.findByRole( 'alert' );
+
+		hooks.apiFetch.mockResolvedValue( undefined );
+		fireEvent.click( slot.querySelector( 'button' )! );
+
+		// The stale error clears the moment the retry starts, not only once it
+		// resolves.
+		expect( screen.queryByRole( 'alert' ) ).not.toBeInTheDocument();
+
+		await screen.findByRole( 'status' );
+
+		consoleError.mockRestore();
+	} );
+} );
+
+describe( 'SettingsApp Browse fetch-error toast', () => {
+	it( 'raises a bottom error toast when the Browse pane reports a failed request', () => {
+		renderWithSaveSlot();
+
+		fireEvent.click( screen.getByText( 'stub-fetch-error' ) );
+
+		const notice = screen.getByRole( 'alert' );
+		expect( notice ).toHaveClass( 'is-error' );
+		expect( notice ).toHaveTextContent( "Couldn't load content" );
+	} );
+
+	it( 'clears the fetch-error toast once the Browse pane reports recovery', () => {
+		renderWithSaveSlot();
+		fireEvent.click( screen.getByText( 'stub-fetch-error' ) );
+
+		fireEvent.click( screen.getByText( 'stub-fetch-recover' ) );
+
+		expect( screen.queryByRole( 'alert' ) ).not.toBeInTheDocument();
+	} );
+
+	it( "doesn't let a fetch-error toast clear a save toast raised after it", async () => {
+		const slot = renderWithSaveSlot();
+		fireEvent.click( screen.getByText( 'stub-add' ) );
+		fireEvent.click( slot.querySelector( 'button' )! );
+		await screen.findByRole( 'status' );
+
+		// A fetch recovering afterwards belongs to the other source — it must
+		// not clear the save-success toast that's currently showing.
+		fireEvent.click( screen.getByText( 'stub-fetch-recover' ) );
+
+		expect( screen.getByRole( 'status' ) ).toHaveTextContent( 'Saved' );
 	} );
 } );

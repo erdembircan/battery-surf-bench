@@ -28,12 +28,14 @@ const { BrowsePane } = await import( './BrowsePane' );
  * @param totalItems  The collection total the query reports.
  * @param totalPages  The page count the query reports.
  * @param isResolving Whether the query reports a fetch in flight.
+ * @param isError     Whether the query reports its most recent request failed.
  */
 function result(
 	records: Array< { id: number; title: string; subtype: string } >,
 	totalItems: number,
 	totalPages: number,
-	isResolving = false
+	isResolving = false,
+	isError = false
 ) {
 	return {
 		records: records.map( ( item ) => ( {
@@ -45,6 +47,7 @@ function result(
 		totalItems,
 		totalPages,
 		isResolving,
+		isError,
 	};
 }
 
@@ -460,5 +463,83 @@ describe( 'BrowsePane busy state', () => {
 		);
 
 		expect( screen.getByText( /30 items/ ) ).toBeInTheDocument();
+	} );
+} );
+
+describe( 'BrowsePane fetch errors', () => {
+	// The actual error surfaces as the screen's shared bottom toast (owned by
+	// `SettingsApp`, not this pane) — this pane's own job is only to report
+	// the failure upward and otherwise fall through to its ordinary
+	// spinner/empty/rows states, covered below.
+
+	it( 'reports a failed request to onFetchError', () => {
+		const onFetchError = vi.fn();
+		hooks.useSearchResults.mockReturnValue(
+			result( [], 0, 1, false, true )
+		);
+
+		render(
+			<BrowsePane
+				postTypes={ [ 'page', 'post' ] }
+				selectedIds={ new Set() }
+				onAdd={ vi.fn() }
+				onFetchError={ onFetchError }
+			/>
+		);
+
+		expect( onFetchError ).toHaveBeenCalledWith( true );
+	} );
+
+	it( 'reports the request as no longer failing once it settles successfully', () => {
+		const onFetchError = vi.fn();
+		hooks.useSearchResults.mockReturnValue(
+			result( [], 0, 1, false, false )
+		);
+
+		render(
+			<BrowsePane
+				postTypes={ [ 'page', 'post' ] }
+				selectedIds={ new Set() }
+				onAdd={ vi.fn() }
+				onFetchError={ onFetchError }
+			/>
+		);
+
+		expect( onFetchError ).toHaveBeenCalledWith( false );
+	} );
+
+	it( 'renders no error text of its own; a failed request falls through to the same empty-state a genuine no-matches result shows', () => {
+		hooks.useSearchResults.mockReturnValue(
+			result( [], 0, 1, false, true )
+		);
+
+		render(
+			<BrowsePane
+				postTypes={ [ 'page', 'post' ] }
+				selectedIds={ new Set() }
+				onAdd={ vi.fn() }
+			/>
+		);
+
+		expect(
+			screen.getByText( 'No pages or posts match your search.' )
+		).toBeInTheDocument();
+		expect( screen.queryByRole( 'alert' ) ).not.toBeInTheDocument();
+	} );
+
+	it( 'works with no onFetchError prop at all (the default in every test above)', () => {
+		hooks.useSearchResults.mockReturnValue(
+			result( [], 0, 1, false, true )
+		);
+
+		expect( () =>
+			render(
+				<BrowsePane
+					postTypes={ [ 'page', 'post' ] }
+					selectedIds={ new Set() }
+					onAdd={ vi.fn() }
+				/>
+			)
+		).not.toThrow();
 	} );
 } );

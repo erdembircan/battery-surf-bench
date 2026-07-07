@@ -910,14 +910,7 @@ body.bsb-cockpit-dashboard {
 // the running viewport (notice). One shows at a time; the store queues the rest
 // and drives the enter/leave animation through the pill's `animationend`.
 .bsb-cockpit__toast-layer {
-	position: fixed;
-	inset-inline: 0;
-	inset-block-end: 2.5rem;
-	display: flex;
-	justify-content: center;
-	padding-inline: 1rem;
-	pointer-events: none;
-	z-index: 1000;
+	@extend %bsb-toast-layer;
 }
 
 // The resting shape (padding, radius, border, shadow, colours) comes from the

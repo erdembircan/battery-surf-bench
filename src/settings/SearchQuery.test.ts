@@ -186,6 +186,51 @@ describe( 'useSearchResults', () => {
 		expect( result.current.totalItems ).toBe( 0 );
 	} );
 
+	it( 'surfaces the failure as isError, instead of reading like a settled empty result', async () => {
+		hooks.apiFetch.mockRejectedValue( new Error( 'network error' ) );
+
+		const { result } = renderHook( () =>
+			useSearchResults( {
+				search: '',
+				subtype: 'page,post',
+				page: 1,
+				perPage: 10,
+			} )
+		);
+
+		expect( result.current.isError ).toBe( false );
+		await waitFor( () => expect( result.current.isError ).toBe( true ) );
+	} );
+
+	it( 'clears a stale error once a new request starts', async () => {
+		hooks.apiFetch.mockRejectedValueOnce( new Error( 'network error' ) );
+
+		const { result, rerender } = renderHook(
+			( props ) => useSearchResults( props ),
+			{
+				initialProps: {
+					search: '',
+					subtype: 'page,post',
+					page: 1,
+					perPage: 10,
+				},
+			}
+		);
+
+		await waitFor( () => expect( result.current.isError ).toBe( true ) );
+
+		hooks.apiFetch.mockResolvedValue( fakeResponse( [], 0, 1 ) );
+		rerender( { search: '', subtype: 'page,post', page: 2, perPage: 10 } );
+
+		// The stale error clears the moment the new request starts, not only
+		// once it resolves.
+		expect( result.current.isError ).toBe( false );
+		await waitFor( () =>
+			expect( result.current.isResolving ).toBe( false )
+		);
+		expect( result.current.isError ).toBe( false );
+	} );
+
 	it( 're-queries when the args change', async () => {
 		hooks.apiFetch.mockResolvedValue( fakeResponse( [], 0, 1 ) );
 
@@ -238,6 +283,7 @@ describe( 'useSearchResults seeding', () => {
 			totalItems: seed.totalItems,
 			totalPages: seed.totalPages,
 			isResolving: false,
+			isError: false,
 		} );
 		expect( hooks.apiFetch ).not.toHaveBeenCalled();
 	} );

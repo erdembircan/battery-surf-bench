@@ -36,6 +36,8 @@ export interface SearchQueryResult {
 	totalItems: number;
 	totalPages: number;
 	isResolving: boolean;
+	/** Whether the most recent request failed — surfaced, never swallowed, so the Browse pane can show an error instead of reading as "no results". */
+	isError: boolean;
 }
 
 /**
@@ -122,12 +124,14 @@ export function useSearchResults(
 					totalItems: seed.totalItems,
 					totalPages: seed.totalPages,
 					isResolving: false,
+					isError: false,
 			  }
 			: {
 					records: EMPTY_RECORDS,
 					totalItems: 0,
 					totalPages: 1,
 					isResolving: true,
+					isError: false,
 			  }
 	);
 
@@ -138,7 +142,14 @@ export function useSearchResults(
 		}
 
 		let cancelled = false;
-		setResult( ( previous ) => ( { ...previous, isResolving: true } ) );
+		// Clear a stale error from a previous request as soon as a new one
+		// starts — the spinner is the one busy indicator; an old error
+		// shouldn't linger alongside it while a fresh page/search is in flight.
+		setResult( ( previous ) => ( {
+			...previous,
+			isResolving: true,
+			isError: false,
+		} ) );
 
 		apiFetch< Response, false >( {
 			path: searchPath( args ),
@@ -160,17 +171,21 @@ export function useSearchResults(
 						1
 					),
 					isResolving: false,
+					isError: false,
 				} );
 			} )
 			.catch( () => {
 				if ( cancelled ) {
 					return;
 				}
+				// Surfaced, not swallowed: the Browse pane renders an error Notice
+				// for this rather than reading the emptied records as "no matches".
 				setResult( {
 					records: EMPTY_RECORDS,
 					totalItems: 0,
 					totalPages: 1,
 					isResolving: false,
+					isError: true,
 				} );
 			} );
 

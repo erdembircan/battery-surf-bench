@@ -101,17 +101,20 @@ function BrowseRow( {
  * @param props.postTypes     The selectable post types (`['page','post']`).
  * @param props.selectedIds   Post ids already in the surf sequence, so their rows show as Added.
  * @param props.onAdd         Called with a record's id, subtype and title when its row is added.
+ * @param props.onFetchError  Called with whether the most recent request failed, so the screen can raise/clear its bottom error toast. Omit if the caller doesn't need it (e.g. in tests).
  * @param props.initialBrowse The server-seeded first page for the default query (empty search, every selectable subtype, page 1) — painted on mount instead of fetching it.
  */
 export function BrowsePane( {
 	postTypes,
 	selectedIds,
 	onAdd,
+	onFetchError,
 	initialBrowse,
 }: {
 	postTypes: string[];
 	selectedIds: Set< number >;
 	onAdd: ( id: number, subtype: string, title: string ) => void;
+	onFetchError?: ( isError: boolean ) => void;
 	initialBrowse?: InitialBrowse;
 } ) {
 	const [ type, setType ] = useState< BrowseType >( 'all' );
@@ -134,15 +137,24 @@ export function BrowsePane( {
 	const isDefaultQuery =
 		type === 'all' && debouncedSearch === '' && page === 1;
 
-	const { records, totalItems, totalPages, isResolving } = useSearchResults(
-		{
-			search: debouncedSearch,
-			subtype,
-			page,
-			perPage: PER_PAGE,
-		},
-		isDefaultQuery ? initialBrowse : undefined
-	);
+	const { records, totalItems, totalPages, isResolving, isError } =
+		useSearchResults(
+			{
+				search: debouncedSearch,
+				subtype,
+				page,
+				perPage: PER_PAGE,
+			},
+			isDefaultQuery ? initialBrowse : undefined
+		);
+
+	// The actual error surfaces as the screen's shared bottom toast, not
+	// inline here — this pane's own states stay just spinner/empty/rows; a
+	// failed request also settles with `records` emptied, so it falls through
+	// to the same empty-state text a genuine no-matches result would show.
+	useEffect( () => {
+		onFetchError?.( isError );
+	}, [ isError, onFetchError ] );
 
 	const rangeStart = totalItems === 0 ? 0 : ( page - 1 ) * PER_PAGE + 1;
 	const rangeEnd = totalItems === 0 ? 0 : rangeStart + records.length - 1;
@@ -223,7 +235,7 @@ export function BrowsePane( {
 			`.bsb-browse__meta`'s own `min-height` keep the line's height
 			reserved either way, so emptying it never shifts the layout. */ }
 			<p className="bsb-browse__meta">
-				{ isResolving
+				{ isResolving || isError
 					? '\u00A0'
 					: sprintf(
 							/* translators: 1: total number of items, 2: first item shown, 3: last item shown. */
