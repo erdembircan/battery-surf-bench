@@ -183,7 +183,6 @@ class BatterySurfBench {
 				$this->assets,
 				$this->registry->get( 'cockpit.param' ),
 				$this->registry->get( 'cockpit.value' ),
-				$this->registry->get( 'session.post_type' ),
 				new DevToolsPanelView()
 			),
 		);
