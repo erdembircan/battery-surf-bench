@@ -142,6 +142,7 @@ class BatterySurfBench {
 				$this->registry->get( 'cockpit.param' ),
 				$this->registry->get( 'cockpit.value' ),
 				$this->registry->get( 'admin_menu.nav_script' ),
+				$this->registry->get( 'admin_menu.style' ),
 				new StartBenchmarkView(),
 				$this->assets
 			),

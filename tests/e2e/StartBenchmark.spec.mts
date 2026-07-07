@@ -49,6 +49,30 @@ test.describe( 'Start Benchmark menu entry', () => {
 		await expect( barNode ).toHaveAttribute( 'target', '_blank' );
 		await expect( barNode ).toHaveAttribute( 'href', /bsbSession=cockpit/ );
 
+		// The admin-bar icon style paints the surfer-battery mark as a
+		// currentColor mask on the node's ::before pseudo-element; confirm the
+		// mask actually resolved rather than only asserting the CSS rule exists.
+		const maskApplied = await page.evaluate( () => {
+			const el = document.querySelector(
+				'#wp-admin-bar-bsb-start-benchmark > .ab-item'
+			);
+			if ( ! el ) {
+				return null;
+			}
+			const style = getComputedStyle( el, '::before' );
+			return (
+				( style.maskImage && style.maskImage !== 'none' ) ||
+				( style.webkitMaskImage && style.webkitMaskImage !== 'none' )
+			);
+		} );
+		expect( maskApplied ).toBe( true );
+
+		// Captured for visual review of icon size/alignment/legibility — not
+		// asserted on, and not committed to the repo.
+		await page.locator( '#wp-admin-bar-bsb-start-benchmark' ).screenshot( {
+			path: '/Users/erdembircan/.claude/jobs/e75f7154/tmp/admin-bar-start-benchmark.png',
+		} );
+
 		expect( await page.content() ).not.toMatch( PHP_NOTICE );
 	} );
 

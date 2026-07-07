@@ -139,13 +139,14 @@ classDiagram
     }
 
     class StartBenchmark {
-        +__construct(string parent_slug, string page_slug, string capability, string cockpit_param, string cockpit_value, string nav_script, StartBenchmarkView view, Assets assets)
+        +__construct(string parent_slug, string page_slug, string capability, string cockpit_param, string cockpit_value, string nav_script, string menu_style, StartBenchmarkView view, Assets assets)
         +register() void
         +add_page() void
         +redirect() void
         +render() void
         +add_bar_node(WP_Admin_Bar wp_admin_bar) void
         +enqueue() void
+        +enqueue_bar_style() void
     }
 
     class StartBenchmarkView {

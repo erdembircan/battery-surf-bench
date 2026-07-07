@@ -33,6 +33,7 @@ final class StartBenchmarkTest extends TestCase {
 	private const COCKPIT_PARAM = 'bsbSession';
 	private const COCKPIT_VALUE = 'cockpit';
 	private const NAV_SCRIPT    = 'build/admin-start-benchmark.js';
+	private const MENU_STYLE    = 'build/style-admin-menu.css';
 	private const HOOK          = 'battery-surf-bench_page_bsb-start-benchmark';
 
 	/**
@@ -49,6 +50,7 @@ final class StartBenchmarkTest extends TestCase {
 			self::COCKPIT_PARAM,
 			self::COCKPIT_VALUE,
 			self::NAV_SCRIPT,
+			self::MENU_STYLE,
 			new StartBenchmarkView(),
 			$assets ?? Mockery::mock( Assets::class )
 		);
@@ -73,8 +75,9 @@ final class StartBenchmarkTest extends TestCase {
 	}
 
 	/**
-	 * Registering the entry hooks its submenu page, its admin bar node and its
-	 * nav script onto the admin lifecycle.
+	 * Registering the entry hooks its submenu page, its admin bar node, its
+	 * nav script and its admin-bar icon style (on both the admin and the
+	 * front end, since the toolbar renders on both) onto WordPress.
 	 */
 	public function test_register_hooks_page_bar_node_and_assets(): void {
 		$entry = $this->entry();
@@ -83,6 +86,8 @@ final class StartBenchmarkTest extends TestCase {
 		$this->assertNotFalse( has_action( 'admin_menu', array( $entry, 'add_page' ) ) );
 		$this->assertNotFalse( has_action( 'admin_bar_menu', array( $entry, 'add_bar_node' ) ) );
 		$this->assertNotFalse( has_action( 'admin_enqueue_scripts', array( $entry, 'enqueue' ) ) );
+		$this->assertNotFalse( has_action( 'admin_enqueue_scripts', array( $entry, 'enqueue_bar_style' ) ) );
+		$this->assertNotFalse( has_action( 'wp_enqueue_scripts', array( $entry, 'enqueue_bar_style' ) ) );
 	}
 
 	/**
@@ -201,6 +206,38 @@ final class StartBenchmarkTest extends TestCase {
 			->with( 'bsb-admin-start-benchmark' );
 
 		$this->entry( $assets )->enqueue();
+
+		$this->addToAssertionCount( 1 );
+	}
+
+	/**
+	 * When the toolbar is showing, the admin-bar icon style is enqueued as a
+	 * dependent of core's `admin-bar` handle so the icon rule lands after it.
+	 */
+	public function test_enqueue_bar_style_loads_the_icon_when_the_toolbar_shows(): void {
+		Functions\when( 'is_admin_bar_showing' )->justReturn( true );
+
+		$assets = Mockery::mock( Assets::class );
+		$assets->shouldReceive( 'enqueue' )
+			->once()
+			->with( self::MENU_STYLE, array( 'admin-bar' ) );
+
+		$this->entry( $assets )->enqueue_bar_style();
+
+		$this->addToAssertionCount( 1 );
+	}
+
+	/**
+	 * When the toolbar is hidden (a user has disabled it), the icon style is
+	 * never enqueued — there is no admin-bar node for it to style.
+	 */
+	public function test_enqueue_bar_style_skips_when_no_toolbar(): void {
+		Functions\when( 'is_admin_bar_showing' )->justReturn( false );
+
+		$assets = Mockery::mock( Assets::class );
+		$assets->shouldReceive( 'enqueue' )->never();
+
+		$this->entry( $assets )->enqueue_bar_style();
 
 		$this->addToAssertionCount( 1 );
 	}
