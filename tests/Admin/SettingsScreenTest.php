@@ -27,7 +27,9 @@ use function in_array;
  * loads its bundle only on its own page, that it heals a stale saved order
  * through the sanitizer on every read (not only on save), and what it renders.
  * The surf-course order option's own registration is covered by
- * {@see \ErdemBircan\BatterySurfBench\Tests\Course\CourseOrderOptionTest}.
+ * {@see \ErdemBircan\BatterySurfBench\Tests\Settings\OptionRegistryTest}; its
+ * definition (the schema and defaults `screen_config()` relies on) is covered
+ * by {@see \ErdemBircan\BatterySurfBench\Tests\Course\CourseOrderOptionTest}.
  */
 final class SettingsScreenTest extends TestCase {
 

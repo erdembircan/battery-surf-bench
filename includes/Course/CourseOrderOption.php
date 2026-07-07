@@ -1,31 +1,29 @@
 <?php
 /**
- * Surf-course order option registration.
+ * Surf-course order option definition.
  *
  * @package ErdemBircan\BatterySurfBench
  */
 
 namespace ErdemBircan\BatterySurfBench\Course;
 
-use ErdemBircan\BatterySurfBench\Support\Manager;
-
 use function __;
-use function add_action;
-use function register_setting;
 
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Registers the surf-course order option with a REST schema wide enough to
- * express its ordered, heterogeneous entries, so the settings app can read
- * and write it through the core-data site-settings entity instead of a
- * bespoke REST controller.
+ * Describes the surf-course order option: a `register_setting()` definition
+ * with a REST schema wide enough to express its ordered, heterogeneous
+ * entries, so the settings app can read and write it through the core-data
+ * site-settings entity instead of a bespoke REST controller.
  *
- * This used to live on {@see \ErdemBircan\BatterySurfBench\Admin\SettingsScreen},
- * but the option itself belongs to the course domain, not to the admin screen
- * that happens to be the one UI reading and writing it.
+ * This is a plain data provider, not a {@see \ErdemBircan\BatterySurfBench\Support\Manager}:
+ * the surf-course order's shape and sanitization are a course-domain concern,
+ * so they are described here, but registering the definition with WordPress
+ * is {@see \ErdemBircan\BatterySurfBench\Settings\OptionRegistry}'s job — the
+ * plugin's one general options manager.
  */
-class CourseOrderOption implements Manager {
+class CourseOrderOption {
 
 	/**
 	 * Stores the option name and the sanitizer that validates and heals it.
@@ -40,26 +38,17 @@ class CourseOrderOption implements Manager {
 	}
 
 	/**
-	 * Hooks the option's registration into the WordPress lifecycle.
+	 * Builds this option's `register_setting()` definition: a healing schema
+	 * wide enough to express the ordered, heterogeneous entries, plus the
+	 * sanitizer's default and sanitize callback — so a stale or malformed
+	 * saved order self-heals.
 	 *
-	 * @return void
+	 * @return array{name: string, args: array<string, mixed>} The option name and its `register_setting()` args.
 	 */
-	public function register(): void {
-		add_action( 'init', array( $this, 'register_setting_callback' ) );
-	}
-
-	/**
-	 * Registers the option with WordPress: a healing schema wide enough to
-	 * express the ordered, heterogeneous entries, plus the sanitizer's default
-	 * and sanitize callback — so a stale or malformed saved order self-heals.
-	 *
-	 * @return void
-	 */
-	public function register_setting_callback(): void {
-		register_setting(
-			'bsb_settings',
-			$this->option_name,
-			array(
+	public function definition(): array {
+		return array(
+			'name' => $this->option_name,
+			'args' => array(
 				'type'              => 'array',
 				'description'       => __( "The surfer's test page sequence: bundled pages and the site owner's own posts and pages, in visit order.", 'battery-surf-bench' ),
 				'default'           => $this->sanitizer->default_order(),
@@ -80,7 +69,7 @@ class CourseOrderOption implements Manager {
 					),
 				),
 				'sanitize_callback' => array( $this->sanitizer, 'sanitize' ),
-			)
+			),
 		);
 	}
 }

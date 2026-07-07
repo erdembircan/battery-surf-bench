@@ -26,6 +26,7 @@ use ErdemBircan\BatterySurfBench\Course\CourseOrderSanitizer;
 use ErdemBircan\BatterySurfBench\Course\CourseRouter;
 use ErdemBircan\BatterySurfBench\DevTools\DevTools;
 use ErdemBircan\BatterySurfBench\DevTools\Views\DevToolsPanelView;
+use ErdemBircan\BatterySurfBench\Settings\OptionRegistry;
 use ErdemBircan\BatterySurfBench\Support\Manager;
 use ErdemBircan\BatterySurfBench\Support\StandaloneChrome;
 
@@ -109,10 +110,17 @@ class BatterySurfBench {
 		// post type against.
 		$settings_post_types = explode( ',', $this->registry->get( 'settings.post_types' ) );
 
-		// Shared between the option's own registration (its sanitize + default
+		// Shared between the option's own definition (its sanitize + default
 		// callbacks) and the settings screen (which heals the saved order with
 		// it on every read, since the sanitize callback only runs on write).
 		$order_sanitizer = new CourseOrderSanitizer( $catalog, $settings_post_types );
+
+		// Describes the surf-course order option; registering it with
+		// WordPress is OptionRegistry's job, not this provider's — see below.
+		$course_order_option = new CourseOrderOption(
+			$this->registry->get( 'settings.option' ),
+			$order_sanitizer
+		);
 
 		return array(
 			// Loads the plugin's PHP translations on `init` before any manager
@@ -121,12 +129,14 @@ class BatterySurfBench {
 				$this->registry->get( 'namespace' ),
 				$this->plugin_file
 			),
-			// Owns the surf-course order option's registration: a course-domain
-			// concern the settings screen merely reads and writes, not one it
-			// should register itself.
-			new CourseOrderOption(
-				$this->registry->get( 'settings.option' ),
-				$order_sanitizer
+			// The plugin's one general options manager: registers every
+			// `register_setting()`-backed option from its injected
+			// definitions. Adding a future option means adding a definition
+			// here, never a new manager dedicated to a single option.
+			new OptionRegistry(
+				array(
+					$course_order_option->definition(),
+				)
 			),
 			new SettingsScreen(
 				$this->registry->get( 'admin_menu.slug' ),

@@ -92,8 +92,13 @@ classDiagram
 
     class CourseOrderOption {
         +__construct(string option_name, CourseOrderSanitizer sanitizer)
+        +definition() array
+    }
+
+    class OptionRegistry {
+        +__construct(array definitions)
         +register() void
-        +register_setting_callback() void
+        +register_options() void
     }
 
     class SessionSchema {
@@ -256,6 +261,7 @@ classDiagram
     BatterySurfBench --> Assets : creates & owns (composition)
     BatterySurfBench --> SettingsScreen : creates & owns (composition)
     BatterySurfBench --> CourseOrderOption : creates & owns (composition)
+    BatterySurfBench --> OptionRegistry : creates & owns (composition)
     BatterySurfBench --> CourseOrderSanitizer : creates & owns (composition)
     BatterySurfBench --> SessionSchema : creates & owns (composition)
     BatterySurfBench --> SessionType : creates & owns (composition)
@@ -282,7 +288,8 @@ classDiagram
     SettingsScreenView ..> AdminPillView : composes (New Benchmark outline pill)
     AdminHeaderView ..|> View : implements
     AdminPillView ..|> View : implements
-    CourseOrderOption ..|> Manager : implements
+    OptionRegistry ..|> Manager : implements
+    OptionRegistry ..> CourseOrderOption : registers its definition
     CourseOrderOption --> CourseOrderSanitizer : uses
     CourseOrderSanitizer --> CourseCatalog : validates bundled slugs against
     SessionType ..|> Manager : implements

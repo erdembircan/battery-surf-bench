@@ -38,12 +38,13 @@ defined( 'ABSPATH' ) || exit;
  * This manager evolved from the plugin's former empty landing page (`Menu`):
  * it still owns the top-level `add_menu_page` registration and the menu-icon
  * stylesheet, and now also owns the settings bundle's asset wiring. The
- * surf-course order option itself is registered by
- * {@see \ErdemBircan\BatterySurfBench\Course\CourseOrderOption}; this screen
- * reads it (healing it through the same sanitizer on every read, since
- * `register_setting`'s sanitize callback only fires on write) and writes it
- * through the core-data site-settings entity (`/wp/v2/settings`) — no custom
- * REST controller.
+ * surf-course order option is described by
+ * {@see \ErdemBircan\BatterySurfBench\Course\CourseOrderOption} and actually
+ * registered by {@see \ErdemBircan\BatterySurfBench\Settings\OptionRegistry},
+ * the plugin's general options manager; this screen reads the option (healing
+ * it through the same sanitizer on every read, since `register_setting`'s
+ * sanitize callback only fires on write) and writes it through the core-data
+ * site-settings entity (`/wp/v2/settings`) — no custom REST controller.
  */
 class SettingsScreen implements Manager {
 
@@ -75,7 +76,7 @@ class SettingsScreen implements Manager {
 	 * @param string               $style                 Bundle's stylesheet, relative to the plugin root.
 	 * @param string               $option_name           Name of the option the surf-course order is saved under.
 	 * @param array<string>        $selectable_post_types Post types the picker's browse pane may add from.
-	 * @param CourseOrderSanitizer $sanitizer             Heals the saved order on every read — `register_setting`'s sanitize callback (wired by {@see \ErdemBircan\BatterySurfBench\Course\CourseOrderOption}) only runs on write, so a stale saved order needs re-healing here too.
+	 * @param CourseOrderSanitizer $sanitizer             Heals the saved order on every read — `register_setting`'s sanitize callback (the same sanitizer, wired into {@see \ErdemBircan\BatterySurfBench\Course\CourseOrderOption}'s definition and registered by {@see \ErdemBircan\BatterySurfBench\Settings\OptionRegistry}) only runs on write, so a stale saved order needs re-healing here too.
 	 * @param CourseCatalog        $catalog               Source of the bundled page definitions.
 	 * @param Assets               $assets                Service used to register, localize and enqueue the bundle.
 	 * @param string               $cockpit_param         Query parameter that opens the cockpit dashboard.
@@ -196,10 +197,12 @@ class SettingsScreen implements Manager {
 	 * render instead of a raw post id.
 	 *
 	 * The saved order is run through the sanitizer on every read, not only on
-	 * write: `register_setting`'s `sanitize_callback` (registered by
-	 * {@see \ErdemBircan\BatterySurfBench\Course\CourseOrderOption}) only
-	 * fires when the option is saved, so a stale order that predates a newly
-	 * added bundled page — or still names a user id that has since become
+	 * write: `register_setting`'s `sanitize_callback` (the same sanitizer,
+	 * wired into {@see \ErdemBircan\BatterySurfBench\Course\CourseOrderOption}'s
+	 * definition and registered by
+	 * {@see \ErdemBircan\BatterySurfBench\Settings\OptionRegistry}) only fires
+	 * when the option is saved, so a stale order that predates a newly added
+	 * bundled page — or still names a user id that has since become
 	 * ineligible — would otherwise render unhealed until the next save.
 	 * Healing on read here keeps every render consistent with what a save
 	 * would produce.
