@@ -67,12 +67,6 @@ test.describe( 'Start Benchmark menu entry', () => {
 		} );
 		expect( maskApplied ).toBe( true );
 
-		// Captured for visual review of icon size/alignment/legibility — not
-		// asserted on, and not committed to the repo.
-		await page.locator( '#wp-admin-bar-bsb-start-benchmark' ).screenshot( {
-			path: '/Users/erdembircan/.claude/jobs/e75f7154/tmp/admin-bar-start-benchmark.png',
-		} );
-
 		expect( await page.content() ).not.toMatch( PHP_NOTICE );
 	} );
 
