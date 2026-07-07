@@ -54,8 +54,8 @@ msgid "Benchmark log"
 msgstr "Registro de benchmark"
 
 #: includes/Admin/SessionsScreen.php:143
-msgid "Open Cockpit"
-msgstr "Abrir Cockpit"
+msgid "New Benchmark"
+msgstr "Novo benchmark"
 
 #. translators: %s: login URL.
 #: includes/Cockpit/Cockpit.php:232

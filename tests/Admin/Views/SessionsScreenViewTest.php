@@ -32,7 +32,7 @@ final class SessionsScreenViewTest extends TestCase {
 				'title'         => 'Sessions',
 				'subtitle'      => 'Benchmark log',
 				'cockpit_url'   => 'https://example.test/?bsbSession=cockpit',
-				'cockpit_label' => 'Open Cockpit',
+				'cockpit_label' => 'New Benchmark',
 			)
 		);
 	}
@@ -61,7 +61,7 @@ final class SessionsScreenViewTest extends TestCase {
 			$output
 		);
 		$this->assertStringContainsString( 'bsb-sessions__cockpit', $output );
-		$this->assertStringContainsString( 'Open Cockpit', $output );
+		$this->assertStringContainsString( 'New Benchmark', $output );
 		// Opens the cockpit in a new tab, away from the listing.
 		$this->assertStringContainsString( 'target="_blank"', $output );
 		$this->assertStringContainsString( 'rel="noopener noreferrer"', $output );
@@ -89,14 +89,14 @@ final class SessionsScreenViewTest extends TestCase {
 				'title'         => 'Sessions <script>',
 				'subtitle'      => 'Log & "notes"',
 				'cockpit_url'   => 'https://example.test/?a="b"',
-				'cockpit_label' => 'Open & "Cockpit"',
+				'cockpit_label' => 'New & "Benchmark"',
 			)
 		);
 
 		$this->assertStringContainsString( 'Sessions &lt;script&gt;', $output );
 		$this->assertStringNotContainsString( '<script>', $output );
 		$this->assertStringContainsString( 'Log &amp; &quot;notes&quot;', $output );
-		$this->assertStringContainsString( 'Open &amp; &quot;Cockpit&quot;', $output );
+		$this->assertStringContainsString( 'New &amp; &quot;Benchmark&quot;', $output );
 		// The URL is routed through esc_url; its quotes are encoded in the href.
 		$this->assertStringContainsString(
 			'href="https://example.test/?a=&quot;b&quot;"',

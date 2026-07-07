@@ -166,6 +166,6 @@ final class SessionsScreenTest extends TestCase {
 		$this->assertStringContainsString( 'bsb-sessions__count', $output );
 		$this->assertStringContainsString( 'id="bsb-sessions-app"', $output );
 		$this->assertStringContainsString( 'https://example.test/?bsbSession=cockpit', $output );
-		$this->assertStringContainsString( 'Open Cockpit', $output );
+		$this->assertStringContainsString( 'New Benchmark', $output );
 	}
 }

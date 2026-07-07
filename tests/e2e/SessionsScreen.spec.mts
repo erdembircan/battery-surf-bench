@@ -44,8 +44,8 @@ test.describe( 'Benchmark sessions screen', () => {
 			'Benchmark log'
 		);
 
-		// The header's Open Cockpit link points at the cockpit route.
-		const cockpitLink = page.getByRole( 'link', { name: 'Open Cockpit' } );
+		// The header's New Benchmark link points at the cockpit route.
+		const cockpitLink = page.getByRole( 'link', { name: 'New Benchmark' } );
 		await expect( cockpitLink ).toBeVisible();
 		await expect( cockpitLink ).toHaveAttribute(
 			'href',
