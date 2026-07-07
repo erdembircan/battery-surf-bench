@@ -410,6 +410,16 @@ export function SelectedPane( {
 						) ) }
 					</div>
 				</SortableContext>
+				{ /* dnd-kit's own cursor-following `transform` (translate) lands on
+				its OWN internal wrapper element around whatever `DragOverlay`
+				is given as children — never merged onto this row div itself —
+				so `.bsb-pages-row--dragging`'s `transform: rotate(2.5deg)
+				scale(1.02)` below resolves as a clean, standalone value with
+				nothing else composed into it, byte-identical to the mock's
+				`.bsb-drag-fallback`. Do not attach any inline `style` (or a
+				`transform`-setting class) to this element, or the two would
+				collide the same way the collapse animation's `transition` did
+				in `SequenceRowItem` above. */ }
 				<DragOverlay>
 					{ activeRow ? (
 						<div className="bsb-pages-row bsb-pages-row--custom bsb-pages-row--dragging">

@@ -567,29 +567,17 @@
 	}
 
 	// The source row's own slot while its clone floats in the DragOverlay
-	// (`.bsb-pages-row--dragging`, below): an EMPTY dashed drop target, not a
-	// faded copy of the row — the maintainer's explicit call, overriding the
-	// mock's `.bsb-drag-ghost` (which keeps content faintly visible via
-	// `opacity: 0.4` on the whole row; that reads as a real, if dim, entry).
-	// Every direct child is hidden via `visibility` (not `display: none` or
-	// omitting them from the render), so the grid still sizes this row to its
-	// normal full height/width — only rendering is suppressed, the box itself
-	// keeps its footprint. Declared last so it wins over the zebra stripe and
-	// hover backgrounds above regardless of row parity — this slot must always
-	// read as an empty placeholder, never as a real (if dim) row.
+	// (`.bsb-pages-row--dragging`, below) — a faded copy of the row, matching
+	// the mock's `.bsb-drag-ghost` (`docs/mockups/config-pages.html`) exactly:
+	// content stays visible, washed out at 40% opacity, over a dashed
+	// accent-soft slot. Declared last so it wins over the zebra stripe and
+	// hover backgrounds above regardless of row parity — this slot must
+	// always read as the drop target, not a normal (zebra/hover-tinted) row.
 	&.is-drag-placeholder {
-		// A distinctly visible light-teal drop-zone fill — 0.08 read as
-		// hollow/near-transparent, making it hard to tell a drag was even
-		// happening. 0.18 stays a fill (not a solid surface), but is clearly
-		// present without competing with the tilted real row riding the
-		// cursor in the DragOverlay.
-		background: #{rgba(theme.$coastal-teal, 0.18)};
-		border: 2px dashed theme.$coastal-teal;
+		opacity: 0.4;
+		background: #{rgba(theme.$coastal-teal, 0.08)};
+		border: 1.5px dashed theme.$coastal-teal;
 		border-radius: 9px;
-
-		> * {
-			visibility: hidden;
-		}
 	}
 }
 

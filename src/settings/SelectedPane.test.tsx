@@ -278,7 +278,7 @@ describe( 'SelectedPane remove', () => {
 } );
 
 describe( 'SelectedPane drag placeholder', () => {
-	it( 'marks only the dragged row a placeholder, leaving the rest normal', () => {
+	it( 'marks only the dragged row a placeholder — a faded ghost with its content still shown, leaving the rest normal', () => {
 		dndKit.draggingId = userRow.key;
 
 		render(
@@ -289,7 +289,12 @@ describe( 'SelectedPane drag placeholder', () => {
 			/>
 		);
 
-		expect( findRow( 'Pricing' ) ).toHaveClass( 'is-drag-placeholder' );
+		const draggedRow = findRow( 'Pricing' );
+		expect( draggedRow ).toHaveClass( 'is-drag-placeholder' );
+		// The placeholder is a faded copy of the row (matching the mock's
+		// `.bsb-drag-ghost`), not an emptied box — its title stays in the row,
+		// never conditionally omitted from the render.
+		expect( draggedRow ).toHaveTextContent( 'Pricing' );
 		expect(
 			findRowByTitle( 'The Hidden Cost of a Browser Tab' )
 		).not.toHaveClass( 'is-drag-placeholder' );
@@ -318,8 +323,10 @@ describe( 'SelectedPane drag placeholder', () => {
 			/>
 		);
 
-		expect(
-			findRowByTitle( 'The Hidden Cost of a Browser Tab' )
-		).toHaveClass( 'is-drag-placeholder' );
+		const draggedRow = findRowByTitle( 'The Hidden Cost of a Browser Tab' );
+		expect( draggedRow ).toHaveClass( 'is-drag-placeholder' );
+		expect( draggedRow ).toHaveTextContent(
+			'The Hidden Cost of a Browser Tab'
+		);
 	} );
 } );
