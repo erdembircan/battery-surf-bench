@@ -118,6 +118,37 @@ describe( 'useSearchResults', () => {
 		expect( result.current.totalPages ).toBe( 2 );
 	} );
 
+	it( 'falls back to sane totals when a pagination header is non-numeric', async () => {
+		const records = [
+			{ id: 1, title: 'About', url: '/about', subtype: 'page' },
+		];
+		hooks.apiFetch.mockResolvedValue( {
+			json: () => Promise.resolve( records ),
+			headers: new Headers( {
+				'X-WP-Total': 'not-a-number',
+				'X-WP-TotalPages': 'nope',
+			} ),
+		} as Response );
+
+		const { result } = renderHook( () =>
+			useSearchResults( {
+				search: '',
+				subtype: 'page,post',
+				page: 1,
+				perPage: 10,
+			} )
+		);
+
+		await waitFor( () =>
+			expect( result.current.isResolving ).toBe( false )
+		);
+
+		// A mangled X-WP-Total falls back to the record count, X-WP-TotalPages to 1 —
+		// never NaN, which would break the pager's `page >= totalPages` math.
+		expect( result.current.totalItems ).toBe( records.length );
+		expect( result.current.totalPages ).toBe( 1 );
+	} );
+
 	it( 'starts resolving, then reports isResolving false once settled', async () => {
 		hooks.apiFetch.mockResolvedValue( fakeResponse( [], 0, 1 ) );
 

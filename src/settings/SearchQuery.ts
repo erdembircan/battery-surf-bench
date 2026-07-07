@@ -41,6 +41,22 @@ export interface SearchQueryResult {
 const EMPTY_RECORDS: SearchRecord[] = [];
 
 /**
+ * Reads a pagination-count header defensively: a missing or non-numeric value
+ * (e.g. a header mangled by a proxy) falls back rather than poisoning the
+ * pagination math with `NaN`.
+ *
+ * @param value    The raw header value, or null when absent.
+ * @param fallback The count to use when the header is missing or not a finite, non-negative number.
+ * @return The parsed count, or the fallback.
+ */
+function parseCountHeader( value: string | null, fallback: number ): number {
+	const parsed = Number( value );
+	return value !== null && Number.isFinite( parsed ) && parsed >= 0
+		? parsed
+		: fallback;
+}
+
+/**
  * Builds the `/wp/v2/search` request path for a Browse pane query.
  *
  * `type=post` scopes results to indexed content (posts and pages), excluding
@@ -94,11 +110,13 @@ export function useSearchResults( args: SearchQueryArgs ): SearchQueryResult {
 				const records = ( await response.json() ) as SearchRecord[];
 				setResult( {
 					records,
-					totalItems: Number(
-						response.headers.get( 'X-WP-Total' ) ?? records.length
+					totalItems: parseCountHeader(
+						response.headers.get( 'X-WP-Total' ),
+						records.length
 					),
-					totalPages: Number(
-						response.headers.get( 'X-WP-TotalPages' ) ?? 1
+					totalPages: parseCountHeader(
+						response.headers.get( 'X-WP-TotalPages' ),
+						1
 					),
 					isResolving: false,
 				} );
