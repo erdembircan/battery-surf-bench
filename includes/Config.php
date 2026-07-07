@@ -25,13 +25,29 @@ return array(
 		// menu-icon colours instead of showing a fixed-grey bitmap. Built from
 		// `src/admin/style.scss`.
 		'icon'       => 'none',
-		'style'      => 'build/style-admin-menu.css',
+		'icon_style' => 'build/style-admin-menu.css',
 		// Slug of the "Start Benchmark" submenu page, which redirects straight
 		// to the cockpit dashboard.
 		'start_slug' => 'bsb-start-benchmark',
 		// Nav script that upgrades the rendered submenu link to open the
 		// cockpit in a new tab. Built from `src/admin/StartBenchmarkLink.ts`.
 		'nav_script' => 'build/admin-start-benchmark.js',
+	),
+	'settings'   => array(
+		// Built assets the settings screen (the top-level menu's page) enqueues,
+		// relative to the plugin root. Built from `src/settings/index.tsx`.
+		'bundle'     => 'build/settings.js',
+		'style'      => 'build/style-settings.css',
+		// Option the surfer's test-page sequence is saved under: an ordered,
+		// heterogeneous list of `{kind:'bundled',slug}` / `{kind:'user',id}`
+		// entries, registered with `show_in_rest` so the settings app reads and
+		// writes it through the core-data site-settings entity.
+		'option'     => 'bsb_course_order',
+		// Post types the picker's browse pane may add a user page from.
+		// Comma-separated: the Registry only ever resolves scalars, never an
+		// array, so the bootstrap splits this into the list `SettingsScreen`
+		// receives — the same pattern `devtools.environments` uses below.
+		'post_types' => 'page,post',
 	),
 	'session'    => array(
 		// Post type benchmark sessions are stored as, and the prefix every one

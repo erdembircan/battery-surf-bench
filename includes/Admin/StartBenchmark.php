@@ -206,8 +206,8 @@ class StartBenchmark implements Manager {
 	 * `admin_enqueue_scripts` and `wp_enqueue_scripts`; it loads only where
 	 * the toolbar actually renders. It declares core's `admin-bar` style as a
 	 * dependency so the icon rule lands after it. On admin pages the
-	 * {@see Menu} manager already enqueues this same handle; WordPress dedupes
-	 * by handle, so the double-enqueue is harmless.
+	 * {@see SettingsScreen} manager already enqueues this same handle;
+	 * WordPress dedupes by handle, so the double-enqueue is harmless.
 	 *
 	 * @return void
 	 */

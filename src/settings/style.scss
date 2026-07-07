@@ -1,0 +1,705 @@
+/**
+ * Coastal restyle of the settings screen's surf-course order picker.
+ *
+ * Ports `docs/mockups/config-pages.html` (the approved M1 mock) into the
+ * shared theme: a full-bleed "deck" dropping the stock wp-admin chrome,
+ * carrying the same brand header proportions as `src/sessions/style.scss`,
+ * and the two-pane content picker (Browse pane left, the single Selected
+ * surf sequence right) rendered by the settings app rather than DataViews.
+ *
+ * `@use`-ing the shared theme also emits its `@font-face` rules, so Anton,
+ * Hanken Grotesk and Space Mono load on the admin screen.
+ */
+
+@use '../styles/theme' as theme;
+
+// ── Full-bleed: drop the wp-admin chrome around the deck ─────────────────────
+// This stylesheet is enqueued only on the settings screen, so these admin-wide
+// selectors are safe to target unscoped — they never reach another screen.
+#wpcontent {
+	padding-left: 0;
+}
+
+#wpbody-content {
+	padding-bottom: 0;
+}
+
+#wpfooter {
+	display: none;
+}
+
+// ── The deck shell ───────────────────────────────────────────────────────────
+.bsb-settings {
+	// Retint every WordPress component accent (focus rings, primary buttons)
+	// to coastal teal in one move, matching the Sessions screen.
+	--wp-admin-theme-color: #{theme.$coastal-teal};
+	--wp-admin-theme-color--rgb: 47, 155, 179;
+	--wp-admin-theme-color-darker-10: #2a8ba0;
+	--wp-admin-theme-color-darker-20: #{theme.$coastal-teal-deep};
+
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+	height: calc(100vh - 32px); // below the admin bar
+	overflow: hidden;
+	font-family: theme.$font-ui;
+	color: theme.$coastal-navy;
+	background:
+		radial-gradient(120% 50% at 50% -6%, #fff 0%, #{theme.$coastal-sky-0} 38%, transparent 66%),
+		linear-gradient(180deg, #{theme.$coastal-sky-1} 0%, #fff 46%);
+
+	@media screen and (max-width: 782px) {
+		height: calc(100vh - 46px); // the admin bar is taller on small screens
+	}
+}
+
+// ── Brand header — mirrors .bsb-sessions__head ──────────────────────────────
+.bsb-settings__head {
+	display: flex;
+	flex: 0 0 auto;
+	align-items: center;
+	gap: 1rem;
+	padding: 1.1rem 1.5rem;
+	border-bottom: 1px solid theme.$coastal-line;
+}
+
+.bsb-settings__mark {
+	flex: 0 0 auto;
+	height: 2.9rem;
+	aspect-ratio: 1;
+	background: theme.$coastal-teal;
+	mask: url('../../assets/images/menu-icon.svg') center / contain no-repeat;
+	-webkit-mask: url('../../assets/images/menu-icon.svg') center / contain no-repeat;
+}
+
+.bsb-settings__wordmark {
+	display: flex;
+	flex-direction: column;
+	gap: 0.15rem;
+	margin-right: auto;
+	min-width: 0;
+}
+
+.bsb-settings__title {
+	margin: 0;
+	padding: 0;
+	font-family: theme.$font-display;
+	font-size: 1.5rem;
+	font-weight: 400;
+	line-height: 0.96;
+	letter-spacing: 0.01em;
+	text-transform: uppercase;
+	color: theme.$coastal-navy;
+}
+
+.bsb-settings__subtitle {
+	font-size: 0.62rem;
+	font-weight: 700;
+	letter-spacing: 0.42em;
+	text-transform: uppercase;
+	color: theme.$coastal-teal;
+}
+
+// Shared pill geometry for both header actions — the filled primary "Save
+// changes" (rendered by the app, portaled into `.bsb-settings__save-slot`)
+// and the outline secondary "New Benchmark" (rendered by PHP) — so they read
+// as a matched pair.
+.bsb-settings__pill {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+	flex: 0 0 auto;
+	padding: 0.6rem 1.1rem;
+	border-radius: 10px;
+	font-family: theme.$font-ui;
+	font-size: 0.86rem;
+	font-weight: 700;
+	line-height: 1.2;
+	text-decoration: none;
+	cursor: pointer;
+	transition: transform 0.14s ease, box-shadow 0.2s ease, background 0.15s ease, border-color 0.15s ease;
+
+	&:disabled {
+		cursor: default;
+		opacity: 0.5;
+	}
+}
+
+// Primary — filled teal gradient.
+.bsb-settings__save {
+	border: 0;
+	background: linear-gradient(150deg, #{theme.$coastal-teal} 0%, #{theme.$coastal-teal-deep} 100%);
+	color: #fff;
+	box-shadow: 0 6px 14px -6px #{rgba(theme.$coastal-teal-deep, 0.6)};
+
+	&:not(:disabled):hover {
+		transform: translateY(-1px);
+		box-shadow: 0 10px 20px -8px #{rgba(theme.$coastal-teal-deep, 0.68)};
+	}
+
+	&:not(:disabled):active {
+		transform: translateY(0);
+	}
+}
+
+// Secondary — teal outline/ghost, demoted below Save.
+.bsb-settings__launch {
+	border: 1.5px solid theme.$coastal-teal;
+	background: transparent;
+	color: theme.$coastal-teal-deep;
+
+	&:hover,
+	&:focus {
+		background: #{rgba(theme.$coastal-teal, 0.08)};
+		color: theme.$coastal-teal-deep;
+	}
+
+	&:focus-visible {
+		outline: 2px solid theme.$coastal-coral;
+		outline-offset: 2px;
+	}
+}
+
+.bsb-settings__launch-icon {
+	width: 1rem;
+	height: 1rem;
+	background: currentColor;
+	mask: theme.$icon-external center / contain no-repeat;
+	-webkit-mask: theme.$icon-external center / contain no-repeat;
+}
+
+.bsb-settings__save-flash {
+	display: none;
+	align-items: center;
+	gap: 0.4rem;
+	font-size: 0.78rem;
+	font-weight: 600;
+	color: theme.$coastal-teal-deep;
+	margin-right: 0.9rem;
+
+	&.is-shown {
+		display: inline-flex;
+	}
+}
+
+// ── Scrollable body ──────────────────────────────────────────────────────────
+.bsb-settings__body {
+	flex: 1 1 auto;
+	min-height: 0;
+	overflow-y: auto;
+}
+
+.bsb-settings__container {
+	max-width: 74rem;
+	margin: 0 auto;
+	padding: 2.4rem 2rem 5rem;
+}
+
+.bsb-settings__section-head {
+	margin-bottom: 1.7rem;
+}
+
+.bsb-settings__section-title {
+	margin: 0 0 0.4rem;
+	font-family: theme.$font-display;
+	font-size: 1.35rem;
+	font-weight: 400;
+	letter-spacing: 0.01em;
+	text-transform: uppercase;
+	color: theme.$coastal-navy;
+}
+
+.bsb-settings__section-desc {
+	margin: 0;
+	max-width: 44rem;
+	font-size: 0.92rem;
+	line-height: 1.55;
+	color: theme.$coastal-ink-soft;
+}
+
+// ── Page groups ──────────────────────────────────────────────────────────────
+.bsb-pages-group {
+	margin-bottom: 2.2rem;
+}
+
+.bsb-pages-group__head {
+	display: flex;
+	align-items: center;
+	gap: 0.9rem;
+	margin-bottom: 0.8rem;
+}
+
+.bsb-pages-group__title {
+	margin: 0;
+	font-size: 0.66rem;
+	font-weight: 700;
+	letter-spacing: 0.22em;
+	text-transform: uppercase;
+	color: #{rgba(theme.$coastal-navy, 0.62)};
+}
+
+.bsb-pages-group__count {
+	font-family: theme.$font-mono;
+	font-size: 0.76rem;
+	color: theme.$coastal-ink-soft;
+}
+
+// Shared surface for both the browse list and the selected list. Spacing
+// between selected rows comes from each row's own `margin-bottom` rather than
+// a container `gap` — a flex `gap` keeps reserving its full space around a
+// row even while that row's own height is animating to 0, which would stop
+// the collapse from actually closing the gap.
+.bsb-pages-list {
+	display: flex;
+	flex-direction: column;
+	border-radius: 13px;
+	background: theme.$coastal-surface;
+	box-shadow: 0 12px 30px #{rgba(theme.$coastal-navy, 0.08)};
+	padding: 0.4rem;
+}
+
+.bsb-pages-row {
+	display: flex;
+	align-items: center;
+	gap: 0.7rem;
+	padding: 0.65rem 0.75rem;
+	border-radius: 9px;
+}
+
+.bsb-pages-row__lock {
+	flex: 0 0 auto;
+	width: 0.95rem;
+	height: 0.95rem;
+	color: theme.$coastal-ink-soft;
+	background: currentColor;
+	mask: theme.$icon-lock center / contain no-repeat;
+	-webkit-mask: theme.$icon-lock center / contain no-repeat;
+}
+
+.bsb-pages-row__title {
+	min-width: 0;
+	font-size: 0.88rem;
+	font-weight: 600;
+	color: theme.$coastal-navy;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.bsb-badge {
+	flex: 0 0 auto;
+	display: inline-flex;
+	align-items: center;
+	gap: 0.3rem;
+	padding: 0.2rem 0.6rem;
+	border-radius: 999px;
+	font-size: 0.68rem;
+	font-weight: 700;
+	letter-spacing: 0.02em;
+}
+
+.bsb-badge--bundled {
+	background: theme.$coastal-surface;
+	color: theme.$coastal-ink-soft;
+}
+
+.bsb-badge--page {
+	background: #{rgba(theme.$coastal-teal, 0.08)};
+	color: theme.$coastal-teal-deep;
+}
+
+.bsb-badge--post {
+	background: #{rgba(theme.$coastal-navy, 0.06)};
+	color: theme.$coastal-navy;
+}
+
+// ── Your pages: two-pane content picker ──────────────────────────────────────
+.bsb-picker {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 1.4rem;
+	align-items: start;
+
+	@media (max-width: 900px) {
+		grid-template-columns: 1fr;
+	}
+}
+
+.bsb-picker__pane {
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+	border-radius: 13px;
+	background: #fff;
+	box-shadow: 0 12px 30px #{rgba(theme.$coastal-navy, 0.08)};
+	padding: 1.1rem 1.1rem 0.9rem;
+}
+
+.bsb-picker__pane-head {
+	display: flex;
+	align-items: baseline;
+	gap: 0.6rem;
+	margin-bottom: 0.15rem;
+}
+
+// ── Browse pane ──────────────────────────────────────────────────────────────
+.bsb-browse__controls {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.6rem;
+	margin: 0.7rem 0 0.55rem;
+}
+
+// Segmented control — same shape/spec as the cockpit's `.bsb-seg`.
+.bsb-seg {
+	display: grid;
+	grid-auto-flow: column;
+	grid-auto-columns: 1fr;
+	gap: 0.25rem;
+	padding: 0.25rem;
+	border-radius: 10px;
+	background: theme.$coastal-surface;
+	box-shadow: inset 0 1px 3px #{rgba(theme.$coastal-navy, 0.08)};
+	flex: 0 0 auto;
+}
+
+.bsb-seg__option {
+	appearance: none;
+	cursor: pointer;
+	padding: 0 0.9rem;
+	border: 0;
+	border-radius: 8px;
+	background: transparent;
+	color: theme.$coastal-ink-soft;
+	font-family: theme.$font-ui;
+	font-size: 0.82rem;
+	font-weight: 700;
+	letter-spacing: 0.01em;
+	transition: background 0.18s ease, color 0.18s ease;
+
+	&:hover {
+		color: theme.$coastal-navy;
+	}
+
+	&.is-active {
+		color: #fff;
+		background: linear-gradient(150deg, #{theme.$coastal-teal} 0%, #{theme.$coastal-teal-deep} 100%);
+		box-shadow: 0 4px 10px #{rgba(theme.$coastal-teal, 0.35)};
+	}
+}
+
+// Search field — this queries the whole site server-side, never a local
+// filter, so it never claims to be filtering "this page".
+.bsb-search {
+	position: relative;
+	flex: 1 1 12rem;
+	min-width: 10rem;
+
+	input {
+		width: 100%;
+		height: 100%;
+		font-family: theme.$font-ui;
+		font-size: 0.86rem;
+		color: theme.$coastal-navy;
+		padding: 0.55rem 0.8rem;
+		border: 1px solid theme.$coastal-line;
+		border-radius: 10px;
+		background: #fff;
+		outline: none;
+		transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+		&::placeholder {
+			color: theme.$coastal-ink-soft;
+		}
+
+		&:focus {
+			border-color: theme.$coastal-teal;
+			box-shadow: 0 0 0 3px #{rgba(theme.$coastal-teal, 0.08)};
+		}
+	}
+}
+
+.bsb-browse__caption {
+	margin: 0 0 0.7rem;
+	font-size: 0.76rem;
+	color: theme.$coastal-ink-soft;
+}
+
+.bsb-browse__meta {
+	margin: 0 0 0.5rem;
+	font-size: 0.78rem;
+	color: theme.$coastal-ink-soft;
+}
+
+.bsb-browse__list {
+	display: flex;
+	flex-direction: column;
+	min-height: 21rem;
+}
+
+.bsb-browse__row {
+	display: flex;
+	align-items: center;
+	gap: 0.7rem;
+	padding: 0.6rem 0.15rem;
+
+	& + & {
+		border-top: 1px solid theme.$coastal-line;
+	}
+}
+
+.bsb-browse__row-main {
+	flex: 1 1 auto;
+	min-width: 0;
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.bsb-browse__row-title {
+	font-size: 0.86rem;
+	font-weight: 700;
+	color: theme.$coastal-navy;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.bsb-browse__empty {
+	flex: 1 1 auto;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 1.6rem 0.5rem;
+	text-align: center;
+	font-size: 0.84rem;
+	color: theme.$coastal-ink-soft;
+}
+
+// Ghost/outline pill — Add / already-Added.
+.bsb-ghost-btn {
+	flex: 0 0 auto;
+	display: inline-flex;
+	align-items: center;
+	gap: 0.3rem;
+	padding: 0.38rem 0.85rem;
+	border-radius: 999px;
+	border: 1.5px solid theme.$coastal-teal;
+	background: transparent;
+	color: theme.$coastal-teal-deep;
+	font-family: theme.$font-ui;
+	font-size: 0.76rem;
+	font-weight: 700;
+	cursor: pointer;
+	transition: background 0.15s ease;
+	white-space: nowrap;
+
+	&:hover {
+		background: #{rgba(theme.$coastal-teal, 0.08)};
+	}
+}
+
+.bsb-ghost-btn--added {
+	border-color: theme.$coastal-line;
+	color: theme.$coastal-ink-soft;
+	background: theme.$coastal-surface;
+	cursor: default;
+
+	&:hover {
+		background: theme.$coastal-surface;
+	}
+}
+
+.bsb-browse__pager {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.8rem;
+	margin-top: 0.7rem;
+	padding-top: 0.8rem;
+	border-top: 1px solid theme.$coastal-line;
+}
+
+.bsb-pager-btn {
+	padding: 0.42rem 0.95rem;
+	border-radius: 999px;
+	border: 1px solid theme.$coastal-line;
+	background: #fff;
+	color: theme.$coastal-navy;
+	font-family: theme.$font-ui;
+	font-size: 0.78rem;
+	font-weight: 700;
+	cursor: pointer;
+	transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+
+	&:disabled {
+		opacity: 0.4;
+		cursor: default;
+	}
+
+	&:not(:disabled):hover {
+		border-color: theme.$coastal-teal;
+		background: #{rgba(theme.$coastal-teal, 0.08)};
+		color: theme.$coastal-teal-deep;
+	}
+}
+
+.bsb-pager-label {
+	font-family: theme.$font-mono;
+	font-size: 0.78rem;
+	color: theme.$coastal-ink-soft;
+}
+
+// ── Selected pane (the single surf sequence) ─────────────────────────────────
+.bsb-selected__note {
+	margin: 0.3rem 0 0.8rem;
+	font-size: 0.8rem;
+	color: theme.$coastal-ink-soft;
+}
+
+.bsb-selected .bsb-pages-list--custom {
+	flex: 1 1 auto;
+	min-height: 21rem;
+	box-shadow: none;
+	padding: 0;
+	background: transparent;
+}
+
+// Ordered sequence rows (numbered, drag-reorderable via @dnd-kit). Every row —
+// bundled or user — is draggable by its handle. Bundled rows are locked
+// against removal only: no `×`, but they're reorderable like any other row.
+// Fixed-width grid columns (only the title track is flexible) keep the
+// handle/index/lock/badge/remove lined up across every row regardless of
+// title length.
+.bsb-pages-row--custom {
+	cursor: default;
+	display: grid;
+	grid-template-columns: 0.85rem 1.6rem 0.95rem 1fr 4.5rem 1.9rem;
+	// Own margin (not a container `gap`) so a removed row's spacing can
+	// collapse away along with its height — see `.is-removing` below.
+	margin-bottom: 0.5rem;
+	// `overflow:hidden` + an explicit resting `max-height` give the collapse
+	// transition something concrete to animate from.
+	overflow: hidden;
+	max-height: 6rem;
+	transition:
+		max-height 190ms cubic-bezier(0.2, 0, 0, 1),
+		opacity 190ms cubic-bezier(0.2, 0, 0, 1),
+		padding 190ms cubic-bezier(0.2, 0, 0, 1),
+		margin 190ms cubic-bezier(0.2, 0, 0, 1),
+		border-top-width 190ms cubic-bezier(0.2, 0, 0, 1);
+
+	&:last-child {
+		margin-bottom: 0;
+	}
+
+	& + & {
+		border-top: 1px solid theme.$coastal-line;
+		border-radius: 0;
+	}
+
+	// Badges have different natural widths ("Page" vs "Bundled") — pin them to
+	// the start of their fixed column instead of letting the grid's default
+	// stretch alignment blow the pill up to the full column width.
+	> .bsb-badge {
+		justify-self: start;
+	}
+
+	// Animated remove — same ~190ms ease-out as the drag lift, so collapsing a
+	// row reads as the same motion language as reordering.
+	&.is-removing {
+		max-height: 0;
+		opacity: 0;
+		padding: 0;
+		margin: 0;
+		border-top-width: 0;
+		pointer-events: none;
+	}
+}
+
+.bsb-pages-row__handle {
+	flex: 0 0 auto;
+	display: grid;
+	grid-template-columns: repeat(2, 1fr);
+	gap: 2px;
+	width: 0.85rem;
+	cursor: grab;
+	color: theme.$coastal-ink-soft;
+	opacity: 0.55;
+
+	span {
+		width: 3px;
+		height: 3px;
+		border-radius: 50%;
+		background: currentColor;
+	}
+
+	&:hover {
+		opacity: 0.9;
+	}
+
+	&:active {
+		cursor: grabbing;
+	}
+}
+
+.bsb-pages-row__index {
+	flex: 0 0 auto;
+	width: 1.6rem;
+	height: 1.6rem;
+	display: grid;
+	place-items: center;
+	border-radius: 50%;
+	background: theme.$coastal-surface;
+	color: theme.$coastal-teal-deep;
+	font-family: theme.$font-mono;
+	font-size: 0.74rem;
+	font-weight: 700;
+}
+
+.bsb-pages-row__remove {
+	flex: 0 0 auto;
+	width: 1.9rem;
+	height: 1.9rem;
+	display: grid;
+	place-items: center;
+	border: 0;
+	border-radius: 8px;
+	background: transparent;
+	color: theme.$coastal-coral-deep;
+	cursor: pointer;
+	font-size: 1.1rem;
+	line-height: 1;
+	transition: background 0.15s ease;
+
+	&:hover {
+		background: #{rgba(theme.$coastal-coral, 0.12)};
+	}
+}
+
+// Reserves the remove button's width on locked (bundled) rows so every row —
+// locked or not — lines up on the same right edge.
+.bsb-pages-row__remove-spacer {
+	flex: 0 0 auto;
+	width: 1.9rem;
+	height: 1.9rem;
+}
+
+// The tilted, lifted clone `@dnd-kit`'s `DragOverlay` renders while a row is
+// being dragged — reproduces the mock's SortableJS fallback clone.
+.bsb-pages-row--dragging {
+	transform: rotate(2.5deg) scale(1.02);
+	box-shadow: 0 18px 40px #{rgba(theme.$coastal-navy, 0.28)};
+	opacity: 0.95;
+	cursor: grabbing;
+	background: #fff;
+	border-radius: 9px;
+}
+
+// ── Settings app host ─────────────────────────────────────────────────────────
+#bsb-settings-app {
+	display: flex;
+	flex-direction: column;
+	flex: 1 1 auto;
+	min-height: 0;
+}

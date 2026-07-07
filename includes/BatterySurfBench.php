@@ -7,8 +7,8 @@
 
 namespace ErdemBircan\BatterySurfBench;
 
-use ErdemBircan\BatterySurfBench\Admin\Menu;
 use ErdemBircan\BatterySurfBench\Admin\SessionsScreen;
+use ErdemBircan\BatterySurfBench\Admin\SettingsScreen;
 use ErdemBircan\BatterySurfBench\Admin\StartBenchmark;
 use ErdemBircan\BatterySurfBench\Admin\Views\StartBenchmarkView;
 use ErdemBircan\BatterySurfBench\Cockpit\Cockpit;
@@ -21,6 +21,7 @@ use ErdemBircan\BatterySurfBench\Content\SessionSchema;
 use ErdemBircan\BatterySurfBench\Content\SessionType;
 use ErdemBircan\BatterySurfBench\Course\CourseCatalog;
 use ErdemBircan\BatterySurfBench\Course\CourseLibrary;
+use ErdemBircan\BatterySurfBench\Course\CourseOrderSanitizer;
 use ErdemBircan\BatterySurfBench\Course\CourseRouter;
 use ErdemBircan\BatterySurfBench\DevTools\DevTools;
 use ErdemBircan\BatterySurfBench\DevTools\Views\DevToolsPanelView;
@@ -102,6 +103,11 @@ class BatterySurfBench {
 		$catalog = new CourseCatalog( $this->paths->path( 'includes/Course/content' ) );
 		$library = new CourseLibrary( $catalog, $this->registry->get( 'course.param' ) );
 
+		// Post types the settings screen's browse pane may add a user page
+		// from — the same list the sanitizer validates a saved user entry's
+		// post type against.
+		$settings_post_types = explode( ',', $this->registry->get( 'settings.post_types' ) );
+
 		return array(
 			// Loads the plugin's PHP translations on `init` before any manager
 			// hooked there renders a translatable string.
@@ -109,12 +115,20 @@ class BatterySurfBench {
 				$this->registry->get( 'namespace' ),
 				$this->plugin_file
 			),
-			new Menu(
+			new SettingsScreen(
 				$this->registry->get( 'admin_menu.slug' ),
 				$this->registry->get( 'capability' ),
 				$this->registry->get( 'admin_menu.icon' ),
-				$this->registry->get( 'admin_menu.style' ),
-				$this->assets
+				$this->registry->get( 'admin_menu.icon_style' ),
+				$this->registry->get( 'settings.bundle' ),
+				$this->registry->get( 'settings.style' ),
+				$this->registry->get( 'settings.option' ),
+				$settings_post_types,
+				new CourseOrderSanitizer( $catalog, $settings_post_types ),
+				$catalog,
+				$this->assets,
+				$this->registry->get( 'cockpit.param' ),
+				$this->registry->get( 'cockpit.value' )
 			),
 			new SessionType(
 				$schema,
@@ -142,7 +156,7 @@ class BatterySurfBench {
 				$this->registry->get( 'cockpit.param' ),
 				$this->registry->get( 'cockpit.value' ),
 				$this->registry->get( 'admin_menu.nav_script' ),
-				$this->registry->get( 'admin_menu.style' ),
+				$this->registry->get( 'admin_menu.icon_style' ),
 				new StartBenchmarkView(),
 				$this->assets
 			),

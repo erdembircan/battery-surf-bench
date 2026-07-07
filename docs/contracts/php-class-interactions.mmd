@@ -63,12 +63,24 @@ classDiagram
         +render(array data) string
     }
 
-    class Menu {
-        +__construct(string slug, string capability, string icon_url, string style, Assets assets)
+    class SettingsScreen {
+        +__construct(string slug, string capability, string icon_url, string icon_style, string bundle, string style, string option_name, array selectable_post_types, CourseOrderSanitizer sanitizer, CourseCatalog catalog, Assets assets, string cockpit_param, string cockpit_value)
         +register() void
         +add_page() void
         +enqueue_icon_style() void
+        +enqueue(string hook_suffix) void
+        +register_option() void
         +render() void
+    }
+
+    class SettingsScreenView {
+        +render(array data) string
+    }
+
+    class CourseOrderSanitizer {
+        +__construct(CourseCatalog catalog, array selectable_post_types)
+        +default_order() array
+        +sanitize(mixed value) array
     }
 
     class SessionSchema {
@@ -229,7 +241,8 @@ classDiagram
     BatterySurfBench --> Registry : creates & owns (composition)
     BatterySurfBench --> Paths : creates & owns (composition)
     BatterySurfBench --> Assets : creates & owns (composition)
-    BatterySurfBench --> Menu : creates & owns (composition)
+    BatterySurfBench --> SettingsScreen : creates & owns (composition)
+    BatterySurfBench --> CourseOrderSanitizer : creates & owns (composition)
     BatterySurfBench --> SessionSchema : creates & owns (composition)
     BatterySurfBench --> SessionType : creates & owns (composition)
     BatterySurfBench --> SessionsScreen : creates & owns (composition)
@@ -245,8 +258,13 @@ classDiagram
     BatterySurfBench --> DevTools : creates & owns (composition)
     BatterySurfBench ..> Manager : registers
     I18n ..|> Manager : implements
-    Menu ..|> Manager : implements
-    Menu --> Assets : uses
+    SettingsScreen ..|> Manager : implements
+    SettingsScreen --> Assets : uses
+    SettingsScreen --> CourseCatalog : uses
+    SettingsScreen --> CourseOrderSanitizer : uses
+    SettingsScreen ..> SettingsScreenView : renders via
+    SettingsScreenView ..|> View : implements
+    CourseOrderSanitizer --> CourseCatalog : validates bundled slugs against
     SessionType ..|> Manager : implements
     SessionType --> SessionSchema : uses
     SessionDetail ..|> Manager : implements

@@ -47,6 +47,7 @@ const customScriptConfig = {
 	entry: {
 		index: path.resolve( process.cwd(), 'src', 'index.ts' ),
 		sessions: path.resolve( process.cwd(), 'src', 'sessions', 'index.tsx' ),
+		settings: path.resolve( process.cwd(), 'src', 'settings', 'index.tsx' ),
 		'admin-menu': path.resolve(
 			process.cwd(),
 			'src',
