@@ -217,9 +217,14 @@ export function BrowsePane( {
 					'battery-surf-bench'
 				) }
 			</p>
+			{ /* The spinner in the results container below is the one busy
+			indicator — this line goes empty (not a stale count, not a
+			"Loading…" label) while resolving. A non-breaking space plus
+			`.bsb-browse__meta`'s own `min-height` keep the line's height
+			reserved either way, so emptying it never shifts the layout. */ }
 			<p className="bsb-browse__meta">
 				{ isResolving
-					? __( 'Loading…', 'battery-surf-bench' )
+					? '\u00A0'
 					: sprintf(
 							/* translators: 1: total number of items, 2: first item shown, 3: last item shown. */
 							__(

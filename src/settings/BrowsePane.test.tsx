@@ -427,8 +427,29 @@ describe( 'BrowsePane busy state', () => {
 		expect( container.querySelector( '.bsb-browse__busy' ) ).toBeFalsy();
 	} );
 
-	it( 'shows a neutral loading treatment for the meta line instead of a mismatched count', () => {
+	it( 'empties the meta line while resolving, rather than a stale count or a "Loading…" label', () => {
 		hooks.useSearchResults.mockReturnValue( result( [], 30, 3, true ) );
+
+		const { container } = render(
+			<BrowsePane
+				postTypes={ [ 'page', 'post' ] }
+				selectedIds={ new Set() }
+				onAdd={ vi.fn() }
+			/>
+		);
+
+		expect( screen.queryByText( /30 items/ ) ).not.toBeInTheDocument();
+		expect( screen.queryByText( 'Loading…' ) ).not.toBeInTheDocument();
+		// The spinner in the results container is the one busy indicator; the
+		// meta line itself goes empty (a non-breaking space, so its height
+		// stays reserved) rather than showing any text of its own.
+		expect(
+			container.querySelector( '.bsb-browse__meta' )?.textContent?.trim()
+		).toBe( '' );
+	} );
+
+	it( 'restores the item count in the meta line once the query settles', () => {
+		hooks.useSearchResults.mockReturnValue( result( [], 30, 3, false ) );
 
 		render(
 			<BrowsePane
@@ -438,7 +459,6 @@ describe( 'BrowsePane busy state', () => {
 			/>
 		);
 
-		expect( screen.queryByText( /30 items/ ) ).not.toBeInTheDocument();
-		expect( screen.getByText( 'Loading…' ) ).toBeInTheDocument();
+		expect( screen.getByText( /30 items/ ) ).toBeInTheDocument();
 	} );
 } );

@@ -300,6 +300,11 @@
 
 .bsb-browse__meta {
 	flex: 0 0 auto;
+	// Reserves this line's height even while it's emptied to a non-breaking
+	// space during a fetch (the spinner below is the only busy indicator —
+	// this line shows neither a "Loading…" label nor a stale count), so
+	// resolving never shifts the controls below it.
+	min-height: 1.1em;
 	margin: 0 0 0.5rem;
 	font-size: 0.78rem;
 	color: theme.$coastal-ink-soft;
