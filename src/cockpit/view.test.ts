@@ -157,6 +157,7 @@ interface CockpitConfig {
 		initWakeLock: () => () => void;
 		initSound: () => void;
 		initPageAdvance: () => () => void;
+		initExitGuard: () => () => void;
 		syncRunActivity: () => void;
 		syncViewportWatchdog: () => void;
 		rollDuration: () => void;
@@ -423,6 +424,57 @@ describe( 'bsb/cockpit view store', () => {
 			dispatchMessage( window.location.origin, { type: 'bsb:pageDone' } );
 
 			expect( mocks.context.activeIndex ).toBe( 0 );
+		} );
+	} );
+
+	describe( 'exit guard', () => {
+		/**
+		 * Dispatches a real, cancelable `beforeunload` event on `window` and
+		 * reports whether a listener prevented its default.
+		 */
+		const dispatchBeforeUnload = (): boolean => {
+			const event = new Event( 'beforeunload', {
+				cancelable: true,
+			} );
+			window.dispatchEvent( event );
+			return event.defaultPrevented;
+		};
+
+		// Each test's own listener is torn down afterwards — beforeunload's
+		// preventDefault() acts on the one dispatched event shared by every
+		// still-attached listener, so a listener left over from a prior test
+		// would otherwise leak its own `running` snapshot into this test's
+		// assertion.
+		let cleanup: ( () => void ) | undefined;
+
+		afterEach( () => {
+			cleanup?.();
+			cleanup = undefined;
+		} );
+
+		it( 'blocks leaving while a run is active', () => {
+			mocks.context.running = true;
+
+			cleanup = mocks.config?.callbacks.initExitGuard();
+
+			expect( dispatchBeforeUnload() ).toBe( true );
+		} );
+
+		it( 'does not block leaving while idle', () => {
+			mocks.context.running = false;
+
+			cleanup = mocks.config?.callbacks.initExitGuard();
+
+			expect( dispatchBeforeUnload() ).toBe( false );
+		} );
+
+		it( 'detaches the listener once the returned cleanup runs', () => {
+			mocks.context.running = true;
+
+			cleanup = mocks.config?.callbacks.initExitGuard();
+			cleanup?.();
+
+			expect( dispatchBeforeUnload() ).toBe( false );
 		} );
 	} );
 
