@@ -9,6 +9,8 @@ namespace ErdemBircan\BatterySurfBench;
 
 use ErdemBircan\BatterySurfBench\Admin\Menu;
 use ErdemBircan\BatterySurfBench\Admin\SessionsScreen;
+use ErdemBircan\BatterySurfBench\Admin\StartBenchmark;
+use ErdemBircan\BatterySurfBench\Admin\Views\StartBenchmarkView;
 use ErdemBircan\BatterySurfBench\Cockpit\Cockpit;
 use ErdemBircan\BatterySurfBench\Cockpit\Views\CockpitDashboard;
 use ErdemBircan\BatterySurfBench\Cockpit\Views\SessionDetailView;
@@ -129,6 +131,19 @@ class BatterySurfBench {
 				$this->assets,
 				$this->registry->get( 'cockpit.param' ),
 				$this->registry->get( 'cockpit.value' )
+			),
+			// The "Start Benchmark" menu entry and admin bar node, both of
+			// which jump straight to the cockpit dashboard in a new tab —
+			// mirroring the Sessions screen's "Open Cockpit" link.
+			new StartBenchmark(
+				$this->registry->get( 'admin_menu.slug' ),
+				$this->registry->get( 'admin_menu.start_slug' ),
+				$this->registry->get( 'capability' ),
+				$this->registry->get( 'cockpit.param' ),
+				$this->registry->get( 'cockpit.value' ),
+				$this->registry->get( 'admin_menu.nav_script' ),
+				new StartBenchmarkView(),
+				$this->assets
 			),
 			new CourseRouter(
 				$catalog,

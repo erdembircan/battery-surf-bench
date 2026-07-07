@@ -4,8 +4,9 @@
  * Extends the default `@wordpress/scripts` config. Because the source tree now
  * has a script module (the cockpit's `viewScriptModule`), the default export is
  * a pair of configs: a classic script config and a module config. The script
- * config builds the front-end placeholder and the admin sessions screen and
- * copies each block's `block.json` and `render.php` into `build/`; the module
+ * config builds the front-end placeholder, the admin sessions screen and the
+ * admin start-benchmark nav script, and copies each block's `block.json` and
+ * `render.php` into `build/`; the module
  * config builds the cockpit's Interactivity API view as an ES module with
  * `@wordpress/interactivity` externalized. Both are returned untouched apart
  * from the script config's explicit entry points, the module config's added
@@ -51,6 +52,12 @@ const customScriptConfig = {
 			'src',
 			'admin',
 			'style.scss'
+		),
+		'admin-start-benchmark': path.resolve(
+			process.cwd(),
+			'src',
+			'admin',
+			'StartBenchmarkLink.ts'
 		),
 		course: path.resolve( process.cwd(), 'src', 'course', 'style.scss' ),
 		surfer: path.resolve( process.cwd(), 'src', 'surfer', 'index.ts' ),
