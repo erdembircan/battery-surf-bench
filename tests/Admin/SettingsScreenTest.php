@@ -17,6 +17,7 @@ use ErdemBircan\BatterySurfBench\Course\CourseOrderSanitizer;
 use ErdemBircan\BatterySurfBench\Support\Manager;
 use ErdemBircan\BatterySurfBench\Tests\TestCase;
 use Mockery;
+use WP_REST_Request;
 
 use function has_action;
 
@@ -132,6 +133,38 @@ final class SettingsScreenTest extends TestCase {
 	}
 
 	/**
+	 * Stubs the internal `/wp/v2/search` dispatch the seeded Browse query
+	 * runs, so `enqueue()` can run end to end without a real REST server.
+	 *
+	 * Returns a `stdClass` box rather than an array: `rest_do_request()` is
+	 * only actually called once `enqueue()` runs, after this method has
+	 * already returned, so the caller needs a handle to the SAME mutable
+	 * object the stubbed callback later writes `request` onto — an array
+	 * returned by value would hand the caller an unrelated copy.
+	 *
+	 * @param array<int, array<string, mixed>> $records Records the stubbed dispatch resolves to.
+	 * @param array<string, string>            $headers Response headers the stubbed dispatch resolves to.
+	 * @return \stdClass Box with a `request` property, populated once `rest_do_request()` is actually called.
+	 */
+	private function stub_initial_browse_dispatch( array $records = array(), array $headers = array() ): \stdClass {
+		$captured          = new \stdClass();
+		$captured->request = null;
+
+		Functions\when( 'rest_do_request' )->alias(
+			static function ( $request ) use ( $captured, $headers ) {
+				$captured->request = $request;
+
+				return Mockery::mock( array( 'get_headers' => $headers ) );
+			}
+		);
+		Functions\when( 'rest_get_server' )->justReturn(
+			Mockery::mock( array( 'response_to_data' => $records ) )
+		);
+
+		return $captured;
+	}
+
+	/**
 	 * On its own screen the settings app drives the asset service end to end —
 	 * registering the bundle, localizing the screen configuration onto it,
 	 * registering its translations, enqueuing it, and enqueuing its stylesheet
@@ -139,6 +172,20 @@ final class SettingsScreenTest extends TestCase {
 	 */
 	public function test_enqueue_loads_the_settings_app_on_its_own_screen(): void {
 		Functions\when( 'get_option' )->justReturn( array() );
+		$this->stub_initial_browse_dispatch(
+			array(
+				array(
+					'id'      => 1,
+					'title'   => 'About',
+					'url'     => '/about',
+					'subtype' => 'page',
+				),
+			),
+			array(
+				'X-WP-Total'      => '3',
+				'X-WP-TotalPages' => '1',
+			)
+		);
 
 		$assets = Mockery::mock( Assets::class );
 		$assets->shouldReceive( 'register_bundle' )
@@ -157,7 +204,11 @@ final class SettingsScreenTest extends TestCase {
 							&& is_array( $config['courseOrder'] )
 							&& is_array( $config['bundledCatalog'] )
 							&& count( $config['bundledCatalog'] ) > 0
-							&& isset( $config['bundledCatalog'][0]['slug'], $config['bundledCatalog'][0]['title'] );
+							&& isset( $config['bundledCatalog'][0]['slug'], $config['bundledCatalog'][0]['title'] )
+							&& is_array( $config['initialBrowse']['records'] )
+							&& 1 === count( $config['initialBrowse']['records'] )
+							&& 3 === $config['initialBrowse']['totalItems']
+							&& 1 === $config['initialBrowse']['totalPages'];
 					}
 				)
 			);
@@ -178,6 +229,41 @@ final class SettingsScreenTest extends TestCase {
 		$screen->enqueue( self::HOOK );
 
 		$this->addToAssertionCount( 1 );
+	}
+
+	/**
+	 * The seeded Browse query mirrors the client's own first fetch exactly —
+	 * same type/subtype/page/per_page/_fields — so the localized seed is
+	 * byte-identical to what the client would have fetched itself.
+	 */
+	public function test_enqueue_seeds_the_initial_browse_query_with_the_clients_own_args(): void {
+		Functions\when( 'get_option' )->justReturn( array() );
+		$captured = $this->stub_initial_browse_dispatch();
+
+		Functions\when( 'add_menu_page' )->justReturn( self::HOOK );
+
+		$assets = Mockery::mock( Assets::class );
+		$assets->shouldReceive( 'register_bundle' )->andReturn( 'bsb-settings' );
+		$assets->shouldReceive( 'localize' );
+		$assets->shouldReceive( 'set_script_translations' );
+		$assets->shouldReceive( 'enqueue_script' );
+		$assets->shouldReceive( 'enqueue' );
+
+		$screen = $this->screen( $assets );
+		$screen->add_page();
+		$screen->enqueue( self::HOOK );
+
+		$this->assertInstanceOf( WP_REST_Request::class, $captured->request );
+		$this->assertSame(
+			array(
+				'type'     => 'post',
+				'subtype'  => 'page,post',
+				'page'     => 1,
+				'per_page' => 10,
+				'_fields'  => 'id,title,url,subtype',
+			),
+			$captured->request->get_query_params()
+		);
 	}
 
 	/**

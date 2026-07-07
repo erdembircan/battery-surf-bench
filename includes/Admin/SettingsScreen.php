@@ -12,6 +12,7 @@ use ErdemBircan\BatterySurfBench\Assets;
 use ErdemBircan\BatterySurfBench\Course\CourseCatalog;
 use ErdemBircan\BatterySurfBench\Course\CourseOrderSanitizer;
 use ErdemBircan\BatterySurfBench\Support\Manager;
+use WP_REST_Request;
 
 use function __;
 use function add_action;
@@ -19,8 +20,12 @@ use function add_menu_page;
 use function add_query_arg;
 use function get_option;
 use function home_url;
+use function implode;
+use function is_array;
 use function is_string;
 use function register_setting;
+use function rest_do_request;
+use function rest_get_server;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -36,6 +41,14 @@ defined( 'ABSPATH' ) || exit;
  * site-settings entity (`/wp/v2/settings`) — no custom REST controller.
  */
 class SettingsScreen implements Manager {
+
+	/**
+	 * Rows per page the internally-seeded Browse query fetches. Mirrors
+	 * `PER_PAGE` in `src/settings/BrowsePane.tsx` exactly, so the seeded first
+	 * page is byte-identical to what the client's own first fetch would
+	 * return — keep both constants in sync.
+	 */
+	private const BROWSE_PER_PAGE = 10;
 
 	/**
 	 * The admin page hook the screen renders on, captured at registration so
@@ -230,6 +243,43 @@ class SettingsScreen implements Manager {
 			'optionKey'      => $this->option_name,
 			'courseOrder'    => get_option( $this->option_name, $this->sanitizer->default_order() ),
 			'bundledCatalog' => $catalog,
+			'initialBrowse'  => $this->initial_browse(),
+		);
+	}
+
+	/**
+	 * Runs the exact `/wp/v2/search` query the Browse pane's own first fetch
+	 * would run, internally, so the localized seed is byte-identical to it —
+	 * the app paints its first page from this instead of fetching it after
+	 * mount. `rest_get_server()` lazily fires `rest_api_init` on first call
+	 * (the same mechanism a real REST request relies on), so the search
+	 * controller's route is registered even on a plain admin page load.
+	 *
+	 * @return array{records: array<int, array<string, mixed>>, totalItems: int, totalPages: int} The seeded first page.
+	 */
+	private function initial_browse(): array {
+		$request = new WP_REST_Request( 'GET', '/wp/v2/search' );
+		$request->set_query_params(
+			array(
+				'type'     => 'post',
+				'subtype'  => implode( ',', $this->selectable_post_types ),
+				'page'     => 1,
+				'per_page' => self::BROWSE_PER_PAGE,
+				'_fields'  => 'id,title,url,subtype',
+			)
+		);
+
+		$response = rest_do_request( $request );
+		$headers  = $response->get_headers();
+		// response_to_data() (rather than the response's own get_data()) is what
+		// applies the `_fields` trim, so the seed matches the client's own
+		// fetch shape exactly.
+		$records = rest_get_server()->response_to_data( $response, false );
+
+		return array(
+			'records'    => is_array( $records ) ? $records : array(),
+			'totalItems' => isset( $headers['X-WP-Total'] ) ? (int) $headers['X-WP-Total'] : 0,
+			'totalPages' => isset( $headers['X-WP-TotalPages'] ) ? (int) $headers['X-WP-TotalPages'] : 0,
 		);
 	}
 }
