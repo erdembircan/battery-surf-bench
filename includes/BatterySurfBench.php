@@ -130,12 +130,17 @@ class BatterySurfBench {
 				$this->plugin_file
 			),
 			// The plugin's one general options manager: registers every
-			// `register_setting()`-backed option from its injected
-			// definitions. Adding a future option means adding a definition
-			// here, never a new manager dedicated to a single option.
+			// `register_setting()`-backed option from its injected providers.
+			// Adding a future option means adding a provider here, never a
+			// new manager dedicated to a single option. The provider object
+			// itself is injected, not its already-built definition: the
+			// registry only calls `definition()` from inside its own `init`
+			// callback, so a translatable string in a definition's args (e.g.
+			// `CourseOrderOption`'s `description`) never runs `__()` before
+			// `init`, which is composition time here.
 			new OptionRegistry(
 				array(
-					$course_order_option->definition(),
+					$course_order_option,
 				)
 			),
 			new SettingsScreen(

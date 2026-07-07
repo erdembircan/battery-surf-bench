@@ -90,13 +90,18 @@ classDiagram
         +sanitize(mixed value) array
     }
 
+    class OptionProvider {
+        <<interface>>
+        +definition() array
+    }
+
     class CourseOrderOption {
         +__construct(string option_name, CourseOrderSanitizer sanitizer)
         +definition() array
     }
 
     class OptionRegistry {
-        +__construct(array definitions)
+        +__construct(array providers)
         +register() void
         +register_options() void
     }
@@ -289,7 +294,8 @@ classDiagram
     AdminHeaderView ..|> View : implements
     AdminPillView ..|> View : implements
     OptionRegistry ..|> Manager : implements
-    OptionRegistry ..> CourseOrderOption : registers its definition
+    OptionRegistry ..> OptionProvider : calls definition() on init
+    CourseOrderOption ..|> OptionProvider : implements
     CourseOrderOption --> CourseOrderSanitizer : uses
     CourseOrderSanitizer --> CourseCatalog : validates bundled slugs against
     SessionType ..|> Manager : implements

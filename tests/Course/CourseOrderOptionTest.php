@@ -12,6 +12,7 @@ namespace ErdemBircan\BatterySurfBench\Tests\Course;
 use ErdemBircan\BatterySurfBench\Course\CourseCatalog;
 use ErdemBircan\BatterySurfBench\Course\CourseOrderOption;
 use ErdemBircan\BatterySurfBench\Course\CourseOrderSanitizer;
+use ErdemBircan\BatterySurfBench\Settings\OptionProvider;
 use ErdemBircan\BatterySurfBench\Tests\TestCase;
 
 /**
@@ -39,6 +40,14 @@ final class CourseOrderOptionTest extends TestCase {
 			self::OPTION_NAME,
 			new CourseOrderSanitizer( $catalog, array( 'page', 'post' ) )
 		);
+	}
+
+	/**
+	 * OptionRegistry relies on every provider it holds honouring this
+	 * contract.
+	 */
+	public function test_is_an_option_provider(): void {
+		$this->assertInstanceOf( OptionProvider::class, $this->option() );
 	}
 
 	/**

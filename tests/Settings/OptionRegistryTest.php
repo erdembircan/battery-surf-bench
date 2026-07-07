@@ -19,9 +19,11 @@ use function has_action;
 
 /**
  * Behavioral tests for the general options manager: that it hooks its own
- * registration onto `init`, and that it registers every injected definition —
- * proven with more than one definition, since being genuinely general (not
- * dedicated to a single option) is the entire point of this class.
+ * registration onto `init`, that it only asks each provider for its
+ * definition once actually registering (never eagerly at construction), and
+ * that it registers every injected provider — proven with more than one
+ * provider, since being genuinely general (not dedicated to a single option)
+ * is the entire point of this class.
  */
 final class OptionRegistryTest extends TestCase {
 
@@ -43,31 +45,64 @@ final class OptionRegistryTest extends TestCase {
 	}
 
 	/**
-	 * A single injected definition is registered with its own name and args.
+	 * Constructing the registry never asks an injected provider for its
+	 * definition — a definition's args may legitimately call `__()`, which
+	 * WordPress requires never runs before `init`, so nothing may build one
+	 * before `register_options()` (the `init` callback) actually runs.
 	 */
-	public function test_register_options_registers_a_single_definition(): void {
+	public function test_construction_never_asks_a_provider_for_its_definition(): void {
+		$provider = new FakeOptionProvider(
+			array(
+				'name' => 'bsb_fake_option',
+				'args' => array( 'type' => 'string' ),
+			)
+		);
+
+		new OptionRegistry( array( $provider ) );
+
+		$this->assertFalse( $provider->was_asked );
+	}
+
+	/**
+	 * A single injected provider's definition is registered with its own name
+	 * and args.
+	 */
+	public function test_register_options_registers_a_single_providers_definition(): void {
+		$provider = new FakeOptionProvider(
+			array(
+				'name' => 'bsb_fake_option',
+				'args' => array( 'type' => 'string' ),
+			)
+		);
+
 		Functions\expect( 'register_setting' )
 			->once()
 			->with( Mockery::type( 'string' ), 'bsb_fake_option', array( 'type' => 'string' ) );
 
-		( new OptionRegistry(
-			array(
-				array(
-					'name' => 'bsb_fake_option',
-					'args' => array( 'type' => 'string' ),
-				),
-			)
-		) )->register_options();
+		( new OptionRegistry( array( $provider ) ) )->register_options();
 
-		$this->addToAssertionCount( 1 );
+		$this->assertTrue( $provider->was_asked );
 	}
 
 	/**
-	 * Every injected definition is registered, each with its own name and
-	 * args — proving the registry is genuinely general rather than only ever
-	 * handling one option.
+	 * Every injected provider's definition is registered, each with its own
+	 * name and args — proving the registry is genuinely general rather than
+	 * only ever handling one option.
 	 */
-	public function test_register_options_registers_every_definition(): void {
+	public function test_register_options_registers_every_providers_definition(): void {
+		$provider_a = new FakeOptionProvider(
+			array(
+				'name' => 'bsb_fake_option_a',
+				'args' => array( 'type' => 'string' ),
+			)
+		);
+		$provider_b = new FakeOptionProvider(
+			array(
+				'name' => 'bsb_fake_option_b',
+				'args' => array( 'type' => 'array' ),
+			)
+		);
+
 		Functions\expect( 'register_setting' )
 			->once()
 			->with( Mockery::type( 'string' ), 'bsb_fake_option_a', array( 'type' => 'string' ) );
@@ -75,19 +110,9 @@ final class OptionRegistryTest extends TestCase {
 			->once()
 			->with( Mockery::type( 'string' ), 'bsb_fake_option_b', array( 'type' => 'array' ) );
 
-		( new OptionRegistry(
-			array(
-				array(
-					'name' => 'bsb_fake_option_a',
-					'args' => array( 'type' => 'string' ),
-				),
-				array(
-					'name' => 'bsb_fake_option_b',
-					'args' => array( 'type' => 'array' ),
-				),
-			)
-		) )->register_options();
+		( new OptionRegistry( array( $provider_a, $provider_b ) ) )->register_options();
 
-		$this->addToAssertionCount( 1 );
+		$this->assertTrue( $provider_a->was_asked );
+		$this->assertTrue( $provider_b->was_asked );
 	}
 }
