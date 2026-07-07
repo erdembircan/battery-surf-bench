@@ -37,6 +37,14 @@ export interface DischargeSimState extends DischargeSimConfig {
 	 * combine into the single override the cockpit acts on.
 	 */
 	currentLevel: number | null;
+	/**
+	 * The sim's own live output — the run's remaining time in ms its ticker
+	 * last computed, or null while not running. Like `currentLevel`, this is
+	 * entirely separate from the persisted config: it exists purely to drive
+	 * the title bar's countdown display reactively, and is not itself
+	 * persisted (the whole `sim` slice is excluded from persistence).
+	 */
+	remainingMs: number | null;
 }
 
 /**
@@ -53,6 +61,7 @@ export const DEFAULT_SIM: DischargeSimState = Object.freeze( {
 	running: false,
 	startedAt: null,
 	currentLevel: null,
+	remainingMs: null,
 } );
 
 /**
@@ -120,3 +129,17 @@ export const isSimComplete = (
 	config: DischargeSimConfig,
 	elapsedMs: number
 ): boolean => simProgress( config, elapsedMs ) >= 1;
+
+/**
+ * The run's remaining time at a given elapsed time, in milliseconds. Exactly
+ * the full duration at (or before) the start, 0 at (or after) the end —
+ * clamped rather than going negative once the run has finished.
+ *
+ * @param config    The sim's configuration.
+ * @param elapsedMs Milliseconds since the run started.
+ * @return The remaining time, in milliseconds, never negative.
+ */
+export const simRemainingMs = (
+	config: DischargeSimConfig,
+	elapsedMs: number
+): number => Math.max( 0, simDurationMs( config ) - elapsedMs );

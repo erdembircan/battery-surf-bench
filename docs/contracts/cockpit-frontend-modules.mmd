@@ -415,7 +415,7 @@ classDiagram
 
     class DischargeSimStore {
         <<module>>
-        state: devtoolsSimFromDisplay/ToDisplay/MinutesDisplay, devtoolsIsSimRunning, devtoolsIsSimStartBlocked
+        state: devtoolsSimFromDisplay/ToDisplay/MinutesDisplay, devtoolsIsSimRunning, devtoolsIsSimStartBlocked, devtoolsSimRemainingDisplay
         actions: devtoolsStepSim, devtoolsToggleSim
         +resetDischargeSim() void
     }
@@ -442,6 +442,7 @@ classDiagram
         +simProgress(DischargeSimConfig, number) number
         +simulatedLevel(DischargeSimConfig, number) number
         +isSimComplete(DischargeSimConfig, number) bool
+        +simRemainingMs(DischargeSimConfig, number) number
         +DEFAULT_SIM
     }
 
@@ -454,8 +455,8 @@ classDiagram
     DischargeSimStore --> DevtoolsStore : reads/writes the shared devtools slice
     DischargeSimStore --> DischargeSim : evaluates the pure model against the clock
 
-    %% The discharge sim writes only its own `sim.currentLevel`/`running`
-    %% fields — never `devtools.battery`, which BatteryOverrideStore's manual
+    %% The discharge sim writes only its own `sim.currentLevel`/`remainingMs`/
+    %% `running` fields — never `devtools.battery`, which BatteryOverrideStore's manual
     %% actions alone own. The two layers are combined into the single
     %% effective override by the pure EffectiveBatteryOverride resolver: a
     %% running sim always wins outright; otherwise the manual layer passes

@@ -17,6 +17,7 @@ interface MockSim {
 	running: boolean;
 	startedAt: number | null;
 	currentLevel: number | null;
+	remainingMs: number | null;
 }
 
 interface MockDevtoolsState {
@@ -47,6 +48,7 @@ const derived = dischargeSimStore.state as unknown as {
 	devtoolsSimMinutesDisplay: string;
 	devtoolsIsSimRunning: boolean;
 	devtoolsIsSimStartBlocked: boolean;
+	devtoolsSimRemainingDisplay: string;
 };
 
 const defaultSim = (): MockSim => ( {
@@ -56,6 +58,7 @@ const defaultSim = (): MockSim => ( {
 	running: false,
 	startedAt: null,
 	currentLevel: null,
+	remainingMs: null,
 } );
 
 const step = ( field: string, amount: number ): void => {
@@ -246,5 +249,54 @@ describe( 'starting and ticking', () => {
 			charging: true,
 			level: 0.55,
 		} );
+	} );
+} );
+
+describe( 'remaining time', () => {
+	it( 'start seeds remainingMs at the full duration and displays it immediately', () => {
+		mocks.state.devtools.sim.minutes = 30;
+		actions.devtoolsToggleSim();
+
+		expect( mocks.state.devtools.sim.remainingMs ).toBe( 30 * 60 * 1000 );
+		expect( derived.devtoolsSimRemainingDisplay ).toBe( '30:00' );
+	} );
+
+	it( 'the ticker counts remainingMs down as time passes', () => {
+		mocks.state.devtools.sim.minutes = 10;
+		actions.devtoolsToggleSim();
+
+		vi.advanceTimersByTime( 5 * 60 * 1000 ); // halfway
+
+		expect( mocks.state.devtools.sim.remainingMs ).toBe( 5 * 60 * 1000 );
+		expect( derived.devtoolsSimRemainingDisplay ).toBe( '05:00' );
+		// Never mutates the manual battery layer.
+		expect( mocks.state.devtools.battery ).toEqual( {
+			charging: null,
+			level: null,
+		} );
+	} );
+
+	it( 'completion clears remainingMs to null and the display reads 00:00 safely', () => {
+		mocks.state.devtools.sim.minutes = 5;
+		actions.devtoolsToggleSim();
+
+		vi.advanceTimersByTime( 5 * 60 * 1000 + 1000 );
+
+		expect( mocks.state.devtools.sim.running ).toBe( false );
+		expect( mocks.state.devtools.sim.remainingMs ).toBeNull();
+		expect( derived.devtoolsSimRemainingDisplay ).toBe( '00:00' );
+	} );
+
+	it( 'stop mid-run clears remainingMs to null', () => {
+		mocks.state.devtools.sim.minutes = 10;
+		actions.devtoolsToggleSim(); // Start
+		vi.advanceTimersByTime( 2 * 60 * 1000 );
+
+		expect( mocks.state.devtools.sim.remainingMs ).not.toBeNull();
+
+		actions.devtoolsToggleSim(); // Stop
+
+		expect( mocks.state.devtools.sim.remainingMs ).toBeNull();
+		expect( derived.devtoolsSimRemainingDisplay ).toBe( '00:00' );
 	} );
 } );

@@ -60,6 +60,7 @@ describe( 'devtools view', () => {
 				running: false,
 				startedAt: null,
 				currentLevel: null,
+				remainingMs: null,
 			},
 		} );
 		expect( mocks.config?.actions ).toMatchObject( {

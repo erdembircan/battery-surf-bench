@@ -300,6 +300,17 @@ $ease: cubic-bezier(0.22, 1, 0.36, 1);
 	color: theme.$coastal-navy;
 }
 
+// The discharge group's running countdown, right-aligned beside its title by
+// the group head's own `space-between` — coral ties it to the same
+// running/armed accent as the Stop button and the armed indicator.
+// `[hidden]` handles hiding natively; no `display` override needed.
+.bsb-devtools__group-countdown {
+	font-size: 12px;
+	font-weight: 700;
+	font-variant-numeric: tabular-nums;
+	color: theme.$coastal-coral;
+}
+
 .bsb-devtools__group-divider {
 	height: 1px;
 	margin: 0.75rem 0;

@@ -8,6 +8,7 @@ import {
 	simProgress,
 	simulatedLevel,
 	isSimComplete,
+	simRemainingMs,
 	type DischargeSimConfig,
 } from './DischargeSim';
 
@@ -103,5 +104,36 @@ describe( 'isSimComplete', () => {
 		expect( isSimComplete( cfg, simDurationMs( cfg ) + 1000 ) ).toBe(
 			true
 		);
+	} );
+} );
+
+describe( 'simRemainingMs', () => {
+	it( 'is the full duration at elapsed 0', () => {
+		const cfg = config( { minutes: 10 } );
+		expect( simRemainingMs( cfg, 0 ) ).toBe( simDurationMs( cfg ) );
+	} );
+
+	it( 'is exactly half the duration at the midpoint', () => {
+		const cfg = config( { minutes: 10 } );
+		expect( simRemainingMs( cfg, simDurationMs( cfg ) / 2 ) ).toBe(
+			simDurationMs( cfg ) / 2
+		);
+	} );
+
+	it( 'is 0 exactly at the duration', () => {
+		const cfg = config( { minutes: 10 } );
+		expect( simRemainingMs( cfg, simDurationMs( cfg ) ) ).toBe( 0 );
+	} );
+
+	it( 'clamps to 0 past the duration — never goes negative', () => {
+		const cfg = config( { minutes: 10 } );
+		expect( simRemainingMs( cfg, simDurationMs( cfg ) * 2 ) ).toBe( 0 );
+	} );
+
+	it( 'is exactly 0 at the duration bound, not negative', () => {
+		const cfg = config( { minutes: 5 } );
+		const remaining = simRemainingMs( cfg, simDurationMs( cfg ) );
+		expect( remaining ).toBe( 0 );
+		expect( Object.is( remaining, -0 ) ).toBe( false );
 	} );
 } );

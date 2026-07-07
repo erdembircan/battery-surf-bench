@@ -457,6 +457,45 @@ test.describe( 'Dev-tools battery-override panel', () => {
 		expect( await page.content() ).not.toMatch( PHP_NOTICE );
 	} );
 
+	test( 'the discharge group shows a live MM:SS countdown while running, and hides it once stopped', async ( {
+		page,
+	} ) => {
+		await page.goto( '/?bsbSession=cockpit' );
+
+		await page.locator( '.bsb-devtools__pill' ).click();
+
+		// Shorten the run to 5 minutes (the minimum) so the countdown visibly
+		// ticks down within the test's own wait.
+		const minutesDecrease = page.locator(
+			'[data-devtools-sim-field="minutes"][data-step="-5"]'
+		);
+		for ( let i = 0; i < 5; i++ ) {
+			await minutesDecrease.click();
+		}
+
+		const countdown = page.locator( '.bsb-devtools__group-countdown' );
+		await expect( countdown ).toBeHidden();
+
+		const toggle = page.locator( '.bsb-devtools__sim-toggle' );
+		await toggle.click();
+
+		// Running: the countdown is visible, reading MM:SS, seeded at the full
+		// 5-minute duration immediately.
+		await expect( countdown ).toBeVisible();
+		await expect( countdown ).toHaveText( /^\d{2}:\d{2}$/ );
+		await expect( countdown ).toHaveText( '05:00' );
+
+		const startText = await countdown.textContent();
+		await page.waitForTimeout( 1500 );
+		const laterText = await countdown.textContent();
+		expect( laterText ).not.toBe( startText );
+
+		await toggle.click(); // Stop.
+		await expect( countdown ).toBeHidden();
+
+		expect( await page.content() ).not.toMatch( PHP_NOTICE );
+	} );
+
 	test( 'stopping the discharge sim reverts to the pre-sim state and unmutes every control', async ( {
 		page,
 	} ) => {
