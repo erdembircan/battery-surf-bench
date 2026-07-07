@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-07-07T10:30:43+00:00\n"
+"POT-Creation-Date: 2026-07-07T13:06:29+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: battery-surf-bench\n"
@@ -56,6 +56,21 @@ msgstr ""
 
 #: includes/Admin/SessionsScreen.php:143
 msgid "New Benchmark"
+msgstr ""
+
+#: includes/Admin/StartBenchmark.php:104
+#: includes/Admin/StartBenchmark.php:105
+#: includes/Admin/StartBenchmark.php:142
+#: includes/Admin/StartBenchmark.php:170
+msgid "Start Benchmark"
+msgstr ""
+
+#: includes/Admin/StartBenchmark.php:143
+msgid "Opening the cockpit dashboard…"
+msgstr ""
+
+#: includes/Admin/StartBenchmark.php:145
+msgid "Open Cockpit"
 msgstr ""
 
 #: includes/Cockpit/BarkStrings.php:35
