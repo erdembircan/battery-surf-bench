@@ -233,6 +233,10 @@ class SessionDetail implements Manager {
 			return 'plugged';
 		}
 
+		if ( 'failed' === $status ) {
+			return 'loadError';
+		}
+
 		// A finished run completed its mode: a target-drop run hit its mark, a
 		// duration run ran its length.
 		return 'targetDrop' === $this->meta( $session_id, 'config_mode' )

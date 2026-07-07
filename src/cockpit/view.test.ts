@@ -36,7 +36,13 @@ interface CockpitContext {
 	rateSession: number | null;
 	secondsToEmpty: number | null;
 	ended: boolean;
-	endReason: '' | 'duration' | 'targetDrop' | 'stopped' | 'plugged';
+	endReason:
+		| ''
+		| 'duration'
+		| 'targetDrop'
+		| 'stopped'
+		| 'plugged'
+		| 'loadError';
 	flipped: boolean;
 	idleFlipped: boolean;
 	detailSamples?: { t: number; level: number; charging: boolean }[];
@@ -95,6 +101,7 @@ interface CockpitConfig {
 		isReasonTargetDrop: boolean;
 		isReasonStopped: boolean;
 		isReasonPlugged: boolean;
+		isReasonLoadError: boolean;
 		summaryHeading: string;
 		summarySig: string;
 		summaryElapsed: string;
@@ -136,6 +143,7 @@ interface CockpitConfig {
 		selectSpeed: () => void;
 		toggleRun: () => void;
 		toggleCompact: () => void;
+		guardViewport: ( event: Event ) => void;
 		toggleSound: () => void;
 		toggleFlip: () => void;
 		toggleIdleFlip: () => void;
@@ -150,6 +158,7 @@ interface CockpitConfig {
 		initSound: () => void;
 		initPageAdvance: () => () => void;
 		syncRunActivity: () => void;
+		syncViewportWatchdog: () => void;
 		rollDuration: () => void;
 		renderSummary: () => void;
 		onToastAnimationEnd: () => void;
@@ -414,6 +423,170 @@ describe( 'bsb/cockpit view store', () => {
 			dispatchMessage( window.location.origin, { type: 'bsb:pageDone' } );
 
 			expect( mocks.context.activeIndex ).toBe( 0 );
+		} );
+	} );
+
+	describe( 'viewport load guard', () => {
+		/**
+		 * A fake iframe carrying a same-origin, resolved (non-blank) document
+		 * with/without the course-page marker.
+		 *
+		 * @param hasCourseContent Whether the framed document carries the course marker.
+		 */
+		const fakeIframe = ( hasCourseContent: boolean ): MockElement =>
+			( {
+				contentDocument: {
+					URL: 'http://test/?bsbSessionPage=article-1',
+					querySelector: ( selector: string ) =>
+						hasCourseContent && selector === '.bsb-course-page'
+							? {}
+							: null,
+				},
+			} ) as unknown as MockElement;
+
+		/** A fake iframe framing the blank/reset `about:blank` document. */
+		const blankIframe = (): MockElement =>
+			( {
+				contentDocument: {
+					URL: 'about:blank',
+					querySelector: () => null,
+				},
+			} ) as unknown as MockElement;
+
+		it( 'stops the run when a load event lands on a page without the course marker', () => {
+			mocks.context.running = true;
+			mocks.element = fakeIframe( false );
+
+			mocks.config?.actions.guardViewport( { type: 'load' } as Event );
+
+			expect( mocks.context.running ).toBe( false );
+			expect( mocks.context.ended ).toBe( true );
+			expect( mocks.context.endReason ).toBe( 'loadError' );
+			expect( mocks.config?.state.isReasonLoadError ).toBe( true );
+		} );
+
+		it( 'leaves the run going when a load event lands on a real course page', () => {
+			mocks.context.running = true;
+			mocks.element = fakeIframe( true );
+
+			mocks.config?.actions.guardViewport( { type: 'load' } as Event );
+
+			expect( mocks.context.running ).toBe( true );
+			expect( mocks.context.ended ).toBe( false );
+			expect( mocks.context.endReason ).toBe( '' );
+		} );
+
+		it( 'no-ops while idle, whatever the event', () => {
+			mocks.context.running = false;
+			mocks.element = fakeIframe( false );
+
+			mocks.config?.actions.guardViewport( { type: 'load' } as Event );
+
+			expect( mocks.context.running ).toBe( false );
+			expect( mocks.context.ended ).toBe( false );
+			expect( mocks.context.endReason ).toBe( '' );
+		} );
+
+		it( 'stops the run on an error event', () => {
+			mocks.context.running = true;
+			mocks.element = fakeIframe( true );
+
+			mocks.config?.actions.guardViewport( { type: 'error' } as Event );
+
+			expect( mocks.context.running ).toBe( false );
+			expect( mocks.context.ended ).toBe( true );
+			expect( mocks.context.endReason ).toBe( 'loadError' );
+		} );
+
+		it( 'ignores a load event on the empty-src about:blank reset while running (regression: false-positive stop)', () => {
+			// The viewport's `src` binding resets to `''` the instant a run
+			// starts/stops, framing about:blank; that load can fire asynchronously
+			// after `running` is already true and must never be judged as a
+			// failed course-page navigation.
+			mocks.context.running = true;
+			mocks.element = blankIframe();
+
+			mocks.config?.actions.guardViewport( { type: 'load' } as Event );
+
+			expect( mocks.context.running ).toBe( true );
+			expect( mocks.context.ended ).toBe( false );
+			expect( mocks.context.endReason ).toBe( '' );
+		} );
+	} );
+
+	describe( 'viewport load watchdog', () => {
+		// Scoped to this describe so no other test in the file sees fake timers.
+		beforeEach( () => {
+			vi.useFakeTimers();
+		} );
+
+		afterEach( () => {
+			vi.useRealTimers();
+		} );
+
+		it( 'stops the run once the timeout elapses with no load/error', () => {
+			mocks.context.running = true;
+			mocks.context.pages = [ page( 'article-1' ) ];
+			mocks.context.activeIndex = 0;
+
+			mocks.config?.callbacks.syncViewportWatchdog();
+			// The full 15s window the watchdog gives a navigation to resolve.
+			vi.advanceTimersByTime( 15000 );
+
+			expect( mocks.context.running ).toBe( false );
+			expect( mocks.context.ended ).toBe( true );
+			expect( mocks.context.endReason ).toBe( 'loadError' );
+		} );
+
+		it( 'is cancelled by a timely load, so the run keeps going', () => {
+			mocks.context.running = true;
+			mocks.context.pages = [ page( 'article-1' ) ];
+			mocks.context.activeIndex = 0;
+			mocks.element = {
+				contentDocument: {
+					URL: 'http://test/?bsbSessionPage=article-1',
+					querySelector: ( selector: string ) =>
+						selector === '.bsb-course-page' ? {} : null,
+				},
+			} as unknown as MockElement;
+
+			mocks.config?.callbacks.syncViewportWatchdog();
+			mocks.config?.actions.guardViewport( { type: 'load' } as Event );
+			vi.advanceTimersByTime( 15000 );
+
+			expect( mocks.context.running ).toBe( true );
+			expect( mocks.context.ended ).toBe( false );
+		} );
+
+		it( 'is cancelled when the run ends, so it never double-tears-down', () => {
+			mocks.context.running = true;
+			mocks.context.pages = [ page( 'article-1' ) ];
+			mocks.context.activeIndex = 0;
+
+			mocks.config?.callbacks.syncViewportWatchdog();
+
+			// The run ends by some other cause; the watch re-runs (its `running`
+			// dependency changed) and, finding no pages to guard, clears the
+			// pending watchdog without re-arming.
+			mocks.context.running = false;
+			mocks.config?.callbacks.syncViewportWatchdog();
+			vi.advanceTimersByTime( 15000 );
+
+			expect( mocks.context.ended ).toBe( false );
+			expect( mocks.context.endReason ).toBe( '' );
+		} );
+
+		it( 'no-ops while idle', () => {
+			mocks.context.running = false;
+			mocks.context.pages = [ page( 'article-1' ) ];
+			mocks.context.activeIndex = 0;
+
+			mocks.config?.callbacks.syncViewportWatchdog();
+			vi.advanceTimersByTime( 15000 );
+
+			expect( mocks.context.running ).toBe( false );
+			expect( mocks.context.ended ).toBe( false );
+			expect( mocks.context.endReason ).toBe( '' );
 		} );
 	} );
 

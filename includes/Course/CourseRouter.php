@@ -161,7 +161,29 @@ class CourseRouter implements Manager {
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_style' ) );
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_script' ) );
 
+		// Mark the rendered page so the cockpit's viewport load guard can tell a
+		// successfully served course page from a 404 (or any other page loaded in
+		// the iframe) from inside the frame. The marker rides the body class, not
+		// each page's own content markup, so it is guaranteed on every course page
+		// regardless of what that page's blocks look like.
+		add_filter( 'body_class', array( $this, 'mark_course_body' ) );
+
 		return array( $virtual );
+	}
+
+	/**
+	 * Appends the course-page marker to the body classes so the viewport load
+	 * guard can recognize a served course page from inside the iframe. Added only
+	 * while serving a course page, so a 404 or any non-course page never carries
+	 * it.
+	 *
+	 * @param array<int, string> $classes The body classes WordPress assembled.
+	 * @return array<int, string> The classes with the course-page marker appended.
+	 */
+	public function mark_course_body( array $classes ): array {
+		$classes[] = 'bsb-course-page';
+
+		return $classes;
 	}
 
 	/**

@@ -157,11 +157,13 @@ classDiagram
     }
 
     class CourseRouter {
-        +__construct(CourseCatalog catalog, string param, Assets assets, string stylesheet)
+        +__construct(CourseCatalog catalog, string param, Assets assets, string stylesheet, string script)
         +register() void
         +add_query_var(array vars) array
         +maybe_render(array posts, WP_Query query) array
+        +mark_course_body(array classes) array
         +enqueue_style() void
+        +enqueue_script() void
     }
 
     class CoursePagesSource {

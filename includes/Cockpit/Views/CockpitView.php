@@ -413,7 +413,7 @@ ROW;
 HTML;
 
 		return <<<HTML
-<div {$wrapper} data-wp-interactive="bsb/cockpit" {$context} data-wp-init---battery="callbacks.initBattery" data-wp-init---wake-lock="callbacks.initWakeLock" data-wp-init---sound="callbacks.initSound" data-wp-init---page-advance="callbacks.initPageAdvance" data-wp-init---bark="callbacks.initBark" data-wp-watch---run-activity="callbacks.syncRunActivity" data-wp-watch---devtools-battery="callbacks.syncBatteryOverride" data-wp-class--is-compact="state.isCompact" data-wp-class--is-deck-shown="state.isDeckShown">
+<div {$wrapper} data-wp-interactive="bsb/cockpit" {$context} data-wp-init---battery="callbacks.initBattery" data-wp-init---wake-lock="callbacks.initWakeLock" data-wp-init---sound="callbacks.initSound" data-wp-init---page-advance="callbacks.initPageAdvance" data-wp-init---bark="callbacks.initBark" data-wp-watch---run-activity="callbacks.syncRunActivity" data-wp-watch---viewport-watchdog="callbacks.syncViewportWatchdog" data-wp-watch---devtools-battery="callbacks.syncBatteryOverride" data-wp-class--is-compact="state.isCompact" data-wp-class--is-deck-shown="state.isDeckShown">
 	<aside class="bsb-cockpit__deck">
 		<header class="bsb-deck__brand">
 			<span class="bsb-deck__mark" aria-hidden="true"></span>
@@ -515,7 +515,7 @@ HTML;
 			{$idle_card}
 		</div>
 		<div class="bsb-cockpit__viewport-wrap" hidden data-wp-bind--hidden="state.isIdle" data-wp-on--pointerenter="actions.viewportEnter">
-			<iframe class="bsb-cockpit__viewport" title="{$viewport_title}" data-wp-bind--src="state.currentSrc"></iframe>
+			<iframe class="bsb-cockpit__viewport" title="{$viewport_title}" data-wp-bind--src="state.currentSrc" data-wp-on--load="actions.guardViewport" data-wp-on--error="actions.guardViewport"></iframe>
 			<div class="bsb-cockpit__bark-layer" aria-hidden="true">
 				<div class="bsb-cockpit__bark" hidden data-wp-bind--hidden="!state.hasBark" data-wp-bind--data-bark="state.barkKey" data-wp-class--is-entering="state.isBarkEntering" data-wp-class--is-holding="state.isBarkHolding" data-wp-class--is-leaving="state.isBarkLeaving" data-wp-on--animationend="callbacks.onBarkAnimationEnd">
 					<span class="bsb-cockpit__bark-icon" aria-hidden="true"></span>

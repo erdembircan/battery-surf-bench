@@ -53,6 +53,12 @@ class SummaryReasons {
 				'arc'  => __( '· INTERRUPTED ·', 'battery-surf-bench' ),
 				'unit' => __( 'elapsed', 'battery-surf-bench' ),
 			),
+			'loadError'  => array(
+				'head' => __( "The page didn't load.", 'battery-surf-bench' ),
+				'sig'  => __( "A page couldn't be reached, so the run stopped.", 'battery-surf-bench' ),
+				'arc'  => __( '· LOAD FAILED ·', 'battery-surf-bench' ),
+				'unit' => __( 'elapsed', 'battery-surf-bench' ),
+			),
 		);
 	}
 }

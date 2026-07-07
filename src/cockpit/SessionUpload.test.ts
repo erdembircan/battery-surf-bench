@@ -90,6 +90,10 @@ describe( 'statusFor', () => {
 		expect( statusFor( 'plugged' ) ).toBe( 'aborted' );
 	} );
 
+	it( 'maps a viewport load-guard stop to failed', () => {
+		expect( statusFor( 'loadError' ) ).toBe( 'failed' );
+	} );
+
 	it( 'maps a hand stop (and anything unknown) to stopped', () => {
 		expect( statusFor( 'stopped' ) ).toBe( 'stopped' );
 		expect( statusFor( '' ) ).toBe( 'stopped' );

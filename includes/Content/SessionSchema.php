@@ -252,6 +252,7 @@ class SessionSchema {
 					'finished' => __( 'Finished', 'battery-surf-bench' ),
 					'stopped'  => __( 'Stopped', 'battery-surf-bench' ),
 					'aborted'  => __( 'Aborted', 'battery-surf-bench' ),
+					'failed'   => __( 'Load failed', 'battery-surf-bench' ),
 				),
 				'default_column' => true,
 			),

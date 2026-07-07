@@ -56,6 +56,8 @@ export interface InstanceState {
 	barkReplaceTimer: number | null;
 	/** The `performance.now()` timestamp the showing bark appeared, or null. */
 	barkShownAt: number | null;
+	/** The viewport load-watchdog timeout id while a navigation is pending, or null. */
+	loadWatchdog: number | null;
 }
 
 /**
@@ -81,6 +83,7 @@ const runInstance: InstanceState = {
 	barkTimer: null,
 	barkReplaceTimer: null,
 	barkShownAt: null,
+	loadWatchdog: null,
 };
 
 /**
@@ -107,6 +110,7 @@ export const __resetInstance = (): void => {
 	runInstance.barkTimer = null;
 	runInstance.barkReplaceTimer = null;
 	runInstance.barkShownAt = null;
+	runInstance.loadWatchdog = null;
 };
 
 /**

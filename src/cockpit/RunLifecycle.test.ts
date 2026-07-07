@@ -118,6 +118,21 @@ describe( 'stopRun persistence', () => {
 		expect( globalThis.fetch ).not.toHaveBeenCalled();
 	} );
 
+	it( 'uploads a run the viewport load guard cut short, same as any other reason', () => {
+		const session = new RunSession();
+		session.start( 0 );
+		session.record( 0, 0.82, false );
+		session.record( 600000, 0.7, false );
+
+		stopRun( context(), instance( session ), 'loadError' );
+
+		expect( globalThis.fetch ).toHaveBeenCalledTimes( 1 );
+		expect( globalThis.fetch ).toHaveBeenCalledWith(
+			'https://wp.test/wp-json/wp/v2/bsb_session',
+			expect.objectContaining( { method: 'POST' } )
+		);
+	} );
+
 	it( 'raises an error toast when the upload fails', async () => {
 		globalThis.fetch = vi
 			.fn()
