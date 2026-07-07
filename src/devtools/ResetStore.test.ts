@@ -15,6 +15,7 @@ interface MockSim {
 	running: boolean;
 	startedAt: number | null;
 	currentLevel: number | null;
+	remainingMs: number | null;
 }
 
 interface MockDevtoolsState {
@@ -52,6 +53,7 @@ const defaultSim = (): MockSim => ( {
 	running: false,
 	startedAt: null,
 	currentLevel: null,
+	remainingMs: null,
 } );
 
 beforeEach( () => {

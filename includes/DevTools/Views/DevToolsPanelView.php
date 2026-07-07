@@ -32,7 +32,9 @@ defined( 'ABSPATH' ) || exit;
  * battery-related control (the charging tri-state, the level row, and the
  * sim's own steppers) is disabled; only Stop stays live. This muting is
  * legitimate — gated by a genuinely running process — unlike the removed
- * enable switches, which gated nothing real.
+ * enable switches, which gated nothing real. The discharge group's own head
+ * additionally carries a countdown (`MM:SS` remaining), right-aligned beside
+ * its "Discharge" title, shown only while the sim is running.
  *
  * The card header divides into exactly three zones: the title (the eyebrow),
  * the override status (the armed indicator), and a panel-buttons container
@@ -156,6 +158,7 @@ class DevToolsPanelView implements View {
 				<div class="bsb-devtools__group">
 					<div class="bsb-devtools__group-head">
 						<span class="bsb-devtools__group-title">{$discharge}</span>
+						<span class="bsb-devtools__group-countdown" hidden data-wp-bind--hidden="!state.devtoolsIsSimRunning" data-wp-text="state.devtoolsSimRemainingDisplay"></span>
 					</div>
 					<div class="bsb-devtools__group-divider"></div>
 

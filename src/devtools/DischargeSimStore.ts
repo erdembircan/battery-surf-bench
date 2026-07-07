@@ -2,9 +2,12 @@
  * The discharge-simulation sub-tool: the dev-tools panel's second section,
  * additive alongside the battery-override tool rather than a rework of it. A
  * 1-second ticker evaluates the pure model ({@link ./DischargeSim}) against
- * the clock and writes the result into its own `sim.currentLevel` output
- * field — never into `state.devtools.battery`, the manual override's own
- * field. The two layers are combined into the single effective override by
+ * the clock and writes the result into its own `sim.currentLevel` and
+ * `sim.remainingMs` output fields — never into `state.devtools.battery`, the
+ * manual override's own field. `remainingMs` exists purely to drive the
+ * title-bar countdown reactively (a getter only re-evaluates from a reactive
+ * field a tick writes, never from wall-clock polling alone). The two layers
+ * are combined into the single effective override by
  * the pure resolver {@link ./EffectiveBatteryOverride}, which every consumer
  * (display, sample recording, the plugged/target-drop stops, the panel's own
  * level row) reads instead of the manual layer directly. Because the sim
@@ -22,8 +25,14 @@
 
 import { getElement } from '@wordpress/interactivity';
 import { type StorePart } from '../cockpit/StoreParts';
+import { formatClock } from '../cockpit/Format';
 import { current } from './DevtoolsStore';
-import { simulatedLevel, isSimComplete, DEFAULT_SIM } from './DischargeSim';
+import {
+	simulatedLevel,
+	simRemainingMs,
+	isSimComplete,
+	DEFAULT_SIM,
+} from './DischargeSim';
 
 /**
  * Clamps a value to a closed range.
@@ -42,10 +51,11 @@ let tickerId: ReturnType< typeof setInterval > | undefined;
 const TICK_MS = 1000;
 
 /**
- * Writes the simulated level for the current instant into the sim's own
- * `currentLevel` output field — never the manual override's `battery` field
- * — stopping the ticker and reverting (`running` false, `currentLevel` null)
- * once the run's end is reached.
+ * Writes the simulated level and remaining time for the current instant into
+ * the sim's own `currentLevel`/`remainingMs` output fields — never the manual
+ * override's `battery` field — stopping the ticker and reverting (`running`
+ * false, `currentLevel` and `remainingMs` null) once the run's end is
+ * reached.
  */
 const tick = (): void => {
 	const { sim } = current();
@@ -57,11 +67,13 @@ const tick = (): void => {
 
 	const elapsed = Date.now() - sim.startedAt;
 	sim.currentLevel = simulatedLevel( sim, elapsed );
+	sim.remainingMs = simRemainingMs( sim, elapsed );
 
 	if ( isSimComplete( sim, elapsed ) ) {
 		stopTicker();
 		sim.running = false;
 		sim.currentLevel = null;
+		sim.remainingMs = null;
 	}
 };
 
@@ -84,7 +96,7 @@ const stopTicker = (): void => {
 
 /**
  * Stops a running sim and restores its full state to {@link DEFAULT_SIM} —
- * `running`, `startedAt`, `currentLevel`, and the
+ * `running`, `startedAt`, `currentLevel`, `remainingMs`, and the
  * `fromPercent`/`toPercent`/`minutes` steppers. Exported (rather than folded
  * into a `StorePart` action) so the panel's cross-cutting Reset button
  * ({@link ./ResetStore}) can call it directly without a second store member.
@@ -101,6 +113,7 @@ export const resetDischargeSim = (): void => {
 	sim.running = false;
 	sim.startedAt = null;
 	sim.currentLevel = null;
+	sim.remainingMs = null;
 	sim.fromPercent = DEFAULT_SIM.fromPercent;
 	sim.toPercent = DEFAULT_SIM.toPercent;
 	sim.minutes = DEFAULT_SIM.minutes;
@@ -127,6 +140,20 @@ export const dischargeSimStore: StorePart = {
 		/** Whether the ticker is currently driving the level override. */
 		get devtoolsIsSimRunning(): boolean {
 			return current().sim.running;
+		},
+
+		/**
+		 * The running sim's remaining time, formatted MM:SS for the title-bar
+		 * countdown; "00:00" while not running. `Math.ceil` keeps the display at
+		 * an exact `MM:00` the instant a run starts (`remainingMs` equals the
+		 * full duration) and counts down through `00:01` in the final second —
+		 * it disappears the instant the run completes, when `running` flips
+		 * false and the countdown span hides.
+		 */
+		get devtoolsSimRemainingDisplay(): string {
+			const { remainingMs } = current().sim;
+
+			return formatClock( Math.ceil( ( remainingMs ?? 0 ) / 1000 ) );
 		},
 
 		/**
@@ -176,13 +203,15 @@ export const dischargeSimStore: StorePart = {
 		/**
 		 * Starts the sim (guarded by the same `to < from` rule the button's
 		 * `disabled` binding enforces) or stops it. Starting seeds
-		 * `currentLevel` at the configured start immediately, so the panel does
-		 * not wait a full tick to show the run has begun — it never touches
+		 * `currentLevel`/`remainingMs` at the configured start immediately, so
+		 * the panel does not wait a full tick to show the run has begun (the
+		 * countdown reads the full duration right away) — it never touches
 		 * `battery.charging`/`battery.level`, the manual override's own fields.
 		 * Stopping clears the ticker, flips `running` false, and clears
-		 * `currentLevel` back to null: since the sim never wrote to the manual
-		 * layer, there is nothing to revert there — whatever override (or lack
-		 * of one) was underneath is simply what the cockpit sees again.
+		 * `currentLevel`/`remainingMs` back to null: since the sim never wrote
+		 * to the manual layer, there is nothing to revert there — whatever
+		 * override (or lack of one) was underneath is simply what the cockpit
+		 * sees again.
 		 */
 		devtoolsToggleSim(): void {
 			const { sim } = current();
@@ -191,6 +220,7 @@ export const dischargeSimStore: StorePart = {
 				stopTicker();
 				sim.running = false;
 				sim.currentLevel = null;
+				sim.remainingMs = null;
 				return;
 			}
 
@@ -201,6 +231,7 @@ export const dischargeSimStore: StorePart = {
 			sim.startedAt = Date.now();
 			sim.running = true;
 			sim.currentLevel = simulatedLevel( sim, 0 );
+			sim.remainingMs = simRemainingMs( sim, 0 );
 			startTicker();
 		},
 	},

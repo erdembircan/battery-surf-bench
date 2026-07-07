@@ -156,10 +156,21 @@ final class DevToolsPanelViewTest extends TestCase {
 	 * and a Start/Stop toggle wired to `devtoolsToggleSim`. The steppers are
 	 * muted while running (a real running process, not a decorative switch);
 	 * the Start/Stop button is deliberately outside that muted wrapper so it
-	 * stays live to allow Stop.
+	 * stays live to allow Stop. The group's own head also carries a countdown
+	 * span, right-aligned beside its title, shown only while the sim runs.
 	 */
 	public function test_render_wires_the_discharge_group(): void {
 		$markup = ( new DevToolsPanelView() )->render();
+
+		// The title-bar countdown: hidden by default (defensive, pre-hydration),
+		// revealed only while the sim is running, reading the formatted
+		// remaining-time getter — and appearing exactly once, in the Discharge
+		// group's own head, never the Battery group's.
+		$this->assertStringContainsString(
+			'class="bsb-devtools__group-countdown" hidden data-wp-bind--hidden="!state.devtoolsIsSimRunning" data-wp-text="state.devtoolsSimRemainingDisplay"',
+			$markup
+		);
+		$this->assertSame( 1, substr_count( $markup, 'bsb-devtools__group-countdown' ) );
 
 		$this->assertStringContainsString(
 			'class="bsb-devtools__sim-steppers" data-wp-class--is-disabled="state.devtoolsIsSimRunning"',
