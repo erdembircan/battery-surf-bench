@@ -573,17 +573,23 @@
 	}
 
 	// The source row's own slot while its clone floats in the DragOverlay
-	// (`.bsb-pages-row--dragging`, below) — a faded copy of the row, matching
-	// the mock's `.bsb-drag-ghost` (`docs/mockups/config-pages.html`) exactly:
-	// content stays visible, washed out at 40% opacity, over a dashed
-	// accent-soft slot. Declared last so it wins over the zebra stripe and
-	// hover backgrounds above regardless of row parity — this slot must
-	// always read as the drop target, not a normal (zebra/hover-tinted) row.
+	// (`.bsb-pages-row--dragging`, below) — deliberately overriding the mock's
+	// `.bsb-drag-ghost` (which keeps a faded copy of the row's content): the
+	// maintainer wants the drop slot fully empty, just an outline, so it can't
+	// be mistaken for a second copy of the row. Children are hidden but the
+	// box keeps its full size (no layout shift) with a clearly visible dashed
+	// teal border and a light teal fill — neither is faded, only the content
+	// is gone. Declared last so it wins over the zebra stripe and hover
+	// backgrounds above regardless of row parity — this slot must always read
+	// as the drop target, not a normal (zebra/hover-tinted) row.
 	&.is-drag-placeholder {
-		opacity: 0.4;
 		background: #{rgba(theme.$coastal-teal, 0.08)};
 		border: 1.5px dashed theme.$coastal-teal;
 		border-radius: 9px;
+
+		> * {
+			visibility: hidden;
+		}
 	}
 }
 
