@@ -10,12 +10,28 @@
  */
 
 import { describe, it, expect } from 'vitest';
+import type {
+	BlueprintDeclaration,
+	BlueprintV1Declaration,
+} from '@wp-playground/blueprints';
 import {
 	devBlueprint,
 	devResumeBlueprint,
 	e2eBlueprint,
 	autoLoginMuPlugin,
 } from './blueprint.mts';
+
+/**
+ * All blueprints this module builds are Blueprint v1 declarations (the v2
+ * format is unused here); narrow the exported `BlueprintDeclaration` union so
+ * tests can read `.steps` directly instead of asserting on the raw union type.
+ *
+ * @param declaration - A blueprint declaration produced by this module.
+ * @return The same declaration, typed as a v1 declaration.
+ */
+function asV1( declaration: BlueprintDeclaration ): BlueprintV1Declaration {
+	return declaration as BlueprintV1Declaration;
+}
 
 const AUTO_LOGIN_PATH =
 	'/wordpress/wp-content/mu-plugins/bsb-dev-auto-login.php';
@@ -38,7 +54,7 @@ function findWriteFileStep(
 }
 
 describe( 'devBlueprint', () => {
-	const blueprint = devBlueprint( 9400 );
+	const blueprint = asV1( devBlueprint( 9400 ) );
 
 	it( 'installs the dev auto-login mu-plugin', () => {
 		const step = findWriteFileStep(
@@ -72,7 +88,7 @@ describe( 'devBlueprint', () => {
 } );
 
 describe( 'devResumeBlueprint', () => {
-	const blueprint = devResumeBlueprint( 9400 );
+	const blueprint = asV1( devResumeBlueprint( 9400 ) );
 
 	it( 'installs the dev auto-login mu-plugin', () => {
 		const step = findWriteFileStep(
@@ -106,8 +122,10 @@ describe( 'devResumeBlueprint', () => {
 } );
 
 describe( 'e2eBlueprint', () => {
+	const blueprint = asV1( e2eBlueprint );
+
 	it( 'still includes the login step authenticating as admin', () => {
-		const step = e2eBlueprint.steps?.find(
+		const step = blueprint.steps?.find(
 			( s ) => ( s as { step: string } ).step === 'login'
 		) as { step: string; username: string } | undefined;
 
@@ -117,7 +135,7 @@ describe( 'e2eBlueprint', () => {
 
 	it( 'does not install the dev auto-login mu-plugin', () => {
 		const step = findWriteFileStep(
-			e2eBlueprint.steps as Record< string, unknown >[],
+			blueprint.steps as Record< string, unknown >[],
 			AUTO_LOGIN_PATH
 		);
 
