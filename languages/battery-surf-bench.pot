@@ -55,7 +55,7 @@ msgid "Benchmark log"
 msgstr ""
 
 #: includes/Admin/SessionsScreen.php:143
-msgid "Open Cockpit"
+msgid "New Benchmark"
 msgstr ""
 
 #: includes/Cockpit/BarkStrings.php:35

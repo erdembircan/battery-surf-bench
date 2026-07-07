@@ -140,7 +140,7 @@ class SessionsScreen implements Manager {
 				'title'         => __( 'Sessions', 'battery-surf-bench' ),
 				'subtitle'      => __( 'Benchmark log', 'battery-surf-bench' ),
 				'cockpit_url'   => $cockpit_url,
-				'cockpit_label' => __( 'Open Cockpit', 'battery-surf-bench' ),
+				'cockpit_label' => __( 'New Benchmark', 'battery-surf-bench' ),
 			)
 		);
 

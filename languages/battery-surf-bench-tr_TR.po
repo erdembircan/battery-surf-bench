@@ -54,8 +54,8 @@ msgid "Benchmark log"
 msgstr "Kıyaslama günlüğü"
 
 #: includes/Admin/SessionsScreen.php:143
-msgid "Open Cockpit"
-msgstr "Kokpiti Aç"
+msgid "New Benchmark"
+msgstr "Yeni Kıyaslama"
 
 #. translators: %s: login URL.
 #: includes/Cockpit/Cockpit.php:232
