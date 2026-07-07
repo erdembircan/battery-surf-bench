@@ -19,11 +19,12 @@ use function add_action;
 use function add_menu_page;
 use function add_query_arg;
 use function get_option;
+use function get_post_type;
+use function get_the_title;
 use function home_url;
 use function implode;
 use function is_array;
 use function is_string;
-use function register_setting;
 use function rest_do_request;
 use function rest_get_server;
 
@@ -36,9 +37,13 @@ defined( 'ABSPATH' ) || exit;
  *
  * This manager evolved from the plugin's former empty landing page (`Menu`):
  * it still owns the top-level `add_menu_page` registration and the menu-icon
- * stylesheet, and now also owns the settings bundle's asset wiring and the
- * surf-course order option the app reads and writes through the core-data
- * site-settings entity (`/wp/v2/settings`) — no custom REST controller.
+ * stylesheet, and now also owns the settings bundle's asset wiring. The
+ * surf-course order option itself is registered by
+ * {@see \ErdemBircan\BatterySurfBench\Course\CourseOrderOption}; this screen
+ * reads it (healing it through the same sanitizer on every read, since
+ * `register_setting`'s sanitize callback only fires on write) and writes it
+ * through the core-data site-settings entity (`/wp/v2/settings`) — no custom
+ * REST controller.
  */
 class SettingsScreen implements Manager {
 
@@ -70,7 +75,7 @@ class SettingsScreen implements Manager {
 	 * @param string               $style                 Bundle's stylesheet, relative to the plugin root.
 	 * @param string               $option_name           Name of the option the surf-course order is saved under.
 	 * @param array<string>        $selectable_post_types Post types the picker's browse pane may add from.
-	 * @param CourseOrderSanitizer $sanitizer             Validates and heals the saved order.
+	 * @param CourseOrderSanitizer $sanitizer             Heals the saved order on every read — `register_setting`'s sanitize callback (wired by {@see \ErdemBircan\BatterySurfBench\Course\CourseOrderOption}) only runs on write, so a stale saved order needs re-healing here too.
 	 * @param CourseCatalog        $catalog               Source of the bundled page definitions.
 	 * @param Assets               $assets                Service used to register, localize and enqueue the bundle.
 	 * @param string               $cockpit_param         Query parameter that opens the cockpit dashboard.
@@ -94,8 +99,8 @@ class SettingsScreen implements Manager {
 	}
 
 	/**
-	 * Hooks the menu registration, its asset loading and the surf-course order
-	 * option into the WordPress lifecycle.
+	 * Hooks the menu registration and its asset loading into the WordPress
+	 * lifecycle.
 	 *
 	 * @return void
 	 */
@@ -103,7 +108,6 @@ class SettingsScreen implements Manager {
 		add_action( 'admin_menu', array( $this, 'add_page' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_icon_style' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue' ) );
-		add_action( 'init', array( $this, 'register_option' ) );
 	}
 
 	/**
@@ -159,43 +163,6 @@ class SettingsScreen implements Manager {
 	}
 
 	/**
-	 * Registers the surf-course order option with a REST schema wide enough to
-	 * express its ordered, heterogeneous entries, so the settings app can read
-	 * and write it through the core-data site-settings entity instead of a
-	 * bespoke REST controller.
-	 *
-	 * @return void
-	 */
-	public function register_option(): void {
-		register_setting(
-			'bsb_settings',
-			$this->option_name,
-			array(
-				'type'              => 'array',
-				'description'       => __( "The surfer's test page sequence: bundled pages and the site owner's own posts and pages, in visit order.", 'battery-surf-bench' ),
-				'default'           => $this->sanitizer->default_order(),
-				'show_in_rest'      => array(
-					'schema' => array(
-						'type'  => 'array',
-						'items' => array(
-							'type'       => 'object',
-							'properties' => array(
-								'kind' => array(
-									'type' => 'string',
-									'enum' => array( 'bundled', 'user' ),
-								),
-								'slug' => array( 'type' => 'string' ),
-								'id'   => array( 'type' => 'integer' ),
-							),
-						),
-					),
-				),
-				'sanitize_callback' => array( $this->sanitizer, 'sanitize' ),
-			)
-		);
-	}
-
-	/**
 	 * Renders the settings screen: the coastal brand header, a link that opens
 	 * the cockpit dashboard, and the container the bundle mounts the settings
 	 * app into. The markup itself lives in {@see SettingsScreenView}; this only
@@ -223,8 +190,19 @@ class SettingsScreen implements Manager {
 
 	/**
 	 * Builds the configuration the settings app is localized with: the
-	 * selectable post types, the saved order, and the bundled catalog the app
-	 * folds into the sequence as locked rows.
+	 * selectable post types, the saved order, the bundled catalog the app
+	 * folds into the sequence as locked rows, and each saved user page's
+	 * title and type resolved server-side so the app paints titles on first
+	 * render instead of a raw post id.
+	 *
+	 * The saved order is run through the sanitizer on every read, not only on
+	 * write: `register_setting`'s `sanitize_callback` (registered by
+	 * {@see \ErdemBircan\BatterySurfBench\Course\CourseOrderOption}) only
+	 * fires when the option is saved, so a stale order that predates a newly
+	 * added bundled page — or still names a user id that has since become
+	 * ineligible — would otherwise render unhealed until the next save.
+	 * Healing on read here keeps every render consistent with what a save
+	 * would produce.
 	 *
 	 * @return array<string, mixed> The screen configuration.
 	 */
@@ -238,13 +216,46 @@ class SettingsScreen implements Manager {
 			);
 		}
 
+		$order = $this->sanitizer->sanitize( get_option( $this->option_name, $this->sanitizer->default_order() ) );
+
 		return array(
 			'postTypes'      => $this->selectable_post_types,
 			'optionKey'      => $this->option_name,
-			'courseOrder'    => get_option( $this->option_name, $this->sanitizer->default_order() ),
+			'courseOrder'    => $order,
 			'bundledCatalog' => $catalog,
 			'initialBrowse'  => $this->initial_browse(),
+			'userPages'      => $this->resolve_user_pages( $order ),
 		);
+	}
+
+	/**
+	 * Resolves each saved user entry's title and post type server-side, so the
+	 * settings app can paint a title on first render instead of a raw post id
+	 * while the client-side resolver only has to catch up on whatever this
+	 * could not seed. `$order` has already been healed by the sanitizer, so
+	 * every `user` entry here is already known-eligible — no eligibility
+	 * check is repeated here, only the title/type lookup.
+	 *
+	 * @param array<int, array{kind: string, slug?: string, id?: int}> $order The sanitized surf-course order.
+	 * @return array<int, array{title: string, type: string}> Resolved title/type, keyed by post id.
+	 */
+	private function resolve_user_pages( array $order ): array {
+		$pages = array();
+
+		foreach ( $order as $entry ) {
+			if ( 'user' !== $entry['kind'] ) {
+				continue;
+			}
+
+			$id = $entry['id'];
+
+			$pages[ $id ] = array(
+				'title' => get_the_title( $id ),
+				'type'  => (string) get_post_type( $id ),
+			);
+		}
+
+		return $pages;
 	}
 
 	/**

@@ -21,6 +21,7 @@ use ErdemBircan\BatterySurfBench\Content\SessionSchema;
 use ErdemBircan\BatterySurfBench\Content\SessionType;
 use ErdemBircan\BatterySurfBench\Course\CourseCatalog;
 use ErdemBircan\BatterySurfBench\Course\CourseLibrary;
+use ErdemBircan\BatterySurfBench\Course\CourseOrderOption;
 use ErdemBircan\BatterySurfBench\Course\CourseOrderSanitizer;
 use ErdemBircan\BatterySurfBench\Course\CourseRouter;
 use ErdemBircan\BatterySurfBench\DevTools\DevTools;
@@ -108,12 +109,24 @@ class BatterySurfBench {
 		// post type against.
 		$settings_post_types = explode( ',', $this->registry->get( 'settings.post_types' ) );
 
+		// Shared between the option's own registration (its sanitize + default
+		// callbacks) and the settings screen (which heals the saved order with
+		// it on every read, since the sanitize callback only runs on write).
+		$order_sanitizer = new CourseOrderSanitizer( $catalog, $settings_post_types );
+
 		return array(
 			// Loads the plugin's PHP translations on `init` before any manager
 			// hooked there renders a translatable string.
 			new I18n(
 				$this->registry->get( 'namespace' ),
 				$this->plugin_file
+			),
+			// Owns the surf-course order option's registration: a course-domain
+			// concern the settings screen merely reads and writes, not one it
+			// should register itself.
+			new CourseOrderOption(
+				$this->registry->get( 'settings.option' ),
+				$order_sanitizer
 			),
 			new SettingsScreen(
 				$this->registry->get( 'admin_menu.slug' ),
@@ -124,7 +137,7 @@ class BatterySurfBench {
 				$this->registry->get( 'settings.style' ),
 				$this->registry->get( 'settings.option' ),
 				$settings_post_types,
-				new CourseOrderSanitizer( $catalog, $settings_post_types ),
+				$order_sanitizer,
 				$catalog,
 				$this->assets,
 				$this->registry->get( 'cockpit.param' ),

@@ -69,7 +69,6 @@ classDiagram
         +add_page() void
         +enqueue_icon_style() void
         +enqueue(string hook_suffix) void
-        +register_option() void
         +render() void
     }
 
@@ -89,6 +88,12 @@ classDiagram
         +__construct(CourseCatalog catalog, array selectable_post_types)
         +default_order() array
         +sanitize(mixed value) array
+    }
+
+    class CourseOrderOption {
+        +__construct(string option_name, CourseOrderSanitizer sanitizer)
+        +register() void
+        +register_setting_callback() void
     }
 
     class SessionSchema {
@@ -250,6 +255,7 @@ classDiagram
     BatterySurfBench --> Paths : creates & owns (composition)
     BatterySurfBench --> Assets : creates & owns (composition)
     BatterySurfBench --> SettingsScreen : creates & owns (composition)
+    BatterySurfBench --> CourseOrderOption : creates & owns (composition)
     BatterySurfBench --> CourseOrderSanitizer : creates & owns (composition)
     BatterySurfBench --> SessionSchema : creates & owns (composition)
     BatterySurfBench --> SessionType : creates & owns (composition)
@@ -269,13 +275,15 @@ classDiagram
     SettingsScreen ..|> Manager : implements
     SettingsScreen --> Assets : uses
     SettingsScreen --> CourseCatalog : uses
-    SettingsScreen --> CourseOrderSanitizer : uses
+    SettingsScreen --> CourseOrderSanitizer : heals the saved order on every read
     SettingsScreen ..> SettingsScreenView : renders via
     SettingsScreenView ..|> View : implements
     SettingsScreenView ..> AdminHeaderView : composes (shared header)
     SettingsScreenView ..> AdminPillView : composes (New Benchmark outline pill)
     AdminHeaderView ..|> View : implements
     AdminPillView ..|> View : implements
+    CourseOrderOption ..|> Manager : implements
+    CourseOrderOption --> CourseOrderSanitizer : uses
     CourseOrderSanitizer --> CourseCatalog : validates bundled slugs against
     SessionType ..|> Manager : implements
     SessionType --> SessionSchema : uses

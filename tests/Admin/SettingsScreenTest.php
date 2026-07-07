@@ -20,11 +20,14 @@ use Mockery;
 use WP_REST_Request;
 
 use function has_action;
+use function in_array;
 
 /**
  * Behavioral tests for the settings screen: where it places itself, that it
- * loads its bundle only on its own page, that it registers the surf-course
- * order option, and what it renders.
+ * loads its bundle only on its own page, that it heals a stale saved order
+ * through the sanitizer on every read (not only on save), and what it renders.
+ * The surf-course order option's own registration is covered by
+ * {@see \ErdemBircan\BatterySurfBench\Tests\Course\CourseOrderOptionTest}.
  */
 final class SettingsScreenTest extends TestCase {
 
@@ -38,7 +41,9 @@ final class SettingsScreenTest extends TestCase {
 	private const HOOK        = 'toplevel_page_battery-surf-bench';
 
 	/**
-	 * Builds a screen with representative configuration.
+	 * Builds a screen with representative configuration, backed by a real
+	 * sanitizer over the real catalog so `screen_config()`'s heal-on-read
+	 * behaviour can be exercised end to end.
 	 *
 	 * @param Assets|null $assets Asset service to inject, mocked when omitted.
 	 * @return SettingsScreen The screen under test.
@@ -71,17 +76,16 @@ final class SettingsScreenTest extends TestCase {
 	}
 
 	/**
-	 * Registering the screen hooks its page, its icon style, its bundle and the
-	 * surf-course order option into the WordPress lifecycle.
+	 * Registering the screen hooks its page, its icon style and its bundle
+	 * into the WordPress lifecycle.
 	 */
-	public function test_register_hooks_page_assets_and_option(): void {
+	public function test_register_hooks_page_and_assets(): void {
 		$screen = $this->screen();
 		$screen->register();
 
 		$this->assertNotFalse( has_action( 'admin_menu', array( $screen, 'add_page' ) ) );
 		$this->assertNotFalse( has_action( 'admin_enqueue_scripts', array( $screen, 'enqueue_icon_style' ) ) );
 		$this->assertNotFalse( has_action( 'admin_enqueue_scripts', array( $screen, 'enqueue' ) ) );
-		$this->assertNotFalse( has_action( 'init', array( $screen, 'register_option' ) ) );
 	}
 
 	/**
@@ -267,27 +271,143 @@ final class SettingsScreenTest extends TestCase {
 	}
 
 	/**
-	 * Registering the option hands WordPress a schema wide enough to express
-	 * the ordered, heterogeneous entries, plus the sanitizer's default and
-	 * sanitize callback — so a stale or malformed saved order self-heals.
+	 * `register_setting`'s sanitize callback only runs when the option is
+	 * saved, so a saved order that predates a newly added bundled page would
+	 * render unhealed until the next save if `screen_config()` read it raw.
+	 * It doesn't: the saved value is run back through the sanitizer on every
+	 * read, so a missing bundled page is re-inserted on the very next render.
 	 */
-	public function test_register_option_registers_a_healing_setting(): void {
-		Functions\expect( 'register_setting' )
+	public function test_screen_config_heals_a_stale_saved_order_missing_a_bundled_page(): void {
+		Functions\when( 'get_option' )->justReturn(
+			array(
+				array(
+					'kind' => 'bundled',
+					'slug' => 'article-1',
+				),
+				// 'gallery', 'article-2', 'video' and 'links' are missing from
+				// this stale saved order — as if they were added to the
+				// catalog after this order was last saved.
+			)
+		);
+		$this->stub_initial_browse_dispatch();
+		Functions\when( 'add_menu_page' )->justReturn( self::HOOK );
+
+		$assets = Mockery::mock( Assets::class );
+		$assets->shouldReceive( 'register_bundle' )->andReturn( 'bsb-settings' );
+		$assets->shouldReceive( 'localize' )
 			->once()
 			->with(
-				Mockery::type( 'string' ),
-				self::OPTION_NAME,
+				'bsb-settings',
+				'bsbSettings',
 				Mockery::on(
-					static function ( array $args ): bool {
-						return 'array' === $args['type']
-							&& is_array( $args['default'] )
-							&& is_array( $args['show_in_rest']['schema'] )
-							&& is_callable( $args['sanitize_callback'] );
+					static function ( $config ): bool {
+						$slugs = array_column( $config['courseOrder'], 'slug' );
+
+						return 5 === count( $config['courseOrder'] )
+							&& in_array( 'links', $slugs, true );
 					}
 				)
 			);
+		$assets->shouldReceive( 'set_script_translations' );
+		$assets->shouldReceive( 'enqueue_script' );
+		$assets->shouldReceive( 'enqueue' );
 
-		$this->screen()->register_option();
+		$screen = $this->screen( $assets );
+		$screen->add_page();
+		$screen->enqueue( self::HOOK );
+
+		$this->addToAssertionCount( 1 );
+	}
+
+	/**
+	 * Each saved user entry that still resolves to an eligible post —
+	 * published, publicly viewable, of a selectable type — is localized with
+	 * its title and type, so the app can paint a title on first render instead
+	 * of a raw post id.
+	 */
+	public function test_enqueue_localizes_resolved_titles_for_eligible_saved_user_pages(): void {
+		Functions\when( 'get_option' )->justReturn(
+			array(
+				array(
+					'kind' => 'user',
+					'id'   => 42,
+				),
+			)
+		);
+		Functions\when( 'get_post_status' )->justReturn( 'publish' );
+		Functions\when( 'get_post_type' )->justReturn( 'page' );
+		Functions\when( 'is_post_publicly_viewable' )->justReturn( true );
+		Functions\when( 'get_the_title' )->justReturn( 'About' );
+		$this->stub_initial_browse_dispatch();
+		Functions\when( 'add_menu_page' )->justReturn( self::HOOK );
+
+		$assets = Mockery::mock( Assets::class );
+		$assets->shouldReceive( 'register_bundle' )->andReturn( 'bsb-settings' );
+		$assets->shouldReceive( 'localize' )
+			->once()
+			->with(
+				'bsb-settings',
+				'bsbSettings',
+				Mockery::on(
+					static function ( $config ): bool {
+						return isset( $config['userPages'][42] )
+							&& 'About' === $config['userPages'][42]['title']
+							&& 'page' === $config['userPages'][42]['type'];
+					}
+				)
+			);
+		$assets->shouldReceive( 'set_script_translations' );
+		$assets->shouldReceive( 'enqueue_script' );
+		$assets->shouldReceive( 'enqueue' );
+
+		$screen = $this->screen( $assets );
+		$screen->add_page();
+		$screen->enqueue( self::HOOK );
+
+		$this->addToAssertionCount( 1 );
+	}
+
+	/**
+	 * A saved user entry that no longer resolves to an eligible post (trashed,
+	 * unpublished, wrong type, or not publicly viewable) is left out of the
+	 * resolved title map entirely — the client treats it as unresolved rather
+	 * than being handed a stale title.
+	 */
+	public function test_enqueue_excludes_ineligible_saved_user_pages_from_resolved_titles(): void {
+		Functions\when( 'get_option' )->justReturn(
+			array(
+				array(
+					'kind' => 'user',
+					'id'   => 7,
+				),
+			)
+		);
+		Functions\when( 'get_post_status' )->justReturn( 'draft' );
+		Functions\when( 'get_post_type' )->justReturn( 'page' );
+		Functions\when( 'is_post_publicly_viewable' )->justReturn( true );
+		$this->stub_initial_browse_dispatch();
+		Functions\when( 'add_menu_page' )->justReturn( self::HOOK );
+
+		$assets = Mockery::mock( Assets::class );
+		$assets->shouldReceive( 'register_bundle' )->andReturn( 'bsb-settings' );
+		$assets->shouldReceive( 'localize' )
+			->once()
+			->with(
+				'bsb-settings',
+				'bsbSettings',
+				Mockery::on(
+					static function ( $config ): bool {
+						return array() === $config['userPages'];
+					}
+				)
+			);
+		$assets->shouldReceive( 'set_script_translations' );
+		$assets->shouldReceive( 'enqueue_script' );
+		$assets->shouldReceive( 'enqueue' );
+
+		$screen = $this->screen( $assets );
+		$screen->add_page();
+		$screen->enqueue( self::HOOK );
 
 		$this->addToAssertionCount( 1 );
 	}
