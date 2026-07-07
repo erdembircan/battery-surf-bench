@@ -23,9 +23,9 @@ use function has_filter;
 /**
  * The manager's whole job is the gate: closed, it registers nothing at all —
  * no hook, no enqueue, no dev-tools byte on a production request. Open, it
- * renders the panel through a filter (so the surfaces that host it stay
- * ignorant of dev tooling) and enqueues its module/stylesheet on the same
- * surfaces {@see Cockpit} and {@see SessionDetail} themselves render on.
+ * renders the panel through a filter (so the cockpit dashboard that hosts it
+ * stays ignorant of dev tooling) and enqueues its module/stylesheet on the
+ * cockpit dashboard's own front-end route only.
  */
 final class DevToolsTest extends TestCase {
 
@@ -34,7 +34,6 @@ final class DevToolsTest extends TestCase {
 	private const STYLE         = 'build/style-devtools.css';
 	private const COCKPIT_PARAM = 'bsbSession';
 	private const COCKPIT_VALUE = 'cockpit';
-	private const POST_TYPE     = 'bsb_session';
 
 	/**
 	 * Builds the manager under test.
@@ -50,7 +49,6 @@ final class DevToolsTest extends TestCase {
 			$assets ?? Mockery::mock( Assets::class ),
 			self::COCKPIT_PARAM,
 			self::COCKPIT_VALUE,
-			self::POST_TYPE,
 			new DevToolsPanelView()
 		);
 	}
@@ -95,7 +93,6 @@ final class DevToolsTest extends TestCase {
 			has_filter( 'battery_surf_bench_cockpit_spared_style_handles', array( $devtools, 'spare_style_handle' ) )
 		);
 		$this->assertFalse( has_action( 'wp_enqueue_scripts', array( $devtools, 'enqueue_front' ) ) );
-		$this->assertFalse( has_action( 'admin_enqueue_scripts', array( $devtools, 'enqueue_admin' ) ) );
 	}
 
 	/**
@@ -113,7 +110,19 @@ final class DevToolsTest extends TestCase {
 			has_filter( 'battery_surf_bench_cockpit_spared_style_handles', array( $devtools, 'spare_style_handle' ) )
 		);
 		$this->assertNotFalse( has_action( 'wp_enqueue_scripts', array( $devtools, 'enqueue_front' ) ) );
-		$this->assertNotFalse( has_action( 'admin_enqueue_scripts', array( $devtools, 'enqueue_admin' ) ) );
+	}
+
+	/**
+	 * However open the gate is, this manager never hooks the admin's own
+	 * enqueue action — dev tools belong to the cockpit dashboard (front end)
+	 * only, and must never register, enqueue or render on any admin screen.
+	 */
+	public function test_register_never_hooks_admin_enqueue(): void {
+		Functions\when( 'wp_get_environment_type' )->justReturn( 'development' );
+
+		$this->devtools()->register();
+
+		$this->assertFalse( has_action( 'admin_enqueue_scripts' ) );
 	}
 
 	/**
@@ -151,37 +160,6 @@ final class DevToolsTest extends TestCase {
 		$assets->expects( 'enqueue_script_module' )->once()->with( 'bsb-devtools-view' );
 
 		$this->devtools( $assets )->enqueue_front();
-
-		$this->addToAssertionCount( 4 );
-	}
-
-	/**
-	 * The admin enqueue is skipped on every admin screen that is not a session's
-	 * post-edit screen.
-	 */
-	public function test_enqueue_admin_skips_other_admin_screens(): void {
-		$assets = Mockery::mock( Assets::class );
-		$assets->shouldNotReceive( 'enqueue' );
-
-		$this->devtools( $assets )->enqueue_admin( 'options-general.php' );
-
-		$this->addToAssertionCount( 1 );
-	}
-
-	/**
-	 * On a session's post-edit screen, the stylesheet and view module load —
-	 * the same screen check {@see SessionDetail} itself enqueues its own assets on.
-	 */
-	public function test_enqueue_admin_loads_assets_on_a_session_edit_screen(): void {
-		Functions\when( 'get_current_screen' )->justReturn( (object) array( 'post_type' => self::POST_TYPE ) );
-
-		$assets = Mockery::mock( Assets::class );
-		$assets->expects( 'enqueue' )->once()->with( self::STYLE )->andReturn( 'bsb-devtools' );
-		$assets->expects( 'register_script_module' )->once()->andReturn( 'bsb-devtools-view' );
-		$assets->expects( 'set_script_module_translations' )->once();
-		$assets->expects( 'enqueue_script_module' )->once()->with( 'bsb-devtools-view' );
-
-		$this->devtools( $assets )->enqueue_admin( 'post.php' );
 
 		$this->addToAssertionCount( 4 );
 	}

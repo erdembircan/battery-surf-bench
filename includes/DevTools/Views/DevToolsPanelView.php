@@ -49,9 +49,8 @@ defined( 'ABSPATH' ) || exit;
  * binding below reads shared `state` (never a `getContext()`-derived getter),
  * and every member it reads or writes carries the `devtools` prefix so it can
  * never collide with a production store member. It is escaped and pre-rendered
- * here, then interpolated as trusted markup by whichever surface (the cockpit
- * dashboard, the session detail screen) places it via the
- * `battery_surf_bench_devtools_panel` filter.
+ * here, then interpolated as trusted markup by the cockpit dashboard, which
+ * places it via the `battery_surf_bench_devtools_panel` filter.
  */
 class DevToolsPanelView implements View {
 

@@ -17,7 +17,6 @@ use function __;
 use function add_action;
 use function add_filter;
 use function admin_url;
-use function apply_filters;
 use function current_user_can;
 use function did_action;
 use function generate_block_asset_handle;
@@ -161,9 +160,6 @@ class SessionDetail implements Manager {
 	private function view_data( int $session_id ): array {
 		return array(
 			'context'            => wp_interactivity_data_wp_context( $this->context_for( $session_id ) ),
-			// Empty by default; the DevTools manager (dev environments only) hooks
-			// this to append its already-escaped, pre-rendered panel markup.
-			'devtools_panel'     => apply_filters( 'battery_surf_bench_devtools_panel', '' ),
 			'greeting_lead'      => __( 'Greetings from', 'battery-surf-bench' ),
 			'brand_title'        => __( 'Battery Surf Bench', 'battery-surf-bench' ),
 			'summary_brand'      => __( 'BATTERY · SURF · BENCH', 'battery-surf-bench' ),

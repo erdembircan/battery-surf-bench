@@ -55,18 +55,16 @@ class SessionDetailView implements View {
 	 *     @type string $projected_label    Raw legend label for the 100→0 projection.
 	 *     @type string $back_label         Raw label for the back-to-listing link.
 	 *     @type string $back_url           URL of the sessions listing screen.
-	 *     @type string $devtools_panel     Pre-rendered dev-tools panel markup, empty outside a dev environment.
 	 * }
 	 * @return string The detail page body markup.
 	 */
 	public function render( array $data = array() ): string {
-		$context        = isset( $data['context'] ) ? (string) $data['context'] : '';
-		$greeting_lead  = isset( $data['greeting_lead'] ) ? (string) $data['greeting_lead'] : '';
-		$brand_title    = isset( $data['brand_title'] ) ? (string) $data['brand_title'] : '';
-		$summary_brand  = isset( $data['summary_brand'] ) ? (string) $data['summary_brand'] : '';
-		$back_label     = esc_html( isset( $data['back_label'] ) ? (string) $data['back_label'] : '' );
-		$back_url       = esc_url( isset( $data['back_url'] ) ? (string) $data['back_url'] : '' );
-		$devtools_panel = isset( $data['devtools_panel'] ) ? (string) $data['devtools_panel'] : '';
+		$context       = isset( $data['context'] ) ? (string) $data['context'] : '';
+		$greeting_lead = isset( $data['greeting_lead'] ) ? (string) $data['greeting_lead'] : '';
+		$brand_title   = isset( $data['brand_title'] ) ? (string) $data['brand_title'] : '';
+		$summary_brand = isset( $data['summary_brand'] ) ? (string) $data['summary_brand'] : '';
+		$back_label    = esc_html( isset( $data['back_label'] ) ? (string) $data['back_label'] : '' );
+		$back_url      = esc_url( isset( $data['back_url'] ) ? (string) $data['back_url'] : '' );
 
 		// The shared postcard pieces: the picture front (greeting) and the franked
 		// (cancelled) stamp, built from the raw values — each child view escapes
@@ -121,7 +119,6 @@ class SessionDetailView implements View {
 <div class="bsb-session-detail" data-wp-interactive="bsb/cockpit" {$context} data-wp-init="callbacks.initDetail">
 	{$summary}
 </div>
-{$devtools_panel}
 HTML;
 	}
 }

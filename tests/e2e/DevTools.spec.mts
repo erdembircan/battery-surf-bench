@@ -591,7 +591,7 @@ test.describe( 'Dev-tools battery-override panel', () => {
 		expect( await page.content() ).not.toMatch( PHP_NOTICE );
 	} );
 
-	test( 'the panel also loads on the stored-session detail screen', async ( {
+	test( 'the panel does not load on the stored-session detail screen', async ( {
 		page,
 	} ) => {
 		const nonce = (
@@ -623,9 +623,7 @@ test.describe( 'Dev-tools battery-override panel', () => {
 
 		await page.goto( `/wp-admin/post.php?post=${ id }&action=edit` );
 
-		await expect( page.locator( '.bsb-devtools' ) ).toBeAttached();
-		await expect( page.locator( '.bsb-devtools__pill' ) ).toBeVisible();
-		await expect( page.locator( '.bsb-devtools__card' ) ).toBeHidden();
+		await expect( page.locator( '.bsb-devtools' ) ).not.toBeAttached();
 
 		expect( await page.content() ).not.toMatch( PHP_NOTICE );
 	} );

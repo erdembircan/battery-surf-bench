@@ -14,7 +14,6 @@ use ErdemBircan\BatterySurfBench\Support\Manager;
 use function __;
 use function add_action;
 use function add_filter;
-use function get_current_screen;
 use function get_query_var;
 use function in_array;
 use function sanitize_key;
@@ -24,23 +23,21 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * Registers the dev-tools panel and its Interactivity script module — active
- * only in a development environment, on both sides at once: the PHP gate below
- * decides whether anything is registered at all, and the client ships zero
- * bytes when it is closed (there is no separate JS environment check).
+ * only in a development environment: the PHP gate below decides whether
+ * anything is registered at all, and the client ships zero bytes when it is
+ * closed (there is no separate JS environment check).
  *
- * When open, the panel and its module load on every surface the cockpit's own
- * view module loads: the cockpit dashboard (front end) and the stored-session
- * detail screen (admin), discovered the same way {@see Cockpit} and
- * {@see SessionDetail} trigger their own rendering — the same query parameter
- * match on the front end, the same post-edit-screen check in the admin — so
- * this manager never assumes a URL or markup shape, only the config values
- * those managers are themselves built from.
+ * When open, the panel and its module load on the cockpit dashboard (front
+ * end) only, discovered the same way {@see Cockpit} itself triggers its own
+ * rendering — the same query parameter match — so this manager never assumes
+ * a URL or markup shape, only the config values that manager is itself built
+ * from.
  *
- * The panel's markup is handed to its host surfaces through the
+ * The panel's markup is handed to the cockpit dashboard through the
  * `battery_surf_bench_devtools_panel` filter, and its stylesheet survives the
  * cockpit dashboard's asset strip through the
  * `battery_surf_bench_cockpit_spared_style_handles` filter ({@see
- * StandaloneChrome}) — both keep this manager decoupled from the surfaces it
+ * StandaloneChrome}) — both keep this manager decoupled from the surface it
  * decorates.
  */
 class DevTools implements Manager {
@@ -70,7 +67,6 @@ class DevTools implements Manager {
 	 * @param Assets             $assets             Service used to register and enqueue the module and stylesheet.
 	 * @param string             $cockpit_param      Query parameter that selects the cockpit dashboard.
 	 * @param string             $cockpit_value      Value of the parameter that serves the cockpit.
-	 * @param string             $session_post_type  Post type sessions are stored as, to match the detail screen.
 	 * @param DevToolsPanelView  $view               View that renders the panel body.
 	 */
 	public function __construct(
@@ -80,7 +76,6 @@ class DevTools implements Manager {
 		private Assets $assets,
 		private string $cockpit_param,
 		private string $cockpit_value,
-		private string $session_post_type,
 		private DevToolsPanelView $view
 	) {
 	}
@@ -111,7 +106,6 @@ class DevTools implements Manager {
 		add_filter( 'battery_surf_bench_devtools_panel', array( $this, 'render_panel' ) );
 		add_filter( 'battery_surf_bench_cockpit_spared_style_handles', array( $this, 'spare_style_handle' ) );
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_front' ) );
-		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin' ) );
 	}
 
 	/**
@@ -122,28 +116,6 @@ class DevTools implements Manager {
 	 */
 	public function enqueue_front(): void {
 		if ( $this->cockpit_value !== $this->requested_cockpit_value() ) {
-			return;
-		}
-
-		$this->enqueue_assets();
-	}
-
-	/**
-	 * Enqueues the panel's module and stylesheet in the admin, matching the
-	 * exact post-edit-screen check {@see SessionDetail} itself enqueues its own
-	 * assets on.
-	 *
-	 * @param string $hook_suffix The current admin page's hook suffix.
-	 * @return void
-	 */
-	public function enqueue_admin( string $hook_suffix ): void {
-		if ( 'post.php' !== $hook_suffix ) {
-			return;
-		}
-
-		$screen = get_current_screen();
-
-		if ( null === $screen || $screen->post_type !== $this->session_post_type ) {
 			return;
 		}
 
