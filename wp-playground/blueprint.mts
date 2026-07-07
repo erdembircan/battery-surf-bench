@@ -58,14 +58,6 @@ const activatePluginStep: BlueprintV1Declaration[ 'steps' ] = [
 ];
 
 /**
- * Source for a dev-only must-use plugin that enqueues the LiveReload client on
- * the front end and in the admin. Kept out of the shipped plugin so live-reload
- * tooling never leaks into production. The cockpit dashboard strips every
- * classic front-end script, so the client also opts into the cockpit's
- * `battery_surf_bench_cockpit_spared_script_handles` filter to survive that strip and keep
- * reloading the cockpit in place.
- */
-/**
  * Build the dev-only LiveReload mu-plugin PHP source for a resolved client URL.
  *
  * @param clientUrl - The `livereload.js` client URL to enqueue.
@@ -113,9 +105,97 @@ const liveReloadStep = (
 ];
 
 /**
+ * Source for a dev-only must-use plugin that logs the browser in as the
+ * default admin user, deterministically and without a redirect.
+ *
+ * The pinned `@wp-playground/cli` (3.1.39) flips its HTTP server's ready flag
+ * before the blueprint's `login` step has run, so the constant that step
+ * defines for Playground's own bundled auto-login mu-plugin is not yet set
+ * when the first real browser requests land — that mu-plugin then finds no
+ * constant, does nothing, and there is no retry, so the dev server serves a
+ * logged-out page. Even once defined, that bundled mu-plugin authenticates via
+ * a 302 redirect, which fights the LiveReload proxy. This mu-plugin sidesteps
+ * both problems: it is written straight to the persisted mu-plugins directory
+ * (so on every run after the first it is on disk and active before the server
+ * even boots, entirely outside the ready-flag race) and it authenticates the
+ * current request directly with `wp_set_current_user()` plus `wp_set_auth_cookie()`
+ * instead of redirecting.
+ */
+export const autoLoginMuPlugin = `<?php
+/**
+ * Battery Surf Bench dev auto-login. Injected by the Playground dev blueprint so
+ * the persistent dev server serves an authenticated admin session to the browser
+ * without a manual wp-login.php round-trip. Never present outside the dev
+ * playground: it is written only by the dev blueprints and additionally guards on
+ * the development environment type.
+ */
+add_action( 'init', 'bsb_dev_auto_login', 0 );
+function bsb_dev_auto_login() {
+	// Defense in depth: only ever act inside the development playground.
+	if ( 'development' !== wp_get_environment_type() ) {
+		return;
+	}
+	// REST/AJAX requests authenticate via the cookie + nonce already; setting a
+	// cookie on those responses is pointless and noisy.
+	if ( wp_doing_ajax() || ( defined( 'REST_REQUEST' ) && REST_REQUEST ) ) {
+		return;
+	}
+	if ( is_user_logged_in() ) {
+		return;
+	}
+	$user = get_user_by( 'login', 'admin' );
+	if ( ! $user ) {
+		return;
+	}
+	// Authenticate the current request so the first rendered page is admin.
+	wp_set_current_user( $user->ID, $user->user_login );
+	// Persist the session for subsequent requests (and the page's REST XHRs).
+	// Only settable before headers are sent; on a normal page load init is early
+	// enough. If headers are already out, the current-user set above still makes
+	// this page render authenticated and the next request will re-enter here.
+	if ( ! headers_sent() ) {
+		wp_set_auth_cookie( $user->ID );
+	}
+	// wp_set_auth_cookie() only takes effect on the *next* request, but
+	// auth_redirect() validates the cookie on the *current* one -- so a first,
+	// direct hit to /wp-admin/ (which carries no cookie yet) would bounce to
+	// wp-login. Seed the request superglobal with freshly generated cookies so
+	// this very request is already authenticated and wp-admin renders in place,
+	// without the login redirect that also fights the LiveReload client.
+	$expiration  = time() + 2 * DAY_IN_SECONDS;
+	$secure      = is_ssl();
+	$auth_cookie = $secure ? SECURE_AUTH_COOKIE : AUTH_COOKIE;
+	$auth_scheme = $secure ? 'secure_auth' : 'auth';
+	$_COOKIE[ $auth_cookie ]     = wp_generate_auth_cookie( $user->ID, $expiration, $auth_scheme );
+	$_COOKIE[ LOGGED_IN_COOKIE ] = wp_generate_auth_cookie( $user->ID, $expiration, 'logged_in' );
+}
+`;
+
+/**
+ * Build the dev-only auto-login mu-plugin install step.
+ *
+ * @return The mkdir + writeFile steps that install the mu-plugin.
+ */
+export const autoLoginStep = (): NonNullable<
+	BlueprintV1Declaration[ 'steps' ]
+> => [
+	{
+		step: 'mkdir',
+		path: '/wordpress/wp-content/mu-plugins',
+	},
+	{
+		step: 'writeFile',
+		path: '/wordpress/wp-content/mu-plugins/bsb-dev-auto-login.php',
+		data: autoLoginMuPlugin,
+	},
+];
+
+/**
  * Build the development blueprint for a first-run or non-persistent instance.
- * Logs in as admin, enables debug constants, activates the plugin, and installs
- * the LiveReload mu-plugin pointed at the resolved port.
+ * Enables debug constants, activates the plugin, installs the dev auto-login
+ * mu-plugin, and installs the LiveReload mu-plugin pointed at the resolved
+ * port. Does not use the shared `login` step — see {@link autoLoginMuPlugin}
+ * for why the dev server needs its own auto-login path instead.
  *
  * @param liveReloadPort - The port the LiveReload server bound this run.
  * @return The blueprint declaration.
@@ -125,18 +205,20 @@ export const devBlueprint = (
 ): BlueprintDeclaration => ( {
 	...base,
 	steps: [
-		...loginStep,
 		...debugStep,
 		...activatePluginStep,
+		...autoLoginStep(),
 		...liveReloadStep( liveReloadPort ),
 	],
 } );
 
 /**
- * Build the resume blueprint for an existing persistent installation. Only logs
- * in, re-enables debug constants, and reinstalls the LiveReload mu-plugin
- * pointed at the resolved port; the plugin is already active in the persisted
- * database, so activation is skipped.
+ * Build the resume blueprint for an existing persistent installation.
+ * Re-enables debug constants and reinstalls the dev auto-login and LiveReload
+ * mu-plugins pointed at the resolved port; the plugin is already active in the
+ * persisted database, so activation is skipped. Does not use the shared
+ * `login` step — see {@link autoLoginMuPlugin} for why the dev server needs
+ * its own auto-login path instead.
  *
  * @param liveReloadPort - The port the LiveReload server bound this run.
  * @return The blueprint declaration.
@@ -145,7 +227,11 @@ export const devResumeBlueprint = (
 	liveReloadPort: number
 ): BlueprintDeclaration => ( {
 	...base,
-	steps: [ ...loginStep, ...debugStep, ...liveReloadStep( liveReloadPort ) ],
+	steps: [
+		...debugStep,
+		...autoLoginStep(),
+		...liveReloadStep( liveReloadPort ),
+	],
 } );
 
 /**
