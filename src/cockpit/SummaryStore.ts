@@ -62,6 +62,11 @@ export const summaryStore: StorePart = {
 			return getContext< CockpitContext >().endReason === 'plugged';
 		},
 
+		/** Whether the finished run was cut short by the viewport load guard. */
+		get isReasonLoadError(): boolean {
+			return getContext< CockpitContext >().endReason === 'loadError';
+		},
+
 		/** Elapsed run time as `MM:SS`, counting up — the summary's run length. */
 		get summaryElapsed(): string {
 			return formatClock( getContext< CockpitContext >().elapsed );

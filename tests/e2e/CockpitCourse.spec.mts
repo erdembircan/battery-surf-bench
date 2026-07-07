@@ -501,3 +501,98 @@ test.describe( 'Cockpit behavior barks', () => {
 		} );
 	} );
 } );
+
+test.describe( 'Viewport load guard', () => {
+	/**
+	 * Forces discharging through the dev-tools panel (so a run can start
+	 * regardless of the host's real battery/charging state, the same seam the
+	 * plugged-in-stops-a-run e2e coverage uses) and starts a run.
+	 *
+	 * @param page - The page to act on.
+	 */
+	async function startDischargingRun( page: Page ): Promise< void > {
+		await page.locator( '.bsb-devtools__pill' ).click();
+		await page.locator( '[data-devtools-charging="discharging"]' ).click();
+		await page.locator( '.bsb-devtools__card-close' ).click();
+
+		await page
+			.locator(
+				'.bsb-flipcard--idle .bsb-flipcard__flip[data-wp-on--click="actions.toggleIdleFlip"]'
+			)
+			.first()
+			.click();
+		await page
+			.locator( '.bsb-run[data-wp-on--click="actions.toggleRun"]' )
+			.click();
+	}
+
+	test( 'stops the run when the viewport loads a page that is not a course page', async ( {
+		page,
+	} ) => {
+		await page.goto( '/?bsbSession=cockpit' );
+		await startDischargingRun( page );
+
+		const viewport = page.locator( 'iframe.bsb-cockpit__viewport' );
+		await expect( viewport ).toHaveAttribute( 'src', /bsbSessionPage/ );
+		await expect(
+			page.locator( '.bsb-cockpit__viewport-wrap' )
+		).toBeVisible();
+		await expect( page.locator( '.bsb-summary' ) ).toBeHidden();
+
+		// Drive the viewport to a slug the catalog does not carry — same-origin,
+		// so it exercises the guard's real `load` handling rather than a
+		// same-origin/cross-origin distinction the guard does not need to make.
+		// A missing/renamed/deleted catalog slug falls through to a 200 homepage
+		// fallback (not a 404) that the course router never served, so it never
+		// carries the router-stamped `bsb-course-page` body class — exactly the
+		// failure this guard exists to catch.
+		await viewport.evaluate( ( iframe: HTMLIFrameElement ) => {
+			iframe.src = '/?bsbSessionPage=does-not-exist';
+		} );
+
+		// The guard's `load` handler stops the run: the summary is raised with
+		// the load-error verdict and the viewport is torn down, rather than the
+		// simulation continuing to run blind against a dead page.
+		await expect( page.locator( '.bsb-summary' ) ).toBeVisible();
+		await expect( page.locator( '.bsb-summary__head' ) ).toHaveText(
+			"The page didn't load."
+		);
+		await expect(
+			page.locator( '.bsb-cockpit__viewport-wrap' )
+		).toBeHidden();
+
+		await expectNoPhpNotices( page );
+	} );
+
+	test( 'keeps running when the viewport loads a real course page (no false-positive stop)', async ( {
+		page,
+	} ) => {
+		// Regression coverage for the bug the maintainer hit: the guard must not
+		// mistake a genuinely served course page for a failed load, whether at
+		// the moment the run starts or a few seconds into the surf session.
+		await page.goto( '/?bsbSession=cockpit' );
+		await startDischargingRun( page );
+
+		const viewport = page.locator( 'iframe.bsb-cockpit__viewport' );
+		await expect( viewport ).toHaveAttribute( 'src', /bsbSessionPage/ );
+
+		// The router stamps every page it serves with the body-class marker the
+		// guard looks for; confirming it here locks the router/guard contract at
+		// the e2e layer, not just the unit-level fakes.
+		await expect(
+			viewport.contentFrame().locator( 'body.bsb-course-page' )
+		).toBeAttached();
+
+		// Give the real page (and any of its own asynchronous settling) a few
+		// seconds — long enough that a false-positive guard would have already
+		// fired — and confirm the run is still live, not stopped.
+		await page.waitForTimeout( 5000 );
+
+		await expect(
+			page.locator( '.bsb-cockpit__viewport-wrap' )
+		).toBeVisible();
+		await expect( page.locator( '.bsb-summary' ) ).toBeHidden();
+
+		await expectNoPhpNotices( page );
+	} );
+} );

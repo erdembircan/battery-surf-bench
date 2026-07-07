@@ -81,7 +81,7 @@ final class SessionSchemaTest extends TestCase {
 		$status = $this->schema()->metas()[ self::PREFIX . 'status' ];
 
 		$this->assertSame(
-			array( 'running', 'finished', 'stopped', 'aborted' ),
+			array( 'running', 'finished', 'stopped', 'aborted', 'failed' ),
 			$status['show_in_rest']['schema']['enum']
 		);
 	}

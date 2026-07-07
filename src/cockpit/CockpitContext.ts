@@ -14,13 +14,18 @@ export interface CoursePage {
 	url: string;
 }
 
-/** Why a run ended — drives the summary's verdict; empty before any run ends. */
+/**
+ * Why a run ended — drives the summary's verdict; empty before any run ends.
+ * `loadError` covers the viewport load guard: a course page that never loaded
+ * (a missing/renamed/deleted catalog slug, or any other load failure).
+ */
 export type RunEndReason =
 	| ''
 	| 'duration'
 	| 'targetDrop'
 	| 'stopped'
-	| 'plugged';
+	| 'plugged'
+	| 'loadError';
 
 /** Which kind of toast is showing — an upload error or the view-only notice. */
 export type ToastKind = 'error' | 'notice';

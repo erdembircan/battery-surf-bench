@@ -101,8 +101,10 @@ interface RestConfig {
 /**
  * Maps how a run ended onto the session's lifecycle status: a natural finish
  * (the duration elapsed or the target drop was reached) is `finished`, a charger
- * interrupt is `aborted`, and a hand stop — or any unrecognised reason — is
- * `stopped`.
+ * interrupt is `aborted`, the viewport load guard cutting a run short is
+ * `failed` (the run is still recorded, just flagged as never having surfed a
+ * real course page for its whole length), and a hand stop — or any
+ * unrecognised reason — is `stopped`.
  *
  * @param reason Why the run ended.
  * @return The session lifecycle status.
@@ -114,6 +116,8 @@ export const statusFor = ( reason: RunEndReason ): string => {
 			return 'finished';
 		case 'plugged':
 			return 'aborted';
+		case 'loadError':
+			return 'failed';
 		default:
 			return 'stopped';
 	}

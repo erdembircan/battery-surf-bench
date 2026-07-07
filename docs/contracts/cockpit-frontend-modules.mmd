@@ -26,8 +26,8 @@ classDiagram
     class RunStore {
         <<module>>
         state: currentSrc (carries traits+speed onto the iframe URL), run/idle/compact, clock & rate readouts
-        actions: toggleRun (refuses unsupported/charging), toggleCompact
-        callbacks: syncRunActivity, initWakeLock, initPageAdvance (advances activeIndex on the surf engine's page-done message)
+        actions: toggleRun (refuses unsupported/charging), toggleCompact, guardViewport (stops the run on a failed iframe load/error)
+        callbacks: syncRunActivity, initWakeLock, initPageAdvance (advances activeIndex on the surf engine's page-done message), syncViewportWatchdog (arms/clears the viewport load-hang watchdog)
     }
 
     class ConfigStore {
@@ -199,6 +199,23 @@ classDiagram
         +nextPageIndex(number, number) number
     }
 
+    %% Pure decision behind the viewport load guard: the course router
+    %% (see php-class-interactions.mmd's CourseRouter) stamps a `bsb-course-page`
+    %% body class on every page it serves, so that class's absence on a `load`
+    %% (or an outright `error`) means the framed page is not a real, loaded
+    %% course page — a 404, a renamed/deleted catalog slug, or any other load
+    %% failure that would otherwise leave the run ticking blind with no surf
+    %% engine posting the page-done handshake. isBlankFrame filters out the
+    %% viewport's own empty-src `about:blank` reset load (fired when a run
+    %% starts/stops), which must never be judged as a failed navigation.
+    class PageGuard {
+        <<module>>
+        +isBlankFrame(iframe) boolean
+        +isCoursePageLoaded(iframe) boolean
+        +viewportFailed(event, iframe) boolean
+        +COURSE_PAGE_SELECTOR
+    }
+
     %% Dark mode is disabled: the Theme module is retained in the codebase but
     %% intentionally unwired — no slice imports it, so the cockpit renders the
     %% light palette only and nothing reads/writes the stored pref.
@@ -337,6 +354,7 @@ classDiagram
     RunStore --> TargetControl : clamps target on start
     RunStore --> SurferUrl : carries traits+speed onto currentSrc
     RunStore --> PageAdvance : recognizes page-done, advances activeIndex
+    RunStore --> PageGuard : decides load/error viewport failure
     RunStore --> Format : formats readouts
     RunStore --> ScreenWakeLock : creates & owns (composition)
     ConfigStore --> RunConfig : normalizes duration

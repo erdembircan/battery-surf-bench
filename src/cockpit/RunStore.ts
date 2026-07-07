@@ -6,7 +6,7 @@
  * single `running` signal so they start and stop with the run whatever its cause.
  */
 
-import { getContext } from '@wordpress/interactivity';
+import { getContext, getElement } from '@wordpress/interactivity';
 import { type CockpitContext } from './CockpitContext';
 import { type StorePart } from './StoreParts';
 import { instanceFor, now, wallNow } from './RunInstance';
@@ -17,6 +17,16 @@ import { ScreenWakeLock, type WakeLockSentinelLike } from './WakeLock';
 import { formatClock, formatTimeToEmpty, formatRate } from './Format';
 import { withSurferParams } from './SurferUrl';
 import { isPageDoneMessage, nextPageIndex } from './PageAdvance';
+import { isBlankFrame, viewportFailed } from './PageGuard';
+
+/**
+ * How long the viewport is given to fire a `load` after a run points it at a
+ * page before the run is treated as failed. Generous — same-origin bundled
+ * course pages load fast, so only a genuinely hung navigation (a server that
+ * accepts the connection but never responds, firing neither `load` nor `error`)
+ * runs out the clock. Tuned high to avoid false-positive stops on a slow host.
+ */
+const VIEWPORT_LOAD_TIMEOUT_MS = 15000;
 
 /** The run slice of the `bsb/cockpit` store. */
 export const runStore: StorePart = {
@@ -188,6 +198,59 @@ export const runStore: StorePart = {
 			const context = getContext< CockpitContext >();
 			context.compact = ! context.compact;
 		},
+
+		/**
+		 * Guards the viewport against surfing a page that never loaded as a real
+		 * course page — a missing/renamed/deleted catalog slug, or any other load
+		 * failure, falls through to a page with no surf engine, which would never
+		 * post the page-done handshake and leave the run ticking blind forever.
+		 * Bound to both the iframe's `load` and `error` events, so it covers the
+		 * first page and every page it advances to afterwards alike.
+		 *
+		 * A `load`/`error` arriving means the pending navigation resolved —
+		 * whatever the verdict — so this also cancels the load watchdog
+		 * ({@see syncViewportWatchdog}), which exists only to catch a navigation
+		 * that resolves *neither* event (a hung server).
+		 *
+		 * Only acts while a run is live: stopping a run clears `currentSrc` to
+		 * `''`, which loads `about:blank` and fires its own `load` event — without
+		 * the `running` guard that event would look like a failed load and the
+		 * guard would immediately (and wrongly) re-stop an already-stopped run.
+		 * The idle screen's hidden, src-less iframe firing a stray load is guarded
+		 * the same way.
+		 *
+		 * @param event The iframe's `load` or `error` event.
+		 */
+		guardViewport( event: Event ): void {
+			const context = getContext< CockpitContext >();
+
+			if ( ! context.running ) {
+				return;
+			}
+
+			const iframe = getElement().ref as HTMLIFrameElement | null;
+
+			// The empty-src reset frames about:blank, whose load can fire after a
+			// run starts; that is not a course-page navigation, so ignore it and
+			// leave the watchdog armed for the real navigation still in flight. An
+			// error is always a real failure, so it is never ignored.
+			if ( event.type !== 'error' && isBlankFrame( iframe ) ) {
+				return;
+			}
+
+			const instance = instanceFor();
+
+			// A real load or an error resolved the pending navigation — cancel its
+			// watchdog and judge whether the framed page loaded as a course page.
+			if ( instance.loadWatchdog !== null ) {
+				clearTimeout( instance.loadWatchdog );
+				instance.loadWatchdog = null;
+			}
+
+			if ( viewportFailed( event, iframe ) ) {
+				stopRun( context, instance, 'loadError' );
+			}
+		},
 	},
 	callbacks: {
 		/**
@@ -317,6 +380,50 @@ export const runStore: StorePart = {
 			window.addEventListener( 'message', onMessage );
 
 			return () => window.removeEventListener( 'message', onMessage );
+		},
+
+		/**
+		 * The viewport's load watchdog: catches a navigation that hangs and fires
+		 * *neither* `load` nor `error` (a server that accepts the connection but
+		 * never responds), which the event-bound {@see guardViewport} cannot see.
+		 *
+		 * Driven by `data-wp-watch`, so it re-runs whenever one of the values it
+		 * reads changes — `running`, `pages` and `activeIndex` — which arms a
+		 * fresh watchdog at run start and on every page advance, and clears it (by
+		 * re-running the "supersede" clear below with nothing to re-arm) once
+		 * `running` flips false at run end. A `load`/`error` arriving in time
+		 * clears it from {@see guardViewport} instead, since that is the event
+		 * that resolves the navigation this watchdog is timing.
+		 */
+		syncViewportWatchdog(): void {
+			const context = getContext< CockpitContext >();
+			const instance = instanceFor();
+
+			// A fresh navigation (run start or page advance) or a run ending
+			// supersedes any pending watchdog; clear it before re-arming.
+			if ( instance.loadWatchdog !== null ) {
+				clearTimeout( instance.loadWatchdog );
+				instance.loadWatchdog = null;
+			}
+
+			// Reading running, pages and activeIndex registers them as this
+			// watch's dependencies, so it re-runs — and re-arms — at run
+			// start/stop and on every page advance. Nothing to guard while idle
+			// or with no page to load.
+			const { running, pages, activeIndex } = context;
+			if ( ! running || ! pages[ activeIndex ] ) {
+				return;
+			}
+
+			instance.loadWatchdog = setTimeout( () => {
+				instance.loadWatchdog = null;
+				// The navigation never fired load/error within the window: still
+				// running, so the page hung. Stop the run the same way a failed
+				// load does.
+				if ( context.running ) {
+					stopRun( context, instance, 'loadError' );
+				}
+			}, VIEWPORT_LOAD_TIMEOUT_MS ) as unknown as number;
 		},
 	},
 };

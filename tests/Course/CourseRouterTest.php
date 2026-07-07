@@ -139,6 +139,30 @@ final class CourseRouterTest extends TestCase {
 	}
 
 	/**
+	 * Serving a page also hooks the body-class marker onto `body_class`, so the
+	 * viewport load guard can recognize a served course page from inside the
+	 * iframe: a 404 or any other non-course page never hooks it.
+	 */
+	public function test_serving_a_page_hooks_the_body_class_marker(): void {
+		$this->stage_slug( 'article-1' );
+		$router = $this->router();
+
+		$router->maybe_render( array(), new WP_Query() );
+
+		$this->assertNotFalse( has_filter( 'body_class', array( $router, 'mark_course_body' ) ) );
+	}
+
+	/**
+	 * The body-class marker appends the course-page marker to whatever classes
+	 * WordPress already assembled, rather than replacing them.
+	 */
+	public function test_mark_course_body_appends_the_course_page_marker(): void {
+		$classes = $this->router()->mark_course_body( array( 'existing-class' ) );
+
+		$this->assertSame( array( 'existing-class', 'bsb-course-page' ), $classes );
+	}
+
+	/**
 	 * The style hook enqueues the course stylesheet through the asset service.
 	 */
 	public function test_enqueue_style_enqueues_the_course_stylesheet(): void {
