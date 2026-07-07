@@ -544,7 +544,13 @@
 		background: var(--bsb-row-stripe);
 	}
 
-	&:hover {
+	// The DragOverlay clone (`.bsb-pages-row--dragging`) is glued to the
+	// cursor, so the cursor is ALWAYS over it — this selector would otherwise
+	// always match it too, and its (0,2,0) specificity beats the clone's own
+	// `background: #fff` (0,1,0), tinting the "solid" clone translucent teal.
+	// The placeholder is excluded for the same reason: it owns its own
+	// background/opacity and shouldn't get a hover tint stacked on top.
+	&:hover:not(.bsb-pages-row--dragging):not(.is-drag-placeholder) {
 		background: var(--bsb-row-hover);
 	}
 
