@@ -479,11 +479,12 @@ test.describe( 'Dev-tools battery-override panel', () => {
 		const toggle = page.locator( '.bsb-devtools__sim-toggle' );
 		await toggle.click();
 
-		// Running: the countdown is visible, reading MM:SS, seeded at the full
-		// 5-minute duration immediately.
+		// Running: the countdown is visible, reading MM:SS. Its exact seed value
+		// is proven deterministically in the unit tests; asserting it here would
+		// race the 1-second ticker (the value may already have advanced past the
+		// seed by the time the assertion first polls).
 		await expect( countdown ).toBeVisible();
 		await expect( countdown ).toHaveText( /^\d{2}:\d{2}$/ );
-		await expect( countdown ).toHaveText( '05:00' );
 
 		const startText = await countdown.textContent();
 		await page.waitForTimeout( 1500 );
