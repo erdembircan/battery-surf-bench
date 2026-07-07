@@ -18,6 +18,7 @@ import { formatClock, formatTimeToEmpty, formatRate } from './Format';
 import { withSurferParams } from './SurferUrl';
 import { isPageDoneMessage, nextPageIndex } from './PageAdvance';
 import { isBlankFrame, viewportFailed } from './PageGuard';
+import { runBlocksExit, confirmExit } from './ExitGuard';
 
 /**
  * How long the viewport is given to fire a `load` after a run points it at a
@@ -380,6 +381,34 @@ export const runStore: StorePart = {
 			window.addEventListener( 'message', onMessage );
 
 			return () => window.removeEventListener( 'message', onMessage );
+		},
+
+		/**
+		 * Arms the browser's native leave-confirmation dialog while a run is
+		 * live, so an accidental reload or navigation away does not silently
+		 * lose an in-progress benchmark. Reload and navigation both fire
+		 * `beforeunload`, so this one listener covers both. The listener stays
+		 * attached for the block's lifetime and no-ops while idle (checked per
+		 * event, not toggled with `running`), same as {@see initPageAdvance};
+		 * once a run has ended (`running` false again) leaving is never
+		 * blocked, since there is nothing left to lose.
+		 *
+		 * @return A cleanup that detaches the listener.
+		 */
+		initExitGuard(): () => void {
+			const context = getContext< CockpitContext >();
+
+			const onBeforeUnload = ( event: BeforeUnloadEvent ): void => {
+				if ( ! runBlocksExit( context ) ) {
+					return;
+				}
+				confirmExit( event );
+			};
+
+			window.addEventListener( 'beforeunload', onBeforeUnload );
+
+			return () =>
+				window.removeEventListener( 'beforeunload', onBeforeUnload );
 		},
 
 		/**

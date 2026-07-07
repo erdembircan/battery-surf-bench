@@ -596,3 +596,74 @@ test.describe( 'Viewport load guard', () => {
 		await expectNoPhpNotices( page );
 	} );
 } );
+
+test.describe( 'Navigate/reload guard', () => {
+	/**
+	 * Forces discharging through the dev-tools panel (so a run can start
+	 * regardless of the host's real battery/charging state, the same seam the
+	 * plugged-in-stops-a-run e2e coverage uses) and starts a run.
+	 *
+	 * @param page - The page to act on.
+	 */
+	async function startDischargingRun( page: Page ): Promise< void > {
+		await page.locator( '.bsb-devtools__pill' ).click();
+		await page.locator( '[data-devtools-charging="discharging"]' ).click();
+		await page.locator( '.bsb-devtools__card-close' ).click();
+
+		await page
+			.locator(
+				'.bsb-flipcard--idle .bsb-flipcard__flip[data-wp-on--click="actions.toggleIdleFlip"]'
+			)
+			.first()
+			.click();
+		await page
+			.locator( '.bsb-run[data-wp-on--click="actions.toggleRun"]' )
+			.click();
+	}
+
+	test( 'wires the exit-guard init callback on the cockpit root', async ( {
+		page,
+	} ) => {
+		await page.goto( '/?bsbSession=cockpit' );
+
+		await expect(
+			page.locator(
+				'.wp-block-bsb-cockpit[data-wp-interactive="bsb/cockpit"]'
+			)
+		).toHaveAttribute(
+			'data-wp-init---exit-guard',
+			'callbacks.initExitGuard'
+		);
+
+		await expectNoPhpNotices( page );
+	} );
+
+	test( 'blocks a reload/navigation only while a run is live', async ( {
+		page,
+	} ) => {
+		await page.goto( '/?bsbSession=cockpit' );
+
+		// Idle: a synthetic beforeunload is not blocked.
+		const idleBlocked = await page.evaluate( () => {
+			const event = new Event( 'beforeunload', { cancelable: true } );
+			window.dispatchEvent( event );
+			return event.defaultPrevented;
+		} );
+		expect( idleBlocked ).toBe( false );
+
+		await startDischargingRun( page );
+
+		const viewport = page.locator( 'iframe.bsb-cockpit__viewport' );
+		await expect( viewport ).toHaveAttribute( 'src', /bsbSessionPage/ );
+
+		// Live run: the same synthetic beforeunload is now blocked.
+		const runningBlocked = await page.evaluate( () => {
+			const event = new Event( 'beforeunload', { cancelable: true } );
+			window.dispatchEvent( event );
+			return event.defaultPrevented;
+		} );
+		expect( runningBlocked ).toBe( true );
+
+		await expectNoPhpNotices( page );
+	} );
+} );
