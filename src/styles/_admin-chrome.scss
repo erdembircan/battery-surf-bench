@@ -16,6 +16,7 @@
 //   }
 
 @use '../styles/theme';
+@use '../styles/toast';
 
 // ── Full-bleed: drop the wp-admin chrome around the deck ─────────────────────
 // Every screen that `@use`s this partial loads its compiled stylesheet only on
@@ -48,6 +49,13 @@
 	// row list looks identical and a re-tint here updates all of them.
 	--bsb-row-stripe: #{rgba(theme.$coastal-aqua, 0.07)};
 	--bsb-row-hover: #{rgba(theme.$coastal-teal, 0.08)};
+	// The shared toast/notice surface's base tokens (`_toast.scss`'s
+	// `%bsb-toast`) — the same light values `theme.tokens` sets for the
+	// cockpit, set here once instead since admin has no dark mode to switch
+	// between.
+	--toast-bg: #{rgba(#fff, 0.9)};
+	--toast-ink: #{theme.$coastal-navy};
+	--toast-shadow: #{rgba(theme.$coastal-navy, 0.2)};
 
 	display: flex;
 	flex-direction: column;
@@ -200,4 +208,79 @@
 		background: #{rgba(theme.$coastal-teal, 0.08)};
 		color: theme.$coastal-teal-deep;
 	}
+}
+
+// ── The shared notice (`Notice.tsx` / `ErrorBoundary`'s fallback) ───────────
+// Free-text, dismissible messages for both admin screens, built on the same
+// `%bsb-toast` placeholder the cockpit's front-end toast extends
+// (`src/cockpit/style.scss`) — so the two render pixel-identical at rest;
+// only the class names and text source (kind lookup vs free text) differ. No
+// enter/leave phase animation here (see `_toast.scss`'s module note): the
+// cockpit's slide-up choreography belongs to its fixed bottom pill, not an
+// inline admin message.
+.bsb-toast {
+	@extend %bsb-toast;
+
+	font-family: theme.$font-ui;
+
+	&.is-error {
+		@include toast.toast-severity(
+			theme.$coastal-coral,
+			theme.$coastal-coral-deep,
+			rgba(theme.$coastal-coral-deep, 0.45),
+			rgba(theme.$coastal-coral, 0.1),
+			theme.$icon-warning
+		);
+	}
+
+	// The exact same teal/padlock treatment as the cockpit's `is-notice` —
+	// renamed generically here since the admin `<Notice>` is not tied to the
+	// cockpit's "view-only" meaning specifically.
+	&.is-info {
+		@include toast.toast-severity(
+			theme.$coastal-teal,
+			theme.$coastal-teal-deep,
+			rgba(theme.$coastal-teal-deep, 0.4),
+			rgba(theme.$coastal-teal, 0.12),
+			theme.$icon-lock
+		);
+	}
+
+	&.is-success {
+		@include toast.toast-severity(
+			theme.$coastal-green,
+			theme.$coastal-green-deep,
+			rgba(theme.$coastal-green-deep, 0.4),
+			rgba(theme.$coastal-green, 0.12),
+			theme.$icon-check
+		);
+	}
+}
+
+.bsb-toast__icon {
+	@extend %bsb-toast-icon;
+}
+
+.bsb-toast__msg {
+	@extend %bsb-toast-msg;
+}
+
+.bsb-toast__close {
+	@extend %bsb-toast-close;
+
+	&:hover {
+		background: #{rgba(theme.$coastal-navy, 0.08)};
+	}
+}
+
+// The error boundary's fallback body — the notice plus a reload affordance,
+// stacked and centred where the crashed app root used to render.
+.bsb-error-boundary {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 1rem;
+	max-width: 32rem;
+	margin: 3rem auto;
+	padding: 0 1.5rem;
 }

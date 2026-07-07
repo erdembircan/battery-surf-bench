@@ -39,7 +39,7 @@ class SessionsScreenView implements View {
 		$cockpit_pill = ( new AdminPillView() )->render(
 			array(
 				'label'   => $cockpit_label,
-				'variant' => 'solid',
+				'variant' => 'outline',
 				'href'    => $cockpit_url,
 				'target'  => '_blank',
 				'icon'    => 'external',

@@ -108,6 +108,11 @@ $coastal-coral-deep: #ef5a3a;
 $coastal-sun: #ffce5c;
 $coastal-surface: #f1f7fa;
 $coastal-line: #e1edf2;
+// A success green, distinct from the teal accent — used only by the admin
+// `<Notice>`'s success severity (e.g. a completed save). No dark-mode
+// counterpart: the admin screens this severity appears on are light-only.
+$coastal-green: #2e9e6b;
+$coastal-green-deep: #1f7d54;
 
 // Dusk Lineup (dark).
 $dusk-deep: #062b3d;

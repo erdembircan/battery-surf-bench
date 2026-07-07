@@ -1,0 +1,127 @@
+// ── Battery Surf Bench toast/notice shape ───────────────────────────────────
+// The one visual shape behind every "surface this to the user" pill in the
+// plugin: the cockpit's front-end toast (Interactivity, server-seeded text by
+// kind, `src/cockpit/style.scss`) and the admin `<Notice>` (React, free-text,
+// `src/shared/Notice.tsx`). Both `@extend` the placeholders below so the two
+// are pixel-identical at rest — same padding, radius, border, shadow, icon
+// circle and per-severity colour — rather than each stylesheet hand-copying
+// the rules.
+//
+// Deliberately holds no palette or icon knowledge of its own (no
+// `@use '../styles/theme'`): `theme.scss` already forwards the icon partial,
+// and a `toast → theme → toast` loop is not expressible in Sass's module
+// graph, so this partial cannot depend on theme and still be `@use`d from
+// files that use theme. Each caller supplies its own severity's colours/icon
+// via `toast-severity()`, drawn from its own `theme.$*` tokens — one call
+// site's `is-error` therefore uses the exact same `$coastal-coral`/
+// `$icon-warning` the cockpit already did, not a re-derived approximation.
+//
+// What is deliberately NOT shared: the cockpit's enter/hold/leave phase
+// animation (`is-entering`/`is-holding`/`is-leaving`, the `bsb-toast-in`/`-out`
+// keyframes). That choreography — a pill sliding up from below the viewport —
+// is specific to the cockpit's fixed, bottom-anchored `.bsb-cockpit__toast-layer`
+// and has no sensible equivalent for an admin `<Notice>` rendered inline in
+// the page flow; it stays local to `src/cockpit/style.scss`, unchanged. What
+// this partial shares is the toast's resting "shape" — exactly the part the
+// admin `<Notice>` and the cockpit toast must render identically.
+//
+// Consumers must set `--toast-bg` / `--toast-ink` / `--toast-shadow` on an
+// ancestor before using `%bsb-toast`: the cockpit gets these from
+// `theme.tokens` (with its dark-mode override); the admin chrome partial
+// (`_admin-chrome.scss`) sets the same light-only values once for both admin
+// screens, since admin has no dark mode.
+
+// The resting pill shape: layout, surface, border, shadow and text sizing.
+// No `font-family` or `white-space` here — the cockpit's single-line pill sets
+// `white-space: nowrap` itself, while the admin `<Notice>` wraps free text
+// that can run longer than the cockpit's short, server-seeded strings; both
+// set their own `font-family` from their own `theme.$font-ui`.
+%bsb-toast {
+	pointer-events: auto;
+	display: inline-flex;
+	align-items: center;
+	gap: 0.55rem;
+	max-width: min(28rem, 100%);
+	padding: 0.5rem 0.7rem 0.5rem 0.6rem;
+	border-radius: 999px;
+	background: var(--toast-bg);
+	border: 1px solid var(--toast-accent-line);
+	box-shadow:
+		0 10px 26px var(--toast-shadow),
+		0 0 0 4px var(--toast-accent-halo);
+	backdrop-filter: blur(8px);
+	color: var(--toast-ink);
+	font-size: 0.82rem;
+	font-weight: 600;
+	letter-spacing: 0.01em;
+}
+
+// The small accent circle carrying the white masked severity glyph.
+%bsb-toast-icon {
+	position: relative;
+	flex: none;
+	width: 1.25rem;
+	height: 1.25rem;
+	border-radius: 50%;
+	background: radial-gradient(
+		circle at 30% 30%,
+		var(--toast-accent),
+		var(--toast-accent-deep)
+	);
+	box-shadow: 0 2px 6px var(--toast-accent-halo);
+
+	&::before {
+		content: '';
+		position: absolute;
+		inset: 0;
+		margin: auto;
+		width: 0.72rem;
+		height: 0.72rem;
+		background: #fff;
+		mask: var(--toast-icon) center / contain no-repeat;
+		-webkit-mask: var(--toast-icon) center / contain no-repeat;
+	}
+}
+
+%bsb-toast-msg {
+	padding-block: 1px;
+}
+
+// The dismiss button's shape only — a consumer adds its own `&:hover`
+// background tint (theme colours live with the caller, not here).
+%bsb-toast-close {
+	flex: none;
+	display: grid;
+	place-items: center;
+	width: 1.15rem;
+	height: 1.15rem;
+	margin-inline-start: 0.15rem;
+	padding: 0;
+	border: 0;
+	border-radius: 50%;
+	background: transparent;
+	color: inherit;
+	cursor: pointer;
+	opacity: 0.6;
+
+	&::before {
+		content: '\00d7';
+		font-size: 0.95rem;
+		line-height: 1;
+	}
+
+	&:hover {
+		opacity: 1;
+	}
+}
+
+// Sets the four accent custom properties plus the glyph a severity paints
+// with. Callers pass their own theme tokens, so this partial stays palette-
+// and icon-agnostic — see the module note above for why.
+@mixin toast-severity($accent, $accent-deep, $accent-line, $accent-halo, $icon) {
+	--toast-accent: #{$accent};
+	--toast-accent-deep: #{$accent-deep};
+	--toast-accent-line: #{$accent-line};
+	--toast-accent-halo: #{$accent-halo};
+	--toast-icon: #{$icon};
+}

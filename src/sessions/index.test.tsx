@@ -6,7 +6,8 @@
  * and stay inert otherwise (so the bundle loading on an unrelated admin page
  * does nothing). These tests drive that guard through the DOM and the global
  * the PHP screen localizes, asserting whether a root is created and what it is
- * told to render — never how the module stores anything internally.
+ * told to render — never how the module stores anything internally. When it
+ * does mount, the app is wrapped in the shared `ErrorBoundary`.
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -15,10 +16,18 @@ const mounting = vi.hoisted( () => ( {
 	createRoot: vi.fn(),
 	render: vi.fn(),
 	SessionsApp: vi.fn( () => null ),
+	// A stub standing in for the real `ErrorBoundary` — its own crash-fallback
+	// behavior is covered by `src/shared/ErrorBoundary.test.tsx`; this entry
+	// point's own contract is only that it wraps the mounted app in it.
+	ErrorBoundary: vi.fn( ( { children } ) => children ),
 } ) );
 
 vi.mock( '@wordpress/element', () => ( {
 	createRoot: mounting.createRoot,
+} ) );
+
+vi.mock( '../shared/ErrorBoundary', () => ( {
+	ErrorBoundary: mounting.ErrorBoundary,
 } ) );
 
 vi.mock( './App', () => ( {
@@ -52,8 +61,10 @@ describe( 'sessions entry point', () => {
 
 		expect( mounting.createRoot ).toHaveBeenCalledWith( container );
 		const element = mounting.render.mock.calls[ 0 ][ 0 ];
-		expect( element.type ).toBe( mounting.SessionsApp );
-		expect( element.props.config ).toBe( config );
+		expect( element.type ).toBe( mounting.ErrorBoundary );
+		const app = element.props.children;
+		expect( app.type ).toBe( mounting.SessionsApp );
+		expect( app.props.config ).toBe( config );
 	} );
 
 	it( 'does nothing when the container is absent', async () => {

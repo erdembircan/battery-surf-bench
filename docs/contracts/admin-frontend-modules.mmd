@@ -1,0 +1,45 @@
+%% Admin front-end shared modules — contract chart.
+%% The React-only modules shared between the plugin's two wp-admin screens
+%% (`src/settings/`, `src/sessions/`) rather than owned by either one. Each
+%% screen's own internal modules (BrowsePane, SelectedPane, DataViews fields,
+%% etc.) are that screen's private implementation and are not charted here —
+%% this chart exists because `ErrorBoundary`/`Notice` are the first pieces of
+%% admin UI genuinely shared across both screens' React trees. Function
+%% components are marked <<module>>; the rest are classes. Only the public
+%% (exported) surface is shown.
+classDiagram
+    direction LR
+
+    class Notice {
+        <<module>>
+        Renders one free-text message in the shared toast shape
+        (`%bsb-toast`, `src/styles/_toast.scss` — also extended by the
+        cockpit's front-end toast, `src/cockpit/style.scss`). Each kind
+        (error/info/success) carries its own colour + icon.
+        +Notice(kind, message, onDismiss?, dismissLabel?) ReactElement
+    }
+
+    class ErrorBoundary {
+        Catches a render-time crash in an admin screen's React tree.
+        Renders its children until a descendant throws, then a fallback:
+        an error Notice plus a Reload control.
+        +getDerivedStateFromError(Error) State
+        +componentDidCatch(Error, ErrorInfo) void
+        +render() ReactNode
+    }
+
+    ErrorBoundary ..> Notice : renders (error kind) in its fallback
+
+    %% --- Composition: both admin entry points wrap their mounted app root.
+    class SettingsIndex {
+        <<module>>
+        createRoot(#bsb-settings-app).render(ErrorBoundary > SettingsApp)
+    }
+
+    class SessionsIndex {
+        <<module>>
+        createRoot(#bsb-sessions-app).render(ErrorBoundary > SessionsApp)
+    }
+
+    SettingsIndex ..> ErrorBoundary : wraps SettingsApp in
+    SessionsIndex ..> ErrorBoundary : wraps SessionsApp in
