@@ -40,7 +40,9 @@ test.describe( 'Benchmark sessions screen', () => {
 		await expect(
 			page.getByRole( 'heading', { name: 'Sessions' } )
 		).toBeVisible();
-		await expect( page.locator( '.bsb-sessions__subtitle' ) ).toHaveText(
+		// The subtitle lives in the shared admin-chrome header (AdminHeaderView),
+		// not a sessions-specific class.
+		await expect( page.locator( '.bsb-admin-head__subtitle' ) ).toHaveText(
 			'Benchmark log'
 		);
 

@@ -13,11 +13,18 @@
  * header stays put, the column headers and the pagination/bulk footer stay
  * sticky (DataViews already pins them), and only the rows scroll.
  *
+ * The full-bleed deck shell, wp-admin chrome-strip and brand header/pill
+ * markup are owned by the shared `admin-chrome` partial (`AdminHeaderView`/
+ * `AdminPillView` render the header and cockpit pill in PHP); this stylesheet
+ * only adds what is genuinely this screen's own: the DataViews retint and the
+ * live session count slot.
+ *
  * `@use`-ing the shared theme also emits its `@font-face` rules, so Anton,
  * Hanken Grotesk and Space Mono load on the admin screen.
  */
 
 @use '../styles/theme' as theme;
+@use '../styles/admin-chrome';
 
 // The shared theme ships only Space Mono 700 (all the cockpit needs); this
 // screen also shows it at a regular weight, so the numeric readouts read as
@@ -31,136 +38,19 @@
 		format('woff2');
 }
 
-// ── Full-bleed: drop the wp-admin chrome around the deck ─────────────────────
-// This stylesheet is enqueued only on the sessions screen, so these admin-wide
-// selectors are safe to target unscoped — they never reach another screen.
-#wpcontent {
-	padding-left: 0;
-}
-
-#wpbody-content {
-	padding-bottom: 0;
-}
-
-#wpfooter {
-	display: none;
-}
-
 // ── The deck shell ───────────────────────────────────────────────────────────
 .bsb-sessions {
-	// Retint every WordPress component accent (selection checkboxes, focus
-	// rings, primary buttons, active pagination) to coastal teal in one move,
-	// instead of overriding each control: WP's components read these tokens.
-	--wp-admin-theme-color: #{theme.$coastal-teal};
-	--wp-admin-theme-color--rgb: 47, 155, 179;
-	--wp-admin-theme-color-darker-10: #2a8ba0;
-	--wp-admin-theme-color-darker-20: #{theme.$coastal-teal-deep};
-
-	display: flex;
-	flex-direction: column;
-	min-height: 0;
-	height: calc(100vh - 32px); // below the admin bar
-	overflow: hidden;
-	font-family: theme.$font-ui;
-	color: theme.$coastal-navy;
-	background:
-		radial-gradient(120% 50% at 50% -6%, #fff 0%, #{theme.$coastal-sky-0} 38%, transparent 66%),
-		linear-gradient(180deg, #{theme.$coastal-sky-1} 0%, #fff 46%);
-
-	@media screen and (max-width: 782px) {
-		height: calc(100vh - 46px); // the admin bar is taller on small screens
-	}
-}
-
-// ── Brand header ─────────────────────────────────────────────────────────────
-.bsb-sessions__head {
-	display: flex;
-	flex: 0 0 auto;
-	align-items: center;
-	gap: 1rem;
-	padding: 1.1rem 1.5rem;
-	border-bottom: 1px solid theme.$coastal-line;
-}
-
-// Solid surfer mark tinted teal — the same menu-icon the cockpit deck masks.
-.bsb-sessions__mark {
-	flex: 0 0 auto;
-	height: 2.9rem;
-	aspect-ratio: 1;
-	background: theme.$coastal-teal;
-	mask: url('../../assets/images/menu-icon.svg') center / contain no-repeat;
-	-webkit-mask: url('../../assets/images/menu-icon.svg') center / contain no-repeat;
-}
-
-.bsb-sessions__wordmark {
-	display: flex;
-	flex-direction: column;
-	gap: 0.15rem;
-	margin-right: auto;
-	min-width: 0;
-}
-
-.bsb-sessions__title {
-	margin: 0;
-	padding: 0;
-	font-family: theme.$font-display;
-	font-size: 1.5rem;
-	font-weight: 400;
-	line-height: 0.96;
-	letter-spacing: 0.01em;
-	text-transform: uppercase;
-	color: theme.$coastal-navy;
-}
-
-.bsb-sessions__subtitle {
-	font-size: 0.62rem;
-	font-weight: 700;
-	letter-spacing: 0.42em;
-	text-transform: uppercase;
-	color: theme.$coastal-teal;
+	@include admin-chrome.deck;
 }
 
 // Running total, since the grid's pagination footer shows only the page count.
+// Rendered by React (portaled into the shared header's actions slot).
 .bsb-sessions__count {
 	flex: 0 0 auto;
 	font-family: theme.$font-mono;
 	font-size: 0.8rem;
 	color: theme.$coastal-ink-soft;
 	white-space: nowrap;
-}
-
-.bsb-sessions__cockpit {
-	display: inline-flex;
-	flex: 0 0 auto;
-	align-items: center;
-	gap: 0.45rem;
-	padding: 0.5rem 0.9rem;
-	border-radius: 10px;
-	background: linear-gradient(150deg, #{theme.$coastal-teal} 0%, #{theme.$coastal-teal-deep} 100%);
-	color: #fff;
-	font-size: 0.82rem;
-	font-weight: 700;
-	line-height: 1.2;
-	text-decoration: none;
-	box-shadow: 0 6px 14px -6px #{rgba(theme.$coastal-teal-deep, 0.6)};
-
-	&:hover,
-	&:focus {
-		color: #fff;
-	}
-
-	&:focus-visible {
-		outline: 2px solid theme.$coastal-coral;
-		outline-offset: 2px;
-	}
-}
-
-.bsb-sessions__cockpit-icon {
-	width: 1rem;
-	height: 1rem;
-	background: currentColor;
-	mask: theme.$icon-external center / contain no-repeat;
-	-webkit-mask: theme.$icon-external center / contain no-repeat;
 }
 
 // ── DataViews host ───────────────────────────────────────────────────────────

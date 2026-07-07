@@ -77,6 +77,14 @@ classDiagram
         +render(array data) string
     }
 
+    class AdminHeaderView {
+        +render(array data) string
+    }
+
+    class AdminPillView {
+        +render(array data) string
+    }
+
     class CourseOrderSanitizer {
         +__construct(CourseCatalog catalog, array selectable_post_types)
         +default_order() array
@@ -264,6 +272,10 @@ classDiagram
     SettingsScreen --> CourseOrderSanitizer : uses
     SettingsScreen ..> SettingsScreenView : renders via
     SettingsScreenView ..|> View : implements
+    SettingsScreenView ..> AdminHeaderView : composes (shared header)
+    SettingsScreenView ..> AdminPillView : composes (New Benchmark outline pill)
+    AdminHeaderView ..|> View : implements
+    AdminPillView ..|> View : implements
     CourseOrderSanitizer --> CourseCatalog : validates bundled slugs against
     SessionType ..|> Manager : implements
     SessionType --> SessionSchema : uses
@@ -290,6 +302,8 @@ classDiagram
     SessionsScreen --> Assets : uses
     SessionsScreen ..> SessionsScreenView : renders via
     SessionsScreenView ..|> View : implements
+    SessionsScreenView ..> AdminHeaderView : composes (shared header)
+    SessionsScreenView ..> AdminPillView : composes (New Benchmark solid pill)
     StartBenchmark ..|> Manager : implements
     StartBenchmark --> Assets : uses
     StartBenchmark ..> StartBenchmarkView : renders via

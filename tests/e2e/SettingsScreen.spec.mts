@@ -37,7 +37,9 @@ test.describe( 'Settings screen', () => {
 		await expect(
 			page.getByRole( 'heading', { name: 'Battery Surf Bench' } )
 		).toBeVisible();
-		await expect( page.locator( '.bsb-settings__subtitle' ) ).toHaveText(
+		// The subtitle lives in the shared admin-chrome header (AdminHeaderView),
+		// not a settings-specific class.
+		await expect( page.locator( '.bsb-admin-head__subtitle' ) ).toHaveText(
 			'Settings'
 		);
 

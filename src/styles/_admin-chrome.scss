@@ -1,0 +1,193 @@
+// ── Battery Surf Bench admin chrome ─────────────────────────────────────────
+// The chrome every wp-admin screen the plugin owns (Sessions, Settings, …)
+// is built from: the full-bleed coastal deck + wp-admin chrome-strip + CSS-var
+// retint, the brand header (`AdminHeaderView`/`.bsb-admin-head`), and the
+// single admin pill button (`AdminPillView`/React `SaveButton`,
+// `.bsb-admin-pill`, `--solid`|`--outline`). A screen's stylesheet `@use`s
+// this partial and keeps only what is genuinely its own (Sessions: the
+// DataViews retint + its live count slot; Settings: the picker panes) — one
+// edit here restyles every admin screen at once.
+//
+//   @use '../styles/admin-chrome';
+//
+//   .bsb-my-screen {
+//     @include admin-chrome.deck;
+//     // screen-specific rules only
+//   }
+
+@use '../styles/theme';
+
+// ── Full-bleed: drop the wp-admin chrome around the deck ─────────────────────
+// Every screen that `@use`s this partial loads its compiled stylesheet only on
+// its own admin page, so these admin-wide selectors are safe to emit unscoped
+// — they never reach another screen.
+#wpcontent {
+	padding-left: 0;
+}
+
+#wpbody-content {
+	padding-bottom: 0;
+}
+
+#wpfooter {
+	display: none;
+}
+
+// ── The deck shell ───────────────────────────────────────────────────────────
+// Included under each screen's own root class (`.bsb-sessions`, `.bsb-settings`,
+// …) rather than emitted under a shared class here, so no second class needs
+// to land in the PHP-rendered markup and each screen's root selector still
+// carries the retint + layout it always has.
+@mixin deck {
+	--wp-admin-theme-color: #{theme.$coastal-teal};
+	--wp-admin-theme-color--rgb: 47, 155, 179;
+	--wp-admin-theme-color-darker-10: #2a8ba0;
+	--wp-admin-theme-color-darker-20: #{theme.$coastal-teal-deep};
+
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+	height: calc(100vh - 32px); // below the admin bar
+	overflow: hidden;
+	font-family: theme.$font-ui;
+	color: theme.$coastal-navy;
+	background:
+		radial-gradient(120% 50% at 50% -6%, #fff 0%, #{theme.$coastal-sky-0} 38%, transparent 66%),
+		linear-gradient(180deg, #{theme.$coastal-sky-1} 0%, #fff 46%);
+
+	@media screen and (max-width: 782px) {
+		height: calc(100vh - 46px); // the admin bar is taller on small screens
+	}
+}
+
+// ── Brand header (`AdminHeaderView`) ─────────────────────────────────────────
+.bsb-admin-head {
+	display: flex;
+	flex: 0 0 auto;
+	align-items: center;
+	gap: 1rem;
+	padding: 1.1rem 1.5rem;
+	border-bottom: 1px solid theme.$coastal-line;
+}
+
+.bsb-admin-head__mark {
+	flex: 0 0 auto;
+	height: 2.9rem;
+	aspect-ratio: 1;
+	background: theme.$coastal-teal;
+	mask: url('../../assets/images/menu-icon.svg') center / contain no-repeat;
+	-webkit-mask: url('../../assets/images/menu-icon.svg') center / contain no-repeat;
+}
+
+.bsb-admin-head__wordmark {
+	display: flex;
+	flex-direction: column;
+	gap: 0.15rem;
+	margin-right: auto;
+	min-width: 0;
+}
+
+.bsb-admin-head__title {
+	margin: 0;
+	padding: 0;
+	font-family: theme.$font-display;
+	font-size: 1.5rem;
+	font-weight: 400;
+	line-height: 0.96;
+	letter-spacing: 0.01em;
+	text-transform: uppercase;
+	color: theme.$coastal-navy;
+}
+
+.bsb-admin-head__subtitle {
+	font-size: 0.62rem;
+	font-weight: 700;
+	letter-spacing: 0.42em;
+	text-transform: uppercase;
+	color: theme.$coastal-teal;
+}
+
+// The actions slot is a grouping wrapper only, never a box of its own —
+// `display: contents` makes its children lay out as direct flex items of the
+// header row, exactly as if a screen had placed them there itself.
+.bsb-admin-head__actions {
+	display: contents;
+}
+
+// ── The single admin pill (`AdminPillView` / React `SaveButton`) ────────────
+.bsb-admin-pill {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+	flex: 0 0 auto;
+	padding: 0.6rem 1.1rem;
+	border-radius: 10px;
+	font-family: theme.$font-ui;
+	font-size: 0.86rem;
+	font-weight: 700;
+	line-height: 1.2;
+	text-decoration: none;
+	cursor: pointer;
+	transition:
+		transform 0.14s ease,
+		box-shadow 0.2s ease,
+		background 0.15s ease,
+		border-color 0.15s ease;
+
+	&:disabled {
+		cursor: default;
+		opacity: 0.5;
+	}
+
+	&:focus-visible {
+		outline: 2px solid theme.$coastal-coral;
+		outline-offset: 2px;
+	}
+}
+
+.bsb-admin-pill__icon {
+	width: 1rem;
+	height: 1rem;
+	background: currentColor;
+}
+
+.bsb-admin-pill__icon--external {
+	mask: theme.$icon-external center / contain no-repeat;
+	-webkit-mask: theme.$icon-external center / contain no-repeat;
+}
+
+// Primary — filled teal gradient.
+.bsb-admin-pill--solid {
+	border: 0;
+	background: linear-gradient(150deg, #{theme.$coastal-teal} 0%, #{theme.$coastal-teal-deep} 100%);
+	color: #fff;
+	box-shadow: 0 6px 14px -6px #{rgba(theme.$coastal-teal-deep, 0.6)};
+
+	&:hover,
+	&:focus {
+		color: #fff;
+	}
+
+	&:not(:disabled):hover {
+		transform: translateY(-1px);
+		box-shadow: 0 10px 20px -8px #{rgba(theme.$coastal-teal-deep, 0.68)};
+	}
+
+	&:not(:disabled):active {
+		transform: translateY(0);
+	}
+}
+
+// Secondary — teal outline/ghost, demoted below a solid primary when both
+// appear in the same header.
+.bsb-admin-pill--outline {
+	border: 1.5px solid theme.$coastal-teal;
+	background: transparent;
+	color: theme.$coastal-teal-deep;
+
+	&:hover,
+	&:focus {
+		background: #{rgba(theme.$coastal-teal, 0.08)};
+		color: theme.$coastal-teal-deep;
+	}
+}

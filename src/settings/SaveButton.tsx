@@ -38,7 +38,7 @@ export function SaveButton( {
 			</span>
 			<button
 				type="button"
-				className="bsb-settings__pill bsb-settings__save"
+				className="bsb-admin-pill bsb-admin-pill--solid"
 				disabled={ ! dirty || saving }
 				onClick={ onSave }
 			>

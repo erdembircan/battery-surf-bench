@@ -58,7 +58,8 @@ final class SettingsScreenViewTest extends TestCase {
 			'href="https://example.test/?bsbSession=cockpit"',
 			$output
 		);
-		$this->assertStringContainsString( 'bsb-settings__launch', $output );
+		// The cockpit link is the shared outline admin pill (AdminPillView).
+		$this->assertStringContainsString( 'bsb-admin-pill--outline', $output );
 		$this->assertStringContainsString( 'New Benchmark', $output );
 		// Opens the cockpit in a new tab, away from the settings screen.
 		$this->assertStringContainsString( 'target="_blank"', $output );
