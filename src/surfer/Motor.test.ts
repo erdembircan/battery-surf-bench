@@ -417,3 +417,119 @@ describe( 'DomMotor.selectSnippet', () => {
 		travelToSpy.mockRestore();
 	} );
 } );
+
+describe( 'DomMotor.readTrace', () => {
+	it( 'ends the sweep with the cursor resting inside the chosen block', async () => {
+		document.body.innerHTML = `<p>${ 'word '.repeat( 20 ) }</p>`;
+		const p = document.querySelector( 'p' )!;
+		p.getBoundingClientRect = () =>
+			( {
+				top: 100,
+				bottom: 200,
+				left: 50,
+				right: 450,
+				width: 400,
+				height: 100,
+			} ) as DOMRect;
+
+		const motor = new DomMotor( () => 0.5, instantFrames );
+		const cursorEl =
+			document.querySelector< HTMLElement >( '.bsb-surf-cursor' );
+
+		await motor.readTrace( 5000 );
+
+		// The sweep's own moveTo calls are constrained to the block's rect by
+		// construction (x from `rect.left + rect.width * t`, t in (0, 1]; y
+		// fixed per line within the rect); only the initial approach travels
+		// from wherever the cursor already was, so the resting position is
+		// the reliable, non-transient signal to check here.
+		const transform = cursorEl?.style.transform ?? '';
+		const match = transform.match(
+			/translate\(([-\d.]+)px, ([-\d.]+)px\)/
+		);
+		expect( match ).not.toBeNull();
+		const x = parseFloat( match![ 1 ] );
+		const y = parseFloat( match![ 2 ] );
+
+		expect( x ).toBeGreaterThanOrEqual( 50 );
+		expect( x ).toBeLessThanOrEqual( 450 );
+		expect( y ).toBeGreaterThanOrEqual( 100 );
+		expect( y ).toBeLessThanOrEqual( 200 );
+	} );
+
+	it( 'sweeps multiple lines for a tall block', async () => {
+		document.body.innerHTML = `<p>${ 'word '.repeat( 40 ) }</p>`;
+		const p = document.querySelector( 'p' )!;
+		// Tall enough at the default 24px line-height fallback (jsdom's
+		// computed line-height is "normal", not a resolved px length) to
+		// estimate several lines.
+		p.getBoundingClientRect = () =>
+			( {
+				top: 0,
+				bottom: 120,
+				left: 0,
+				right: 400,
+				width: 400,
+				height: 120,
+			} ) as DOMRect;
+
+		const moveToSpy = vi.spyOn( FakeCursor.prototype, 'moveTo' );
+
+		await new DomMotor( () => 0.5, instantFrames ).readTrace( 10_000 );
+
+		const linesVisited = new Set(
+			moveToSpy.mock.calls.map( ( call ) =>
+				Math.round( ( call[ 0 ] as Point ).y )
+			)
+		);
+		expect( linesVisited.size ).toBeGreaterThan( 1 );
+
+		moveToSpy.mockRestore();
+	} );
+
+	it( 'falls back to a still idle, without throwing, when no readable block is in view', async () => {
+		document.body.innerHTML = '<p>short</p>';
+		const travelToSpy = vi.spyOn( FakeCursor.prototype, 'travelTo' );
+
+		await expect(
+			new DomMotor( () => 0.5, instantFrames ).readTrace( 20 )
+		).resolves.toBeUndefined();
+
+		expect( travelToSpy ).not.toHaveBeenCalled();
+
+		travelToSpy.mockRestore();
+	} );
+
+	it( 'stops within its time budget instead of sweeping every line of a very tall block', async () => {
+		document.body.innerHTML = `<p>${ 'word '.repeat( 50 ) }</p>`;
+		const p = document.querySelector( 'p' )!;
+		p.getBoundingClientRect = () =>
+			( {
+				top: 0,
+				bottom: 5000,
+				left: 0,
+				right: 400,
+				width: 400,
+				height: 5000,
+			} ) as DOMRect;
+
+		const moveToSpy = vi.spyOn( FakeCursor.prototype, 'moveTo' );
+
+		await expect(
+			new DomMotor( () => 0.5, instantFrames ).readTrace( 200 )
+		).resolves.toBeUndefined();
+
+		const linesVisited = new Set(
+			moveToSpy.mock.calls.map( ( call ) =>
+				Math.round( ( call[ 0 ] as Point ).y )
+			)
+		);
+
+		// A 5000px-tall block at the default 24px line height renders roughly
+		// 200 lines; the ~200ms budget (a handful of frames) must cut the
+		// sweep short after one or two, not race through the whole block.
+		expect( linesVisited.size ).toBeLessThan( 10 );
+
+		moveToSpy.mockRestore();
+	} );
+} );

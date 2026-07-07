@@ -8,6 +8,7 @@ export interface RecordedCommand {
 		| 'selectSnippet'
 		| 'playVideo'
 		| 'lingerImage'
+		| 'readTrace'
 		| 'idle';
 	args: readonly number[];
 }
@@ -42,6 +43,11 @@ export class FakeMotor implements Motor {
 
 	lingerImage( ms: number ): Promise< void > {
 		this.commands.push( { kind: 'lingerImage', args: [ ms ] } );
+		return Promise.resolve();
+	}
+
+	readTrace( ms: number ): Promise< void > {
+		this.commands.push( { kind: 'readTrace', args: [ ms ] } );
 		return Promise.resolve();
 	}
 
