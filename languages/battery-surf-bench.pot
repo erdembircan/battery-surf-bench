@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-07-07T01:23:22+00:00\n"
+"POT-Creation-Date: 2026-07-07T10:30:43+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: battery-surf-bench\n"
@@ -162,6 +162,7 @@ msgstr ""
 
 #: includes/Cockpit/SummaryReasons.php:48
 #: includes/Cockpit/SummaryReasons.php:54
+#: includes/Cockpit/SummaryReasons.php:60
 #: src/cockpit/render.php:217
 msgid "elapsed"
 msgstr ""
@@ -176,6 +177,18 @@ msgstr ""
 
 #: includes/Cockpit/SummaryReasons.php:53
 msgid "· INTERRUPTED ·"
+msgstr ""
+
+#: includes/Cockpit/SummaryReasons.php:57
+msgid "The page didn't load."
+msgstr ""
+
+#: includes/Cockpit/SummaryReasons.php:58
+msgid "A page couldn't be reached, so the run stopped."
+msgstr ""
+
+#: includes/Cockpit/SummaryReasons.php:59
+msgid "· LOAD FAILED ·"
 msgstr ""
 
 #: includes/Cockpit/Views/CockpitDashboard.php:51
@@ -198,19 +211,19 @@ msgid "Flip"
 msgstr ""
 
 #: includes/Content/SessionDetail.php:167
-#: includes/Content/SessionSchema.php:399
+#: includes/Content/SessionSchema.php:400
 #: src/cockpit/render.php:214
 msgid "100% → 0%"
 msgstr ""
 
 #: includes/Content/SessionDetail.php:168
-#: includes/Content/SessionSchema.php:389
+#: includes/Content/SessionSchema.php:390
 #: src/cockpit/render.php:213
 msgid "Rate · session"
 msgstr ""
 
 #: includes/Content/SessionDetail.php:169
-#: includes/Content/SessionSchema.php:379
+#: includes/Content/SessionSchema.php:380
 #: src/cockpit/render.php:212
 msgid "Rate · 10 min"
 msgstr ""
@@ -222,7 +235,7 @@ msgid "Battery"
 msgstr ""
 
 #: includes/Content/SessionDetail.php:171
-#: includes/Content/SessionSchema.php:369
+#: includes/Content/SessionSchema.php:370
 #: src/cockpit/render.php:236
 msgid "Dropped"
 msgstr ""
@@ -233,7 +246,7 @@ msgid "pts"
 msgstr ""
 
 #: includes/Content/SessionDetail.php:173
-#: includes/Content/SessionSchema.php:359
+#: includes/Content/SessionSchema.php:360
 #: src/cockpit/render.php:238
 msgid "Elapsed"
 msgstr ""
@@ -272,63 +285,67 @@ msgstr ""
 msgid "Aborted"
 msgstr ""
 
-#: includes/Content/SessionSchema.php:261
+#: includes/Content/SessionSchema.php:255
+msgid "Load failed"
+msgstr ""
+
+#: includes/Content/SessionSchema.php:262
 #: src/cockpit/render.php:145
 msgid "Mode"
 msgstr ""
 
-#: includes/Content/SessionSchema.php:266
-#: includes/Content/SessionSchema.php:422
-#: includes/Content/SessionSchema.php:432
+#: includes/Content/SessionSchema.php:267
+#: includes/Content/SessionSchema.php:423
+#: includes/Content/SessionSchema.php:433
 #: includes/DevTools/DevTools.php:154
 #: src/cockpit/render.php:146
 msgid "Duration"
 msgstr ""
 
-#: includes/Content/SessionSchema.php:267
-#: includes/Content/SessionSchema.php:443
+#: includes/Content/SessionSchema.php:268
+#: includes/Content/SessionSchema.php:444
 #: src/cockpit/render.php:215
 msgid "Target"
 msgstr ""
 
-#: includes/Content/SessionSchema.php:274
+#: includes/Content/SessionSchema.php:275
 msgid "Started"
 msgstr ""
 
-#: includes/Content/SessionSchema.php:284
+#: includes/Content/SessionSchema.php:285
 msgid "Ended"
 msgstr ""
 
-#: includes/Content/SessionSchema.php:294
+#: includes/Content/SessionSchema.php:295
 msgid "Start level"
 msgstr ""
 
-#: includes/Content/SessionSchema.php:304
+#: includes/Content/SessionSchema.php:305
 msgid "End level"
 msgstr ""
 
-#: includes/Content/SessionSchema.php:320
+#: includes/Content/SessionSchema.php:321
 msgid "Browser"
 msgstr ""
 
-#: includes/Content/SessionSchema.php:330
+#: includes/Content/SessionSchema.php:331
 msgid "Browser version"
 msgstr ""
 
-#: includes/Content/SessionSchema.php:341
+#: includes/Content/SessionSchema.php:342
 msgid "Operating system"
 msgstr ""
 
-#: includes/Content/SessionSchema.php:413
+#: includes/Content/SessionSchema.php:414
 msgid "Config mode"
 msgstr ""
 
-#: includes/Content/SessionSchema.php:423
+#: includes/Content/SessionSchema.php:424
 #: src/cockpit/render.php:147
 msgid "Target drop"
 msgstr ""
 
-#: includes/Content/SessionSchema.php:457
+#: includes/Content/SessionSchema.php:458
 msgid "Samples"
 msgstr ""
 
