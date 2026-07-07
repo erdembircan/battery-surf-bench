@@ -48,6 +48,14 @@ export interface InstanceState {
 	 * machine-gun the toast; re-armed when a run starts.
 	 */
 	noticeShownThisRun: boolean;
+	/** The behavior key waiting behind the bark showing, or null when none. */
+	pendingBark: string | null;
+	/** The showing bark's hold timeout id, or null when none is on screen. */
+	barkTimer: number | null;
+	/** The armed safe-period replace timeout id, or null when none is pending. */
+	barkReplaceTimer: number | null;
+	/** The `performance.now()` timestamp the showing bark appeared, or null. */
+	barkShownAt: number | null;
 }
 
 /**
@@ -69,6 +77,10 @@ const runInstance: InstanceState = {
 	toasts: new ToastQueue(),
 	toastTimer: null,
 	noticeShownThisRun: false,
+	pendingBark: null,
+	barkTimer: null,
+	barkReplaceTimer: null,
+	barkShownAt: null,
 };
 
 /**
@@ -87,9 +99,14 @@ export const __resetInstance = (): void => {
 	runInstance.clock = null;
 	runInstance.chime = null;
 	runInstance.startedAtWall = null;
+	runInstance.idleFlipTimer = null;
 	runInstance.toasts = new ToastQueue();
 	runInstance.toastTimer = null;
 	runInstance.noticeShownThisRun = false;
+	runInstance.pendingBark = null;
+	runInstance.barkTimer = null;
+	runInstance.barkReplaceTimer = null;
+	runInstance.barkShownAt = null;
 };
 
 /**

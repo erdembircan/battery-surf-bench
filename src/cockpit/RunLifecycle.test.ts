@@ -53,6 +53,10 @@ const context = (): CockpitContext =>
 		toastText: '',
 		toastPhase: '',
 		toastStrings: { error: 'Upload failed', notice: 'View only' },
+		barkBehavior: '',
+		barkText: '',
+		barkPhase: '',
+		barkStrings: {},
 	} ) as unknown as CockpitContext;
 
 /**
@@ -73,6 +77,10 @@ const instance = ( session: RunSession ): InstanceState =>
 		toasts: new ToastQueue(),
 		toastTimer: null,
 		noticeShownThisRun: false,
+		pendingBark: null,
+		barkTimer: null,
+		barkReplaceTimer: null,
+		barkShownAt: null,
 	} ) as InstanceState;
 
 describe( 'stopRun persistence', () => {
@@ -127,6 +135,27 @@ describe( 'stopRun persistence', () => {
 		await vi.waitFor( () => expect( ctx.toastKind ).toBe( 'error' ) );
 		expect( ctx.toastText ).toBe( 'Upload failed' );
 		expect( ctx.toastPhase ).toBe( 'entering' );
+	} );
+
+	it( 'clears an active bark when the run stops', () => {
+		const ctx = context();
+		ctx.barkBehavior = 'readPause';
+		ctx.barkText = 'Deep in the good words…';
+		ctx.barkPhase = 'holding';
+		const inst = instance( new RunSession() );
+		inst.pendingBark = 'lingerImage';
+		inst.barkTimer = setTimeout(
+			() => undefined,
+			6000
+		) as unknown as number;
+
+		stopRun( ctx, inst, 'stopped' );
+
+		expect( ctx.barkBehavior ).toBe( '' );
+		expect( ctx.barkText ).toBe( '' );
+		expect( ctx.barkPhase ).toBe( '' );
+		expect( inst.pendingBark ).toBeNull();
+		expect( inst.barkTimer ).toBeNull();
 	} );
 
 	it( 'does not toast when the upload succeeds', async () => {

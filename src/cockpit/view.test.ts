@@ -53,6 +53,10 @@ interface CockpitContext {
 	toastText: string;
 	toastPhase: '' | 'entering' | 'holding' | 'leaving';
 	toastStrings: { error: string; notice: string };
+	barkBehavior: string;
+	barkText: string;
+	barkPhase: '' | 'entering' | 'holding' | 'leaving';
+	barkStrings: Record< string, string[] >;
 }
 
 interface CockpitConfig {
@@ -103,6 +107,12 @@ interface CockpitConfig {
 		isToastEntering: boolean;
 		isToastHolding: boolean;
 		isToastLeaving: boolean;
+		hasBark: boolean;
+		barkKey: string;
+		barkMessage: string;
+		isBarkEntering: boolean;
+		isBarkHolding: boolean;
+		isBarkLeaving: boolean;
 		// Present only once the dev-tools module has joined the store (never set
 		// by this file's own registration); the battery seam reads it optionally.
 		devtools?: {
@@ -144,6 +154,8 @@ interface CockpitConfig {
 		renderSummary: () => void;
 		onToastAnimationEnd: () => void;
 		initDetail: () => void;
+		initBark: () => () => void;
+		onBarkAnimationEnd: () => void;
 	};
 }
 
@@ -188,6 +200,15 @@ const baseContext = (): CockpitContext => ( {
 	toastText: '',
 	toastPhase: '',
 	toastStrings: { error: 'Upload failed', notice: 'View only' },
+	barkBehavior: '',
+	barkText: '',
+	barkPhase: '',
+	barkStrings: {
+		readPause: [
+			'Deep in the good words…',
+			'Catching up on the fine print…',
+		],
+	},
 } );
 
 const mocks = vi.hoisted( () => ( {
@@ -1897,6 +1918,108 @@ describe( 'bsb/cockpit view store', () => {
 			expect( mocks.config!.state.hasToast ).toBe( true );
 			expect( mocks.config!.state.isToastError ).toBe( true );
 			expect( mocks.config!.state.toastRole ).toBe( 'alert' );
+		} );
+	} );
+
+	describe( 'bark', () => {
+		const dispatchMessage = ( origin: string, data: unknown ): void => {
+			window.dispatchEvent(
+				new MessageEvent( 'message', { origin, data } )
+			);
+		};
+
+		it( 'raises a bark on a legitimate behavior-start message while running', () => {
+			mocks.context.running = true;
+
+			mocks.config!.callbacks.initBark();
+			dispatchMessage( window.location.origin, {
+				type: 'bsb:behaviorStart',
+				key: 'readPause',
+			} );
+
+			expect( mocks.context.barkBehavior ).toBe( 'readPause' );
+			expect( mocks.config!.state.hasBark ).toBe( true );
+			expect( mocks.config!.state.barkKey ).toBe( 'readPause' );
+			expect( mocks.config!.state.barkMessage ).not.toBe( '' );
+			expect( mocks.context.barkPhase ).toBe( 'entering' );
+		} );
+
+		it( 'ignores a behavior-start message while idle', () => {
+			mocks.context.running = false;
+
+			mocks.config!.callbacks.initBark();
+			dispatchMessage( window.location.origin, {
+				type: 'bsb:behaviorStart',
+				key: 'readPause',
+			} );
+
+			expect( mocks.context.barkBehavior ).toBe( '' );
+		} );
+
+		it( 'ignores a message from a different origin', () => {
+			mocks.context.running = true;
+
+			mocks.config!.callbacks.initBark();
+			dispatchMessage( 'https://evil.test', {
+				type: 'bsb:behaviorStart',
+				key: 'readPause',
+			} );
+
+			expect( mocks.context.barkBehavior ).toBe( '' );
+		} );
+
+		it( 'ignores a key with no translated strings (non-barking behavior)', () => {
+			mocks.context.running = true;
+
+			mocks.config!.callbacks.initBark();
+			dispatchMessage( window.location.origin, {
+				type: 'bsb:behaviorStart',
+				key: 'scrollBurst',
+			} );
+
+			expect( mocks.context.barkBehavior ).toBe( '' );
+		} );
+
+		it( 'detaches the listener once the returned cleanup runs', () => {
+			mocks.context.running = true;
+
+			const cleanup = mocks.config!.callbacks.initBark();
+			cleanup();
+			dispatchMessage( window.location.origin, {
+				type: 'bsb:behaviorStart',
+				key: 'readPause',
+			} );
+
+			expect( mocks.context.barkBehavior ).toBe( '' );
+		} );
+
+		it( 'walks the pill through entering, holding, leaving and finishing', () => {
+			vi.useFakeTimers();
+			mocks.context.running = true;
+
+			mocks.config!.callbacks.initBark();
+			dispatchMessage( window.location.origin, {
+				type: 'bsb:behaviorStart',
+				key: 'readPause',
+			} );
+			expect( mocks.context.barkPhase ).toBe( 'entering' );
+
+			// Entering ends: the pill rests and a hold timer is armed.
+			mocks.config!.callbacks.onBarkAnimationEnd();
+			expect( mocks.context.barkPhase ).toBe( 'holding' );
+			expect( mocks.config!.state.isBarkHolding ).toBe( true );
+
+			// The hold timer elapses on its own and starts the leave.
+			vi.advanceTimersByTime( 6000 );
+			expect( mocks.context.barkPhase ).toBe( 'leaving' );
+			expect( mocks.config!.state.isBarkLeaving ).toBe( true );
+
+			// Leaving ends: the bark is cleared.
+			mocks.config!.callbacks.onBarkAnimationEnd();
+			expect( mocks.context.barkBehavior ).toBe( '' );
+			expect( mocks.config!.state.hasBark ).toBe( false );
+
+			vi.useRealTimers();
 		} );
 	} );
 } );

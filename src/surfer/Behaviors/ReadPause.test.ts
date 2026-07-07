@@ -53,4 +53,42 @@ describe( 'ReadPause.run', () => {
 		expect( ms ).toBeGreaterThanOrEqual( 800 );
 		expect( ms ).toBeLessThanOrEqual( 2000 );
 	} );
+
+	it( 'traces the cursor over the prose when the rng draws below the trace chance', async () => {
+		const motor = new FakeMotor();
+		await new ReadPause().run(
+			motor,
+			makeContext( [ 0, 0, 5, 0, 0 ], { rng: () => 0.1 } )
+		);
+
+		expect( motor.commands ).toHaveLength( 1 );
+		expect( motor.commands[ 0 ].kind ).toBe( 'readTrace' );
+		const [ ms ] = motor.commands[ 0 ].args;
+		expect( ms ).toBeGreaterThanOrEqual( 8000 );
+		expect( ms ).toBeLessThanOrEqual( 20000 );
+	} );
+
+	it( 'holds still, exactly as before, when the rng draws above the trace chance', async () => {
+		const motor = new FakeMotor();
+		await new ReadPause().run(
+			motor,
+			makeContext( [ 0, 0, 5, 0, 0 ], { rng: () => 0.9 } )
+		);
+
+		expect( motor.commands ).toHaveLength( 1 );
+		expect( motor.commands[ 0 ].kind ).toBe( 'idle' );
+	} );
+
+	it( 'divides a traced read by the demo speed multiplier too', async () => {
+		const motor = new FakeMotor();
+		await new ReadPause().run(
+			motor,
+			makeContext( [ 0, 0, 5, 0, 0 ], { rng: () => 0.1, speed: 10 } )
+		);
+
+		expect( motor.commands[ 0 ].kind ).toBe( 'readTrace' );
+		const [ ms ] = motor.commands[ 0 ].args;
+		expect( ms ).toBeGreaterThanOrEqual( 800 );
+		expect( ms ).toBeLessThanOrEqual( 2000 );
+	} );
 } );

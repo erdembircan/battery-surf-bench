@@ -1,5 +1,6 @@
 /**
- * A slow drift over gallery imagery — allure's other outlet besides video.
+ * Attends a real content image — scrolling it into view, travelling the
+ * cursor onto it, and dwelling there — allure's other outlet besides video.
  * Affordance saturates once a handful of images are present, so a single
  * hero image and a full gallery both count as "has imagery" without needing
  * an exact threshold. Duration reuses the gallery reading-pause range from
@@ -38,6 +39,6 @@ export class LingerImage implements Behavior {
 	async run( motor: Motor, ctx: BehaviorContext ): Promise< void > {
 		const ms =
 			LINGER_MS_MIN + ctx.rng() * ( LINGER_MS_MAX - LINGER_MS_MIN );
-		await motor.pointerDrift( ms / ctx.speed );
+		await motor.lingerImage( ms / ctx.speed );
 	}
 }

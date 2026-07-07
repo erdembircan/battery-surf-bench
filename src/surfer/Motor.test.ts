@@ -56,6 +56,175 @@ describe( 'DomMotor.playVideo', () => {
 		).resolves.toBeUndefined();
 		expect( video.muted ).toBe( true );
 	} );
+
+	it( 'attends a youtube-nocookie embed — approaches with the cursor — without calling play', async () => {
+		document.body.innerHTML =
+			'<iframe src="https://www.youtube-nocookie.com/embed/xyz"></iframe>';
+		const iframe = document.querySelector( 'iframe' )!;
+		iframe.getBoundingClientRect = () =>
+			( {
+				top: 100,
+				bottom: 300,
+				left: 50,
+				right: 450,
+				width: 400,
+				height: 200,
+			} ) as DOMRect;
+		const travelToSpy = vi.spyOn( FakeCursor.prototype, 'travelTo' );
+
+		await expect(
+			new DomMotor( () => 0.5, instantFrames ).playVideo()
+		).resolves.toBeUndefined();
+
+		expect( travelToSpy ).toHaveBeenCalled();
+
+		travelToSpy.mockRestore();
+	} );
+
+	it( 'scrolls an off-screen video into view before approaching it', async () => {
+		document.body.innerHTML = '<video></video>';
+		const video = document.querySelector( 'video' ) as HTMLVideoElement;
+		video.getBoundingClientRect = () =>
+			( {
+				top: 3000,
+				bottom: 3300,
+				left: 50,
+				right: 450,
+				width: 400,
+				height: 300,
+			} ) as DOMRect;
+		video.play = vi.fn().mockResolvedValue( undefined );
+		// jsdom has no real scroll implementation — mock it out rather than
+		// letting the spy fall through to jsdom's noisy "not implemented" stub.
+		const scrollBySpy = vi
+			.spyOn( window, 'scrollBy' )
+			.mockImplementation( () => undefined );
+
+		await new DomMotor( () => 0.5, instantFrames ).playVideo();
+
+		expect( scrollBySpy ).toHaveBeenCalled();
+
+		scrollBySpy.mockRestore();
+	} );
+} );
+
+describe( 'DomMotor.lingerImage', () => {
+	it( 'travels the cursor onto the chosen image and dwells for the remaining budget', async () => {
+		document.body.innerHTML = '<img src="a.jpg">';
+		const img = document.querySelector( 'img' )!;
+		img.getBoundingClientRect = () =>
+			( {
+				top: 100,
+				bottom: 200,
+				left: 100,
+				right: 300,
+				width: 200,
+				height: 100,
+			} ) as DOMRect;
+
+		const motor = new DomMotor( () => 0.5, instantFrames );
+		const cursorEl =
+			document.querySelector< HTMLElement >( '.bsb-surf-cursor' );
+
+		await motor.lingerImage( 2000 );
+
+		const transform = cursorEl?.style.transform ?? '';
+		const match = transform.match(
+			/translate\(([-\d.]+)px, ([-\d.]+)px\)/
+		);
+		expect( match ).not.toBeNull();
+		const x = parseFloat( match![ 1 ] );
+		const y = parseFloat( match![ 2 ] );
+
+		// Lands within the image's rect — rng() = 0.5 draws zero jitter.
+		expect( x ).toBeGreaterThanOrEqual( 100 );
+		expect( x ).toBeLessThanOrEqual( 300 );
+		expect( y ).toBeGreaterThanOrEqual( 100 );
+		expect( y ).toBeLessThanOrEqual( 200 );
+	} );
+
+	it( 'scrolls an off-screen image into view before travelling to it', async () => {
+		document.body.innerHTML = '<img src="a.jpg">';
+		const img = document.querySelector( 'img' )!;
+		img.getBoundingClientRect = () =>
+			( {
+				top: 3000,
+				bottom: 3100,
+				left: 100,
+				right: 300,
+				width: 200,
+				height: 100,
+			} ) as DOMRect;
+
+		// jsdom has no real scroll implementation — mock it out rather than
+		// letting the spy fall through to jsdom's noisy "not implemented" stub.
+		const scrollBySpy = vi
+			.spyOn( window, 'scrollBy' )
+			.mockImplementation( () => undefined );
+		const travelToSpy = vi.spyOn( FakeCursor.prototype, 'travelTo' );
+		const motor = new DomMotor( () => 0.5, instantFrames );
+
+		await motor.lingerImage( 2000 );
+
+		expect( scrollBySpy ).toHaveBeenCalled();
+		expect( travelToSpy ).toHaveBeenCalled();
+		expect( scrollBySpy.mock.invocationCallOrder[ 0 ] ).toBeLessThan(
+			travelToSpy.mock.invocationCallOrder[ 0 ]
+		);
+
+		scrollBySpy.mockRestore();
+		travelToSpy.mockRestore();
+	} );
+
+	it( 'never chooses an image smaller than 40px in either dimension', async () => {
+		document.body.innerHTML =
+			'<img id="tiny" src="icon.png"><img id="big" src="hero.jpg">';
+		const tiny = document.querySelector( '#tiny' )!;
+		const big = document.querySelector( '#big' )!;
+		tiny.getBoundingClientRect = () =>
+			( {
+				top: 10,
+				bottom: 30,
+				left: 10,
+				right: 30,
+				width: 20,
+				height: 20,
+			} ) as DOMRect;
+		big.getBoundingClientRect = () =>
+			( {
+				top: 100,
+				bottom: 300,
+				left: 100,
+				right: 300,
+				width: 200,
+				height: 200,
+			} ) as DOMRect;
+
+		const travelToSpy = vi.spyOn( FakeCursor.prototype, 'travelTo' );
+		// rng() = 0 would pick the first candidate array-wise if both
+		// qualified; the tiny one must be filtered out regardless of order.
+		const motor = new DomMotor( () => 0, instantFrames );
+
+		await motor.lingerImage( 1000 );
+
+		const target = travelToSpy.mock.calls[ 0 ][ 0 ] as Point;
+		expect( target.x ).toBeGreaterThanOrEqual( 100 );
+		expect( target.x ).toBeLessThanOrEqual( 300 );
+
+		travelToSpy.mockRestore();
+	} );
+
+	it( 'falls back to an aimless drift when the page has no image to linger on, and never throws', async () => {
+		document.body.innerHTML = '<p>no images here</p>';
+		const motor = new DomMotor( () => 0.5, instantFrames );
+		const driftSpy = vi.spyOn( motor, 'pointerDrift' );
+
+		await expect( motor.lingerImage( 500 ) ).resolves.toBeUndefined();
+
+		expect( driftSpy ).toHaveBeenCalledWith( 500 );
+
+		driftSpy.mockRestore();
+	} );
 } );
 
 describe( 'DomMotor.pointerDrift', () => {
@@ -246,5 +415,121 @@ describe( 'DomMotor.selectSnippet', () => {
 		expect( travelToSpy ).not.toHaveBeenCalled();
 
 		travelToSpy.mockRestore();
+	} );
+} );
+
+describe( 'DomMotor.readTrace', () => {
+	it( 'ends the sweep with the cursor resting inside the chosen block', async () => {
+		document.body.innerHTML = `<p>${ 'word '.repeat( 20 ) }</p>`;
+		const p = document.querySelector( 'p' )!;
+		p.getBoundingClientRect = () =>
+			( {
+				top: 100,
+				bottom: 200,
+				left: 50,
+				right: 450,
+				width: 400,
+				height: 100,
+			} ) as DOMRect;
+
+		const motor = new DomMotor( () => 0.5, instantFrames );
+		const cursorEl =
+			document.querySelector< HTMLElement >( '.bsb-surf-cursor' );
+
+		await motor.readTrace( 5000 );
+
+		// The sweep's own moveTo calls are constrained to the block's rect by
+		// construction (x from `rect.left + rect.width * t`, t in (0, 1]; y
+		// fixed per line within the rect); only the initial approach travels
+		// from wherever the cursor already was, so the resting position is
+		// the reliable, non-transient signal to check here.
+		const transform = cursorEl?.style.transform ?? '';
+		const match = transform.match(
+			/translate\(([-\d.]+)px, ([-\d.]+)px\)/
+		);
+		expect( match ).not.toBeNull();
+		const x = parseFloat( match![ 1 ] );
+		const y = parseFloat( match![ 2 ] );
+
+		expect( x ).toBeGreaterThanOrEqual( 50 );
+		expect( x ).toBeLessThanOrEqual( 450 );
+		expect( y ).toBeGreaterThanOrEqual( 100 );
+		expect( y ).toBeLessThanOrEqual( 200 );
+	} );
+
+	it( 'sweeps multiple lines for a tall block', async () => {
+		document.body.innerHTML = `<p>${ 'word '.repeat( 40 ) }</p>`;
+		const p = document.querySelector( 'p' )!;
+		// Tall enough at the default 24px line-height fallback (jsdom's
+		// computed line-height is "normal", not a resolved px length) to
+		// estimate several lines.
+		p.getBoundingClientRect = () =>
+			( {
+				top: 0,
+				bottom: 120,
+				left: 0,
+				right: 400,
+				width: 400,
+				height: 120,
+			} ) as DOMRect;
+
+		const moveToSpy = vi.spyOn( FakeCursor.prototype, 'moveTo' );
+
+		await new DomMotor( () => 0.5, instantFrames ).readTrace( 10_000 );
+
+		const linesVisited = new Set(
+			moveToSpy.mock.calls.map( ( call ) =>
+				Math.round( ( call[ 0 ] as Point ).y )
+			)
+		);
+		expect( linesVisited.size ).toBeGreaterThan( 1 );
+
+		moveToSpy.mockRestore();
+	} );
+
+	it( 'falls back to a still idle, without throwing, when no readable block is in view', async () => {
+		document.body.innerHTML = '<p>short</p>';
+		const travelToSpy = vi.spyOn( FakeCursor.prototype, 'travelTo' );
+
+		await expect(
+			new DomMotor( () => 0.5, instantFrames ).readTrace( 20 )
+		).resolves.toBeUndefined();
+
+		expect( travelToSpy ).not.toHaveBeenCalled();
+
+		travelToSpy.mockRestore();
+	} );
+
+	it( 'stops within its time budget instead of sweeping every line of a very tall block', async () => {
+		document.body.innerHTML = `<p>${ 'word '.repeat( 50 ) }</p>`;
+		const p = document.querySelector( 'p' )!;
+		p.getBoundingClientRect = () =>
+			( {
+				top: 0,
+				bottom: 5000,
+				left: 0,
+				right: 400,
+				width: 400,
+				height: 5000,
+			} ) as DOMRect;
+
+		const moveToSpy = vi.spyOn( FakeCursor.prototype, 'moveTo' );
+
+		await expect(
+			new DomMotor( () => 0.5, instantFrames ).readTrace( 200 )
+		).resolves.toBeUndefined();
+
+		const linesVisited = new Set(
+			moveToSpy.mock.calls.map( ( call ) =>
+				Math.round( ( call[ 0 ] as Point ).y )
+			)
+		);
+
+		// A 5000px-tall block at the default 24px line height renders roughly
+		// 200 lines; the ~200ms budget (a handful of frames) must cut the
+		// sweep short after one or two, not race through the whole block.
+		expect( linesVisited.size ).toBeLessThan( 10 );
+
+		moveToSpy.mockRestore();
 	} );
 } );

@@ -80,6 +80,30 @@ $icon-external: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg
 // control (visible only once a battery/sim override is armed).
 $icon-reset: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='1 4 1 10 7 10'/%3E%3Cpath d='M3.51 15a9 9 0 1 0 2.13-9.36L1 10'/%3E%3C/svg%3E");
 
+// An open book, masked onto the behavior-start bark when the surfer settles in
+// to read (readPause).
+$icon-book: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 6.5C10.2 5 7.8 4.3 5 4.2V17c2.8.1 5.2.8 7 2.3 1.8-1.5 4.2-2.2 7-2.3V4.2c-2.8.1-5.2.8-7 2.3z'/%3E%3Cpath d='M12 6.5V19.3'/%3E%3C/svg%3E");
+
+// A backward-curving arrow, masked onto the bark when the surfer glances back
+// up the page (glanceBack).
+$icon-glance-back: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 15 4 10l5-5'/%3E%3Cpath d='M4 10h9a7 7 0 0 1 7 7v1'/%3E%3C/svg%3E");
+
+// A play triangle, masked onto the bark when the surfer watches a video
+// (watchVideo).
+$icon-play: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M7 4.5v15l14-7.5z'/%3E%3C/svg%3E");
+
+// A framed picture (rectangle, a small sun, a mountain line), masked onto the
+// bark when the surfer lingers on an image (lingerImage).
+$icon-picture: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='16' rx='2'/%3E%3Ccircle cx='8.5' cy='9' r='1.5'/%3E%3Cpath d='M21 16l-5.5-5.5-4 4-3-3L3 17'/%3E%3C/svg%3E");
+
+// A terminal-style text cursor (a caret, not a mouse pointer), masked onto the
+// bark when the surfer highlights a snippet (selectSnippet).
+$icon-text-cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 4h6M12 4v16M9 20h6'/%3E%3C/svg%3E");
+
+// A stylized wave curl, masked onto the bark when the surfer moves on to the
+// next page (moveOn).
+$icon-wave: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2 15q2.5-5 5 0t5 0 5 0 5 0'/%3E%3C/svg%3E");
+
 // ── Parameterized glyphs ─────────────────────────────────────────────────────
 // Encodes a hex colour (e.g. `#1a1a18`) for embedding in a data-URI: the `#`
 // would otherwise be read as the URL's fragment delimiter and truncate the

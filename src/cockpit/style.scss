@@ -1069,6 +1069,178 @@ body.bsb-cockpit-dashboard {
 	}
 }
 
+// The behavior-start bark: a small pill dropped in from the top of the running
+// viewport whenever the surf engine starts a novelty behavior — ambient flavor
+// text, not actionable information, so the layer is `aria-hidden` and swallows
+// no pointer input. Non-persistent: it auto-dismisses on its own hold timer,
+// and a newer bark can replace it early but never mid-safe-period (the model
+// in Barks.ts owns that lifecycle; this is presentation only). Anchored inside
+// the already-`position: relative` .bsb-cockpit__viewport-wrap, so it reads as
+// "inside" the simulated page rather than the dashboard chrome.
+.bsb-cockpit__bark-layer {
+	position: absolute;
+	inset-inline: 0;
+	inset-block-start: 0.9rem;
+	display: flex;
+	justify-content: center;
+	padding-inline: 1rem;
+	pointer-events: none;
+	z-index: 5;
+}
+
+// Same frosted-pill construction as .bsb-cockpit__toast above (radius,
+// background, border, blur, typography) — duplicated here rather than shared
+// through a mixin so an edit to the bark can never drift the toast's compiled
+// CSS (the toast's visual identity and its e2e are load-bearing). The
+// entrance/exit direction and the single teal accent differ, and — unlike the
+// toast, which needs it for its clickable dismiss button — this pill carries
+// no `pointer-events: auto`: it is purely decorative and must stay inert
+// inside the `pointer-events: none` layer, or it would swallow pointer input
+// over the viewport and mask the shield's not-allowed cursor. Icon selection
+// is by the `[data-bark]` attribute rather than a per-kind class, since every
+// bark shares one accent.
+.bsb-cockpit__bark {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.55rem;
+	max-width: min(28rem, 100%);
+	padding: 0.5rem 0.7rem 0.5rem 0.6rem;
+	border-radius: 999px;
+	background: var(--toast-bg);
+	border: 1px solid var(--bark-accent-line);
+	box-shadow:
+		0 10px 26px var(--toast-shadow),
+		0 0 0 4px var(--bark-accent-halo);
+	backdrop-filter: blur(8px);
+	color: var(--toast-ink);
+	font-family: theme.$font-ui;
+	font-size: 0.82rem;
+	font-weight: 600;
+	letter-spacing: 0.01em;
+	white-space: nowrap;
+	opacity: 0;
+
+	// One accent for every bark — the teal family, same as the toast's notice
+	// variant — set here (not per-kind) since only the icon varies by behavior.
+	--bark-accent: #{theme.$coastal-teal};
+	--bark-accent-deep: #{theme.$coastal-teal-deep};
+	--bark-accent-line: #{rgba(theme.$coastal-teal-deep, 0.4)};
+	--bark-accent-halo: #{rgba(theme.$coastal-teal, 0.12)};
+
+	&[hidden] {
+		display: none;
+	}
+
+	&.is-entering,
+	&.is-holding {
+		opacity: 1;
+	}
+
+	&.is-entering {
+		animation: bsb-bark-in 460ms cubic-bezier(0.16, 1, 0.3, 1) both;
+	}
+
+	&.is-leaving {
+		animation: bsb-bark-out 320ms cubic-bezier(0.5, 0, 1, 0.5) both;
+	}
+
+	// Icon selection by the raw behavior key bound onto the attribute, rather
+	// than a per-kind class + getter (there are six of these, not two).
+	&[data-bark='readPause'] {
+		--bark-icon: #{theme.$icon-book};
+	}
+
+	&[data-bark='glanceBack'] {
+		--bark-icon: #{theme.$icon-glance-back};
+	}
+
+	&[data-bark='watchVideo'] {
+		--bark-icon: #{theme.$icon-play};
+	}
+
+	&[data-bark='lingerImage'] {
+		--bark-icon: #{theme.$icon-picture};
+	}
+
+	&[data-bark='selectSnippet'] {
+		--bark-icon: #{theme.$icon-text-cursor};
+	}
+
+	&[data-bark='moveOn'] {
+		--bark-icon: #{theme.$icon-wave};
+	}
+}
+
+// A small accent circle carrying the white masked glyph — same construction as
+// .bsb-cockpit__toast-icon, selecting its glyph from the `--bark-icon` custom
+// property the `[data-bark]` rules above set.
+.bsb-cockpit__bark-icon {
+	position: relative;
+	flex: none;
+	width: 1.25rem;
+	height: 1.25rem;
+	border-radius: 50%;
+	background: radial-gradient(
+		circle at 30% 30%,
+		var(--bark-accent),
+		var(--bark-accent-deep)
+	);
+	box-shadow: 0 2px 6px var(--bark-accent-halo);
+
+	&::before {
+		content: '';
+		position: absolute;
+		inset: 0;
+		margin: auto;
+		width: 0.72rem;
+		height: 0.72rem;
+		background: #fff;
+		mask: var(--bark-icon) center / contain no-repeat;
+		-webkit-mask: var(--bark-icon) center / contain no-repeat;
+	}
+}
+
+.bsb-cockpit__bark-msg {
+	padding-block: 1px;
+}
+
+// Drops down from the top (unlike the toast, which rises from the bottom) —
+// same duration, easing and blur treatment as bsb-toast-in/out.
+@keyframes bsb-bark-in {
+	0% {
+		opacity: 0;
+		transform: translateY(-140%);
+		filter: blur(6px);
+	}
+
+	100% {
+		opacity: 1;
+		transform: translateY(0);
+		filter: blur(0);
+	}
+}
+
+@keyframes bsb-bark-out {
+	0% {
+		opacity: 1;
+		transform: translateY(0);
+		filter: blur(0);
+	}
+
+	100% {
+		opacity: 0;
+		transform: translateY(-140%);
+		filter: blur(5px);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.bsb-cockpit__bark.is-entering,
+	.bsb-cockpit__bark.is-leaving {
+		animation-duration: 1ms;
+	}
+}
+
 // ── Idle "ready" screen ──────────────────────────────────────────────────────
 // Before a run the stage shows a postcard instead of the iframe: an illustrated
 // front (the surfer mark on a sun-faded gradient) with the run's "how it works"

@@ -88,6 +88,12 @@ classDiagram
         callbacks: onToastAnimationEnd
     }
 
+    class BarkStore {
+        <<module>>
+        state: hasBark, barkKey, barkMessage, phase flags (isBarkEntering/Holding/Leaving)
+        callbacks: initBark (raises a bark from the surf engine's behaviorStart message, while running), onBarkAnimationEnd
+    }
+
     %% --- Shared seam between slices.
     class CockpitContext {
         <<types>>
@@ -114,6 +120,22 @@ classDiagram
         +now() number
         +wallNow() number
         +__resetInstance() void
+    }
+
+    class Barks {
+        <<module>>
+        +pickBarkText(strings, key, rng?) string
+        +raiseBark(ctx, instance, key, now?) void
+        +finishBark(ctx, instance) void
+        +clearBark(ctx, instance) void
+        +BARK_HOLD_MS
+        +BARK_SAFE_MS
+    }
+
+    class BehaviorStart {
+        <<module>>
+        +isBehaviorStartMessage(MessageEvent, string) boolean
+        +behaviorKeyOf(MessageEvent) string
     }
 
     class RunLifecycle {
@@ -269,6 +291,7 @@ classDiagram
     CockpitView --> SummaryStore : composes
     CockpitView --> StartupStore : composes
     CockpitView --> ToastStore : composes
+    CockpitView --> BarkStore : composes
 
     %% Slices share the run state, lifecycle seam and reactive context.
     RunStore ..> CockpitContext : reads/writes
@@ -281,6 +304,7 @@ classDiagram
     SummaryStore ..> CockpitContext : reads/writes
     StartupStore ..> CockpitContext : reads/writes
     ToastStore ..> CockpitContext : reads/writes
+    BarkStore ..> CockpitContext : reads/writes
 
     RunStore --> RunLifecycle : ends runs
     BatteryStore --> RunLifecycle : ends runs (charger/target)
@@ -291,12 +315,22 @@ classDiagram
     SummaryStore --> RunInstance : auto-flip timer
     ToastStore --> RunInstance : toast queue & timer
     RunStore --> RunInstance : re-arms notice on run start
+    BarkStore --> RunInstance : reads/writes the pending slot & timers
 
     %% Toast queue & lifecycle.
     ToastStore --> Toasts : enqueues / advances
     RunLifecycle --> Toasts : raises error toast on failed upload
     Toasts ..> CockpitContext : writes current toast
     RunInstance --> ToastQueue : creates & owns (composition)
+
+    %% Bark lifecycle: BarkStore recognizes the engine's behaviorStart message
+    %% (only while running) and hands the key to Barks, which owns the show /
+    %% safe-period-wait / pending-replace state machine; RunInstance owns the
+    %% pending slot and the hold/replace timers off the reactive context.
+    BarkStore --> Barks : raises / finishes a bark
+    BarkStore --> BehaviorStart : recognizes the message, reads the behavior key
+    Barks ..> CockpitContext : writes the showing bark
+    RunLifecycle --> Barks : clears every bark (showing, pending, timers) on stop
 
     %% Slice → focused domain delegation.
     RunStore --> RunConfig : normalizes config

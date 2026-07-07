@@ -16,10 +16,19 @@ classDiagram
         <<module>>
         boot guard on the traits URL param; builds and starts SurfLoop once
         the document has loaded; posts 'bsb:pageDone' to the parent frame
-        when the page's session ends
+        when the page's session ends; posts 'bsb:behaviorStart' with the
+        winner's key each time one begins running, and again every 20
+        wall-clock seconds while that run is still pending
     }
 
     %% --- Orchestration: the tick loop and its inputs.
+    %% onBehaviorRun (an optional SurfLoopDeps callback) is notified with each
+    %% auction winner's key as it begins running, including MoveOn (before the
+    %% loop halts and fires onPageDone) — the engine stays flavor-free, only
+    %% posting every winner's key; the cockpit's string table decides what barks.
+    %% While a winner's run() is still pending, onBehaviorRun is re-notified
+    %% with the same key every 20 wall-clock seconds (never speed-scaled) so a
+    %% long dwell doesn't read as stuck once the cockpit's bark for it fades.
     class SurfLoop {
         +start() void
         +stop() void
@@ -33,7 +42,7 @@ classDiagram
     class Appetite {
         +valueFor(string) number
         +consume(string) void
-        +recoverTick() void
+        +recover(steps) void
     }
 
     %% --- The behavior contract every action implements.
@@ -53,6 +62,8 @@ classDiagram
     class Affordances {
         <<module>>
         +senseAffordances(Document) Affordances
+        +contentRoot(Document) Element
+        +VIDEO_EMBED_SELECTOR
     }
 
     class Motor {
@@ -61,6 +72,8 @@ classDiagram
         +pointerDrift(ms) Promise
         +selectSnippet() Promise
         +playVideo() Promise
+        +lingerImage(ms) Promise
+        +readTrace(ms) Promise
         +idle(ms) Promise
     }
 
@@ -70,6 +83,8 @@ classDiagram
         +pointerDrift(ms) Promise
         +selectSnippet() Promise
         +playVideo() Promise
+        +lingerImage(ms) Promise
+        +readTrace(ms) Promise
         +idle(ms) Promise
     }
 
@@ -204,9 +219,11 @@ classDiagram
     EngineBoot --> RealClock : creates
     EngineBoot --> Rng : seeds the one PRNG instance
     EngineBoot --> Affordances : provides senseAffordances
+    DomMotor --> Affordances : shares contentRoot & VIDEO_EMBED_SELECTOR (lingerImage, playVideo)
     EngineBoot --> SurferStats : normalizeTraits
     EngineBoot --> RunConfig : normalizeSpeed
     EngineBoot ..> RunStore : postMessage 'bsb:pageDone'
+    EngineBoot ..> BarkStore : postMessage 'bsb:behaviorStart' (every winner's key)
 
     SurfLoop --> Behavior : bids & runs each tick
     SurfLoop --> Arbiter : draws a winner
@@ -250,4 +267,11 @@ classDiagram
         <<module>>
         cockpit-side receiver — currentSrc carries traits+speed onto the
         iframe URL; a page-done listener advances activeIndex
+    }
+
+    class BarkStore {
+        <<module>>
+        cockpit-side receiver — recognizes 'bsb:behaviorStart' while running
+        and raises a bark for the winner's key (a key with no translated
+        strings is silently ignored)
     }
