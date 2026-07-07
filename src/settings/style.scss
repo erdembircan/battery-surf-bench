@@ -321,6 +321,12 @@
 
 .bsb-browse__row {
 	display: flex;
+	// A flex item's `flex-shrink` defaults to `1` — without pinning it to `0`
+	// here, a list of rows taller than `.bsb-browse__list`'s scroll box would
+	// compress to fit instead of overflowing it (the list already owns the
+	// scroll via `overflow-y: auto` above). Rows must keep their natural,
+	// content-driven height no matter how many of them there are.
+	flex: 0 0 auto;
 	align-items: center;
 	gap: 0.7rem;
 	padding: 0.6rem 0.15rem;
@@ -488,12 +494,25 @@
 .bsb-pages-row--custom {
 	cursor: default;
 	display: grid;
+	// A flex item's `flex-shrink` defaults to `1` — without pinning it to `0`
+	// here, a sequence longer than `.bsb-pages-list--custom`'s scroll box
+	// would compress every row to cram them all in, instead of overflowing
+	// the list (which already owns the scroll via `overflow-y: auto` there).
+	// Rows must keep their natural, content-driven height no matter how many
+	// are in the sequence — grid + flex-shrink:0 combine fine here, since the
+	// grid only governs this element's own children/columns, not how this
+	// element itself is sized as a flex item of its list parent.
+	flex: 0 0 auto;
 	grid-template-columns: 0.85rem 1.6rem 0.95rem 1fr 4.5rem 1.9rem;
 	// Own margin (not a container `gap`) so a removed row's spacing can
 	// collapse away along with its height — see `.is-removing` below.
 	margin-bottom: 0.5rem;
 	// `overflow:hidden` + an explicit resting `max-height` give the collapse
-	// transition something concrete to animate from.
+	// transition something concrete to animate from. 6rem is comfortably
+	// above one row's real (single-line) content height, so — now that
+	// `flex-shrink` can never compress the row below that content height
+	// either — this cap is never actually reached at rest; it only matters
+	// once `.is-removing` starts transitioning it down to 0.
 	overflow: hidden;
 	max-height: 6rem;
 	// The `transition` property itself (not just its values) is set inline by
