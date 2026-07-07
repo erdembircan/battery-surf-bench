@@ -100,11 +100,14 @@ describe( 'SurfLoop', () => {
 
 	it( 'does not let a long-running behavior (e.g. watchVideo) suppress leave pressure and camp indefinitely', async () => {
 		// A behavior whose run() spends a long stretch of sim time in one
-		// go, exactly like watchVideo's 60-90s dwell — before the time-scaled
-		// accrual fix, boredom grew by a flat per-tick amount no matter how
-		// long a win's run() took, so a behavior like this could re-win for
-		// dozens of rounds (tens of minutes of real dwell) before enough
-		// boredom accumulated to let MoveOn compete.
+		// go — the same shape as watchVideo's own tens-of-seconds dwell, kept
+		// as its own constant here rather than importing WatchVideo's, so
+		// this regression test doesn't need to change whenever that duration
+		// is retuned. Before the time-scaled accrual fix, boredom grew by a
+		// flat per-tick amount no matter how long a win's run() took, so a
+		// behavior like this could re-win for dozens of rounds (tens of
+		// minutes of real dwell) before enough boredom accumulated to let
+		// MoveOn compete.
 		let runs = 0;
 		class LongBehavior implements Behavior {
 			readonly key = 'longBehavior';

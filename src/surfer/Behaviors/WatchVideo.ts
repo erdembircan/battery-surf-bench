@@ -2,8 +2,10 @@
  * Sits and watches when a page offers a video or a recognized video-host
  * embed (YouTube, Vimeo). A page with neither zeroes this behavior's bid via
  * `hasVideo` rather than a branch. Replay emerges for free: winning this
- * behavior again later just plays again. Duration is the video-page dwell
- * from `docs/knowledge-base/surf-behavior-profile.md` (60–90 s).
+ * behavior again later just plays again. Duration is deliberately half the
+ * video-page dwell profile from `docs/knowledge-base/surf-behavior-profile.md`
+ * (60–90 s) — a full minute parked on a video reads as too long in the
+ * cockpit, per maintainer preference.
  */
 
 import type { Behavior, BehaviorContext } from '../Behavior';
@@ -11,8 +13,8 @@ import { ALLURE } from '../Behavior';
 import type { Motor } from '../Motor';
 import { drive, noise } from '../Bid';
 
-const WATCH_MS_MIN = 60000;
-const WATCH_MS_MAX = 90000;
+const WATCH_MS_MIN = 30000;
+const WATCH_MS_MAX = 45000;
 
 export const WATCH_VIDEO_KEY = 'watchVideo';
 

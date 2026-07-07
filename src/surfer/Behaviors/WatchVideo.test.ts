@@ -40,7 +40,7 @@ describe( 'WatchVideo.run', () => {
 		expect( motor.commands[ 0 ].kind ).toBe( 'playVideo' );
 		expect( motor.commands[ 1 ].kind ).toBe( 'idle' );
 		const [ ms ] = motor.commands[ 1 ].args;
-		expect( ms ).toBeGreaterThanOrEqual( 60000 );
-		expect( ms ).toBeLessThanOrEqual( 90000 );
+		expect( ms ).toBeGreaterThanOrEqual( 30000 );
+		expect( ms ).toBeLessThanOrEqual( 45000 );
 	} );
 } );

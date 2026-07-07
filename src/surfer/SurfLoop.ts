@@ -135,12 +135,13 @@ export class SurfLoop {
 			// this iteration's own tick interval — the surfer's natural beat
 			// is the reference unit, so a normal, fast-resolving iteration
 			// still counts as ~1 "tick", while a behavior that runs far
-			// longer than one tick (e.g. watchVideo's 60-90s dwell against a
-			// ~1s tick) counts as the many ticks' worth of leave pressure and
-			// appetite recovery it actually cost in wall-clock terms. Without
-			// this, a long-running behavior would starve the loop and
-			// produce almost no boredom growth for the real time it held the
-			// page, letting it re-win indefinitely with nothing to stop it.
+			// longer than one tick (e.g. watchVideo's tens-of-seconds dwell
+			// against a ~1s tick) counts as the many ticks' worth of leave
+			// pressure and appetite recovery it actually cost in wall-clock
+			// terms. Without this, a long-running behavior would starve the
+			// loop and produce almost no boredom growth for the real time it
+			// held the page, letting it re-win indefinitely with nothing to
+			// stop it.
 			const dtMs = ( clock.now() - lastTickAt ) * speed;
 			lastTickAt = clock.now();
 			const steps = dtMs / interval;
