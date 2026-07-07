@@ -205,6 +205,23 @@ describe( 'finishBark', () => {
 		expect( ctx.barkText ).toBe( '' );
 		expect( ctx.barkPhase ).toBe( '' );
 	} );
+
+	it( 'lets the same key bark again once it has finished — same-key suppression only applies while showing or pending', () => {
+		const ctx = context();
+		const inst = instance();
+
+		// A behavior's first win shows, then finishes entirely (no bark
+		// showing or pending) before the same behavior wins again — a long
+		// dwell's heartbeat re-notification is exactly this shape.
+		raiseBark( ctx, inst, 'readPause', 0 );
+		finishBark( ctx, inst );
+		expect( ctx.barkBehavior ).toBe( '' );
+
+		raiseBark( ctx, inst, 'readPause', 10_000 );
+
+		expect( ctx.barkBehavior ).toBe( 'readPause' );
+		expect( ctx.barkPhase ).toBe( 'entering' );
+	} );
 } );
 
 describe( 'clearBark', () => {
