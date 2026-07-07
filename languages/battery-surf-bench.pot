@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-07-06T10:23:32+00:00\n"
+"POT-Creation-Date: 2026-07-07T01:10:32+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: battery-surf-bench\n"
@@ -21,7 +21,7 @@ msgstr ""
 #: includes/Admin/Menu.php:83
 #: includes/Cockpit/Cockpit.php:247
 #: includes/Content/SessionDetail.php:168
-#: src/cockpit/render.php:130
+#: src/cockpit/render.php:143
 msgid "Battery Surf Bench"
 msgstr ""
 
@@ -56,6 +56,54 @@ msgstr ""
 
 #: includes/Admin/SessionsScreen.php:143
 msgid "Open Cockpit"
+msgstr ""
+
+#: includes/Cockpit/BarkStrings.php:35
+msgid "Deep in the good words…"
+msgstr ""
+
+#: includes/Cockpit/BarkStrings.php:36
+msgid "Catching up on the fine print…"
+msgstr ""
+
+#: includes/Cockpit/BarkStrings.php:39
+msgid "Wait — what did that say?"
+msgstr ""
+
+#: includes/Cockpit/BarkStrings.php:40
+msgid "Paddling back for a second look…"
+msgstr ""
+
+#: includes/Cockpit/BarkStrings.php:43
+msgid "Ooh, moving pictures!"
+msgstr ""
+
+#: includes/Cockpit/BarkStrings.php:44
+msgid "Popcorn out — the video is rolling…"
+msgstr ""
+
+#: includes/Cockpit/BarkStrings.php:47
+msgid "Basking in the beauty of the pictures…"
+msgstr ""
+
+#: includes/Cockpit/BarkStrings.php:48
+msgid "Ooh, shiny pixels…"
+msgstr ""
+
+#: includes/Cockpit/BarkStrings.php:51
+msgid "Highlighting the juicy bits…"
+msgstr ""
+
+#: includes/Cockpit/BarkStrings.php:52
+msgid "This part deserves a highlight…"
+msgstr ""
+
+#: includes/Cockpit/BarkStrings.php:55
+msgid "Paddling off to the next page…"
+msgstr ""
+
+#: includes/Cockpit/BarkStrings.php:56
+msgid "This wave is done — surfing on…"
 msgstr ""
 
 #. translators: %s: login URL.
@@ -114,7 +162,7 @@ msgstr ""
 
 #: includes/Cockpit/SummaryReasons.php:48
 #: includes/Cockpit/SummaryReasons.php:54
-#: src/cockpit/render.php:204
+#: src/cockpit/render.php:217
 msgid "elapsed"
 msgstr ""
 
@@ -135,68 +183,68 @@ msgid "Battery Surf Bench — Cockpit"
 msgstr ""
 
 #: includes/Content/SessionDetail.php:167
-#: src/cockpit/render.php:214
+#: src/cockpit/render.php:227
 msgid "Greetings from"
 msgstr ""
 
 #: includes/Content/SessionDetail.php:169
-#: src/cockpit/render.php:230
+#: src/cockpit/render.php:243
 msgid "BATTERY · SURF · BENCH"
 msgstr ""
 
 #: includes/Content/SessionDetail.php:170
-#: src/cockpit/render.php:227
+#: src/cockpit/render.php:240
 msgid "Flip"
 msgstr ""
 
 #: includes/Content/SessionDetail.php:171
 #: includes/Content/SessionSchema.php:399
-#: src/cockpit/render.php:201
+#: src/cockpit/render.php:214
 msgid "100% → 0%"
 msgstr ""
 
 #: includes/Content/SessionDetail.php:172
 #: includes/Content/SessionSchema.php:389
-#: src/cockpit/render.php:200
+#: src/cockpit/render.php:213
 msgid "Rate · session"
 msgstr ""
 
 #: includes/Content/SessionDetail.php:173
 #: includes/Content/SessionSchema.php:379
-#: src/cockpit/render.php:199
+#: src/cockpit/render.php:212
 msgid "Rate · 10 min"
 msgstr ""
 
 #: includes/Content/SessionDetail.php:174
 #: includes/DevTools/DevTools.php:169
-#: src/cockpit/render.php:198
+#: src/cockpit/render.php:211
 msgid "Battery"
 msgstr ""
 
 #: includes/Content/SessionDetail.php:175
 #: includes/Content/SessionSchema.php:369
-#: src/cockpit/render.php:223
+#: src/cockpit/render.php:236
 msgid "Dropped"
 msgstr ""
 
 #: includes/Content/SessionDetail.php:176
-#: src/cockpit/render.php:224
+#: src/cockpit/render.php:237
 msgid "pts"
 msgstr ""
 
 #: includes/Content/SessionDetail.php:177
 #: includes/Content/SessionSchema.php:359
-#: src/cockpit/render.php:225
+#: src/cockpit/render.php:238
 msgid "Elapsed"
 msgstr ""
 
 #: includes/Content/SessionDetail.php:178
-#: src/cockpit/render.php:228
+#: src/cockpit/render.php:241
 msgid "Measured"
 msgstr ""
 
 #: includes/Content/SessionDetail.php:179
-#: src/cockpit/render.php:229
+#: src/cockpit/render.php:242
 msgid "Projected 100 → 0"
 msgstr ""
 
@@ -225,7 +273,7 @@ msgid "Aborted"
 msgstr ""
 
 #: includes/Content/SessionSchema.php:261
-#: src/cockpit/render.php:132
+#: src/cockpit/render.php:145
 msgid "Mode"
 msgstr ""
 
@@ -233,13 +281,13 @@ msgstr ""
 #: includes/Content/SessionSchema.php:422
 #: includes/Content/SessionSchema.php:432
 #: includes/DevTools/DevTools.php:182
-#: src/cockpit/render.php:133
+#: src/cockpit/render.php:146
 msgid "Duration"
 msgstr ""
 
 #: includes/Content/SessionSchema.php:267
 #: includes/Content/SessionSchema.php:443
-#: src/cockpit/render.php:202
+#: src/cockpit/render.php:215
 msgid "Target"
 msgstr ""
 
@@ -276,7 +324,7 @@ msgid "Config mode"
 msgstr ""
 
 #: includes/Content/SessionSchema.php:423
-#: src/cockpit/render.php:134
+#: src/cockpit/render.php:147
 msgid "Target drop"
 msgstr ""
 
@@ -301,7 +349,7 @@ msgid "Override active"
 msgstr ""
 
 #: includes/DevTools/DevTools.php:167
-#: src/cockpit/render.php:148
+#: src/cockpit/render.php:161
 msgid "Reset"
 msgstr ""
 
@@ -358,12 +406,12 @@ msgid "Increase end percentage"
 msgstr ""
 
 #: includes/DevTools/DevTools.php:183
-#: src/cockpit/render.php:137
+#: src/cockpit/render.php:150
 msgid "Decrease duration"
 msgstr ""
 
 #: includes/DevTools/DevTools.php:184
-#: src/cockpit/render.php:138
+#: src/cockpit/render.php:151
 msgid "Increase duration"
 msgstr ""
 
@@ -372,239 +420,239 @@ msgid "%"
 msgstr ""
 
 #: includes/DevTools/DevTools.php:186
-#: src/cockpit/render.php:136
+#: src/cockpit/render.php:149
 msgid "min"
 msgstr ""
 
 #: includes/DevTools/DevTools.php:187
-#: src/cockpit/render.php:206
+#: src/cockpit/render.php:219
 msgid "Start"
 msgstr ""
 
 #: includes/DevTools/DevTools.php:188
-#: src/cockpit/render.php:207
+#: src/cockpit/render.php:220
 msgid "Stop"
 msgstr ""
 
-#: src/cockpit/render.php:54
-#: src/cockpit/render.php:175
+#: src/cockpit/render.php:55
+#: src/cockpit/render.php:188
 msgid "Balanced"
 msgstr ""
 
-#: src/cockpit/render.php:55
-#: src/cockpit/render.php:179
+#: src/cockpit/render.php:56
+#: src/cockpit/render.php:192
 msgid "Scholar"
 msgstr ""
 
-#: src/cockpit/render.php:56
-#: src/cockpit/render.php:183
+#: src/cockpit/render.php:57
+#: src/cockpit/render.php:196
 msgid "Binge-Watcher"
 msgstr ""
 
-#: src/cockpit/render.php:57
-#: src/cockpit/render.php:187
+#: src/cockpit/render.php:58
+#: src/cockpit/render.php:200
 msgid "Doomscroller"
 msgstr ""
 
-#: src/cockpit/render.php:58
-#: src/cockpit/render.php:191
+#: src/cockpit/render.php:59
+#: src/cockpit/render.php:204
 msgid "Skimmer"
 msgstr ""
 
-#: src/cockpit/render.php:59
-#: src/cockpit/render.php:195
+#: src/cockpit/render.php:60
+#: src/cockpit/render.php:208
 msgid "Jitterbug"
 msgstr ""
 
-#: src/cockpit/render.php:60
+#: src/cockpit/render.php:61
 msgid "Custom"
 msgstr ""
 
-#: src/cockpit/render.php:109
+#: src/cockpit/render.php:110
 msgid "Couldn't save this run — check your connection."
 msgstr ""
 
-#: src/cockpit/render.php:110
+#: src/cockpit/render.php:111
 msgid "View only while the run is surfing."
 msgstr ""
 
-#: src/cockpit/render.php:131
+#: src/cockpit/render.php:144
 msgid "Cockpit"
 msgstr ""
 
-#: src/cockpit/render.php:135
+#: src/cockpit/render.php:148
 msgid "Run duration"
 msgstr ""
 
-#: src/cockpit/render.php:139
+#: src/cockpit/render.php:152
 msgid "Stop at battery"
 msgstr ""
 
-#: src/cockpit/render.php:140
+#: src/cockpit/render.php:153
 msgid "Target battery percentage"
 msgstr ""
 
-#: src/cockpit/render.php:141
+#: src/cockpit/render.php:154
 msgid "Speed"
 msgstr ""
 
-#: src/cockpit/render.php:146
+#: src/cockpit/render.php:159
 msgid "Surfer"
 msgstr ""
 
-#: src/cockpit/render.php:147
+#: src/cockpit/render.php:160
 msgid "Customize stats"
 msgstr ""
 
-#: src/cockpit/render.php:149
+#: src/cockpit/render.php:162
 msgid "points to spend"
 msgstr ""
 
-#: src/cockpit/render.php:152
+#: src/cockpit/render.php:165
 msgid "Tempo"
 msgstr ""
 
-#: src/cockpit/render.php:153
+#: src/cockpit/render.php:166
 msgid "pace of every motion"
 msgstr ""
 
-#: src/cockpit/render.php:156
+#: src/cockpit/render.php:169
 msgid "Endurance"
 msgstr ""
 
-#: src/cockpit/render.php:157
+#: src/cockpit/render.php:170
 msgid "staying power"
 msgstr ""
 
-#: src/cockpit/render.php:160
+#: src/cockpit/render.php:173
 msgid "Literacy"
 msgstr ""
 
-#: src/cockpit/render.php:161
+#: src/cockpit/render.php:174
 msgid "pull of text"
 msgstr ""
 
-#: src/cockpit/render.php:164
+#: src/cockpit/render.php:177
 msgid "Allure"
 msgstr ""
 
-#: src/cockpit/render.php:165
+#: src/cockpit/render.php:178
 msgid "pull of media"
 msgstr ""
 
-#: src/cockpit/render.php:168
+#: src/cockpit/render.php:181
 msgid "Fidget"
 msgstr ""
 
-#: src/cockpit/render.php:169
+#: src/cockpit/render.php:182
 msgid "restlessness"
 msgstr ""
 
-#: src/cockpit/render.php:203
+#: src/cockpit/render.php:216
 msgid "Surfing"
 msgstr ""
 
-#: src/cockpit/render.php:205
+#: src/cockpit/render.php:218
 msgid "left"
 msgstr ""
 
-#: src/cockpit/render.php:208
+#: src/cockpit/render.php:221
 msgid "Plugged in"
 msgstr ""
 
-#: src/cockpit/render.php:209
+#: src/cockpit/render.php:222
 msgid "Compact the dashboard"
 msgstr ""
 
-#: src/cockpit/render.php:210
+#: src/cockpit/render.php:223
 msgid "Expand the dashboard"
 msgstr ""
 
-#: src/cockpit/render.php:211
+#: src/cockpit/render.php:224
 msgid "Toggle the end-of-run sound"
 msgstr ""
 
-#: src/cockpit/render.php:212
+#: src/cockpit/render.php:225
 msgid "Surf viewport"
 msgstr ""
 
-#: src/cockpit/render.php:213
+#: src/cockpit/render.php:226
 msgid "Dismiss"
 msgstr ""
 
-#: src/cockpit/render.php:215
+#: src/cockpit/render.php:228
 msgid "How this run works"
 msgstr ""
 
-#: src/cockpit/render.php:216
+#: src/cockpit/render.php:229
 msgid "a controlled, repeatable battery run."
 msgstr ""
 
-#: src/cockpit/render.php:217
+#: src/cockpit/render.php:230
 msgid "Set the session"
 msgstr ""
 
-#: src/cockpit/render.php:218
+#: src/cockpit/render.php:231
 msgid "Pick a run length, or a battery % to stop at."
 msgstr ""
 
-#: src/cockpit/render.php:219
+#: src/cockpit/render.php:232
 msgid "Drop in"
 msgstr ""
 
-#: src/cockpit/render.php:220
+#: src/cockpit/render.php:233
 msgid "Hit Start. The charger unplugs and the run begins on its own."
 msgstr ""
 
-#: src/cockpit/render.php:221
+#: src/cockpit/render.php:234
 msgid "Watch the slope"
 msgstr ""
 
-#: src/cockpit/render.php:222
+#: src/cockpit/render.php:235
 msgid "It runs hands-free while the battery drains; you just watch the numbers."
 msgstr ""
 
-#: src/cockpit/render.php:226
+#: src/cockpit/render.php:239
 msgid "New run"
 msgstr ""
 
-#: src/cockpit/render.php:231
+#: src/cockpit/render.php:244
 msgid "Keep the laptop open"
 msgstr ""
 
-#: src/cockpit/render.php:232
+#: src/cockpit/render.php:245
 msgid "Keep the laptop's lid open for the whole run. If the screen goes dark, the run can't measure properly."
 msgstr ""
 
-#: src/cockpit/render.php:236
+#: src/cockpit/render.php:249
 msgid "No battery to surf"
 msgstr ""
 
-#: src/cockpit/render.php:237
+#: src/cockpit/render.php:250
 msgid "this browser keeps it hidden."
 msgstr ""
 
-#: src/cockpit/render.php:238
+#: src/cockpit/render.php:251
 msgid "This browser can't read your battery level,"
 msgstr ""
 
-#: src/cockpit/render.php:239
+#: src/cockpit/render.php:252
 msgid " so a battery benchmark can't run here. Nothing is wrong with your device."
 msgstr ""
 
-#: src/cockpit/render.php:240
+#: src/cockpit/render.php:253
 msgid "Open Battery Surf Bench in Chrome or Edge to start a run."
 msgstr ""
 
-#: src/cockpit/render.php:241
+#: src/cockpit/render.php:254
 msgid "· NOT SUPPORTED ·"
 msgstr ""
 
-#: src/cockpit/render.php:242
+#: src/cockpit/render.php:255
 msgid "NO"
 msgstr ""
 
-#: src/cockpit/render.php:243
+#: src/cockpit/render.php:256
 msgid "BATTERY"
 msgstr ""
 
