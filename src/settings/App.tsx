@@ -3,13 +3,16 @@
  *
  * Ties the Browse pane (the source: the site's own posts and pages, paged and
  * searched server-side) to the Selected pane (the single surf sequence,
- * seeded with the locked bundled pages) and saves the result through the
- * core-data site-settings entity — no custom REST controller, since
+ * seeded with the locked bundled pages) and saves the result with a direct
+ * `/wp/v2/settings` POST — no custom REST controller, since
  * `register_setting`'s `show_in_rest` schema already expresses the ordered,
- * heterogeneous entries the PHP side validates and heals.
+ * heterogeneous entries the PHP side validates and heals. The core-data
+ * site-settings entity is unsuited here: it is a singleton keyed by
+ * `undefined`, not an empty string id, so there is no base record to `edit()`
+ * against.
  */
 
-import { useEntityRecord } from '@wordpress/core-data';
+import apiFetch from '@wordpress/api-fetch';
 import {
 	createPortal,
 	useCallback,
@@ -47,12 +50,6 @@ export function SettingsApp( { config }: { config: SettingsConfig } ) {
 	const [ dirty, setDirty ] = useState( false );
 	const [ saving, setSaving ] = useState( false );
 	const [ saved, setSaved ] = useState( false );
-
-	const { save, edit } = useEntityRecord< Record< string, unknown > >(
-		'root',
-		'site',
-		''
-	);
 
 	const userIds = useMemo(
 		() =>
@@ -136,18 +133,22 @@ export function SettingsApp( { config }: { config: SettingsConfig } ) {
 	}
 
 	/**
-	 * Persists the sequence through the core-data site-settings entity.
+	 * Persists the sequence with a direct POST to the core settings endpoint.
 	 */
 	async function handleSave(): Promise< void > {
 		setSaving( true );
 		try {
-			edit( { [ config.optionKey ]: order } as Record<
-				string,
-				unknown
-			> );
-			await save();
+			await apiFetch( {
+				path: '/wp/v2/settings',
+				method: 'POST',
+				data: { [ config.optionKey ]: order },
+			} );
 			setDirty( false );
 			setSaved( true );
+		} catch ( error ) {
+			// Keep the sequence dirty so the user can retry; surface, don't swallow.
+			// eslint-disable-next-line no-console
+			console.error( 'Failed to save the test page sequence', error );
 		} finally {
 			setSaving( false );
 		}

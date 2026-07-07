@@ -1,7 +1,7 @@
 /**
  * Behavioral tests for the settings app's orchestration: wiring the Browse and
- * Selected panes to the order state, and saving it through the core-data
- * site-settings entity.
+ * Selected panes to the order state, and saving it with a direct
+ * `/wp/v2/settings` POST.
  *
  * The panes themselves (query args, drag-reorder, row rendering) are covered
  * by their own tests (`BrowsePane.test.tsx`, `Order.test.ts`,
@@ -17,13 +17,11 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import type { SettingsConfig } from './Types';
 
 const hooks = vi.hoisted( () => ( {
-	useEntityRecord: vi.fn(),
-	edit: vi.fn(),
-	save: vi.fn(),
+	apiFetch: vi.fn(),
 } ) );
 
-vi.mock( '@wordpress/core-data', () => ( {
-	useEntityRecord: hooks.useEntityRecord,
+vi.mock( '@wordpress/api-fetch', () => ( {
+	default: hooks.apiFetch,
 } ) );
 
 vi.mock( './BrowsePane', () => ( {
@@ -91,12 +89,7 @@ function renderWithSaveSlot() {
 }
 
 beforeEach( () => {
-	hooks.edit.mockReset();
-	hooks.save.mockReset().mockResolvedValue( undefined );
-	hooks.useEntityRecord.mockReturnValue( {
-		edit: hooks.edit,
-		save: hooks.save,
-	} );
+	hooks.apiFetch.mockReset().mockResolvedValue( undefined );
 	document.body.innerHTML = '';
 } );
 
@@ -145,18 +138,24 @@ describe( 'SettingsApp save button', () => {
 		expect( slot.querySelector( 'button' ) ).not.toBeDisabled();
 	} );
 
-	it( 'saves the current order through the site-settings entity, keyed by the localized option key', async () => {
+	it( 'saves the current order with a POST to the core settings endpoint, keyed by the localized option key', async () => {
 		const slot = renderWithSaveSlot();
 		fireEvent.click( screen.getByText( 'stub-add' ) );
 
 		fireEvent.click( slot.querySelector( 'button' )! );
 
-		await waitFor( () => expect( hooks.save ).toHaveBeenCalledTimes( 1 ) );
-		expect( hooks.edit ).toHaveBeenCalledWith( {
-			bsb_course_order: [
-				{ kind: 'bundled', slug: 'article-1' },
-				{ kind: 'user', id: 5 },
-			],
+		await waitFor( () =>
+			expect( hooks.apiFetch ).toHaveBeenCalledTimes( 1 )
+		);
+		expect( hooks.apiFetch ).toHaveBeenCalledWith( {
+			path: '/wp/v2/settings',
+			method: 'POST',
+			data: {
+				bsb_course_order: [
+					{ kind: 'bundled', slug: 'article-1' },
+					{ kind: 'user', id: 5 },
+				],
+			},
 		} );
 	} );
 
@@ -169,5 +168,30 @@ describe( 'SettingsApp save button', () => {
 			expect( slot.querySelector( 'button' ) ).toBeDisabled()
 		);
 		expect( slot.textContent ).toContain( 'Saved' );
+	} );
+
+	it( 'returns saving to false and keeps the sequence dirty and retry-able when the save fails', async () => {
+		const consoleError = vi
+			.spyOn( console, 'error' )
+			.mockImplementation( () => {} );
+		hooks.apiFetch
+			.mockReset()
+			.mockRejectedValue( new Error( 'network error' ) );
+		const slot = renderWithSaveSlot();
+		fireEvent.click( screen.getByText( 'stub-add' ) );
+
+		fireEvent.click( slot.querySelector( 'button' )! );
+
+		await waitFor( () =>
+			expect( hooks.apiFetch ).toHaveBeenCalledTimes( 1 )
+		);
+		await waitFor( () =>
+			expect( slot.querySelector( 'button' ) ).not.toBeDisabled()
+		);
+		expect(
+			slot.querySelector( '.bsb-settings__save-flash' )
+		).not.toHaveClass( 'is-shown' );
+
+		consoleError.mockRestore();
 	} );
 } );
