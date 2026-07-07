@@ -185,26 +185,38 @@
 	}
 }
 
+// Both panes share one fixed height — neither grows nor shrinks with its own
+// content — so the two columns always line up; excess content scrolls inside
+// instead. `clamp()` keeps that height sensible across viewport sizes rather
+// than pinning a single rem value that would feel cramped or excessive at the
+// extremes.
 .bsb-picker__pane {
 	display: flex;
 	flex-direction: column;
 	min-width: 0;
+	height: clamp(32rem, 65vh, 40rem);
 	border-radius: 13px;
 	background: #fff;
 	box-shadow: 0 12px 30px #{rgba(theme.$coastal-navy, 0.08)};
 	padding: 1.1rem 1.1rem 0.9rem;
 }
 
+// Pinned in both panes: never grows/shrinks, and — being a flex sibling of
+// the one scrollable region rather than an overlay on top of it — a scrolled
+// row can never visually pass underneath it.
 .bsb-picker__pane-head {
 	display: flex;
+	flex: 0 0 auto;
 	align-items: baseline;
 	gap: 0.6rem;
 	margin-bottom: 0.15rem;
 }
 
 // ── Browse pane ──────────────────────────────────────────────────────────────
+// Pinned: type filter + search, above the scrollable results list.
 .bsb-browse__controls {
 	display: flex;
+	flex: 0 0 auto;
 	flex-wrap: wrap;
 	gap: 0.6rem;
 	margin: 0.7rem 0 0.55rem;
@@ -280,21 +292,31 @@
 }
 
 .bsb-browse__caption {
+	flex: 0 0 auto;
 	margin: 0 0 0.7rem;
 	font-size: 0.76rem;
 	color: theme.$coastal-ink-soft;
 }
 
 .bsb-browse__meta {
+	flex: 0 0 auto;
 	margin: 0 0 0.5rem;
 	font-size: 0.78rem;
 	color: theme.$coastal-ink-soft;
 }
 
+// The one scrollable region in the pane — everything above (heading,
+// controls, caption, meta) and below (the pager) is pinned, per
+// `.bsb-picker__pane`'s fixed height. `min-height: 0` is what actually lets a
+// flex item shrink below its content size to make room for its siblings and
+// scroll internally instead of stretching the pane to fit — `flex: 1 1 auto`
+// alone is not enough for that on its own.
 .bsb-browse__list {
 	display: flex;
+	flex: 1 1 auto;
 	flex-direction: column;
-	min-height: 21rem;
+	min-height: 0;
+	overflow-y: auto;
 }
 
 .bsb-browse__row {
@@ -302,9 +324,20 @@
 	align-items: center;
 	gap: 0.7rem;
 	padding: 0.6rem 0.15rem;
+	transition: background 0.15s ease;
 
 	& + & {
 		border-top: 1px solid theme.$coastal-line;
+	}
+
+	// Zebra + hover — the same `--bsb-row-stripe`/`--bsb-row-hover` tokens the
+	// Sessions DataViews table and the Selected rows share.
+	&:nth-child(even) {
+		background: var(--bsb-row-stripe);
+	}
+
+	&:hover {
+		background: var(--bsb-row-hover);
 	}
 }
 
@@ -334,6 +367,19 @@
 	text-align: center;
 	font-size: 0.84rem;
 	color: theme.$coastal-ink-soft;
+}
+
+// Shown in place of the rows — never alongside stale ones — for every fetch
+// (initial mount, debounced search, type-filter switch, Prev/Next), so the
+// list never reads as settled data mid-request. `.bsb-browse__list`'s own
+// `min-height` already keeps this from collapsing/jumping the layout. Spinner
+// only, per the maintainer — no loading label alongside it here.
+.bsb-browse__busy {
+	flex: 1 1 auto;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 1.6rem 0.5rem;
 }
 
 // Ghost/outline pill — Add / already-Added.
@@ -370,8 +416,11 @@
 	}
 }
 
+// Pinned at the bottom — stays visible while the results list above it
+// scrolls, so paging controls are never scrolled out of reach.
 .bsb-browse__pager {
 	display: flex;
+	flex: 0 0 auto;
 	align-items: center;
 	justify-content: center;
 	gap: 0.8rem;
@@ -411,15 +460,20 @@
 }
 
 // ── Selected pane (the single surf sequence) ─────────────────────────────────
+// Pinned, like the Browse pane's heading/controls/caption/meta.
 .bsb-selected__note {
+	flex: 0 0 auto;
 	margin: 0.3rem 0 0.8rem;
 	font-size: 0.8rem;
 	color: theme.$coastal-ink-soft;
 }
 
+// The pane's one scrollable region — see `.bsb-browse__list` for why
+// `min-height: 0` (not just `flex: 1 1 auto`) is what makes that work.
 .bsb-selected .bsb-pages-list--custom {
 	flex: 1 1 auto;
-	min-height: 21rem;
+	min-height: 0;
+	overflow-y: auto;
 	box-shadow: none;
 	padding: 0;
 	background: transparent;
@@ -442,12 +496,13 @@
 	// transition something concrete to animate from.
 	overflow: hidden;
 	max-height: 6rem;
-	transition:
-		max-height 190ms cubic-bezier(0.2, 0, 0, 1),
-		opacity 190ms cubic-bezier(0.2, 0, 0, 1),
-		padding 190ms cubic-bezier(0.2, 0, 0, 1),
-		margin 190ms cubic-bezier(0.2, 0, 0, 1),
-		border-top-width 190ms cubic-bezier(0.2, 0, 0, 1);
+	// The `transition` property itself (not just its values) is set inline by
+	// `SelectedPane.tsx` instead of here: `useSortable()` also sets an inline
+	// `transition` for the drag-settle animation, and an inline style always
+	// wins outright over a stylesheet rule for the same property — a
+	// stylesheet `transition` here would simply be discarded whenever dnd-kit
+	// supplies its own, silently breaking this row's own collapse animation.
+	// The component composes both into one inline value instead.
 
 	&:last-child {
 		margin-bottom: 0;
@@ -456,6 +511,17 @@
 	& + & {
 		border-top: 1px solid theme.$coastal-line;
 		border-radius: 0;
+	}
+
+	// Zebra + hover — the same `--bsb-row-stripe`/`--bsb-row-hover` tokens the
+	// Sessions DataViews table and the Browse rows share. Every row
+	// participates (bundled and user alike), matching Sessions' table.
+	&:nth-child(even) {
+		background: var(--bsb-row-stripe);
+	}
+
+	&:hover {
+		background: var(--bsb-row-hover);
 	}
 
 	// Badges have different natural widths ("Page" vs "Bundled") — pin them to

@@ -42,6 +42,10 @@ export function SaveButton( {
 				disabled={ ! dirty || saving }
 				onClick={ onSave }
 			>
+				<span
+					className="bsb-admin-pill__icon bsb-admin-pill__icon--save"
+					aria-hidden="true"
+				/>
 				{ saving
 					? __( 'Saving…', 'battery-surf-bench' )
 					: __( 'Save changes', 'battery-surf-bench' ) }

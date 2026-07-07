@@ -116,14 +116,16 @@
 		color: theme.$coastal-navy;
 	}
 
-	// Zebra + hover, in coastal tints.
+	// Zebra + hover — the shared `--bsb-row-stripe`/`--bsb-row-hover` tokens
+	// `admin-chrome.deck` sets, so Sessions' table rows and Settings' Browse/
+	// Selected rows all share one source instead of separately hardcoded tints.
 	.dataviews-view-table tbody tr:nth-child(even) td {
-		background: #{rgba(theme.$coastal-aqua, 0.07)};
+		background: var(--bsb-row-stripe);
 	}
 
 	.dataviews-view-table tbody tr:hover td,
 	.dataviews-view-table tbody tr.is-hovered td {
-		background: #{rgba(theme.$coastal-teal, 0.08)};
+		background: var(--bsb-row-hover);
 	}
 
 	// Selected row — teal wash plus a left accent bar on the checkbox cell.

@@ -28,6 +28,7 @@ const config: SettingsConfig = {
 	optionKey: 'bsb_course_order',
 	courseOrder: [],
 	bundledCatalog: [],
+	initialBrowse: { records: [], totalItems: 0, totalPages: 1 },
 };
 
 beforeEach( () => {

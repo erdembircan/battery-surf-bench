@@ -64,12 +64,15 @@ describe( 'BrowsePane queries', () => {
 			/>
 		);
 
-		expect( hooks.useSearchResults ).toHaveBeenCalledWith( {
-			search: '',
-			subtype: 'page,post',
-			page: 1,
-			perPage: 10,
-		} );
+		expect( hooks.useSearchResults ).toHaveBeenCalledWith(
+			{
+				search: '',
+				subtype: 'page,post',
+				page: 1,
+				perPage: 10,
+			},
+			undefined
+		);
 	} );
 
 	it( 'narrows to a single subtype when the Pages filter is active', () => {
@@ -86,7 +89,8 @@ describe( 'BrowsePane queries', () => {
 		fireEvent.click( screen.getByText( 'Pages' ) );
 
 		expect( hooks.useSearchResults ).toHaveBeenLastCalledWith(
-			expect.objectContaining( { subtype: 'page' } )
+			expect.objectContaining( { subtype: 'page' } ),
+			undefined
 		);
 	} );
 
@@ -104,7 +108,8 @@ describe( 'BrowsePane queries', () => {
 		fireEvent.click( screen.getByText( 'Posts' ) );
 
 		expect( hooks.useSearchResults ).toHaveBeenLastCalledWith(
-			expect.objectContaining( { subtype: 'post' } )
+			expect.objectContaining( { subtype: 'post' } ),
+			undefined
 		);
 	} );
 
@@ -197,7 +202,81 @@ describe( 'BrowsePane queries', () => {
 		fireEvent.click( screen.getByText( 'Pages' ) );
 
 		expect( hooks.useSearchResults ).toHaveBeenLastCalledWith(
-			expect.objectContaining( { subtype: 'page', page: 1 } )
+			expect.objectContaining( { subtype: 'page', page: 1 } ),
+			undefined
+		);
+	} );
+} );
+
+describe( 'BrowsePane initial browse seed', () => {
+	const seed = {
+		records: [
+			{
+				id: 1,
+				title: 'About',
+				url: 'https://example.test/1',
+				subtype: 'page',
+			},
+		],
+		totalItems: 1,
+		totalPages: 1,
+	};
+
+	it( 'offers the seed to useSearchResults on first render, while the query is still the default', () => {
+		hooks.useSearchResults.mockReturnValue( result( [], 0, 1 ) );
+
+		render(
+			<BrowsePane
+				postTypes={ [ 'page', 'post' ] }
+				selectedIds={ new Set() }
+				onAdd={ vi.fn() }
+				initialBrowse={ seed }
+			/>
+		);
+
+		expect( hooks.useSearchResults ).toHaveBeenCalledWith(
+			expect.objectContaining( { search: '', page: 1 } ),
+			seed
+		);
+	} );
+
+	it( 'stops offering the seed once the type filter diverges from the default "All" query', () => {
+		hooks.useSearchResults.mockReturnValue( result( [], 0, 1 ) );
+
+		render(
+			<BrowsePane
+				postTypes={ [ 'page', 'post' ] }
+				selectedIds={ new Set() }
+				onAdd={ vi.fn() }
+				initialBrowse={ seed }
+			/>
+		);
+
+		fireEvent.click( screen.getByText( 'Pages' ) );
+
+		expect( hooks.useSearchResults ).toHaveBeenLastCalledWith(
+			expect.objectContaining( { subtype: 'page' } ),
+			undefined
+		);
+	} );
+
+	it( 'stops offering the seed once paging past the first page', () => {
+		hooks.useSearchResults.mockReturnValue( result( [], 30, 3 ) );
+
+		render(
+			<BrowsePane
+				postTypes={ [ 'page', 'post' ] }
+				selectedIds={ new Set() }
+				onAdd={ vi.fn() }
+				initialBrowse={ seed }
+			/>
+		);
+
+		fireEvent.click( screen.getByText( 'Next ›' ) );
+
+		expect( hooks.useSearchResults ).toHaveBeenLastCalledWith(
+			expect.objectContaining( { page: 2 } ),
+			undefined
 		);
 	} );
 } );
@@ -233,7 +312,133 @@ describe( 'BrowsePane pager', () => {
 		fireEvent.click( screen.getByText( 'Next ›' ) );
 
 		expect( hooks.useSearchResults ).toHaveBeenLastCalledWith(
-			expect.objectContaining( { page: 2 } )
+			expect.objectContaining( { page: 2 } ),
+			undefined
 		);
+	} );
+
+	it( 'disables both pager buttons while a fetch is in flight, even mid-collection', () => {
+		hooks.useSearchResults.mockReturnValue( result( [], 30, 3, true ) );
+
+		render(
+			<BrowsePane
+				postTypes={ [ 'page', 'post' ] }
+				selectedIds={ new Set() }
+				onAdd={ vi.fn() }
+			/>
+		);
+
+		expect( screen.getByText( '‹ Prev' ) ).toBeDisabled();
+		expect( screen.getByText( 'Next ›' ) ).toBeDisabled();
+	} );
+} );
+
+describe( 'BrowsePane busy state', () => {
+	it( 'shows a busy indicator instead of rows while the query is in flight — including on first mount', () => {
+		hooks.useSearchResults.mockReturnValue( result( [], 0, 1, true ) );
+
+		const { container } = render(
+			<BrowsePane
+				postTypes={ [ 'page', 'post' ] }
+				selectedIds={ new Set() }
+				onAdd={ vi.fn() }
+			/>
+		);
+
+		expect( container.querySelector( '.bsb-browse__busy' ) ).toBeTruthy();
+		expect( container.querySelector( '.components-spinner' ) ).toBeTruthy();
+	} );
+
+	it( 'never shows the previous query’s rows while a new fetch is resolving', () => {
+		hooks.useSearchResults.mockReturnValue(
+			result(
+				[ { id: 1, title: 'Stale Page', subtype: 'page' } ],
+				1,
+				1,
+				true
+			)
+		);
+
+		render(
+			<BrowsePane
+				postTypes={ [ 'page', 'post' ] }
+				selectedIds={ new Set() }
+				onAdd={ vi.fn() }
+			/>
+		);
+
+		// Even though the mocked hook still hands back the stale record (the
+		// real hook keeps the last resolved records while re-resolving),
+		// BrowsePane must not render it while isResolving is true.
+		expect( screen.queryByText( 'Stale Page' ) ).not.toBeInTheDocument();
+	} );
+
+	it( 'does not show the empty state while resolving, even with zero records', () => {
+		hooks.useSearchResults.mockReturnValue( result( [], 0, 1, true ) );
+
+		render(
+			<BrowsePane
+				postTypes={ [ 'page', 'post' ] }
+				selectedIds={ new Set() }
+				onAdd={ vi.fn() }
+			/>
+		);
+
+		expect(
+			screen.queryByText( 'No pages or posts match your search.' )
+		).not.toBeInTheDocument();
+	} );
+
+	it( 'shows the empty state only once settled with zero records', () => {
+		hooks.useSearchResults.mockReturnValue( result( [], 0, 1, false ) );
+
+		render(
+			<BrowsePane
+				postTypes={ [ 'page', 'post' ] }
+				selectedIds={ new Set() }
+				onAdd={ vi.fn() }
+			/>
+		);
+
+		expect(
+			screen.getByText( 'No pages or posts match your search.' )
+		).toBeInTheDocument();
+	} );
+
+	it( 'renders the rows once the query settles', () => {
+		hooks.useSearchResults.mockReturnValue(
+			result(
+				[ { id: 1, title: 'About', subtype: 'page' } ],
+				1,
+				1,
+				false
+			)
+		);
+
+		const { container } = render(
+			<BrowsePane
+				postTypes={ [ 'page', 'post' ] }
+				selectedIds={ new Set() }
+				onAdd={ vi.fn() }
+			/>
+		);
+
+		expect( screen.getByText( 'About' ) ).toBeInTheDocument();
+		expect( container.querySelector( '.bsb-browse__busy' ) ).toBeFalsy();
+	} );
+
+	it( 'shows a neutral loading treatment for the meta line instead of a mismatched count', () => {
+		hooks.useSearchResults.mockReturnValue( result( [], 30, 3, true ) );
+
+		render(
+			<BrowsePane
+				postTypes={ [ 'page', 'post' ] }
+				selectedIds={ new Set() }
+				onAdd={ vi.fn() }
+			/>
+		);
+
+		expect( screen.queryByText( /30 items/ ) ).not.toBeInTheDocument();
+		expect( screen.getByText( 'Loading…' ) ).toBeInTheDocument();
 	} );
 } );

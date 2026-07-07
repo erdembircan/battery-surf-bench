@@ -217,3 +217,112 @@ describe( 'useSearchResults', () => {
 		);
 	} );
 } );
+
+describe( 'useSearchResults seeding', () => {
+	const seed = {
+		records: [ { id: 1, title: 'About', url: '/about', subtype: 'page' } ],
+		totalItems: 1,
+		totalPages: 1,
+	};
+
+	it( 'paints the seed on mount and never fetches for it', () => {
+		const { result } = renderHook( () =>
+			useSearchResults(
+				{ search: '', subtype: 'page,post', page: 1, perPage: 10 },
+				seed
+			)
+		);
+
+		expect( result.current ).toEqual( {
+			records: seed.records,
+			totalItems: seed.totalItems,
+			totalPages: seed.totalPages,
+			isResolving: false,
+		} );
+		expect( hooks.apiFetch ).not.toHaveBeenCalled();
+	} );
+
+	it( 'is not left busy on mount when seeded — the spinner never shows for a seeded first paint', () => {
+		const { result } = renderHook( () =>
+			useSearchResults(
+				{ search: '', subtype: 'page,post', page: 1, perPage: 10 },
+				seed
+			)
+		);
+
+		expect( result.current.isResolving ).toBe( false );
+	} );
+
+	it( 'fetches for real once the args diverge from what the seed was fetched for', async () => {
+		hooks.apiFetch.mockResolvedValue( fakeResponse( [], 5, 1 ) );
+
+		const { rerender } = renderHook(
+			( props ) => useSearchResults( props, seed ),
+			{
+				initialProps: {
+					search: '',
+					subtype: 'page,post',
+					page: 1,
+					perPage: 10,
+				},
+			}
+		);
+
+		expect( hooks.apiFetch ).not.toHaveBeenCalled();
+
+		rerender( {
+			search: 'about',
+			subtype: 'page,post',
+			page: 1,
+			perPage: 10,
+		} );
+
+		await waitFor( () =>
+			expect( hooks.apiFetch ).toHaveBeenCalledTimes( 1 )
+		);
+	} );
+
+	it( 'fetches for real even when the args return to the exact default the seed described', async () => {
+		hooks.apiFetch.mockResolvedValue( fakeResponse( [], 5, 1 ) );
+
+		const { rerender } = renderHook(
+			( props ) => useSearchResults( props, seed ),
+			{
+				initialProps: {
+					search: '',
+					subtype: 'page,post',
+					page: 1,
+					perPage: 10,
+				},
+			}
+		);
+
+		rerender( { search: '', subtype: 'page', page: 1, perPage: 10 } );
+		await waitFor( () =>
+			expect( hooks.apiFetch ).toHaveBeenCalledTimes( 1 )
+		);
+
+		// Back to the exact default args the seed was for — a real fetch still
+		// fires; the seed is a mount-only shortcut, not a cache.
+		rerender( { search: '', subtype: 'page,post', page: 1, perPage: 10 } );
+		await waitFor( () =>
+			expect( hooks.apiFetch ).toHaveBeenCalledTimes( 2 )
+		);
+	} );
+
+	it( 'fetches on mount as usual when no seed is given', () => {
+		hooks.apiFetch.mockResolvedValue( fakeResponse( [], 0, 1 ) );
+
+		const { result } = renderHook( () =>
+			useSearchResults( {
+				search: '',
+				subtype: 'page,post',
+				page: 1,
+				perPage: 10,
+			} )
+		);
+
+		expect( result.current.isResolving ).toBe( true );
+		expect( hooks.apiFetch ).toHaveBeenCalledTimes( 1 );
+	} );
+} );

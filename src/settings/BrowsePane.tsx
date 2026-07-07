@@ -8,10 +8,11 @@
  * one type's page cursor runs past its own last page).
  */
 
+import { Spinner } from '@wordpress/components';
 import { useEffect, useState } from '@wordpress/element';
 import { __, sprintf } from '@wordpress/i18n';
 import { useSearchResults } from './SearchQuery';
-import type { SearchRecord } from './Types';
+import type { InitialBrowse, SearchRecord } from './Types';
 
 /** Rows fetched per page — deliberately small, since this is a real REST page, not a client-side slice. */
 const PER_PAGE = 10;
@@ -96,19 +97,22 @@ function BrowseRow( {
 /**
  * Renders the Browse pane.
  *
- * @param props             Component props.
- * @param props.postTypes   The selectable post types (`['page','post']`).
- * @param props.selectedIds Post ids already in the surf sequence, so their rows show as Added.
- * @param props.onAdd       Called with a record's id, subtype and title when its row is added.
+ * @param props               Component props.
+ * @param props.postTypes     The selectable post types (`['page','post']`).
+ * @param props.selectedIds   Post ids already in the surf sequence, so their rows show as Added.
+ * @param props.onAdd         Called with a record's id, subtype and title when its row is added.
+ * @param props.initialBrowse The server-seeded first page for the default query (empty search, every selectable subtype, page 1) — painted on mount instead of fetching it.
  */
 export function BrowsePane( {
 	postTypes,
 	selectedIds,
 	onAdd,
+	initialBrowse,
 }: {
 	postTypes: string[];
 	selectedIds: Set< number >;
 	onAdd: ( id: number, subtype: string, title: string ) => void;
+	initialBrowse?: InitialBrowse;
 } ) {
 	const [ type, setType ] = useState< BrowseType >( 'all' );
 	const [ search, setSearch ] = useState( '' );
@@ -122,12 +126,23 @@ export function BrowsePane( {
 
 	const subtype = type === 'all' ? postTypes.join( ',' ) : type;
 
-	const { records, totalItems, totalPages, isResolving } = useSearchResults( {
-		search: debouncedSearch,
-		subtype,
-		page,
-		perPage: PER_PAGE,
-	} );
+	// The seed was fetched server-side for exactly this default query (the
+	// "All" tab, no search, page 1) — only offer it to the hook while the
+	// current args still describe that default. `useSearchResults` itself
+	// only ever consumes it on the very first render regardless, so this just
+	// avoids seeding a query the PHP side never actually ran.
+	const isDefaultQuery =
+		type === 'all' && debouncedSearch === '' && page === 1;
+
+	const { records, totalItems, totalPages, isResolving } = useSearchResults(
+		{
+			search: debouncedSearch,
+			subtype,
+			page,
+			perPage: PER_PAGE,
+		},
+		isDefaultQuery ? initialBrowse : undefined
+	);
 
 	const rangeStart = totalItems === 0 ? 0 : ( page - 1 ) * PER_PAGE + 1;
 	const rangeEnd = totalItems === 0 ? 0 : rangeStart + records.length - 1;
@@ -203,44 +218,58 @@ export function BrowsePane( {
 				) }
 			</p>
 			<p className="bsb-browse__meta">
-				{ sprintf(
-					/* translators: 1: total number of items, 2: first item shown, 3: last item shown. */
-					__(
-						'%1$s items · showing %2$s–%3$s',
-						'battery-surf-bench'
-					),
-					String( totalItems ),
-					String( rangeStart ),
-					String( rangeEnd )
-				) }
+				{ isResolving
+					? __( 'Loading…', 'battery-surf-bench' )
+					: sprintf(
+							/* translators: 1: total number of items, 2: first item shown, 3: last item shown. */
+							__(
+								'%1$s items · showing %2$s–%3$s',
+								'battery-surf-bench'
+							),
+							String( totalItems ),
+							String( rangeStart ),
+							String( rangeEnd )
+					  ) }
 			</p>
 
 			<div className="bsb-browse__list">
-				{ records.length === 0 && ! isResolving && (
-					<div className="bsb-browse__empty">
-						{ __(
-							'No pages or posts match your search.',
-							'battery-surf-bench'
-						) }
+				{ isResolving ? (
+					<div className="bsb-browse__busy">
+						<Spinner />
 					</div>
+				) : (
+					<>
+						{ records.length === 0 && (
+							<div className="bsb-browse__empty">
+								{ __(
+									'No pages or posts match your search.',
+									'battery-surf-bench'
+								) }
+							</div>
+						) }
+						{ records.map( ( record ) => (
+							<BrowseRow
+								key={ `${ record.subtype }-${ record.id }` }
+								record={ record }
+								isAdded={ selectedIds.has( record.id ) }
+								onAdd={ () =>
+									onAdd(
+										record.id,
+										record.subtype,
+										record.title
+									)
+								}
+							/>
+						) ) }
+					</>
 				) }
-				{ records.map( ( record ) => (
-					<BrowseRow
-						key={ `${ record.subtype }-${ record.id }` }
-						record={ record }
-						isAdded={ selectedIds.has( record.id ) }
-						onAdd={ () =>
-							onAdd( record.id, record.subtype, record.title )
-						}
-					/>
-				) ) }
 			</div>
 
 			<div className="bsb-browse__pager">
 				<button
 					type="button"
 					className="bsb-pager-btn"
-					disabled={ page <= 1 }
+					disabled={ page <= 1 || isResolving }
 					onClick={ () => setPage( ( current ) => current - 1 ) }
 				>
 					{ __( '‹ Prev', 'battery-surf-bench' ) }
@@ -256,7 +285,7 @@ export function BrowsePane( {
 				<button
 					type="button"
 					className="bsb-pager-btn"
-					disabled={ page >= totalPages }
+					disabled={ page >= totalPages || isResolving }
 					onClick={ () => setPage( ( current ) => current + 1 ) }
 				>
 					{ __( 'Next ›', 'battery-surf-bench' ) }

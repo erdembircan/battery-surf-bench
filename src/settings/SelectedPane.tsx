@@ -33,8 +33,33 @@ import { useEffect, useRef, useState } from '@wordpress/element';
 import { __, sprintf } from '@wordpress/i18n';
 import type { OrderEntry, RowBadge, SequenceRow } from './Types';
 
-/** How long the collapse animation runs before the row is actually removed — matches the CSS transition. */
+/** How long the collapse animation runs before the row is actually removed — matches {@link COLLAPSE_TRANSITION}. */
 const REMOVE_ANIMATION_MS = 190;
+
+/**
+ * A little past {@link REMOVE_ANIMATION_MS} — the fallback that commits a
+ * removal even if `transitionend` never fires (e.g. the tab was backgrounded,
+ * or a browser quirk), the same margin the approved mock's own fallback uses.
+ */
+const REMOVE_FALLBACK_MS = REMOVE_ANIMATION_MS + 70;
+
+/**
+ * The row's collapse transition, applied inline (not from the stylesheet) and
+ * merged with `useSortable()`'s own `transition` value: an element's inline
+ * `style.transition` always wins outright over a stylesheet rule for the same
+ * property, so if this collapse transition lived in CSS instead, dnd-kit's own
+ * inline `transition` (the drag-settle animation) would silently discard it
+ * every time it was present. Composing both into one inline value is the only
+ * way for the reorder-settle and the remove-collapse animations to coexist.
+ */
+const COLLAPSE_TRANSITION = [
+	'background 0.15s ease',
+	`max-height ${ REMOVE_ANIMATION_MS }ms cubic-bezier(0.2, 0, 0, 1)`,
+	`opacity ${ REMOVE_ANIMATION_MS }ms cubic-bezier(0.2, 0, 0, 1)`,
+	`padding ${ REMOVE_ANIMATION_MS }ms cubic-bezier(0.2, 0, 0, 1)`,
+	`margin ${ REMOVE_ANIMATION_MS }ms cubic-bezier(0.2, 0, 0, 1)`,
+	`border-top-width ${ REMOVE_ANIMATION_MS }ms cubic-bezier(0.2, 0, 0, 1)`,
+].join( ', ' );
 
 /**
  * The translated label for a row's type badge.
@@ -57,15 +82,16 @@ function badgeLabel( badge: RowBadge ): string {
  * remove or a reserved spacer — every row emits the same six slots so the
  * columns line up regardless of a row's kind.
  *
- * @param props            Component props.
- * @param props.row        The row to render.
- * @param props.index      The row's 1-based position in the sequence.
- * @param props.isFirst    Whether this is the first row (disables move up).
- * @param props.isLast     Whether this is the last row (disables move down).
- * @param props.isRemoving Whether the row is mid removal-collapse.
- * @param props.onRemove   Called when the row's remove button is activated.
- * @param props.onMoveUp   Called when the row's move-up affordance is activated.
- * @param props.onMoveDown Called when the row's move-down affordance is activated.
+ * @param props                 Component props.
+ * @param props.row             The row to render.
+ * @param props.index           The row's 1-based position in the sequence.
+ * @param props.isFirst         Whether this is the first row (disables move up).
+ * @param props.isLast          Whether this is the last row (disables move down).
+ * @param props.isRemoving      Whether the row is mid removal-collapse.
+ * @param props.onRemove        Called when the row's remove button is activated.
+ * @param props.onMoveUp        Called when the row's move-up affordance is activated.
+ * @param props.onMoveDown      Called when the row's move-down affordance is activated.
+ * @param props.onTransitionEnd Called with each CSS property name as its own transition on this row finishes.
  */
 function SequenceRowItem( {
 	row,
@@ -76,6 +102,7 @@ function SequenceRowItem( {
 	onRemove,
 	onMoveUp,
 	onMoveDown,
+	onTransitionEnd,
 }: {
 	row: SequenceRow;
 	index: number;
@@ -85,13 +112,18 @@ function SequenceRowItem( {
 	onRemove: () => void;
 	onMoveUp: () => void;
 	onMoveDown: () => void;
+	onTransitionEnd: ( propertyName: string ) => void;
 } ) {
 	const { attributes, listeners, setNodeRef, transform, transition } =
 		useSortable( { id: row.key } );
 
 	const style = {
 		transform: CSS.Transform.toString( transform ),
-		transition,
+		// Both animations have to live in the one `transition` value an inline
+		// style resolves to — see {@link COLLAPSE_TRANSITION}.
+		transition: transition
+			? `${ transition }, ${ COLLAPSE_TRANSITION }`
+			: COLLAPSE_TRANSITION,
 	};
 
 	return (
@@ -101,6 +133,9 @@ function SequenceRowItem( {
 			className={ `bsb-pages-row bsb-pages-row--custom${
 				isRemoving ? ' is-removing' : ''
 			}` }
+			onTransitionEnd={ ( event ) =>
+				onTransitionEnd( event.propertyName )
+			}
 		>
 			<span
 				className="bsb-pages-row__handle"
@@ -199,18 +234,27 @@ export function SelectedPane( {
 	const [ activeKey, setActiveKey ] = useState< string | null >( null );
 	const [ removingKey, setRemovingKey ] = useState< string | null >( null );
 
-	// Tracks the in-flight removal timer so it can be cancelled if the pane
-	// unmounts (e.g. the whole app navigates away) before the collapse
-	// animation finishes — otherwise the timer still fires afterwards and
-	// calls `onRemove`/`setRemovingKey` against a component that is gone.
-	const removalTimer = useRef< ReturnType< typeof setTimeout > | null >(
-		null
-	);
+	// The row currently collapsing, and whether its removal has already been
+	// committed — read and written from both the `transitionend` handler and
+	// the fallback timer below, so whichever fires first wins and the other
+	// becomes a no-op instead of committing (or unmounting a gone row) twice.
+	const pendingRemoval = useRef< {
+		row: SequenceRow;
+		settled: boolean;
+	} | null >( null );
+
+	// The fallback timer, cancelled once `transitionend` commits first — and,
+	// on unmount, cancelled outright so it can never fire `onRemove`/
+	// `setRemovingKey` against a component that is gone (e.g. the whole app
+	// navigated away mid-collapse).
+	const removalFallbackTimer = useRef< ReturnType<
+		typeof setTimeout
+	> | null >( null );
 
 	useEffect( () => {
 		return () => {
-			if ( removalTimer.current ) {
-				clearTimeout( removalTimer.current );
+			if ( removalFallbackTimer.current ) {
+				clearTimeout( removalFallbackTimer.current );
 			}
 		};
 	}, [] );
@@ -223,9 +267,32 @@ export function SelectedPane( {
 	);
 
 	/**
-	 * Starts the row's collapse animation, then commits the removal once it
-	 * has finished — so removing a row reads as the same motion language as a
-	 * drag reorder rather than an instant snap.
+	 * Commits the pending removal exactly once — called either by the
+	 * removing row's own `transitionend` once its collapse actually finishes,
+	 * or by the fallback timer if that event never arrives.
+	 */
+	function commitPendingRemoval(): void {
+		const pending = pendingRemoval.current;
+		if ( ! pending || pending.settled ) {
+			return;
+		}
+		pending.settled = true;
+
+		if ( removalFallbackTimer.current ) {
+			clearTimeout( removalFallbackTimer.current );
+			removalFallbackTimer.current = null;
+		}
+
+		pendingRemoval.current = null;
+		onRemove( pending.row.entry );
+		setRemovingKey( null );
+	}
+
+	/**
+	 * Starts the row's collapse animation. The removal itself commits once the
+	 * collapse's own `transitionend` reaches {@link handleRowTransitionEnd}
+	 * (with a timeout fallback), so removing a row reads as the same motion
+	 * language as a drag reorder rather than an instant snap.
 	 *
 	 * @param row The row to remove.
 	 */
@@ -233,12 +300,28 @@ export function SelectedPane( {
 		if ( removingKey ) {
 			return;
 		}
+		pendingRemoval.current = { row, settled: false };
 		setRemovingKey( row.key );
-		removalTimer.current = setTimeout( () => {
-			removalTimer.current = null;
-			onRemove( row.entry );
-			setRemovingKey( null );
-		}, REMOVE_ANIMATION_MS );
+		removalFallbackTimer.current = setTimeout(
+			commitPendingRemoval,
+			REMOVE_FALLBACK_MS
+		);
+	}
+
+	/**
+	 * Commits the pending removal once its own collapse transition (not some
+	 * unrelated one, like a reorder-settle `transform`) actually finishes.
+	 * Several properties collapse in parallel ({@see COLLAPSE_TRANSITION}), so
+	 * this fires once per property on the removing row; `commitPendingRemoval`
+	 * itself is guarded to only ever act on the first of those.
+	 *
+	 * @param key          Key of the row this event fired on.
+	 * @param propertyName The CSS property whose transition just ended.
+	 */
+	function handleRowTransitionEnd( key: string, propertyName: string ): void {
+		if ( removingKey === key && propertyName === 'max-height' ) {
+			commitPendingRemoval();
+		}
 	}
 
 	function handleDragStart( event: DragStartEvent ): void {
@@ -304,6 +387,12 @@ export function SelectedPane( {
 								onMoveDown={ () =>
 									index < rows.length - 1 &&
 									onReorder( row.key, rows[ index + 1 ].key )
+								}
+								onTransitionEnd={ ( propertyName ) =>
+									handleRowTransitionEnd(
+										row.key,
+										propertyName
+									)
 								}
 							/>
 						) ) }

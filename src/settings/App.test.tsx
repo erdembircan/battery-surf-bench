@@ -73,6 +73,7 @@ const config: SettingsConfig = {
 	bundledCatalog: [
 		{ slug: 'article-1', title: 'The Hidden Cost of a Browser Tab' },
 	],
+	initialBrowse: { records: [], totalItems: 0, totalPages: 1 },
 };
 
 /**

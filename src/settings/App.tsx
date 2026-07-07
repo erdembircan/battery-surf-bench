@@ -185,6 +185,7 @@ export function SettingsApp( { config }: { config: SettingsConfig } ) {
 							postTypes={ config.postTypes }
 							selectedIds={ selectedIds }
 							onAdd={ handleAdd }
+							initialBrowse={ config.initialBrowse }
 						/>
 						<SelectedPane
 							rows={ rows }

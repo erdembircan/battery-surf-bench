@@ -43,6 +43,11 @@
 	--wp-admin-theme-color--rgb: 47, 155, 179;
 	--wp-admin-theme-color-darker-10: #2a8ba0;
 	--wp-admin-theme-color-darker-20: #{theme.$coastal-teal-deep};
+	// The one zebra-stripe/hover tint every admin-screen row list (Sessions'
+	// DataViews table, Settings' Browse and Selected rows) shares, so every
+	// row list looks identical and a re-tint here updates all of them.
+	--bsb-row-stripe: #{rgba(theme.$coastal-aqua, 0.07)};
+	--bsb-row-hover: #{rgba(theme.$coastal-teal, 0.08)};
 
 	display: flex;
 	flex-direction: column;
@@ -154,6 +159,11 @@
 .bsb-admin-pill__icon--external {
 	mask: theme.$icon-external center / contain no-repeat;
 	-webkit-mask: theme.$icon-external center / contain no-repeat;
+}
+
+.bsb-admin-pill__icon--save {
+	mask: theme.$icon-save center / contain no-repeat;
+	-webkit-mask: theme.$icon-save center / contain no-repeat;
 }
 
 // Primary — filled teal gradient.

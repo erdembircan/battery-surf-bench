@@ -35,15 +35,29 @@ export interface BundledCatalogEntry {
 }
 
 /**
+ * The Browse pane's default first page, seeded server-side by an internal
+ * dispatch of the exact same `/wp/v2/search` query the client's own first
+ * fetch would run — so the screen paints with data on mount instead of
+ * fetching it after the fact.
+ */
+export interface InitialBrowse {
+	records: SearchRecord[];
+	totalItems: number;
+	totalPages: number;
+}
+
+/**
  * The configuration the PHP screen localizes for the settings app: the
- * selectable post types, the option's REST key, the saved order, and the
- * bundled catalog the order folds into locked rows.
+ * selectable post types, the option's REST key, the saved order, the bundled
+ * catalog the order folds into locked rows, and the Browse pane's seeded
+ * first page.
  */
 export interface SettingsConfig {
 	postTypes: string[];
 	optionKey: string;
 	courseOrder: OrderEntry[];
 	bundledCatalog: BundledCatalogEntry[];
+	initialBrowse: InitialBrowse;
 }
 
 /**

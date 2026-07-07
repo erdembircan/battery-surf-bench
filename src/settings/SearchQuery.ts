@@ -15,7 +15,7 @@
  */
 
 import apiFetch from '@wordpress/api-fetch';
-import { useEffect, useState } from '@wordpress/element';
+import { useEffect, useRef, useState } from '@wordpress/element';
 import type { SearchRecord } from './Types';
 
 /** The args a Browse pane query is built from. */
@@ -36,6 +36,17 @@ export interface SearchQueryResult {
 	totalItems: number;
 	totalPages: number;
 	isResolving: boolean;
+}
+
+/**
+ * A server-seeded first page — the PHP screen's own internal dispatch of the
+ * exact same `/wp/v2/search` query the client's first fetch would run
+ * ({@see \ErdemBircan\BatterySurfBench\Admin\SettingsScreen::initial_browse}).
+ */
+export interface SearchQuerySeed {
+	records: SearchRecord[];
+	totalItems: number;
+	totalPages: number;
 }
 
 const EMPTY_RECORDS: SearchRecord[] = [];
@@ -84,18 +95,48 @@ export function searchPath( args: SearchQueryArgs ): string {
  * never a fetch-everything-then-slice — with the totals read straight from
  * the response headers.
  *
+ * When a `seed` is given, the very first render skips the mount-time fetch
+ * entirely and paints straight from it instead — the caller is responsible
+ * for only passing a `seed` when `args` actually describes the default query
+ * that seed was fetched for (the PHP side always seeds the same default:
+ * empty search, every selectable subtype, page 1). Every later args change,
+ * including one that happens to land back on that same default, re-fetches
+ * normally: the seed is a mount-only shortcut, not a cache.
+ *
  * @param args The current query args.
+ * @param seed A server-fetched first page to paint from on mount instead of fetching, or undefined to always fetch.
  * @return The resolved records and pagination totals.
  */
-export function useSearchResults( args: SearchQueryArgs ): SearchQueryResult {
-	const [ result, setResult ] = useState< SearchQueryResult >( {
-		records: EMPTY_RECORDS,
-		totalItems: 0,
-		totalPages: 1,
-		isResolving: true,
-	} );
+export function useSearchResults(
+	args: SearchQueryArgs,
+	seed?: SearchQuerySeed
+): SearchQueryResult {
+	// Only the very first effect run may consume the seed; every later run —
+	// even one that lands back on the same args — fetches for real.
+	const seedable = useRef( seed !== undefined );
+
+	const [ result, setResult ] = useState< SearchQueryResult >( () =>
+		seed !== undefined
+			? {
+					records: seed.records,
+					totalItems: seed.totalItems,
+					totalPages: seed.totalPages,
+					isResolving: false,
+			  }
+			: {
+					records: EMPTY_RECORDS,
+					totalItems: 0,
+					totalPages: 1,
+					isResolving: true,
+			  }
+	);
 
 	useEffect( () => {
+		if ( seedable.current ) {
+			seedable.current = false;
+			return;
+		}
+
 		let cancelled = false;
 		setResult( ( previous ) => ( { ...previous, isResolving: true } ) );
 
