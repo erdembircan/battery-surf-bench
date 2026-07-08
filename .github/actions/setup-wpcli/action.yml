@@ -1,12 +1,39 @@
 name: Setup WP-CLI
 description: Install the WP-CLI phar, which bundles the i18n command used to generate translation files
 
+inputs:
+  version:
+    description: WP-CLI release version to install (without the leading "v")
+    default: "2.12.0"
+
 runs:
   using: composite
   steps:
+    # Cache the downloaded phar across runs, keyed on the pinned version --
+    # a version bump naturally invalidates the cache.
+    - uses: actions/cache@v4
+      id: cache
+      with:
+        path: ${{ runner.temp }}/wp-cli.phar
+        key: wp-cli-${{ inputs.version }}
+    - if: steps.cache.outputs.cache-hit != 'true'
+      shell: bash
+      # Pinned to a specific tagged release asset rather than the
+      # `gh-pages`-branch build, which moves underneath every push and
+      # offers no reproducibility or supply-chain guarantee.
+      run: |
+        curl -sSL -o "${{ runner.temp }}/wp-cli.phar" \
+          "https://github.com/wp-cli/wp-cli/releases/download/v${{ inputs.version }}/wp-cli-${{ inputs.version }}.phar"
     - shell: bash
       run: |
-        curl -sSL -o "$RUNNER_TEMP/wp-cli.phar" https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
-        chmod +x "$RUNNER_TEMP/wp-cli.phar"
-        sudo mv "$RUNNER_TEMP/wp-cli.phar" /usr/local/bin/wp
-        wp --version
+        chmod +x "${{ runner.temp }}/wp-cli.phar"
+        sudo mv "${{ runner.temp }}/wp-cli.phar" /usr/local/bin/wp
+        # Fail loudly if the installed phar isn't actually the pinned
+        # version, so a bad cache entry or a moved/corrupted asset is
+        # caught here rather than surfacing as a confusing i18n failure.
+        ACTUAL="$(wp --version)"
+        echo "$ACTUAL"
+        if [[ "$ACTUAL" != *"${{ inputs.version }}"* ]]; then
+          echo "::error::wp-cli reported '$ACTUAL', expected version ${{ inputs.version }}"
+          exit 1
+        fi
