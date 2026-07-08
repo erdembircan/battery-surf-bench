@@ -11,7 +11,7 @@ runs:
   steps:
     # Cache the downloaded phar across runs, keyed on the pinned version --
     # a version bump naturally invalidates the cache.
-    - uses: actions/cache@v4
+    - uses: actions/cache@v5
       id: cache
       with:
         path: ${{ runner.temp }}/wp-cli.phar
