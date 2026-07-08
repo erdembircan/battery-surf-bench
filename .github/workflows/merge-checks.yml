@@ -4,6 +4,9 @@ on:
   push:
     branches: [master]
 
+permissions:
+  contents: read
+
 # Serialize master runs without cancelling: every merged commit still gets
 # validated (cancel-in-progress: false), they just don't overlap.
 concurrency:
@@ -11,78 +14,20 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  php-lint:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - uses: ./.github/actions/setup-php
-      - run: composer lint
-
-  php-test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - uses: ./.github/actions/setup-php
-      - run: composer test
-
-  js-lint:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - uses: ./.github/actions/setup-node
-      - run: pnpm lint:js
-
-  js-test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - uses: ./.github/actions/setup-node
-      - run: pnpm test
-
-  typecheck:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - uses: ./.github/actions/setup-node
-      - run: pnpm typecheck
-
-  license:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - uses: ./.github/actions/setup-node
-      - run: pnpm license:verify
-
-  i18n:
-    runs-on: ubuntu-latest
+  checks:
     permissions:
+      # The reusable i18n job commits the regenerated .pot back to master.
       contents: write
-    steps:
-      - uses: actions/checkout@v6
-      # PHP runs the WP-CLI phar; Node runs the `i18n:make-pot` script that calls
-      # it. WP-CLI's i18n command scans the PHP and TS/TSX source directly, so no
-      # build step is needed.
-      - uses: ./.github/actions/setup-php
-      - uses: ./.github/actions/setup-node
-      - uses: ./.github/actions/setup-wpcli
-      - run: pnpm run i18n:make-pot
-      # Discard the regenerated template when only its volatile creation-date
-      # header changed, so an unchanged string set never produces a commit.
-      - run: |
-          git add languages/battery-surf-bench.pot
-          if git diff --cached --quiet -I '^"POT-Creation-Date:' -- languages/battery-surf-bench.pot; then
-            git restore --staged --worktree languages/battery-surf-bench.pot
-          fi
-      # Commit the refreshed template back to master so it stays current in the
-      # repo. [skip ci] keeps the push from retriggering this workflow.
-      - uses: EndBug/add-and-commit@v10
-        with:
-          add: languages/battery-surf-bench.pot
-          message: "[CHORE]: regenerate translation template [skip ci]"
+    uses: ./.github/workflows/checks.yml
+    with:
+      commit-pot: true
 
   e2e:
-    needs: [php-lint, php-test, js-lint, js-test, typecheck, license, i18n]
+    needs: [checks]
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
     env:
       CI: "true"
     steps:

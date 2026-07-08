@@ -4,6 +4,9 @@ on:
   pull_request:
     branches: [master]
 
+permissions:
+  contents: read
+
 # One in-flight run per PR: a new push cancels the previous run instead of
 # letting it burn CI minutes validating a now-stale commit.
 concurrency:
@@ -11,59 +14,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  php-lint:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - uses: ./.github/actions/setup-php
-      - run: composer lint
-
-  php-test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - uses: ./.github/actions/setup-php
-      - run: composer test
-
-  js-lint:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - uses: ./.github/actions/setup-node
-      - run: pnpm lint:js
-
-  js-test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - uses: ./.github/actions/setup-node
-      - run: pnpm test
-
-  typecheck:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - uses: ./.github/actions/setup-node
-      - run: pnpm typecheck
-
-  license:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - uses: ./.github/actions/setup-node
-      - run: pnpm license:verify
-
-  i18n:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      # PHP runs the WP-CLI phar; Node runs the `i18n:make-pot` script that calls
-      # it. WP-CLI's i18n command scans the PHP and TS/TSX source directly, so no
-      # build step is needed.
-      - uses: ./.github/actions/setup-php
-      - uses: ./.github/actions/setup-node
-      - uses: ./.github/actions/setup-wpcli
-      # Regenerate the template to validate extraction: it runs over every
-      # user-facing string, so a malformed i18n call fails the build here. The
-      # committed template is refreshed on merge to master, not on PRs.
-      - run: pnpm run i18n:make-pot
+  checks:
+    # commit-pot defaults to false, so PRs only validate the regenerated
+    # .pot -- the committed template is refreshed on merge, not here.
+    uses: ./.github/workflows/checks.yml
