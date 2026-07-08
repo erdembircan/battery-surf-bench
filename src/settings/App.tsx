@@ -33,6 +33,7 @@ import { mapOrderToRows } from './RowMapping';
 import { BrowsePane } from './BrowsePane';
 import { SelectedPane } from './SelectedPane';
 import { SaveButton } from './SaveButton';
+import { ResetButton } from './ResetButton';
 import { UserPageResolver } from './UserPageResolver';
 import type { OrderEntry, ResolvedUserPage, SettingsConfig } from './Types';
 
@@ -70,6 +71,13 @@ export function SettingsApp( { config }: { config: SettingsConfig } ) {
 	const [ order, setOrder ] = useState< OrderEntry[] >( () =>
 		healBundled( config.courseOrder, config.bundledCatalog )
 	);
+	// The last-persisted order — what Reset reverts to, and what a successful
+	// save updates to describe the sequence now on the server. Seeded from the
+	// same healed value as `order` itself, since a freshly loaded sequence is
+	// (by definition) already what the server last saved.
+	const [ savedOrder, setSavedOrder ] = useState< OrderEntry[] >( () =>
+		healBundled( config.courseOrder, config.bundledCatalog )
+	);
 	// Seeded from the server-resolved titles so every eligible saved user page
 	// paints its real title on first render instead of a raw post id — the
 	// resolver below only has to catch up on whatever this could not seed.
@@ -79,6 +87,26 @@ export function SettingsApp( { config }: { config: SettingsConfig } ) {
 	const [ dirty, setDirty ] = useState( false );
 	const [ saving, setSaving ] = useState( false );
 	const [ toast, setToast ] = useState< ActiveToast | null >( null );
+
+	// Warns before a reload/navigate discards unsaved changes — armed only
+	// while there is something to lose and no save is already resolving it.
+	useEffect( () => {
+		if ( ! dirty || saving ) {
+			return;
+		}
+
+		function handleBeforeUnload( event: BeforeUnloadEvent ): void {
+			event.preventDefault();
+			// Chrome only shows its native leave-confirmation when `returnValue`
+			// is explicitly set; the string itself is never actually displayed
+			// (every browser shows its own fixed wording).
+			event.returnValue = '';
+		}
+
+		window.addEventListener( 'beforeunload', handleBeforeUnload );
+		return () =>
+			window.removeEventListener( 'beforeunload', handleBeforeUnload );
+	}, [ dirty, saving ] );
 
 	// Backs a success toast's auto-dismiss; an error toast sets no timer here,
 	// so it persists until dismissed or cleared by its own source.
@@ -281,6 +309,7 @@ export function SettingsApp( { config }: { config: SettingsConfig } ) {
 				data: { [ config.optionKey ]: order },
 			} );
 			setDirty( false );
+			setSavedOrder( order );
 			showToast(
 				{
 					source: 'save',
@@ -301,6 +330,23 @@ export function SettingsApp( { config }: { config: SettingsConfig } ) {
 		} finally {
 			setSaving( false );
 		}
+	}
+
+	/**
+	 * Reverts the sequence to the last-persisted order, discarding whatever is
+	 * unsaved. Guarded against a save in flight for the same reason
+	 * {@link handleAdd} is — reverting mid-save would fight the very order
+	 * that save is in the middle of persisting. `userPages` needs no re-seeding
+	 * here: it only ever grows (a remove clears an entry from `order`, never
+	 * from `userPages`), so any user page reappearing in `savedOrder` already
+	 * has its title cached from whenever it was first added or resolved.
+	 */
+	function handleReset(): void {
+		if ( saving ) {
+			return;
+		}
+		setOrder( savedOrder );
+		setDirty( false );
 	}
 
 	const saveSlot =
@@ -355,13 +401,23 @@ export function SettingsApp( { config }: { config: SettingsConfig } ) {
 				onResolved={ handleResolved }
 			/>
 
+			{ /* Reset (secondary, outline) portals in alongside Save (primary,
+			solid) — both into the one header slot, so Reset always renders
+			right next to Save without needing a second PHP-rendered slot. */ }
 			{ saveSlot &&
 				createPortal(
-					<SaveButton
-						dirty={ dirty }
-						saving={ saving }
-						onSave={ handleSave }
-					/>,
+					<>
+						<ResetButton
+							dirty={ dirty }
+							saving={ saving }
+							onReset={ handleReset }
+						/>
+						<SaveButton
+							dirty={ dirty }
+							saving={ saving }
+							onSave={ handleSave }
+						/>
+					</>,
 					saveSlot
 				) }
 

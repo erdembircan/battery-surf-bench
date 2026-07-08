@@ -252,6 +252,77 @@ test.describe( 'Settings screen', () => {
 			await resetCourseOrder( page );
 		}
 	} );
+
+	test( 'Reset changes discards an unsaved add and restores the last-saved sequence', async ( {
+		page,
+	} ) => {
+		await resetCourseOrder( page );
+
+		try {
+			await page.goto( '/wp-admin/admin.php?page=battery-surf-bench' );
+
+			const resetButton = page.getByRole( 'button', {
+				name: 'Reset changes',
+			} );
+			await expect( resetButton ).toBeDisabled();
+
+			const browseRow = page
+				.locator( '.bsb-browse__row', { hasText: DEFAULT_PAGE_TITLE } )
+				.first();
+			await browseRow.getByRole( 'button', { name: 'Add' } ).click();
+			await expect( resetButton ).toBeEnabled();
+
+			await resetButton.click();
+
+			await expect( resetButton ).toBeDisabled();
+			await expect(
+				page.getByRole( 'button', { name: 'Save changes' } )
+			).toBeDisabled();
+			await expect(
+				browseRow.getByRole( 'button', { name: 'Add' } )
+			).toBeVisible();
+			await expect(
+				page.locator( '.bsb-selected .bsb-pages-row--custom', {
+					hasText: DEFAULT_PAGE_TITLE,
+				} )
+			).toHaveCount( 0 );
+		} finally {
+			await resetCourseOrder( page );
+		}
+	} );
+
+	test( 'unsaved changes trigger the browser leave-confirmation on navigating away', async ( {
+		page,
+	} ) => {
+		await resetCourseOrder( page );
+
+		try {
+			await page.goto( '/wp-admin/admin.php?page=battery-surf-bench' );
+
+			const browseRow = page
+				.locator( '.bsb-browse__row', { hasText: DEFAULT_PAGE_TITLE } )
+				.first();
+			await browseRow.getByRole( 'button', { name: 'Add' } ).click();
+
+			let sawBeforeUnload = false;
+			page.once( 'dialog', async ( dialog ) => {
+				sawBeforeUnload = dialog.type() === 'beforeunload';
+				await dialog.dismiss();
+			} );
+
+			await page.evaluate( () => {
+				window.location.href = 'about:blank';
+			} );
+			await page.waitForTimeout( 300 );
+
+			expect( sawBeforeUnload ).toBe( true );
+			// The dismissed dialog cancelled the navigation — still on the
+			// settings screen, sequence intact.
+			await expect( page.locator( '.bsb-picker' ) ).toBeVisible();
+		} finally {
+			await resetCourseOrder( page );
+		}
+	} );
 } );
 
 /** The `/wp/v2/settings` collection: hosts the `bsb_course_order` field. */

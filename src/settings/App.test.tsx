@@ -124,6 +124,24 @@ function renderWithSaveSlot( overrides: Partial< SettingsConfig > = {} ) {
 	return slot;
 }
 
+/**
+ * Makes the next `apiFetch` call hang until the returned resolver is invoked,
+ * so a test can assert on the state while a save is genuinely still in
+ * flight.
+ *
+ * @return The resolver that settles the pending save.
+ */
+function holdNextSave(): () => void {
+	let resolveSave: () => void = () => {};
+	hooks.apiFetch.mockImplementation(
+		() =>
+			new Promise< void >( ( resolve ) => {
+				resolveSave = resolve;
+			} )
+	);
+	return () => resolveSave();
+}
+
 beforeEach( () => {
 	hooks.apiFetch.mockReset().mockResolvedValue( undefined );
 	document.body.innerHTML = '';
@@ -192,7 +210,7 @@ describe( 'SettingsApp save button', () => {
 	it( 'portals a disabled Save button before any change is made', () => {
 		const slot = renderWithSaveSlot();
 
-		expect( slot.querySelector( 'button' ) ).toBeDisabled();
+		expect( slot.querySelector( '.bsb-admin-pill--solid' ) ).toBeDisabled();
 	} );
 
 	it( 'enables Save once the sequence has changed', () => {
@@ -200,14 +218,16 @@ describe( 'SettingsApp save button', () => {
 
 		fireEvent.click( screen.getByText( 'stub-add' ) );
 
-		expect( slot.querySelector( 'button' ) ).not.toBeDisabled();
+		expect(
+			slot.querySelector( '.bsb-admin-pill--solid' )
+		).not.toBeDisabled();
 	} );
 
 	it( 'saves the current order with a POST to the core settings endpoint, keyed by the localized option key', async () => {
 		const slot = renderWithSaveSlot();
 		fireEvent.click( screen.getByText( 'stub-add' ) );
 
-		fireEvent.click( slot.querySelector( 'button' )! );
+		fireEvent.click( slot.querySelector( '.bsb-admin-pill--solid' )! );
 
 		await waitFor( () =>
 			expect( hooks.apiFetch ).toHaveBeenCalledTimes( 1 )
@@ -227,10 +247,12 @@ describe( 'SettingsApp save button', () => {
 	it( 'disables Save again once the save resolves', async () => {
 		const slot = renderWithSaveSlot();
 		fireEvent.click( screen.getByText( 'stub-add' ) );
-		fireEvent.click( slot.querySelector( 'button' )! );
+		fireEvent.click( slot.querySelector( '.bsb-admin-pill--solid' )! );
 
 		await waitFor( () =>
-			expect( slot.querySelector( 'button' ) ).toBeDisabled()
+			expect(
+				slot.querySelector( '.bsb-admin-pill--solid' )
+			).toBeDisabled()
 		);
 	} );
 
@@ -244,13 +266,15 @@ describe( 'SettingsApp save button', () => {
 		const slot = renderWithSaveSlot();
 		fireEvent.click( screen.getByText( 'stub-add' ) );
 
-		fireEvent.click( slot.querySelector( 'button' )! );
+		fireEvent.click( slot.querySelector( '.bsb-admin-pill--solid' )! );
 
 		await waitFor( () =>
 			expect( hooks.apiFetch ).toHaveBeenCalledTimes( 1 )
 		);
 		await waitFor( () =>
-			expect( slot.querySelector( 'button' ) ).not.toBeDisabled()
+			expect(
+				slot.querySelector( '.bsb-admin-pill--solid' )
+			).not.toBeDisabled()
 		);
 
 		consoleError.mockRestore();
@@ -265,7 +289,7 @@ describe( 'SettingsApp save outcome notice', () => {
 	it( 'shows a success notice once a save resolves', async () => {
 		const slot = renderWithSaveSlot();
 		fireEvent.click( screen.getByText( 'stub-add' ) );
-		fireEvent.click( slot.querySelector( 'button' )! );
+		fireEvent.click( slot.querySelector( '.bsb-admin-pill--solid' )! );
 
 		const notice = await screen.findByRole( 'status' );
 		expect( notice ).toHaveTextContent( 'Saved' );
@@ -276,7 +300,7 @@ describe( 'SettingsApp save outcome notice', () => {
 		vi.useFakeTimers( { shouldAdvanceTime: true } );
 		const slot = renderWithSaveSlot();
 		fireEvent.click( screen.getByText( 'stub-add' ) );
-		fireEvent.click( slot.querySelector( 'button' )! );
+		fireEvent.click( slot.querySelector( '.bsb-admin-pill--solid' )! );
 
 		await vi.waitFor( () =>
 			expect( screen.getByRole( 'status' ) ).toBeInTheDocument()
@@ -297,7 +321,7 @@ describe( 'SettingsApp save outcome notice', () => {
 			.mockRejectedValue( new Error( 'network error' ) );
 		const slot = renderWithSaveSlot();
 		fireEvent.click( screen.getByText( 'stub-add' ) );
-		fireEvent.click( slot.querySelector( 'button' )! );
+		fireEvent.click( slot.querySelector( '.bsb-admin-pill--solid' )! );
 
 		const notice = await vi.waitFor( () => screen.getByRole( 'alert' ) );
 		expect( notice ).toHaveTextContent( 'Save failed' );
@@ -313,7 +337,7 @@ describe( 'SettingsApp save outcome notice', () => {
 	it( 'dismisses the notice when its close control is activated', async () => {
 		const slot = renderWithSaveSlot();
 		fireEvent.click( screen.getByText( 'stub-add' ) );
-		fireEvent.click( slot.querySelector( 'button' )! );
+		fireEvent.click( slot.querySelector( '.bsb-admin-pill--solid' )! );
 
 		const notice = await screen.findByRole( 'status' );
 		fireEvent.click(
@@ -330,12 +354,12 @@ describe( 'SettingsApp save outcome notice', () => {
 			.mockImplementation( () => {} );
 		const slot = renderWithSaveSlot();
 		fireEvent.click( screen.getByText( 'stub-add' ) );
-		fireEvent.click( slot.querySelector( 'button' )! );
+		fireEvent.click( slot.querySelector( '.bsb-admin-pill--solid' )! );
 
 		await screen.findByRole( 'alert' );
 
 		hooks.apiFetch.mockResolvedValue( undefined );
-		fireEvent.click( slot.querySelector( 'button' )! );
+		fireEvent.click( slot.querySelector( '.bsb-admin-pill--solid' )! );
 
 		// The stale error clears the moment the retry starts, not only once it
 		// resolves.
@@ -370,7 +394,7 @@ describe( 'SettingsApp Browse fetch-error toast', () => {
 	it( "doesn't let a fetch-error toast clear a save toast raised after it", async () => {
 		const slot = renderWithSaveSlot();
 		fireEvent.click( screen.getByText( 'stub-add' ) );
-		fireEvent.click( slot.querySelector( 'button' )! );
+		fireEvent.click( slot.querySelector( '.bsb-admin-pill--solid' )! );
 		await screen.findByRole( 'status' );
 
 		// A fetch recovering afterwards belongs to the other source — it must
@@ -382,29 +406,11 @@ describe( 'SettingsApp Browse fetch-error toast', () => {
 } );
 
 describe( 'SettingsApp save-in-progress guard', () => {
-	/**
-	 * Makes the next `apiFetch` call hang until the returned resolver is
-	 * invoked, so a test can assert on the state while a save is genuinely
-	 * still in flight.
-	 *
-	 * @return The resolver that settles the pending save.
-	 */
-	function holdNextSave(): () => void {
-		let resolveSave: () => void = () => {};
-		hooks.apiFetch.mockImplementation(
-			() =>
-				new Promise< void >( ( resolve ) => {
-					resolveSave = resolve;
-				} )
-		);
-		return () => resolveSave();
-	}
-
 	it( 'threads saving down to both panes while a save is in flight, and clears it once the save resolves', async () => {
 		const resolveSave = holdNextSave();
 		const slot = renderWithSaveSlot();
 		fireEvent.click( screen.getByText( 'stub-add' ) );
-		fireEvent.click( slot.querySelector( 'button' )! );
+		fireEvent.click( slot.querySelector( '.bsb-admin-pill--solid' )! );
 
 		expect( screen.getByTestId( 'browse-saving' ) ).toHaveTextContent(
 			'true'
@@ -429,7 +435,7 @@ describe( 'SettingsApp save-in-progress guard', () => {
 		const resolveSave = holdNextSave();
 		const slot = renderWithSaveSlot();
 		fireEvent.click( screen.getByText( 'stub-add' ) );
-		fireEvent.click( slot.querySelector( 'button' )! );
+		fireEvent.click( slot.querySelector( '.bsb-admin-pill--solid' )! );
 
 		fireEvent.click( screen.getByText( 'stub-add-other' ) );
 		expect( screen.getByTestId( 'row-count' ) ).toHaveTextContent( '2' );
@@ -451,7 +457,7 @@ describe( 'SettingsApp save-in-progress guard', () => {
 		const resolveSave = holdNextSave();
 		const slot = renderWithSaveSlot();
 		fireEvent.click( screen.getByText( 'stub-add' ) );
-		fireEvent.click( slot.querySelector( 'button' )! );
+		fireEvent.click( slot.querySelector( '.bsb-admin-pill--solid' )! );
 
 		fireEvent.click( screen.getByText( 'remove-user:5' ) );
 		expect( screen.getByTestId( 'row-count' ) ).toHaveTextContent( '2' );
@@ -471,7 +477,7 @@ describe( 'SettingsApp save-in-progress guard', () => {
 		const resolveSave = holdNextSave();
 		const slot = renderWithSaveSlot();
 		fireEvent.click( screen.getByText( 'stub-add' ) );
-		fireEvent.click( slot.querySelector( 'button' )! );
+		fireEvent.click( slot.querySelector( '.bsb-admin-pill--solid' )! );
 
 		fireEvent.click( screen.getByText( 'stub-reorder' ) );
 
@@ -492,5 +498,141 @@ describe( 'SettingsApp save-in-progress guard', () => {
 		expect( document.body.innerHTML.indexOf( 'Pricing' ) ).toBeLessThan(
 			document.body.innerHTML.indexOf( 'The Hidden Cost' )
 		);
+	} );
+} );
+
+describe( 'SettingsApp reset button', () => {
+	it( 'portals a disabled Reset button before any change is made', () => {
+		const slot = renderWithSaveSlot();
+
+		expect(
+			slot.querySelector( '.bsb-admin-pill--outline' )
+		).toBeDisabled();
+	} );
+
+	it( 'enables Reset once the sequence has changed', () => {
+		const slot = renderWithSaveSlot();
+
+		fireEvent.click( screen.getByText( 'stub-add' ) );
+
+		expect(
+			slot.querySelector( '.bsb-admin-pill--outline' )
+		).not.toBeDisabled();
+	} );
+
+	it( 'reverts the sequence and clears dirty when Reset is activated', () => {
+		const slot = renderWithSaveSlot();
+		fireEvent.click( screen.getByText( 'stub-add' ) );
+		expect( screen.getByTestId( 'row-count' ) ).toHaveTextContent( '2' );
+
+		fireEvent.click( slot.querySelector( '.bsb-admin-pill--outline' )! );
+
+		expect( screen.getByTestId( 'row-count' ) ).toHaveTextContent( '1' );
+		expect( screen.queryByText( 'Pricing' ) ).not.toBeInTheDocument();
+		expect( slot.querySelector( '.bsb-admin-pill--solid' ) ).toBeDisabled();
+		expect(
+			slot.querySelector( '.bsb-admin-pill--outline' )
+		).toBeDisabled();
+	} );
+
+	it( 'reverts only to the last-persisted order, not the original load, once a save has happened', async () => {
+		const slot = renderWithSaveSlot();
+		fireEvent.click( screen.getByText( 'stub-add' ) ); // Pricing (id 5).
+		fireEvent.click( slot.querySelector( '.bsb-admin-pill--solid' )! );
+
+		await waitFor( () =>
+			expect(
+				slot.querySelector( '.bsb-admin-pill--solid' )
+			).toBeDisabled()
+		);
+
+		fireEvent.click( screen.getByText( 'stub-add-other' ) ); // Other (id 6).
+		expect( screen.getByTestId( 'row-count' ) ).toHaveTextContent( '3' );
+
+		fireEvent.click( slot.querySelector( '.bsb-admin-pill--outline' )! );
+
+		// Reset drops the unsaved "Other" but keeps the already-saved "Pricing"
+		// — proving it reverted to the last save, not the page's original load.
+		expect( screen.getByTestId( 'row-count' ) ).toHaveTextContent( '2' );
+		expect( screen.getByText( 'Pricing' ) ).toBeInTheDocument();
+		expect( screen.queryByText( 'Other' ) ).not.toBeInTheDocument();
+	} );
+
+	it( 'disables Reset while a save is in flight, even though it was enabled a moment before', () => {
+		const resolveSave = holdNextSave();
+		const slot = renderWithSaveSlot();
+		fireEvent.click( screen.getByText( 'stub-add' ) );
+		fireEvent.click( slot.querySelector( '.bsb-admin-pill--solid' )! );
+
+		expect(
+			slot.querySelector( '.bsb-admin-pill--outline' )
+		).toBeDisabled();
+
+		resolveSave();
+	} );
+} );
+
+describe( 'SettingsApp unsaved-changes navigate guard', () => {
+	/**
+	 * Dispatches a cancelable `beforeunload` event on `window` and reports
+	 * whether the app's handler intercepted it — the observable proxy for
+	 * "the browser would have shown its native leave-confirmation".
+	 *
+	 * @return Whether the event was prevented.
+	 */
+	function dispatchBeforeUnload(): boolean {
+		const event = new Event( 'beforeunload', { cancelable: true } );
+		window.dispatchEvent( event );
+		return event.defaultPrevented;
+	}
+
+	it( 'does nothing on an unmodified, freshly loaded sequence', () => {
+		renderWithSaveSlot();
+
+		expect( dispatchBeforeUnload() ).toBe( false );
+	} );
+
+	it( 'intercepts the navigate once the sequence has unsaved changes', () => {
+		renderWithSaveSlot();
+
+		fireEvent.click( screen.getByText( 'stub-add' ) );
+
+		expect( dispatchBeforeUnload() ).toBe( true );
+	} );
+
+	it( 'stops intercepting once the change is saved', async () => {
+		const slot = renderWithSaveSlot();
+		fireEvent.click( screen.getByText( 'stub-add' ) );
+		fireEvent.click( slot.querySelector( '.bsb-admin-pill--solid' )! );
+
+		await waitFor( () =>
+			expect(
+				slot.querySelector( '.bsb-admin-pill--solid' )
+			).toBeDisabled()
+		);
+
+		expect( dispatchBeforeUnload() ).toBe( false );
+	} );
+
+	it( 'stops intercepting once the change is reset', () => {
+		const slot = renderWithSaveSlot();
+		fireEvent.click( screen.getByText( 'stub-add' ) );
+
+		fireEvent.click( slot.querySelector( '.bsb-admin-pill--outline' )! );
+
+		expect( dispatchBeforeUnload() ).toBe( false );
+	} );
+
+	it( 'does not intercept while a save is already in flight, resolving the very same unsaved state', () => {
+		const resolveSave = holdNextSave();
+		const slot = renderWithSaveSlot();
+		fireEvent.click( screen.getByText( 'stub-add' ) );
+		fireEvent.click( slot.querySelector( '.bsb-admin-pill--solid' )! );
+
+		// `saving` is true and a save for this exact state is already
+		// underway — the guard steps aside rather than doubling up.
+		expect( dispatchBeforeUnload() ).toBe( false );
+
+		resolveSave();
 	} );
 } );

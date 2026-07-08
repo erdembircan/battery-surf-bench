@@ -10,8 +10,9 @@
  * The full-bleed deck shell, wp-admin chrome-strip and brand header/pill
  * markup are owned by the shared `admin-chrome` partial (`AdminHeaderView`/
  * `AdminPillView` render the header and New Benchmark pill in PHP; the React
- * `SaveButton` renders the shared solid-pill classes directly); this
- * stylesheet only adds what is genuinely this screen's own: the picker panes.
+ * `SaveButton`/`ResetButton` render the shared solid/outline pill classes
+ * directly); this stylesheet only adds what is genuinely this screen's own:
+ * the picker panes and the save-slot layout the two portaled pills share.
  *
  * `@use`-ing the shared theme also emits its `@font-face` rules, so Anton,
  * Hanken Grotesk and Space Mono load on the admin screen.
@@ -36,6 +37,16 @@
 	max-width: 74rem;
 	margin: 0 auto;
 	padding: 2.4rem 2rem 5rem;
+}
+
+// The PHP view's empty slot (`SettingsScreenView`) the app portals BOTH the
+// Reset and Save pills into, in that order — a `<span>` by default lays its
+// children out inline with no gap, so this gives the pair proper alignment
+// and spacing without needing a second PHP-rendered slot for Reset.
+.bsb-settings__save-slot {
+	display: flex;
+	align-items: center;
+	gap: 0.6rem;
 }
 
 .bsb-settings__section-head {

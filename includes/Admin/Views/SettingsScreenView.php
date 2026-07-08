@@ -23,9 +23,10 @@ defined( 'ABSPATH' ) || exit;
  *
  * The header carries two action slots: a static "New Benchmark" link that
  * opens the cockpit (an {@see AdminPillView} `outline` pill, rendered here
- * since its target never changes once the page has loaded) and an empty
- * "Save changes" slot the mounted app portals its own `solid` pill button
- * into, since only the app knows the sequence's dirty, saving and saved state.
+ * since its target never changes once the page has loaded) and an empty slot
+ * the mounted app portals its own "Reset changes" (`outline`) and "Save
+ * changes" (`solid`) pill buttons into together, since only the app knows the
+ * sequence's dirty, saving and saved state.
  */
 class SettingsScreenView implements View {
 
@@ -51,7 +52,7 @@ class SettingsScreenView implements View {
 			)
 		);
 
-		// The app portals its own Save button into this empty slot.
+		// The app portals its own Reset and Save buttons into this empty slot.
 		$actions = <<<HTML
 {$launch_pill}<span class="bsb-settings__save-slot"></span>
 HTML;
