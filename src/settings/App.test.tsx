@@ -31,15 +31,21 @@ vi.mock( '@wordpress/api-fetch', () => ( {
 
 vi.mock( './BrowsePane', () => ( {
 	BrowsePane: ( {
+		saving,
 		onAdd,
 		onFetchError,
 	}: {
+		saving: boolean;
 		onAdd: ( id: number, type: string, title: string ) => void;
 		onFetchError?: ( isError: boolean ) => void;
 	} ) => (
 		<>
+			<span data-testid="browse-saving">{ String( saving ) }</span>
 			<button onClick={ () => onAdd( 5, 'page', 'Pricing' ) }>
 				stub-add
+			</button>
+			<button onClick={ () => onAdd( 6, 'page', 'Other' ) }>
+				stub-add-other
 			</button>
 			<button onClick={ () => onFetchError?.( true ) }>
 				stub-fetch-error
@@ -54,13 +60,25 @@ vi.mock( './BrowsePane', () => ( {
 vi.mock( './SelectedPane', () => ( {
 	SelectedPane: ( {
 		rows,
+		saving,
 		onRemove,
+		onReorder,
 	}: {
 		rows: Array< { key: string; title: string; entry: unknown } >;
+		saving: boolean;
 		onRemove: ( entry: unknown ) => void;
+		onReorder: ( activeKey: string, overKey: string ) => void;
 	} ) => (
 		<div>
+			<span data-testid="selected-saving">{ String( saving ) }</span>
 			<span data-testid="row-count">{ rows.length }</span>
+			{ rows.length >= 2 && (
+				<button
+					onClick={ () => onReorder( rows[ 0 ].key, rows[ 1 ].key ) }
+				>
+					stub-reorder
+				</button>
+			) }
 			{ rows.map( ( row ) => (
 				<div key={ row.key }>
 					{ row.title }
@@ -360,5 +378,119 @@ describe( 'SettingsApp Browse fetch-error toast', () => {
 		fireEvent.click( screen.getByText( 'stub-fetch-recover' ) );
 
 		expect( screen.getByRole( 'status' ) ).toHaveTextContent( 'Saved' );
+	} );
+} );
+
+describe( 'SettingsApp save-in-progress guard', () => {
+	/**
+	 * Makes the next `apiFetch` call hang until the returned resolver is
+	 * invoked, so a test can assert on the state while a save is genuinely
+	 * still in flight.
+	 *
+	 * @return The resolver that settles the pending save.
+	 */
+	function holdNextSave(): () => void {
+		let resolveSave: () => void = () => {};
+		hooks.apiFetch.mockImplementation(
+			() =>
+				new Promise< void >( ( resolve ) => {
+					resolveSave = resolve;
+				} )
+		);
+		return () => resolveSave();
+	}
+
+	it( 'threads saving down to both panes while a save is in flight, and clears it once the save resolves', async () => {
+		const resolveSave = holdNextSave();
+		const slot = renderWithSaveSlot();
+		fireEvent.click( screen.getByText( 'stub-add' ) );
+		fireEvent.click( slot.querySelector( 'button' )! );
+
+		expect( screen.getByTestId( 'browse-saving' ) ).toHaveTextContent(
+			'true'
+		);
+		expect( screen.getByTestId( 'selected-saving' ) ).toHaveTextContent(
+			'true'
+		);
+
+		resolveSave();
+
+		await waitFor( () =>
+			expect( screen.getByTestId( 'browse-saving' ) ).toHaveTextContent(
+				'false'
+			)
+		);
+		expect( screen.getByTestId( 'selected-saving' ) ).toHaveTextContent(
+			'false'
+		);
+	} );
+
+	it( 'ignores an add while a save is in flight, even if the calling UI still invokes it', async () => {
+		const resolveSave = holdNextSave();
+		const slot = renderWithSaveSlot();
+		fireEvent.click( screen.getByText( 'stub-add' ) );
+		fireEvent.click( slot.querySelector( 'button' )! );
+
+		fireEvent.click( screen.getByText( 'stub-add-other' ) );
+		expect( screen.getByTestId( 'row-count' ) ).toHaveTextContent( '2' );
+
+		resolveSave();
+		await waitFor( () =>
+			expect( screen.getByTestId( 'browse-saving' ) ).toHaveTextContent(
+				'false'
+			)
+		);
+
+		// The same action succeeds once the guard lifts — proving the earlier
+		// click was ignored because of `saving`, not for some other reason.
+		fireEvent.click( screen.getByText( 'stub-add-other' ) );
+		expect( screen.getByTestId( 'row-count' ) ).toHaveTextContent( '3' );
+	} );
+
+	it( 'ignores a remove while a save is in flight', async () => {
+		const resolveSave = holdNextSave();
+		const slot = renderWithSaveSlot();
+		fireEvent.click( screen.getByText( 'stub-add' ) );
+		fireEvent.click( slot.querySelector( 'button' )! );
+
+		fireEvent.click( screen.getByText( 'remove-user:5' ) );
+		expect( screen.getByTestId( 'row-count' ) ).toHaveTextContent( '2' );
+
+		resolveSave();
+		await waitFor( () =>
+			expect( screen.getByTestId( 'browse-saving' ) ).toHaveTextContent(
+				'false'
+			)
+		);
+
+		fireEvent.click( screen.getByText( 'remove-user:5' ) );
+		expect( screen.getByTestId( 'row-count' ) ).toHaveTextContent( '1' );
+	} );
+
+	it( 'ignores a reorder while a save is in flight', async () => {
+		const resolveSave = holdNextSave();
+		const slot = renderWithSaveSlot();
+		fireEvent.click( screen.getByText( 'stub-add' ) );
+		fireEvent.click( slot.querySelector( 'button' )! );
+
+		fireEvent.click( screen.getByText( 'stub-reorder' ) );
+
+		// Unreordered: the bundled row still precedes the user row it was
+		// added after.
+		expect(
+			document.body.innerHTML.indexOf( 'The Hidden Cost' )
+		).toBeLessThan( document.body.innerHTML.indexOf( 'Pricing' ) );
+
+		resolveSave();
+		await waitFor( () =>
+			expect( screen.getByTestId( 'browse-saving' ) ).toHaveTextContent(
+				'false'
+			)
+		);
+
+		fireEvent.click( screen.getByText( 'stub-reorder' ) );
+		expect( document.body.innerHTML.indexOf( 'Pricing' ) ).toBeLessThan(
+			document.body.innerHTML.indexOf( 'The Hidden Cost' )
+		);
 	} );
 } );

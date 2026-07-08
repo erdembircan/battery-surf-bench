@@ -44,18 +44,21 @@ function useDebouncedValue< T >( value: T, delay: number ): T {
 /**
  * Renders one browse row: title, type badge, and an Add / Added action.
  *
- * @param props         Component props.
- * @param props.record  The search result to render.
- * @param props.isAdded Whether this record is already in the surf sequence.
- * @param props.onAdd   Called when the row's Add button is activated.
+ * @param props          Component props.
+ * @param props.record   The search result to render.
+ * @param props.isAdded  Whether this record is already in the surf sequence.
+ * @param props.disabled Whether the Add action is disabled — while a save is in flight, so the sequence can't change mid-save.
+ * @param props.onAdd    Called when the row's Add button is activated.
  */
 function BrowseRow( {
 	record,
 	isAdded,
+	disabled,
 	onAdd,
 }: {
 	record: SearchRecord;
 	isAdded: boolean;
+	disabled: boolean;
 	onAdd: () => void;
 } ) {
 	const title = record.title || __( '(untitled)', 'battery-surf-bench' );
@@ -85,6 +88,7 @@ function BrowseRow( {
 				<button
 					type="button"
 					className="bsb-ghost-btn"
+					disabled={ disabled }
 					onClick={ onAdd }
 				>
 					{ __( 'Add', 'battery-surf-bench' ) }
@@ -100,6 +104,7 @@ function BrowseRow( {
  * @param props               Component props.
  * @param props.postTypes     The selectable post types (`['page','post']`).
  * @param props.selectedIds   Post ids already in the surf sequence, so their rows show as Added.
+ * @param props.saving        Whether a save is in flight — shields the pane and disables every Add button, so the sequence can't change mid-save.
  * @param props.onAdd         Called with a record's id, subtype and title when its row is added.
  * @param props.onFetchError  Called with whether the most recent request failed, so the screen can raise/clear its bottom error toast. Omit if the caller doesn't need it (e.g. in tests).
  * @param props.initialBrowse The server-seeded first page for the default query (empty search, every selectable subtype, page 1) — painted on mount instead of fetching it.
@@ -107,12 +112,14 @@ function BrowseRow( {
 export function BrowsePane( {
 	postTypes,
 	selectedIds,
+	saving,
 	onAdd,
 	onFetchError,
 	initialBrowse,
 }: {
 	postTypes: string[];
 	selectedIds: Set< number >;
+	saving: boolean;
 	onAdd: ( id: number, subtype: string, title: string ) => void;
 	onFetchError?: ( isError: boolean ) => void;
 	initialBrowse?: InitialBrowse;
@@ -269,6 +276,7 @@ export function BrowsePane( {
 								key={ `${ record.subtype }-${ record.id }` }
 								record={ record }
 								isAdded={ selectedIds.has( record.id ) }
+								disabled={ saving }
 								onAdd={ () =>
 									onAdd(
 										record.id,
@@ -286,7 +294,7 @@ export function BrowsePane( {
 				<button
 					type="button"
 					className="bsb-pager-btn"
-					disabled={ page <= 1 || isResolving }
+					disabled={ page <= 1 || isResolving || saving }
 					onClick={ () => setPage( ( current ) => current - 1 ) }
 				>
 					{ __( '‹ Prev', 'battery-surf-bench' ) }
@@ -302,12 +310,23 @@ export function BrowsePane( {
 				<button
 					type="button"
 					className="bsb-pager-btn"
-					disabled={ page >= totalPages || isResolving }
+					disabled={ page >= totalPages || isResolving || saving }
 					onClick={ () => setPage( ( current ) => current + 1 ) }
 				>
 					{ __( 'Next ›', 'battery-surf-bench' ) }
 				</button>
 			</div>
+
+			{ /* Shields the whole pane while a save is in flight — blocks pointer
+			input (the buttons above are also individually disabled, but this is
+			the visual + interaction backstop the maintainer asked for alongside
+			the code guards in App.tsx) and shows a spinner so the freeze reads
+			as "saving", not "stuck". */ }
+			{ saving && (
+				<div className="bsb-pane-overlay">
+					<Spinner />
+				</div>
+			) }
 		</div>
 	);
 }

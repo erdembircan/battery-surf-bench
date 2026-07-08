@@ -29,6 +29,7 @@ import {
 	verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { Spinner } from '@wordpress/components';
 import { useEffect, useRef, useState } from '@wordpress/element';
 import { __, sprintf } from '@wordpress/i18n';
 import type { OrderEntry, RowBadge, SequenceRow } from './Types';
@@ -88,6 +89,7 @@ function badgeLabel( badge: RowBadge ): string {
  * @param props.isFirst         Whether this is the first row (disables move up).
  * @param props.isLast          Whether this is the last row (disables move down).
  * @param props.isRemoving      Whether the row is mid removal-collapse.
+ * @param props.saving          Whether a save is in flight — disables this row's remove/move controls and its drag handle.
  * @param props.onRemove        Called when the row's remove button is activated.
  * @param props.onMoveUp        Called when the row's move-up affordance is activated.
  * @param props.onMoveDown      Called when the row's move-down affordance is activated.
@@ -99,6 +101,7 @@ function SequenceRowItem( {
 	isFirst,
 	isLast,
 	isRemoving,
+	saving,
 	onRemove,
 	onMoveUp,
 	onMoveDown,
@@ -109,6 +112,7 @@ function SequenceRowItem( {
 	isFirst: boolean;
 	isLast: boolean;
 	isRemoving: boolean;
+	saving: boolean;
 	onRemove: () => void;
 	onMoveUp: () => void;
 	onMoveDown: () => void;
@@ -123,6 +127,10 @@ function SequenceRowItem( {
 		isDragging,
 	} = useSortable( {
 		id: row.key,
+		// A save in flight disables drag pickup for every row — the code guard
+		// in App.tsx would no-op a reorder anyway, but this keeps the pointer
+		// from ever starting a drag that visibly can't go anywhere.
+		disabled: saving,
 		// Matches the mock's SortableJS `animation: 180` exactly, so the
 		// gap-open when a sibling slides aside takes the same 180ms rather
 		// than dnd-kit's own default (200ms).
@@ -188,6 +196,7 @@ function SequenceRowItem( {
 						__( 'Remove %s', 'battery-surf-bench' ),
 						row.title
 					) }
+					disabled={ saving }
 					onClick={ onRemove }
 				>
 					×
@@ -201,7 +210,7 @@ function SequenceRowItem( {
 			<button
 				type="button"
 				className="screen-reader-text"
-				disabled={ isFirst }
+				disabled={ isFirst || saving }
 				onClick={ onMoveUp }
 			>
 				{ sprintf(
@@ -213,7 +222,7 @@ function SequenceRowItem( {
 			<button
 				type="button"
 				className="screen-reader-text"
-				disabled={ isLast }
+				disabled={ isLast || saving }
 				onClick={ onMoveDown }
 			>
 				{ sprintf(
@@ -231,15 +240,18 @@ function SequenceRowItem( {
  *
  * @param props           Component props.
  * @param props.rows      The sequence rows, in visit order.
+ * @param props.saving    Whether a save is in flight — shields the pane and disables every row's remove/move controls and drag.
  * @param props.onRemove  Called with a row's key when its remove button is activated (only fires for removable rows).
  * @param props.onReorder Called with the moved row's key and the key of the row it was dropped onto.
  */
 export function SelectedPane( {
 	rows,
+	saving,
 	onRemove,
 	onReorder,
 }: {
 	rows: SequenceRow[];
+	saving: boolean;
 	onRemove: ( entry: OrderEntry ) => void;
 	onReorder: ( activeKey: string, overKey: string ) => void;
 } ) {
@@ -391,6 +403,7 @@ export function SelectedPane( {
 								isFirst={ index === 0 }
 								isLast={ index === rows.length - 1 }
 								isRemoving={ removingKey === row.key }
+								saving={ saving }
 								onRemove={ () => handleRemove( row ) }
 								onMoveUp={ () =>
 									index > 0 &&
@@ -459,6 +472,16 @@ export function SelectedPane( {
 					) : null }
 				</DragOverlay>
 			</DndContext>
+
+			{ /* Shields the whole pane while a save is in flight — see the same
+			overlay on `BrowsePane`. The per-row remove/move buttons and drag
+			handle above are also individually disabled; this is the visual +
+			interaction backstop. */ }
+			{ saving && (
+				<div className="bsb-pane-overlay">
+					<Spinner />
+				</div>
+			) }
 		</div>
 	);
 }

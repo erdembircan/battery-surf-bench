@@ -31,6 +31,9 @@ const PHP_NOTICE = /Warning:|Notice:|Deprecated:|Fatal error:|has no effect/;
 /** The default page and post every fresh WordPress install seeds, used here as a known, always-present browse target. */
 const DEFAULT_PAGE_TITLE = 'Sample Page';
 
+/** The default post every fresh WordPress install seeds — a second, distinct browse target from {@link DEFAULT_PAGE_TITLE}. */
+const DEFAULT_POST_TITLE = 'Hello world!';
+
 test.describe( 'Settings screen', () => {
 	test( 'renders the settings app on the top-level menu with no PHP notices or console errors', async ( {
 		page,
@@ -169,6 +172,82 @@ test.describe( 'Settings screen', () => {
 			await expect( toast ).toHaveClass( /is-success/ );
 			await expect( toast ).toHaveText( 'Saved' );
 			await expect( toast ).toHaveAttribute( 'role', 'status' );
+		} finally {
+			await resetCourseOrder( page );
+		}
+	} );
+
+	test( 'a save in flight shields both panes and disables their controls, then lifts once it resolves', async ( {
+		page,
+	} ) => {
+		await resetCourseOrder( page );
+
+		try {
+			await page.goto( '/wp-admin/admin.php?page=battery-surf-bench' );
+
+			const sampleRow = page
+				.locator( '.bsb-browse__row', { hasText: DEFAULT_PAGE_TITLE } )
+				.first();
+			await sampleRow.getByRole( 'button', { name: 'Add' } ).click();
+
+			const selectedRow = page
+				.locator( '.bsb-selected .bsb-pages-row--custom', {
+					hasText: DEFAULT_PAGE_TITLE,
+				} )
+				.first();
+			await expect( selectedRow ).toBeVisible();
+
+			// Holds the settings POST open so the in-flight window is long
+			// enough to observe the shield and the disabled controls, rather
+			// than racing a request that (on a local blueprint) usually settles
+			// within a handful of milliseconds.
+			let releaseSave: () => void = () => {};
+			const held = new Promise< void >( ( resolve ) => {
+				releaseSave = resolve;
+			} );
+			await page.route( '**/wp-json/wp/v2/settings', async ( route ) => {
+				await held;
+				await route.continue();
+			} );
+
+			const saveButton = page.getByRole( 'button', {
+				name: 'Save changes',
+			} );
+			await saveButton.click();
+
+			// Both panes are shielded.
+			await expect(
+				page.locator( '.bsb-browse .bsb-pane-overlay' )
+			).toBeVisible();
+			await expect(
+				page.locator( '.bsb-selected .bsb-pane-overlay' )
+			).toBeVisible();
+
+			// A not-yet-added row's Add button is disabled — the sequence can't
+			// change mid-save.
+			const helloRow = page
+				.locator( '.bsb-browse__row', { hasText: DEFAULT_POST_TITLE } )
+				.first();
+			await expect(
+				helloRow.getByRole( 'button', { name: 'Add' } )
+			).toBeDisabled();
+
+			// The just-added row's remove control is disabled too.
+			await expect(
+				selectedRow.locator( '.bsb-pages-row__remove' )
+			).toBeDisabled();
+
+			releaseSave();
+
+			await expect(
+				page.locator( '.bsb-browse .bsb-pane-overlay' )
+			).toBeHidden();
+			await expect(
+				page.locator( '.bsb-selected .bsb-pane-overlay' )
+			).toBeHidden();
+			await expect(
+				helloRow.getByRole( 'button', { name: 'Add' } )
+			).toBeEnabled();
 		} finally {
 			await resetCourseOrder( page );
 		}

@@ -31,12 +31,15 @@ vi.mock( '@dnd-kit/sortable', async () => {
 		);
 	return {
 		...actual,
-		useSortable: (
-			args: Parameters< typeof actual.useSortable >[ 0 ]
-		) => ( {
-			...actual.useSortable( args ),
-			isDragging: args.id === dndKit.draggingId,
-		} ),
+		// Wrapped in `vi.fn()` (not just a plain replacement function) so tests
+		// can also assert on what it was called with — e.g. that `disabled`
+		// reaches it while a save is in flight.
+		useSortable: vi.fn(
+			( args: Parameters< typeof actual.useSortable >[ 0 ] ) => ( {
+				...actual.useSortable( args ),
+				isDragging: args.id === dndKit.draggingId,
+			} )
+		),
 	};
 } );
 
@@ -116,6 +119,7 @@ describe( 'SelectedPane remove', () => {
 		render(
 			<SelectedPane
 				rows={ [ bundledRow, userRow ] }
+				saving={ false }
 				onRemove={ vi.fn() }
 				onReorder={ vi.fn() }
 			/>
@@ -137,6 +141,7 @@ describe( 'SelectedPane remove', () => {
 		render(
 			<SelectedPane
 				rows={ [ bundledRow, userRow ] }
+				saving={ false }
 				onRemove={ onRemove }
 				onReorder={ vi.fn() }
 			/>
@@ -159,6 +164,7 @@ describe( 'SelectedPane remove', () => {
 		render(
 			<SelectedPane
 				rows={ [ userRow ] }
+				saving={ false }
 				onRemove={ onRemove }
 				onReorder={ vi.fn() }
 			/>
@@ -179,6 +185,7 @@ describe( 'SelectedPane remove', () => {
 		render(
 			<SelectedPane
 				rows={ [ userRow ] }
+				saving={ false }
 				onRemove={ onRemove }
 				onReorder={ vi.fn() }
 			/>
@@ -200,6 +207,7 @@ describe( 'SelectedPane remove', () => {
 		render(
 			<SelectedPane
 				rows={ [ userRow ] }
+				saving={ false }
 				onRemove={ onRemove }
 				onReorder={ vi.fn() }
 			/>
@@ -220,6 +228,7 @@ describe( 'SelectedPane remove', () => {
 		render(
 			<SelectedPane
 				rows={ [ bundledRow ] }
+				saving={ false }
 				onRemove={ vi.fn() }
 				onReorder={ vi.fn() }
 			/>
@@ -237,6 +246,7 @@ describe( 'SelectedPane remove', () => {
 		render(
 			<SelectedPane
 				rows={ [ userRow ] }
+				saving={ false }
 				onRemove={ onRemove }
 				onReorder={ vi.fn() }
 			/>
@@ -258,6 +268,7 @@ describe( 'SelectedPane remove', () => {
 		const { unmount } = render(
 			<SelectedPane
 				rows={ [ userRow ] }
+				saving={ false }
 				onRemove={ onRemove }
 				onReorder={ vi.fn() }
 			/>
@@ -284,6 +295,7 @@ describe( 'SelectedPane drag placeholder', () => {
 		render(
 			<SelectedPane
 				rows={ [ bundledRow, userRow ] }
+				saving={ false }
 				onRemove={ vi.fn() }
 				onReorder={ vi.fn() }
 			/>
@@ -306,6 +318,7 @@ describe( 'SelectedPane drag placeholder', () => {
 		render(
 			<SelectedPane
 				rows={ [ bundledRow, userRow ] }
+				saving={ false }
 				onRemove={ vi.fn() }
 				onReorder={ vi.fn() }
 			/>
@@ -320,6 +333,7 @@ describe( 'SelectedPane drag placeholder', () => {
 		render(
 			<SelectedPane
 				rows={ [ bundledRow, userRow ] }
+				saving={ false }
 				onRemove={ vi.fn() }
 				onReorder={ vi.fn() }
 			/>
@@ -328,5 +342,84 @@ describe( 'SelectedPane drag placeholder', () => {
 		expect(
 			findRowByTitle( 'The Hidden Cost of a Browser Tab' )
 		).toHaveClass( 'is-drag-placeholder' );
+	} );
+} );
+
+describe( 'SelectedPane save-in-progress guard', () => {
+	it( 'shields the pane with an overlay while a save is in flight', () => {
+		const { container } = render(
+			<SelectedPane
+				rows={ [ bundledRow, userRow ] }
+				saving
+				onRemove={ vi.fn() }
+				onReorder={ vi.fn() }
+			/>
+		);
+
+		expect(
+			container.querySelector( '.bsb-pane-overlay' )
+		).toBeInTheDocument();
+	} );
+
+	it( 'renders no overlay while not saving', () => {
+		const { container } = render(
+			<SelectedPane
+				rows={ [ bundledRow, userRow ] }
+				saving={ false }
+				onRemove={ vi.fn() }
+				onReorder={ vi.fn() }
+			/>
+		);
+
+		expect(
+			container.querySelector( '.bsb-pane-overlay' )
+		).not.toBeInTheDocument();
+	} );
+
+	it( "disables a removable row's remove button while saving", () => {
+		render(
+			<SelectedPane
+				rows={ [ userRow ] }
+				saving
+				onRemove={ vi.fn() }
+				onReorder={ vi.fn() }
+			/>
+		);
+
+		expect(
+			screen.getByRole( 'button', { name: 'Remove Pricing' } )
+		).toBeDisabled();
+	} );
+
+	it( 'disables the move-down affordance on a row that could otherwise move, while saving', () => {
+		render(
+			<SelectedPane
+				rows={ [ userRow, bundledRow ] }
+				saving
+				onRemove={ vi.fn() }
+				onReorder={ vi.fn() }
+			/>
+		);
+
+		expect(
+			screen.getByRole( 'button', { name: 'Move Pricing down' } )
+		).toBeDisabled();
+	} );
+
+	it( 'passes disabled to useSortable while saving, so drag pickup is blocked', async () => {
+		const dndSortable = await import( '@dnd-kit/sortable' );
+
+		render(
+			<SelectedPane
+				rows={ [ userRow ] }
+				saving
+				onRemove={ vi.fn() }
+				onReorder={ vi.fn() }
+			/>
+		);
+
+		expect( dndSortable.useSortable ).toHaveBeenCalledWith(
+			expect.objectContaining( { id: userRow.key, disabled: true } )
+		);
 	} );
 } );

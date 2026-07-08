@@ -63,6 +63,7 @@ describe( 'BrowsePane queries', () => {
 			<BrowsePane
 				postTypes={ [ 'page', 'post' ] }
 				selectedIds={ new Set() }
+				saving={ false }
 				onAdd={ vi.fn() }
 			/>
 		);
@@ -85,6 +86,7 @@ describe( 'BrowsePane queries', () => {
 			<BrowsePane
 				postTypes={ [ 'page', 'post' ] }
 				selectedIds={ new Set() }
+				saving={ false }
 				onAdd={ vi.fn() }
 			/>
 		);
@@ -104,6 +106,7 @@ describe( 'BrowsePane queries', () => {
 			<BrowsePane
 				postTypes={ [ 'page', 'post' ] }
 				selectedIds={ new Set() }
+				saving={ false }
 				onAdd={ vi.fn() }
 			/>
 		);
@@ -132,6 +135,7 @@ describe( 'BrowsePane queries', () => {
 			<BrowsePane
 				postTypes={ [ 'page', 'post' ] }
 				selectedIds={ new Set() }
+				saving={ false }
 				onAdd={ vi.fn() }
 			/>
 		);
@@ -147,6 +151,7 @@ describe( 'BrowsePane queries', () => {
 			<BrowsePane
 				postTypes={ [ 'page', 'post' ] }
 				selectedIds={ new Set() }
+				saving={ false }
 				onAdd={ vi.fn() }
 			/>
 		);
@@ -163,6 +168,7 @@ describe( 'BrowsePane queries', () => {
 			<BrowsePane
 				postTypes={ [ 'page', 'post' ] }
 				selectedIds={ new Set( [ 1 ] ) }
+				saving={ false }
 				onAdd={ vi.fn() }
 			/>
 		);
@@ -181,6 +187,7 @@ describe( 'BrowsePane queries', () => {
 			<BrowsePane
 				postTypes={ [ 'page', 'post' ] }
 				selectedIds={ new Set() }
+				saving={ false }
 				onAdd={ onAdd }
 			/>
 		);
@@ -197,6 +204,7 @@ describe( 'BrowsePane queries', () => {
 			<BrowsePane
 				postTypes={ [ 'page', 'post' ] }
 				selectedIds={ new Set() }
+				saving={ false }
 				onAdd={ vi.fn() }
 			/>
 		);
@@ -232,6 +240,7 @@ describe( 'BrowsePane initial browse seed', () => {
 			<BrowsePane
 				postTypes={ [ 'page', 'post' ] }
 				selectedIds={ new Set() }
+				saving={ false }
 				onAdd={ vi.fn() }
 				initialBrowse={ seed }
 			/>
@@ -250,6 +259,7 @@ describe( 'BrowsePane initial browse seed', () => {
 			<BrowsePane
 				postTypes={ [ 'page', 'post' ] }
 				selectedIds={ new Set() }
+				saving={ false }
 				onAdd={ vi.fn() }
 				initialBrowse={ seed }
 			/>
@@ -270,6 +280,7 @@ describe( 'BrowsePane initial browse seed', () => {
 			<BrowsePane
 				postTypes={ [ 'page', 'post' ] }
 				selectedIds={ new Set() }
+				saving={ false }
 				onAdd={ vi.fn() }
 				initialBrowse={ seed }
 			/>
@@ -292,6 +303,7 @@ describe( 'BrowsePane pager', () => {
 			<BrowsePane
 				postTypes={ [ 'page', 'post' ] }
 				selectedIds={ new Set() }
+				saving={ false }
 				onAdd={ vi.fn() }
 			/>
 		);
@@ -308,6 +320,7 @@ describe( 'BrowsePane pager', () => {
 			<BrowsePane
 				postTypes={ [ 'page', 'post' ] }
 				selectedIds={ new Set() }
+				saving={ false }
 				onAdd={ vi.fn() }
 			/>
 		);
@@ -327,6 +340,7 @@ describe( 'BrowsePane pager', () => {
 			<BrowsePane
 				postTypes={ [ 'page', 'post' ] }
 				selectedIds={ new Set() }
+				saving={ false }
 				onAdd={ vi.fn() }
 			/>
 		);
@@ -344,6 +358,7 @@ describe( 'BrowsePane busy state', () => {
 			<BrowsePane
 				postTypes={ [ 'page', 'post' ] }
 				selectedIds={ new Set() }
+				saving={ false }
 				onAdd={ vi.fn() }
 			/>
 		);
@@ -366,6 +381,7 @@ describe( 'BrowsePane busy state', () => {
 			<BrowsePane
 				postTypes={ [ 'page', 'post' ] }
 				selectedIds={ new Set() }
+				saving={ false }
 				onAdd={ vi.fn() }
 			/>
 		);
@@ -383,6 +399,7 @@ describe( 'BrowsePane busy state', () => {
 			<BrowsePane
 				postTypes={ [ 'page', 'post' ] }
 				selectedIds={ new Set() }
+				saving={ false }
 				onAdd={ vi.fn() }
 			/>
 		);
@@ -399,6 +416,7 @@ describe( 'BrowsePane busy state', () => {
 			<BrowsePane
 				postTypes={ [ 'page', 'post' ] }
 				selectedIds={ new Set() }
+				saving={ false }
 				onAdd={ vi.fn() }
 			/>
 		);
@@ -422,6 +440,7 @@ describe( 'BrowsePane busy state', () => {
 			<BrowsePane
 				postTypes={ [ 'page', 'post' ] }
 				selectedIds={ new Set() }
+				saving={ false }
 				onAdd={ vi.fn() }
 			/>
 		);
@@ -437,6 +456,7 @@ describe( 'BrowsePane busy state', () => {
 			<BrowsePane
 				postTypes={ [ 'page', 'post' ] }
 				selectedIds={ new Set() }
+				saving={ false }
 				onAdd={ vi.fn() }
 			/>
 		);
@@ -458,6 +478,7 @@ describe( 'BrowsePane busy state', () => {
 			<BrowsePane
 				postTypes={ [ 'page', 'post' ] }
 				selectedIds={ new Set() }
+				saving={ false }
 				onAdd={ vi.fn() }
 			/>
 		);
@@ -482,6 +503,7 @@ describe( 'BrowsePane fetch errors', () => {
 			<BrowsePane
 				postTypes={ [ 'page', 'post' ] }
 				selectedIds={ new Set() }
+				saving={ false }
 				onAdd={ vi.fn() }
 				onFetchError={ onFetchError }
 			/>
@@ -500,6 +522,7 @@ describe( 'BrowsePane fetch errors', () => {
 			<BrowsePane
 				postTypes={ [ 'page', 'post' ] }
 				selectedIds={ new Set() }
+				saving={ false }
 				onAdd={ vi.fn() }
 				onFetchError={ onFetchError }
 			/>
@@ -517,6 +540,7 @@ describe( 'BrowsePane fetch errors', () => {
 			<BrowsePane
 				postTypes={ [ 'page', 'post' ] }
 				selectedIds={ new Set() }
+				saving={ false }
 				onAdd={ vi.fn() }
 			/>
 		);
@@ -537,9 +561,84 @@ describe( 'BrowsePane fetch errors', () => {
 				<BrowsePane
 					postTypes={ [ 'page', 'post' ] }
 					selectedIds={ new Set() }
+					saving={ false }
 					onAdd={ vi.fn() }
 				/>
 			)
 		).not.toThrow();
+	} );
+} );
+
+describe( 'BrowsePane save-in-progress guard', () => {
+	it( 'shields the pane with an overlay while a save is in flight', () => {
+		hooks.useSearchResults.mockReturnValue(
+			result( [ { id: 1, title: 'About', subtype: 'page' } ], 1, 1 )
+		);
+
+		const { container } = render(
+			<BrowsePane
+				postTypes={ [ 'page', 'post' ] }
+				selectedIds={ new Set() }
+				saving
+				onAdd={ vi.fn() }
+			/>
+		);
+
+		expect(
+			container.querySelector( '.bsb-pane-overlay' )
+		).toBeInTheDocument();
+	} );
+
+	it( 'renders no overlay while not saving', () => {
+		hooks.useSearchResults.mockReturnValue(
+			result( [ { id: 1, title: 'About', subtype: 'page' } ], 1, 1 )
+		);
+
+		const { container } = render(
+			<BrowsePane
+				postTypes={ [ 'page', 'post' ] }
+				selectedIds={ new Set() }
+				saving={ false }
+				onAdd={ vi.fn() }
+			/>
+		);
+
+		expect(
+			container.querySelector( '.bsb-pane-overlay' )
+		).not.toBeInTheDocument();
+	} );
+
+	it( 'disables every Add button while saving', () => {
+		hooks.useSearchResults.mockReturnValue(
+			result( [ { id: 1, title: 'About', subtype: 'page' } ], 1, 1 )
+		);
+
+		render(
+			<BrowsePane
+				postTypes={ [ 'page', 'post' ] }
+				selectedIds={ new Set() }
+				saving
+				onAdd={ vi.fn() }
+			/>
+		);
+
+		expect( screen.getByRole( 'button', { name: 'Add' } ) ).toBeDisabled();
+	} );
+
+	it( 'disables the pager while saving', () => {
+		hooks.useSearchResults.mockReturnValue( result( [], 30, 3 ) );
+
+		render(
+			<BrowsePane
+				postTypes={ [ 'page', 'post' ] }
+				selectedIds={ new Set() }
+				saving
+				onAdd={ vi.fn() }
+			/>
+		);
+
+		expect(
+			screen.getByRole( 'button', { name: 'Next ›' } )
+		).toBeDisabled();
 	} );
 } );

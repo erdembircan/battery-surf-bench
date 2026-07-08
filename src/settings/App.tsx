@@ -212,13 +212,19 @@ export function SettingsApp( { config }: { config: SettingsConfig } ) {
 	}
 
 	/**
-	 * Adds a browsed post or page to the end of the sequence.
+	 * Adds a browsed post or page to the end of the sequence. Guarded at this
+	 * level (not just via disabled controls in the panes) so a change can
+	 * never land while a save of the previous sequence is still in flight,
+	 * regardless of which UI path tried to trigger it.
 	 *
 	 * @param id    The post id to add.
 	 * @param type  The post's type, used for the row's badge until the resolver confirms it.
 	 * @param title The post's title, used for the row until the resolver confirms it.
 	 */
 	function handleAdd( id: number, type: string, title: string ): void {
+		if ( saving ) {
+			return;
+		}
 		setOrder( ( previous ) => addUserPage( previous, id ) );
 		setUserPages( ( previous ) => ( {
 			...previous,
@@ -229,12 +235,13 @@ export function SettingsApp( { config }: { config: SettingsConfig } ) {
 
 	/**
 	 * Removes a user page from the sequence. Bundled entries never reach here —
-	 * the Selected pane renders no remove control for them.
+	 * the Selected pane renders no remove control for them. Guarded against a
+	 * save in flight for the same reason {@link handleAdd} is.
 	 *
 	 * @param entry The order entry to remove.
 	 */
 	function handleRemove( entry: OrderEntry ): void {
-		if ( entry.kind !== 'user' ) {
+		if ( saving || entry.kind !== 'user' ) {
 			return;
 		}
 		setOrder( ( previous ) => removeUserPage( previous, entry.id ) );
@@ -243,12 +250,16 @@ export function SettingsApp( { config }: { config: SettingsConfig } ) {
 
 	/**
 	 * Reorders the sequence by dragging or moving one entry onto another's
-	 * position.
+	 * position. Guarded against a save in flight for the same reason
+	 * {@link handleAdd} is.
 	 *
 	 * @param activeKey Key of the entry being moved.
 	 * @param overKey   Key of the entry it was dropped onto.
 	 */
 	function handleReorder( activeKey: string, overKey: string ): void {
+		if ( saving ) {
+			return;
+		}
 		setOrder( ( previous ) =>
 			reorderByKey( previous, activeKey, overKey )
 		);
@@ -323,12 +334,14 @@ export function SettingsApp( { config }: { config: SettingsConfig } ) {
 						<BrowsePane
 							postTypes={ config.postTypes }
 							selectedIds={ selectedIds }
+							saving={ saving }
 							onAdd={ handleAdd }
 							onFetchError={ handleFetchError }
 							initialBrowse={ config.initialBrowse }
 						/>
 						<SelectedPane
 							rows={ rows }
+							saving={ saving }
 							onRemove={ handleRemove }
 							onReorder={ handleReorder }
 						/>
