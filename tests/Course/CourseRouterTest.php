@@ -12,6 +12,7 @@ namespace ErdemBircan\BatterySurfBench\Tests\Course;
 use Brain\Monkey\Functions;
 use ErdemBircan\BatterySurfBench\Assets;
 use ErdemBircan\BatterySurfBench\Course\CourseCatalog;
+use ErdemBircan\BatterySurfBench\Course\CourseOrderSanitizer;
 use ErdemBircan\BatterySurfBench\Course\CourseRouter;
 use ErdemBircan\BatterySurfBench\Support\Manager;
 use ErdemBircan\BatterySurfBench\Tests\TestCase;
@@ -24,26 +25,40 @@ use function has_filter;
 
 /**
  * The router serves course pages off a URL parameter without seeding anything:
- * on the main query, a parameter naming a catalog page is turned into a single
- * virtual page flagged singular, which the theme then renders. Its observable
- * contract is the posts it returns and the query flags it sets; every other
- * request is left untouched.
+ * on the main query, a parameter naming a catalog page — or a `user-<id>`
+ * slug that is currently selected and eligible in the saved surf-course order
+ * — is turned into a single virtual page flagged singular, which the theme
+ * then renders. Its observable contract is the posts it returns and the query
+ * flags it sets; every other request, including a `user-<id>` slug that is
+ * NOT in the saved order, is left untouched.
  */
 final class CourseRouterTest extends TestCase {
 
 	private const PARAM      = 'bsbSessionPage';
 	private const BODY_CLASS = 'bsb-course-page';
+	private const OPTION     = 'bsb_course_order';
 
 	/**
-	 * Builds a router over the real catalog.
+	 * Builds a router over the real catalog and a real sanitizer restricted to
+	 * pages and posts.
 	 *
 	 * @param Assets|null $assets Asset service double, or a fresh mock when omitted.
 	 * @return CourseRouter The router under test.
 	 */
 	private function router( ?Assets $assets = null ): CourseRouter {
-		$catalog = new CourseCatalog( '/plugin/includes/Course/content' );
+		$catalog   = new CourseCatalog( '/plugin/includes/Course/content' );
+		$sanitizer = new CourseOrderSanitizer( $catalog, array( 'page', 'post' ) );
 
-		return new CourseRouter( $catalog, self::PARAM, $assets ?? Mockery::mock( Assets::class ), 'build/style-course.css', 'build/surfer.js', self::BODY_CLASS );
+		return new CourseRouter(
+			$catalog,
+			self::PARAM,
+			$assets ?? Mockery::mock( Assets::class ),
+			'build/style-course.css',
+			'build/surfer.js',
+			self::BODY_CLASS,
+			self::OPTION,
+			$sanitizer
+		);
 	}
 
 	/**
@@ -54,6 +69,38 @@ final class CourseRouterTest extends TestCase {
 	private function stage_slug( string $slug ): void {
 		Functions\when( 'get_query_var' )->justReturn( $slug );
 		Functions\when( 'sanitize_key' )->returnArg();
+	}
+
+	/**
+	 * Stages the saved surf-course order and the post lookups a `user-<id>`
+	 * resolution reads, so a given post id resolves as eligible.
+	 *
+	 * @param array<int, array{kind: string, slug?: string, id?: int}>                                             $order Saved surf-course order.
+	 * @param array<int, array{status?: string, type?: string, viewable?: bool, title?: string, content?: string}> $posts Post id => attributes.
+	 */
+	private function stage_user_pages( array $order, array $posts ): void {
+		Functions\when( 'get_option' )->justReturn( $order );
+		Functions\when( 'get_post_status' )->alias(
+			static fn ( int $id ) => $posts[ $id ]['status'] ?? false
+		);
+		Functions\when( 'get_post_type' )->alias(
+			static fn ( int $id ) => $posts[ $id ]['type'] ?? false
+		);
+		Functions\when( 'is_post_publicly_viewable' )->alias(
+			static fn ( int $id ) => $posts[ $id ]['viewable'] ?? false
+		);
+		Functions\when( 'get_the_title' )->alias(
+			static fn ( int $id ) => $posts[ $id ]['title'] ?? ''
+		);
+		Functions\when( 'get_post' )->alias(
+			static function ( int $id ) use ( $posts ) {
+				if ( ! isset( $posts[ $id ] ) ) {
+					return null;
+				}
+
+				return (object) array( 'post_content' => $posts[ $id ]['content'] ?? '' );
+			}
+		);
 	}
 
 	/**
@@ -109,6 +156,131 @@ final class CourseRouterTest extends TestCase {
 		$original = array( 'untouched' );
 
 		$this->assertSame( $original, $this->router()->maybe_render( $original, new WP_Query() ) );
+	}
+
+	/**
+	 * A `user-<id>` slug whose id is currently selected and eligible in the
+	 * saved surf-course order is served exactly like a bundled page: a virtual
+	 * page carrying the real post's own content, flagged singular.
+	 */
+	public function test_serves_a_virtual_page_for_a_selected_eligible_user_page(): void {
+		$this->stage_slug( 'user-42' );
+		$this->stage_user_pages(
+			array(
+				array(
+					'kind' => 'user',
+					'id'   => 42,
+				),
+			),
+			array(
+				42 => array(
+					'status'   => 'publish',
+					'type'     => 'page',
+					'viewable' => true,
+					'title'    => 'My Custom Page',
+					'content'  => '<!-- wp:paragraph --><p>Hello</p><!-- /wp:paragraph -->',
+				),
+			)
+		);
+		$query = new WP_Query();
+
+		$posts = $this->router()->maybe_render( array(), $query );
+
+		$this->assertCount( 1, $posts );
+		$this->assertInstanceOf( WP_Post::class, $posts[0] );
+		$this->assertSame( 'My Custom Page', $posts[0]->post_title );
+		$this->assertSame(
+			'<!-- wp:paragraph --><p>Hello</p><!-- /wp:paragraph -->',
+			$posts[0]->post_content
+		);
+		$this->assertTrue( $query->is_singular );
+		$this->assertTrue( $query->is_page );
+	}
+
+	/**
+	 * A `user-<id>` slug whose id is NOT in the saved surf-course order's user
+	 * set is left completely untouched — the authoritative, server-side gate.
+	 * This is the exact exploit the fix closes: the id must be currently
+	 * selected in the saved admin option, never decided by the request.
+	 */
+	public function test_leaves_a_non_selected_user_slug_untouched(): void {
+		$this->stage_slug( 'user-99' );
+		$this->stage_user_pages(
+			array(
+				array(
+					'kind' => 'user',
+					'id'   => 42,
+				),
+			),
+			array(
+				99 => array(
+					'status'   => 'publish',
+					'type'     => 'page',
+					'viewable' => true,
+					'title'    => 'Not Selected',
+					'content'  => '<!-- wp:paragraph --><p>Hi</p><!-- /wp:paragraph -->',
+				),
+			)
+		);
+		$original = array( 'untouched' );
+
+		$this->assertSame( $original, $this->router()->maybe_render( $original, new WP_Query() ) );
+	}
+
+	/**
+	 * A `user-<id>` slug whose id is saved but no longer resolves to an
+	 * eligible post (trashed, unpublished, or otherwise dropped by the
+	 * sanitizer) is left untouched too — the saved order is healed/validated
+	 * on every read, so a stale saved id never gets served.
+	 */
+	public function test_leaves_an_ineligible_user_slug_untouched(): void {
+		$this->stage_slug( 'user-42' );
+		$this->stage_user_pages(
+			array(
+				array(
+					'kind' => 'user',
+					'id'   => 42,
+				),
+			),
+			array( 42 => array( 'status' => 'trash' ) )
+		);
+		$original = array( 'untouched' );
+
+		$this->assertSame( $original, $this->router()->maybe_render( $original, new WP_Query() ) );
+	}
+
+	/**
+	 * A slug shaped like a real page's own permalink slug (not the
+	 * `user-<id>` router form) never resolves as a user page, regardless of
+	 * the saved order — the router only ever serves its own synthetic slug
+	 * shape, never a real permalink. No enqueue is ever hooked for such a
+	 * request.
+	 */
+	public function test_never_serves_or_enqueues_for_a_real_permalink_slug(): void {
+		$this->stage_slug( 'my-real-page' );
+		$this->stage_user_pages(
+			array(
+				array(
+					'kind' => 'user',
+					'id'   => 42,
+				),
+			),
+			array(
+				42 => array(
+					'status'   => 'publish',
+					'type'     => 'page',
+					'viewable' => true,
+					'title'    => 'My Custom Page',
+					'content'  => '<!-- wp:paragraph --><p>Hello</p><!-- /wp:paragraph -->',
+				),
+			)
+		);
+		$router   = $this->router();
+		$original = array( 'untouched' );
+
+		$this->assertSame( $original, $router->maybe_render( $original, new WP_Query() ) );
+		$this->assertFalse( has_action( 'wp_enqueue_scripts', array( $router, 'enqueue_script' ) ) );
+		$this->assertFalse( has_filter( 'body_class', array( $router, 'mark_course_body' ) ) );
 	}
 
 	/**

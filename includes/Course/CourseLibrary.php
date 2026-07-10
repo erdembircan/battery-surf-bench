@@ -9,7 +9,6 @@ namespace ErdemBircan\BatterySurfBench\Course;
 
 use function add_query_arg;
 use function get_option;
-use function get_permalink;
 use function get_the_title;
 use function home_url;
 
@@ -17,11 +16,12 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * Lists the surfer's full page sequence with the front-end URL that serves
- * each one, in saved course order. Each entry is either one of the plugin's
- * bundled pages ({@see CourseCatalog}), served by the {@see CourseRouter} off
- * the course query parameter (e.g. `?bsbSessionPage=article-1`), or a real
- * post or page a site owner chose from the settings screen, served entirely
- * by the theme and run by {@see UserPageEngine}. This is the list the
+ * each one, in saved course order. Every entry — a bundled page from the
+ * {@see CourseCatalog} or a real post/page a site owner chose from the
+ * settings screen — is served the same way, off the course query parameter
+ * (e.g. `?bsbSessionPage=article-1` or `?bsbSessionPage=user-42`) through the
+ * {@see CourseRouter}'s controlled synthetic-render route; the surf engine
+ * never touches a user page's real permalink. This is the list the
  * cockpit surfs — the
  * {@see \ErdemBircan\BatterySurfBench\Cockpit\CoursePagesSource} hands it to
  * the cockpit block through the Block Bindings API.
@@ -91,19 +91,23 @@ class CourseLibrary {
 	}
 
 	/**
-	 * Builds the link for a user-selected page: its own real permalink, run
-	 * by {@see UserPageEngine} rather than the course router. The sanitizer
-	 * only ever admits a post id that still exists, is published and is
-	 * publicly viewable, so the title/permalink lookups here always resolve.
+	 * Builds the link for a user-selected page: the router URL that serves it
+	 * off the course query parameter (`?bsbSessionPage=user-<id>`) — never the
+	 * page's own real permalink, so the surf engine only ever runs inside the
+	 * router's controlled route (see {@see CourseRouter}'s security note). The
+	 * sanitizer only ever admits a post id that still exists, is published and
+	 * is publicly viewable, so the title lookup here always resolves.
 	 *
 	 * @param int $id The user page's post id.
 	 * @return array{slug: string, title: string, url: string} The user page's link.
 	 */
 	private function user_link( int $id ): array {
+		$slug = 'user-' . $id;
+
 		return array(
-			'slug'  => 'user-' . $id,
+			'slug'  => $slug,
 			'title' => get_the_title( $id ),
-			'url'   => get_permalink( $id ),
+			'url'   => add_query_arg( $this->param, $slug, home_url( '/' ) ),
 		);
 	}
 }

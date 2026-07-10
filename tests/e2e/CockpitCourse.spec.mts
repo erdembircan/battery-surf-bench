@@ -669,7 +669,7 @@ test.describe( 'Navigate/reload guard', () => {
 } );
 
 test.describe( 'User-selected page in the surf rotation', () => {
-	/** The `/wp/v2/settings` collection: hosts the `bsb_course_order` field — the same endpoint `CourseLibrary`/`UserPageEngine` read the saved order from. */
+	/** The `/wp/v2/settings` collection: hosts the `bsb_course_order` field — the same endpoint `CourseLibrary`/`CourseRouter` read the saved order from. */
 	const SETTINGS_ENDPOINT = '/wp-json/wp/v2/settings';
 
 	/** The `/wp/v2/pages` collection, used to mint a throwaway published page as a "user" entry. */
@@ -677,6 +677,12 @@ test.describe( 'User-selected page in the surf rotation', () => {
 
 	/** The option's REST field name, mirrors `Config.php`'s `settings.option`. */
 	const OPTION_KEY = 'bsb_course_order';
+
+	/** A throwaway published page created for a test, plus its real permalink. */
+	interface UserPage {
+		id: number;
+		link: string;
+	}
 
 	/**
 	 * Mints a fresh REST nonce for the logged-in admin session — the same
@@ -700,19 +706,19 @@ test.describe( 'User-selected page in the surf rotation', () => {
 	 *
 	 * @param page  - The authenticated page to create through.
 	 * @param title - The page's title.
-	 * @return The created page's id.
+	 * @return The created page's id and its real permalink.
 	 */
 	async function createUserPage(
 		page: Page,
 		title: string
-	): Promise< number > {
+	): Promise< UserPage > {
 		const response = await page.request.post( PAGES_ENDPOINT, {
 			headers: { 'X-WP-Nonce': await nonce( page ) },
 			data: { title, status: 'publish' },
 		} );
 		expect( response.status() ).toBe( 201 );
 		const record = await response.json();
-		return record.id as number;
+		return { id: record.id as number, link: record.link as string };
 	}
 
 	/**
@@ -773,14 +779,15 @@ test.describe( 'User-selected page in the surf rotation', () => {
 
 	// Regression coverage for M3's front-end wiring: a real post or page the
 	// site owner picked from the settings screen must surf exactly like a
-	// bundled page — loaded through the theme (not the course router), the
-	// surf engine running on it, and the run advancing off its own
-	// `bsb:pageDone` — rather than being inert dead weight in the sequence.
+	// bundled page — loaded through the course router's own synthetic-render
+	// route (never the real permalink), the surf engine running on it, and
+	// the run advancing off its own `bsb:pageDone` — rather than being inert
+	// dead weight in the sequence.
 	test( 'a user page added via the settings screen appears in the rotation, loads, and advances', async ( {
 		page,
 	} ) => {
 		const title = 'Surf Rotation User Page';
-		const pageId = await createUserPage( page, title );
+		const userPage = await createUserPage( page, title );
 
 		try {
 			// Add the page to the surf sequence through the real settings
@@ -803,7 +810,7 @@ test.describe( 'User-selected page in the surf rotation', () => {
 			await saveButton.click();
 			await expect( saveButton ).toBeDisabled();
 
-			await putUserPageFirst( page, pageId );
+			await putUserPageFirst( page, userPage.id );
 
 			await page.goto( '/?bsbSession=cockpit' );
 
@@ -832,19 +839,19 @@ test.describe( 'User-selected page in the surf rotation', () => {
 			const viewport = page.locator( 'iframe.bsb-cockpit__viewport' );
 
 			// The user page leads the sequence, so it is the very first page
-			// surfed: a real permalink carrying the traits param, never the
-			// course router's `bsbSessionPage` query parameter bundled pages
-			// carry.
-			await expect( viewport ).toHaveAttribute( 'src', /bsbTraits/ );
-			await expect( viewport ).not.toHaveAttribute(
+			// surfed — through the SAME `bsbSessionPage` router URL shape a
+			// bundled page uses (`user-<id>` in place of a catalog slug),
+			// never the page's own real permalink.
+			await expect( viewport ).toHaveAttribute(
 				'src',
-				/bsbSessionPage/
+				new RegExp( `bsbSessionPage=user-${ userPage.id }` )
 			);
 
-			// `UserPageEngine` gated the real page in: the surf engine loaded
-			// and stamped the shared course-page body-class marker the
-			// viewport load guard looks for, so the run treats it as a
-			// successful load rather than stopping on it.
+			// The router gated the real page in through its controlled
+			// route: the surf engine loaded and stamped the shared
+			// course-page body-class marker the viewport load guard looks
+			// for, so the run treats it as a successful load rather than
+			// stopping on it.
 			await expect(
 				viewport.contentFrame().locator( 'body.bsb-course-page' )
 			).toBeAttached();
@@ -856,14 +863,74 @@ test.describe( 'User-selected page in the surf rotation', () => {
 			// The engine posts `bsb:pageDone` once it moves on, and the run
 			// advances to the next page in the sequence — the first bundled
 			// page, back through the course router's URL shape.
-			await expect( viewport ).toHaveAttribute( 'src', /bsbSessionPage/, {
-				timeout: 30_000,
-			} );
+			await expect( viewport ).toHaveAttribute(
+				'src',
+				/bsbSessionPage=article-1/,
+				{ timeout: 30_000 }
+			);
 
 			expect( await page.content() ).not.toMatch( PHP_NOTICE );
 		} finally {
 			await resetCourseOrder( page );
-			await deleteUserPage( page, pageId );
+			await deleteUserPage( page, userPage.id );
+		}
+	} );
+
+	// Security regression: the exploit the fix closes. Before the fix,
+	// UserPageEngine gated the surf engine onto a user's REAL permalink
+	// purely off the presence of the `bsbTraits` URL param — client-
+	// controlled input deciding whether the engine ran on a real live page.
+	// Appending `?bsbTraits=...` to a selected page's own permalink must do
+	// nothing: the engine only ever runs inside the router's controlled
+	// `?bsbSessionPage=user-<id>` route, never on the real permalink, no
+	// matter what query parameters are appended to it.
+	test( "visiting a selected user page's real permalink with bsbTraits appended does not inject the surf engine", async ( {
+		page,
+	} ) => {
+		const userPage = await createUserPage(
+			page,
+			'Security Regression User Page'
+		);
+
+		try {
+			// Select the page in the saved surf-course order directly through
+			// the persistence endpoint (equivalent to having added it via the
+			// settings screen and saved), so it is a genuinely eligible,
+			// currently-selected user page.
+			const response = await page.request.post( SETTINGS_ENDPOINT, {
+				headers: { 'X-WP-Nonce': await nonce( page ) },
+				data: {
+					[ OPTION_KEY ]: [ { kind: 'user', id: userPage.id } ],
+				},
+			} );
+			expect( response.ok() ).toBeTruthy();
+
+			// Visit the page's REAL permalink directly, appending the
+			// traits param exactly as the exploit did — no iframe, no
+			// router query parameter, just the page's own URL plus the
+			// client-controlled param the old gate trusted.
+			await page.goto( `${ userPage.link }?bsbTraits=10,0,0,0,0` );
+
+			// Neither the surf engine script nor the shared course-page body
+			// class was injected: the real permalink is never a surf target,
+			// regardless of what the request carries.
+			await expect( page.locator( 'body' ) ).not.toHaveClass(
+				/bsb-course-page/
+			);
+			const scriptSrcs = await page
+				.locator( 'script[src]' )
+				.evaluateAll( ( scripts ) =>
+					scripts.map( ( script ) => script.getAttribute( 'src' ) )
+				);
+			expect(
+				scriptSrcs.some( ( src ) => /surfer\.js/.test( src ?? '' ) )
+			).toBe( false );
+			expect( await page.content() ).not.toContain( 'surfer.js' );
+
+			await expectNoPhpNotices( page );
+		} finally {
+			await resetCourseOrder( page );
+			await deleteUserPage( page, userPage.id );
 		}
 	} );
 } );

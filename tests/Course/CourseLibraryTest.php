@@ -98,10 +98,12 @@ final class CourseLibraryTest extends TestCase {
 	}
 
 	/**
-	 * The saved order is emitted exactly in saved order: a bundled entry as the
-	 * router URL (`?bsbSessionPage=<slug>`), a user entry as its own real
-	 * permalink and title. Bundled pages missing from the saved order are
-	 * healed in afterward, exactly as the sanitizer heals them.
+	 * The saved order is emitted exactly in saved order: both a bundled entry
+	 * and a user entry as router URLs (`?bsbSessionPage=<slug>`) — a user
+	 * entry's slug is `user-<id>`, never the page's own real permalink, so the
+	 * surf engine only ever runs through the router's controlled route.
+	 * Bundled pages missing from the saved order are healed in afterward,
+	 * exactly as the sanitizer heals them.
 	 */
 	public function test_emits_the_saved_sequence_in_order(): void {
 		$this->stub_posts(
@@ -127,7 +129,6 @@ final class CourseLibraryTest extends TestCase {
 			)
 		);
 		Functions\when( 'get_the_title' )->justReturn( 'My Custom Page' );
-		Functions\when( 'get_permalink' )->justReturn( 'https://example.test/my-custom-page/' );
 
 		$links = $this->library()->links();
 
@@ -138,7 +139,7 @@ final class CourseLibraryTest extends TestCase {
 			array(
 				'slug'  => 'user-42',
 				'title' => 'My Custom Page',
-				'url'   => 'https://example.test/my-custom-page/',
+				'url'   => 'https://example.test/?bsbSessionPage=user-42',
 			),
 			$links[0]
 		);
