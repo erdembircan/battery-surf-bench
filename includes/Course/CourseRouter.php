@@ -8,6 +8,7 @@
 namespace ErdemBircan\BatterySurfBench\Course;
 
 use ErdemBircan\BatterySurfBench\Assets;
+use ErdemBircan\BatterySurfBench\Course\Views\UserPageView;
 use ErdemBircan\BatterySurfBench\Support\Manager;
 use WP_Post;
 use WP_Query;
@@ -63,6 +64,7 @@ class CourseRouter implements Manager {
 	 * @param string               $body_class      Body-class marker stamped on every served course page.
 	 * @param string               $option_name     Name of the option the surf-course order is saved under — the authoritative, server-side source of which `user-<id>` slugs are eligible to be served.
 	 * @param CourseOrderSanitizer $order_sanitizer Heals the saved order on every read and exposes the currently-selected user ids to gate a `user-<id>` request against.
+	 * @param UserPageView         $user_page_view  Renders a real user page's own title as a heading above its content, so a served `user-<id>` page stays faithful to the real page.
 	 */
 	public function __construct(
 		private CourseCatalog $catalog,
@@ -72,7 +74,8 @@ class CourseRouter implements Manager {
 		private string $script,
 		private string $body_class,
 		private string $option_name,
-		private CourseOrderSanitizer $order_sanitizer
+		private CourseOrderSanitizer $order_sanitizer,
+		private UserPageView $user_page_view
 	) {
 	}
 
@@ -147,10 +150,13 @@ class CourseRouter implements Manager {
 	 * A slug that does not match the pattern, an id absent from the saved
 	 * order, or an id that no longer resolves to a post all fail identically.
 	 *
-	 * The returned page's content is the real post's own raw block markup, so
-	 * it renders — and enqueues its blocks' own view assets — through the
-	 * exact same `the_content` / `do_blocks()` path {@see serve()} already
-	 * runs bundled pages through.
+	 * The returned page's content is the real post's own raw block markup with
+	 * its title prefixed as a heading (see {@see UserPageView}) — a real page's
+	 * title is a field separate from its content, so without the prefix a
+	 * surfed user page would render without it. Prefixed or not, the content
+	 * renders — and enqueues its blocks' own view assets — through the exact
+	 * same `the_content` / `do_blocks()` path {@see serve()} already runs
+	 * bundled pages through.
 	 *
 	 * @param string $slug The requested slug.
 	 * @return CoursePage|null The resolved user page, or null when the slug does not name a currently-selected, eligible user page.
@@ -172,7 +178,15 @@ class CourseRouter implements Manager {
 			return null;
 		}
 
-		return new CoursePage( $slug, get_the_title( $id ), $post->post_content );
+		$title   = get_the_title( $id );
+		$content = $this->user_page_view->render(
+			array(
+				'title'   => $title,
+				'content' => $post->post_content,
+			)
+		);
+
+		return new CoursePage( $slug, $title, $content );
 	}
 
 	/**

@@ -24,6 +24,7 @@ use ErdemBircan\BatterySurfBench\Course\CourseLibrary;
 use ErdemBircan\BatterySurfBench\Course\CourseOrderOption;
 use ErdemBircan\BatterySurfBench\Course\CourseOrderSanitizer;
 use ErdemBircan\BatterySurfBench\Course\CourseRouter;
+use ErdemBircan\BatterySurfBench\Course\Views\UserPageView;
 use ErdemBircan\BatterySurfBench\DevTools\DevTools;
 use ErdemBircan\BatterySurfBench\DevTools\Views\DevToolsPanelView;
 use ErdemBircan\BatterySurfBench\Settings\OptionRegistry;
@@ -208,7 +209,8 @@ class BatterySurfBench {
 				$this->registry->get( 'course.script' ),
 				$this->registry->get( 'course.body_class' ),
 				$this->registry->get( 'settings.option' ),
-				$order_sanitizer
+				$order_sanitizer,
+				new UserPageView()
 			),
 			new CoursePagesSource(
 				$this->registry->get( 'course.binding_source' ),

@@ -207,13 +207,17 @@ classDiagram
     }
 
     class CourseRouter {
-        +__construct(CourseCatalog catalog, string param, Assets assets, string stylesheet, string script, string body_class, string option_name, CourseOrderSanitizer order_sanitizer)
+        +__construct(CourseCatalog catalog, string param, Assets assets, string stylesheet, string script, string body_class, string option_name, CourseOrderSanitizer order_sanitizer, UserPageView user_page_view)
         +register() void
         +add_query_var(array vars) array
         +maybe_render(array posts, WP_Query query) array
         +mark_course_body(array classes) array
         +enqueue_style() void
         +enqueue_script() void
+    }
+
+    class UserPageView {
+        +render(array data) string
     }
 
     class CoursePagesSource {
@@ -335,6 +339,8 @@ classDiagram
     CourseRouter --> CourseCatalog : uses
     CourseRouter --> Assets : uses
     CourseRouter --> CourseOrderSanitizer : authoritatively gates a user page slug against the saved order
+    CourseRouter ..> UserPageView : renders via (user pages only)
+    UserPageView ..|> View : implements
     CourseCatalog ..> CoursePage : produces
     CoursePagesSource ..|> Manager : implements
     CoursePagesSource --> CourseLibrary : uses

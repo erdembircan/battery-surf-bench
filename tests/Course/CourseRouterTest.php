@@ -14,6 +14,7 @@ use ErdemBircan\BatterySurfBench\Assets;
 use ErdemBircan\BatterySurfBench\Course\CourseCatalog;
 use ErdemBircan\BatterySurfBench\Course\CourseOrderSanitizer;
 use ErdemBircan\BatterySurfBench\Course\CourseRouter;
+use ErdemBircan\BatterySurfBench\Course\Views\UserPageView;
 use ErdemBircan\BatterySurfBench\Support\Manager;
 use ErdemBircan\BatterySurfBench\Tests\TestCase;
 use Mockery;
@@ -57,7 +58,8 @@ final class CourseRouterTest extends TestCase {
 			'build/surfer.js',
 			self::BODY_CLASS,
 			self::OPTION,
-			$sanitizer
+			$sanitizer,
+			new UserPageView()
 		);
 	}
 
@@ -161,7 +163,11 @@ final class CourseRouterTest extends TestCase {
 	/**
 	 * A `user-<id>` slug whose id is currently selected and eligible in the
 	 * saved surf-course order is served exactly like a bundled page: a virtual
-	 * page carrying the real post's own content, flagged singular.
+	 * page carrying the real post's own content, flagged singular. Unlike a
+	 * bundled page, the real post's title is a field separate from its
+	 * content, so the router prefixes it as a heading above the content — a
+	 * surfed user page must stay faithful to what the title reads on the real
+	 * page.
 	 */
 	public function test_serves_a_virtual_page_for_a_selected_eligible_user_page(): void {
 		$this->stage_slug( 'user-42' );
@@ -189,12 +195,29 @@ final class CourseRouterTest extends TestCase {
 		$this->assertCount( 1, $posts );
 		$this->assertInstanceOf( WP_Post::class, $posts[0] );
 		$this->assertSame( 'My Custom Page', $posts[0]->post_title );
-		$this->assertSame(
+		$this->assertStringContainsString( '<h1 class="wp-block-heading">My Custom Page</h1>', $posts[0]->post_content );
+		$this->assertStringContainsString(
 			'<!-- wp:paragraph --><p>Hello</p><!-- /wp:paragraph -->',
 			$posts[0]->post_content
 		);
 		$this->assertTrue( $query->is_singular );
 		$this->assertTrue( $query->is_page );
+	}
+
+	/**
+	 * A bundled catalog page's own editorial markup already carries whatever
+	 * headline it needs, so the router never prefixes a title heading onto it
+	 * — only a `user-<id>` page's raw content, which has no heading of its
+	 * own, gets one.
+	 */
+	public function test_serves_a_bundled_page_without_a_title_heading(): void {
+		$this->stage_slug( 'article-1' );
+
+		$posts = $this->router()->maybe_render( array(), new WP_Query() );
+
+		$this->assertCount( 1, $posts );
+		$this->assertInstanceOf( WP_Post::class, $posts[0] );
+		$this->assertStringNotContainsString( '<h1 class="wp-block-heading">', $posts[0]->post_content );
 	}
 
 	/**
