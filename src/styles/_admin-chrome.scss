@@ -220,11 +220,14 @@
 // this fixed, bottom-center layer — the SAME placement as the cockpit's
 // front-end toast (`.bsb-cockpit__toast-layer`), not inline near whatever
 // triggered them. Both extend the shared `%bsb-toast-layer`/`%bsb-toast`
-// placeholders (`_toast.scss`) so the two are pixel-identical, layer included.
-// Only `ErrorBoundary`'s crash fallback is the one exception: it replaces the
-// app's whole UI, so its `<Notice>` renders inline in that fallback body, not
-// in this layer. No enter/leave phase animation here (see `_toast.scss`'s
-// module note): the admin `<Notice>` mounts/unmounts on plain React state.
+// placeholders (`_toast.scss`) so the two are pixel- and motion-identical,
+// layer and enter/leave animation included — `Notice.tsx` drives the same
+// `is-entering`/`is-holding`/`is-leaving` phase classes the cockpit pill uses,
+// just from its own small local phase state instead of the cockpit's
+// Interactivity store. Only `ErrorBoundary`'s crash fallback is the one
+// exception: it replaces the app's whole UI, so its `<Notice>` renders inline
+// in that fallback body, not in this layer (and never leaves, since it has no
+// dismiss lifecycle of its own).
 .bsb-toast-layer {
 	@extend %bsb-toast-layer;
 }

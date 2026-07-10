@@ -12,11 +12,14 @@ classDiagram
 
     class Notice {
         <<module>>
-        Renders one free-text message in the shared toast shape
-        (`%bsb-toast`, `src/styles/_toast.scss` — also extended by the
-        cockpit's front-end toast, `src/cockpit/style.scss`). Each kind
-        (error/info/success) carries its own colour + icon.
-        +Notice(kind, message, onDismiss?, dismissLabel?) ReactElement
+        Renders one free-text message in the shared toast shape AND enter/
+        leave motion (`%bsb-toast`, `src/styles/_toast.scss` — also extended
+        by the cockpit's front-end toast, `src/cockpit/style.scss`). Each
+        kind (error/info/success) carries its own colour + icon. Owns a
+        small local phase state (entering/holding/leaving) keyed off
+        `visible`: a caller flips it to `false` to request the exit
+        animation and keeps this mounted until `onExited` fires.
+        +Notice(kind, message, visible?, onDismiss?, onExited?, dismissLabel?) ReactElement
     }
 
     class ErrorBoundary {

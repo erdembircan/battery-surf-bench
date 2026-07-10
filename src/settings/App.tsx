@@ -61,6 +61,25 @@ interface ActiveToast {
 }
 
 /**
+ * Whether two toasts describe the same notice (same source, kind and
+ * message) — used to tell "still showing the same thing" apart from "should
+ * now show something else", since a fresh `ActiveToast` object is created on
+ * every raise even when its content happens to match.
+ *
+ * @param a A toast, or `null` for "nothing".
+ * @param b A toast, or `null` for "nothing".
+ * @return Whether the two describe the same notice.
+ */
+function sameToast( a: ActiveToast | null, b: ActiveToast | null ): boolean {
+	if ( a === null || b === null ) {
+		return a === b;
+	}
+	return (
+		a.source === b.source && a.kind === b.kind && a.message === b.message
+	);
+}
+
+/**
  * Renders the settings screen's body and portals the Save button into the
  * PHP-rendered header slot.
  *
@@ -86,7 +105,20 @@ export function SettingsApp( { config }: { config: SettingsConfig } ) {
 	>( () => ( { ...config.userPages } ) );
 	const [ dirty, setDirty ] = useState( false );
 	const [ saving, setSaving ] = useState( false );
+	// The toast that should be showing right now, if any — what every
+	// show/clear/dismiss helper below writes to.
 	const [ toast, setToast ] = useState< ActiveToast | null >( null );
+	// The toast actually mounted in the DOM. Deliberately not always in sync
+	// with `toast`: when `toast` is cleared or replaced, the previously mounted
+	// Notice stays put and plays its leave animation first (see the effect
+	// below) instead of being hard-removed the instant the request changes.
+	const [ mountedToast, setMountedToast ] = useState< ActiveToast | null >(
+		null
+	);
+	// A toast that arrived while another was still playing its leave
+	// animation — shown once that animation finishes, rather than cutting it
+	// short to swap its text mid-flight.
+	const pendingToastRef = useRef< ActiveToast | null >( null );
 
 	// Warns before a reload/navigate discards unsaved changes — armed only
 	// while there is something to lose and no save is already resolving it.
@@ -119,6 +151,37 @@ export function SettingsApp( { config }: { config: SettingsConfig } ) {
 			}
 		};
 	}, [] );
+
+	// Keeps `mountedToast` — and so the Notice below — in step with `toast`,
+	// but never by hard-swapping it: a clear (`toast` → `null`) or a
+	// replacement (`toast` → different content) only ever queues the change in
+	// `pendingToastRef`; `handleToastExited` is what actually applies it, once
+	// the currently mounted Notice reports its leave animation has finished.
+	useEffect( () => {
+		if ( toast === null ) {
+			pendingToastRef.current = null;
+			return;
+		}
+		if ( mountedToast === null ) {
+			setMountedToast( toast );
+			return;
+		}
+		if ( sameToast( toast, mountedToast ) ) {
+			return;
+		}
+		pendingToastRef.current = toast;
+	}, [ toast, mountedToast ] );
+
+	/**
+	 * Advances the mounted Notice once its leave animation finishes: shows
+	 * whatever toast arrived while it was leaving, if any, or clears the
+	 * bottom layer entirely.
+	 */
+	function handleToastExited(): void {
+		const pending = pendingToastRef.current;
+		pendingToastRef.current = null;
+		setMountedToast( pending );
+	}
 
 	/**
 	 * Shows a toast from the given source, replacing whatever was showing
@@ -421,16 +484,21 @@ export function SettingsApp( { config }: { config: SettingsConfig } ) {
 					saveSlot
 				) }
 
-			{ /* One bottom toast layer, the same fixed placement as the cockpit's
-			front-end toast — a Browse fetch failure and a save's success/failure
-			both route here rather than rendering inline near whatever triggered
-			them. */ }
-			{ toast && (
+			{ /* One bottom toast layer, the same fixed placement — and, via
+			Notice's own enter/leave phase, the same animated entrance/exit — as
+			the cockpit's front-end toast. A Browse fetch failure and a save's
+			success/failure both route here rather than rendering inline near
+			whatever triggered them. Kept mounted on `mountedToast`, not `toast`
+			directly, so a dismiss/replace plays its leave animation instead of
+			vanishing instantly — see the effect above. */ }
+			{ mountedToast && (
 				<div className="bsb-toast-layer">
 					<Notice
-						kind={ toast.kind }
-						message={ toast.message }
+						kind={ mountedToast.kind }
+						message={ mountedToast.message }
+						visible={ sameToast( toast, mountedToast ) }
 						onDismiss={ dismissToast }
+						onExited={ handleToastExited }
 					/>
 				</div>
 			) }

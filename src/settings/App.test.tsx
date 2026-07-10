@@ -344,6 +344,13 @@ describe( 'SettingsApp save outcome notice', () => {
 			within( notice ).getByRole( 'button', { name: 'Dismiss' } )
 		);
 
+		// The notice plays its leave animation rather than vanishing the
+		// instant dismissal is requested — it stays in the document, marked as
+		// leaving, until that animation reports its own end.
+		expect( screen.getByRole( 'status' ) ).toHaveClass( 'is-leaving' );
+
+		fireEvent.animationEnd( screen.getByRole( 'status' ) );
+
 		expect( screen.queryByRole( 'status' ) ).not.toBeInTheDocument();
 	} );
 
@@ -361,9 +368,9 @@ describe( 'SettingsApp save outcome notice', () => {
 		hooks.apiFetch.mockResolvedValue( undefined );
 		fireEvent.click( slot.querySelector( '.bsb-admin-pill--solid' )! );
 
-		// The stale error clears the moment the retry starts, not only once it
-		// resolves.
-		expect( screen.queryByRole( 'alert' ) ).not.toBeInTheDocument();
+		// The stale error starts leaving the moment the retry starts, not only
+		// once it resolves — it doesn't wait around to be replaced.
+		expect( screen.getByRole( 'alert' ) ).toHaveClass( 'is-leaving' );
 
 		await screen.findByRole( 'status' );
 
@@ -387,6 +394,12 @@ describe( 'SettingsApp Browse fetch-error toast', () => {
 		fireEvent.click( screen.getByText( 'stub-fetch-error' ) );
 
 		fireEvent.click( screen.getByText( 'stub-fetch-recover' ) );
+
+		// The recovery starts the toast's leave animation rather than removing
+		// it outright.
+		expect( screen.getByRole( 'alert' ) ).toHaveClass( 'is-leaving' );
+
+		fireEvent.animationEnd( screen.getByRole( 'alert' ) );
 
 		expect( screen.queryByRole( 'alert' ) ).not.toBeInTheDocument();
 	} );

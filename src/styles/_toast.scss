@@ -20,14 +20,16 @@
 // toast uses (`%bsb-toast-layer` below) — not inline near whatever triggered
 // them — so the placement, not just the pill's colours, is shared.
 //
-// What is deliberately NOT shared: the cockpit's enter/hold/leave phase
-// animation (`is-entering`/`is-holding`/`is-leaving`, the `bsb-toast-in`/`-out`
-// keyframes). That choreography is driven by the cockpit's own Interactivity
-// lifecycle (`ToastStore.ts`'s `animationend`-driven phase machine); the admin
-// `<Notice>` mounts/unmounts on plain React state instead, so it renders at
-// rest immediately rather than animating in. What this partial shares is the
-// toast's resting "shape" and its layer's placement — exactly the parts the
-// admin `<Notice>` and the cockpit toast must render identically.
+// The enter/hold/leave phase animation (`is-entering`/`is-holding`/
+// `is-leaving`, the `bsb-toast-in`/`-out` keyframes below) is also shared:
+// both the cockpit pill and the admin `<Notice>` extend `%bsb-toast`, so both
+// rise/fade in on mount and fade/drop out on dismissal with the exact same
+// timing and easing. What differs between them is only what *drives* the
+// phase class: the cockpit's own Interactivity lifecycle
+// (`ToastStore.ts`'s `animationend`-driven phase machine, queued through
+// `Toasts.ts`) versus the admin `<Notice>`'s own small local phase state
+// (`Notice.tsx`, driven by its `visible` prop). The choreography itself —
+// what each phase looks like — lives here, once.
 //
 // Consumers must set `--toast-bg` / `--toast-ink` / `--toast-shadow` on an
 // ancestor before using `%bsb-toast`: the cockpit gets these from
@@ -73,6 +75,59 @@
 	font-size: 0.82rem;
 	font-weight: 600;
 	letter-spacing: 0.01em;
+	// At rest — before the enter phase class lands, and after the leave phase
+	// class's animation has run — the pill is invisible. Every consumer's own
+	// phase machine is responsible for landing `is-entering` on mount so this
+	// never paints stuck at zero opacity.
+	opacity: 0;
+
+	&.is-entering,
+	&.is-holding {
+		opacity: 1;
+	}
+
+	&.is-entering {
+		animation: bsb-toast-in 460ms cubic-bezier(0.16, 1, 0.3, 1) both;
+	}
+
+	&.is-leaving {
+		animation: bsb-toast-out 320ms cubic-bezier(0.5, 0, 1, 0.5) both;
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		&.is-entering,
+		&.is-leaving {
+			animation-duration: 1ms;
+		}
+	}
+}
+
+@keyframes bsb-toast-in {
+	0% {
+		opacity: 0;
+		transform: translateY(220%);
+		filter: blur(6px);
+	}
+
+	100% {
+		opacity: 1;
+		transform: translateY(0);
+		filter: blur(0);
+	}
+}
+
+@keyframes bsb-toast-out {
+	0% {
+		opacity: 1;
+		transform: translateY(0);
+		filter: blur(0);
+	}
+
+	100% {
+		opacity: 0;
+		transform: translateY(220%);
+		filter: blur(5px);
+	}
 }
 
 // The small accent circle carrying the white masked severity glyph.
