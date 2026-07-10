@@ -202,18 +202,26 @@ classDiagram
     }
 
     class CourseLibrary {
-        +__construct(CourseCatalog catalog, string param)
+        +__construct(CourseCatalog catalog, string param, string option_name, CourseOrderSanitizer sanitizer)
         +links() array
     }
 
     class CourseRouter {
-        +__construct(CourseCatalog catalog, string param, Assets assets, string stylesheet, string script)
+        +__construct(CourseCatalog catalog, string param, Assets assets, string stylesheet, string script, string body_class)
         +register() void
         +add_query_var(array vars) array
         +maybe_render(array posts, WP_Query query) array
         +mark_course_body(array classes) array
         +enqueue_style() void
         +enqueue_script() void
+    }
+
+    class UserPageEngine {
+        +__construct(string option_name, CourseOrderSanitizer sanitizer, Assets assets, string script, string traits_param, string body_class)
+        +register() void
+        +add_query_var(array vars) array
+        +enqueue() void
+        +mark_body(array classes) array
     }
 
     class CoursePagesSource {
@@ -275,6 +283,7 @@ classDiagram
     BatterySurfBench --> CourseCatalog : creates & owns (composition)
     BatterySurfBench --> CourseLibrary : creates & owns (composition)
     BatterySurfBench --> CourseRouter : creates & owns (composition)
+    BatterySurfBench --> UserPageEngine : creates & owns (composition)
     BatterySurfBench --> CoursePagesSource : creates & owns (composition)
     BatterySurfBench --> Cockpit : creates & owns (composition)
     BatterySurfBench --> SessionDetail : creates & owns (composition)
@@ -330,10 +339,14 @@ classDiagram
     StartBenchmark ..> StartBenchmarkView : renders via
     StartBenchmarkView ..|> View : implements
     CourseLibrary --> CourseCatalog : uses
+    CourseLibrary --> CourseOrderSanitizer : reads & heals the saved order on every call
     CourseRouter ..|> Manager : implements
     CourseRouter --> CourseCatalog : uses
     CourseRouter --> Assets : uses
     CourseCatalog ..> CoursePage : produces
+    UserPageEngine ..|> Manager : implements
+    UserPageEngine --> CourseOrderSanitizer : reads & heals the saved order to gate on
+    UserPageEngine --> Assets : uses
     CoursePagesSource ..|> Manager : implements
     CoursePagesSource --> CourseLibrary : uses
     Cockpit ..|> Manager : implements

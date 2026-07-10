@@ -108,15 +108,32 @@ Sessions and Settings must NOT each own a copy-pasted header + button. Extract s
 - **Sync every reference in the SAME change** (no broken windows): update Sessions' SCSS/markup class names, the Sessions React live-count portal target if its class moves (prefer keeping the count slot's class stable to minimize churn), and **all unit tests + e2e selectors** that referenced the old `.bsb-sessions__head`/`.bsb-sessions__cockpit` classes. A stale e2e selector matches nothing and rots silently.
 - **Tests** — unit tests for `AdminHeaderView` (renders mark/title/subtitle/actions, escapes) and `AdminPillView` (solid vs outline, `<a>` vs `<button>`, target/icon, escaping); Sessions' existing PHP/JS/e2e tests must stay green after the refactor. Update `docs/contracts/php-class-interactions.mmd` to add `AdminHeaderView`/`AdminPillView` and show both screen views composing them.
 
-## M3 — Front-end wiring (after M2 sign-off; plan is provisional)
+## M3 — Front-end wiring (design finalized from the current-code map)
 
-- **Rebuild `CourseLibrary::links()`** (or add a collaborator, e.g. `CourseSequence`) to emit the saved `course_order` sequence in its saved order — walking the heterogeneous list, resolving each `bundled` entry from `CourseCatalog` (`?bsbSessionPage=<slug>` url) and each `user` entry via `get_the_title`/`get_permalink` as `{ slug: "user-<id>", title, url }`. The output is still `{slug,title,url}[]`, so `CoursePagesSource`, the Block Binding, `context.pages`, and `RunStore.currentSrc` need **no** shape change — only the ordering/source of the array changes. When no option is saved, fall back to the current bundled-only order (preserves today's behavior).
-- **Guards** — resolve each saved ID at render; skip any that no longer exist, aren't published, or aren't publicly viewable. Sanitize again on read (defense in depth).
-- **Surf engine on user pages (the real work).** Bundled pages are virtual posts that `CourseRouter` renders with `build/surfer.js` enqueued and a `bsb-course-page` body class. Real user pages have neither, so:
-  - the surf engine never boots → the iframe posts no `bsb:pageDone` → `PageAdvance` never advances past a user page;
-  - `PageGuard.isCoursePageLoaded` (keys off the `bsb-course-page` body class) mis-reads the loaded user page as a failed navigation.
-  - **Fix:** on `wp_enqueue_scripts`, when the current singular post's ID is in `bsb_settings.course_pages` **and** the surfer trait param is present, enqueue `build/surfer.js` (same boot path `CourseRouter` uses) and add the `bsb-course-page` body class via `body_class`. This makes a real user page behave like a course page for the engine. Confirm the engine's scroll/interaction sim degrades gracefully on arbitrary themes (no assumptions about bundled markup) — **verify against a real page during M3**, and flag to maintainer if the engine needs a "generic page" mode.
-- **Tests** — extend PHP tests for the merged link list + guards; e2e that a user-selected page appears in the cockpit rotation and advances. Update `docs/contracts/cockpit-frontend-modules.mmd` / `php-class-interactions.mmd` if the class graph changes.
+Front-end TS needs **no change**: `context.pages` stays `{slug,title,url}[]`, `RunStore.currentSrc` reads only `.url`, `withSurferParams` appends `bsbTraits`/`bsbSpeed`. Two PHP seams:
+
+### A. Emit the saved sequence — extend `CourseLibrary`
+- `CourseLibrary::links()` (`includes/Course/CourseLibrary.php`) currently iterates `CourseCatalog::pages()` only (never reads the option). Inject two new constructor deps — the option name (`settings.option` = `bsb_course_order`) and a `CourseOrderSanitizer` — mirroring `SettingsScreen`'s params.
+- `links()` reads+heals exactly like `SettingsScreen.php:222`: `$order = $sanitizer->sanitize( get_option( $option_name, $sanitizer->default_order() ) )`. Then walk `$order` **in saved order**, emitting per entry:
+  - `bundled` → `{ slug, title: catalog->find(slug)->title(), url: add_query_arg($param, $slug, home_url('/')) }` (today's shape).
+  - `user` → `{ slug: "user-{$id}", title: get_the_title($id), url: get_permalink($id) }`.
+- No-option / empty → `default_order()` = the 5 bundled in catalog order → identical to today's behavior. The sanitizer already drops ineligible user ids (unpublished/not publicly-viewable/wrong type) and heals missing bundled — so `links()` is safe by construction. Output stays `{slug,title,url}[]` → `CoursePagesSource::value()` + the `bsb/course-pages` block binding + `context.pages` unchanged.
+- Wire the new deps in `BatterySurfBench::managers()` (share the SAME `$order_sanitizer` instance already built for the option). `CourseCatalog` still injected.
+
+### B. Run the surf engine on real user pages — new Manager
+Bundled pages are virtual posts `CourseRouter` synthesizes (catalog-gated on `the_posts`) with `surfer.js` enqueued + `bsb-course-page` body class. Real user pages are real posts served by the theme — `CourseRouter` never touches them. Add a **new Manager** (e.g. `includes/Course/UserPageEngine.php`) that, for a real selected user post being surfed:
+- On `wp_enqueue_scripts` AND `body_class`, gate on: `is_singular()` && `get_queried_object_id()` is in the saved order's **user** id set (read via the same option+sanitizer) **AND the `bsbTraits` param is present** in the request. The traits-param gate is essential — a *human* opening their own page directly must get NOTHING (no script, no body class); only a surfer iframe visit (which always carries `bsbTraits`) triggers it.
+- When gated in: `Assets->enqueue('build/surfer.js')` (the client engine no-ops without the traits param, so no extra client gate needed) and append `'bsb-course-page'` to the body classes. Do NOT enqueue `build/style-course.css` on user pages (that styles bundled markup; the user's page keeps its own theme styling).
+- `bsb-course-page` on the real page is REQUIRED: `PageGuard.COURSE_PAGE_SELECTOR = '.bsb-course-page'` / `RunStore.guardViewport` treat a framed page without it as `loadError`.
+- Share the `'bsb-course-page'` string and the `surfer.js` path/handle with `CourseRouter` via a constant/Config (no drift/two-headedness). Reuse `CourseRouter::mark_course_body` logic if cleanly extractable; otherwise a small parallel `body_class` closure is fine, sharing the constant.
+
+### Key risk to VERIFY (maintainer accepted the scope)
+`surfer.js` must **degrade gracefully on an arbitrary theme** — scroll + interaction sim must not assume bundled-page markup/selectors, and it must still post `bsb:pageDone` so the run advances. Verify against a REAL seeded user page in the playground during M3 (run a benchmark that includes a user page; confirm it loads, drains battery, posts `pageDone`, advances). If the engine hard-depends on bundled selectors, add a generic-page fallback in `src/surfer/` and flag it.
+
+### Tests
+- PHP: `CourseLibrary` emits the saved sequence in order (bundled `?bsbSessionPage=`, user `get_permalink`), drops ineligible user ids, no-option → 5 bundled default. `UserPageEngine`: enqueues `surfer.js` + stamps `bsb-course-page` ONLY when `is_singular` + id ∈ user set + `bsbTraits` present; NOTHING for a normal visit or a non-selected post (mock WP funcs).
+- e2e: add a real user page via the settings screen, save, start a benchmark, assert the user page appears in the cockpit rotation and advances (`bsb:pageDone`) — extend `tests/e2e/CockpitCourse.spec.mts`.
+- Update `docs/contracts/php-class-interactions.mmd` (new `CourseLibrary --> CourseOrderSanitizer` edge, new `UserPageEngine` Manager); `cockpit-frontend-modules.mmd` unchanged (no TS change).
 
 ## Decisions log
 
@@ -129,5 +146,4 @@ Resolved:
 
 4. ~~Menu shape~~ → **Settings replaces the empty top-level landing** (evolve `Menu` into `SettingsScreen`; Sessions stays a submenu). Default taken; maintainer may veto.
 
-Still open:
-5. M3: is engine-on-user-pages in scope, or do user pages just load (time-based advance)? Big scope fork — settle before M3 build.
+5. ~~M3 engine scope~~ → **Run the FULL engine on user pages.** Selected user pages behave exactly like bundled pages: enqueue `build/surfer.js` + stamp the `bsb-course-page` body class when the surfer trait param is present, so they scroll/interact and post `bsb:pageDone` to advance. Must verify the engine degrades gracefully on arbitrary themes/markup during M3.

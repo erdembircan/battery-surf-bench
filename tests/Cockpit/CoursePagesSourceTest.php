@@ -13,6 +13,7 @@ use Brain\Monkey\Functions;
 use ErdemBircan\BatterySurfBench\Cockpit\CoursePagesSource;
 use ErdemBircan\BatterySurfBench\Course\CourseCatalog;
 use ErdemBircan\BatterySurfBench\Course\CourseLibrary;
+use ErdemBircan\BatterySurfBench\Course\CourseOrderSanitizer;
 use ErdemBircan\BatterySurfBench\Support\Manager;
 use ErdemBircan\BatterySurfBench\Tests\TestCase;
 use Mockery;
@@ -49,7 +50,8 @@ final class CoursePagesSourceTest extends TestCase {
 	 * @return CoursePagesSource The source under test.
 	 */
 	private function source(): CoursePagesSource {
-		$library = new class( new CourseCatalog( '/plugin/includes/Course/content' ), 'bsbSessionPage' ) extends CourseLibrary {
+		$catalog = new CourseCatalog( '/plugin/includes/Course/content' );
+		$library = new class( $catalog, 'bsbSessionPage', 'bsb_course_order', new CourseOrderSanitizer( $catalog, array( 'page', 'post' ) ) ) extends CourseLibrary {
 
 			/**
 			 * Reports a fixed page list in place of seeded pages.

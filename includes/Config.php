@@ -78,6 +78,17 @@ return array(
 		// present, so a human opening a course URL directly sees a static page.
 		// Built from `src/surfer/index.ts`.
 		'script'         => 'build/surfer.js',
+		// Body-class marker stamped on every page the surf engine actually
+		// runs on — the bundled virtual pages `CourseRouter` serves and the
+		// real user pages `UserPageEngine` gates into. The cockpit's viewport
+		// load guard (`PageGuard.COURSE_PAGE_SELECTOR`) looks for it from
+		// inside the iframe, so both managers share this one value.
+		'body_class'     => 'bsb-course-page',
+		// Query parameter a surfer iframe visit always carries (the trait
+		// vector `src/cockpit/SurferUrl.ts`'s `TRAITS_PARAM` appends). Its
+		// presence is what `UserPageEngine` gates on to tell a real surfer
+		// visit apart from a human opening their own page directly.
+		'traits_param'   => 'bsbTraits',
 	),
 	'cockpit'    => array(
 		// Query parameter + value that serve the cockpit dashboard:

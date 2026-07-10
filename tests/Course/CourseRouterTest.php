@@ -31,7 +31,8 @@ use function has_filter;
  */
 final class CourseRouterTest extends TestCase {
 
-	private const PARAM = 'bsbSessionPage';
+	private const PARAM      = 'bsbSessionPage';
+	private const BODY_CLASS = 'bsb-course-page';
 
 	/**
 	 * Builds a router over the real catalog.
@@ -42,7 +43,7 @@ final class CourseRouterTest extends TestCase {
 	private function router( ?Assets $assets = null ): CourseRouter {
 		$catalog = new CourseCatalog( '/plugin/includes/Course/content' );
 
-		return new CourseRouter( $catalog, self::PARAM, $assets ?? Mockery::mock( Assets::class ), 'build/style-course.css', 'build/surfer.js' );
+		return new CourseRouter( $catalog, self::PARAM, $assets ?? Mockery::mock( Assets::class ), 'build/style-course.css', 'build/surfer.js', self::BODY_CLASS );
 	}
 
 	/**
@@ -159,7 +160,7 @@ final class CourseRouterTest extends TestCase {
 	public function test_mark_course_body_appends_the_course_page_marker(): void {
 		$classes = $this->router()->mark_course_body( array( 'existing-class' ) );
 
-		$this->assertSame( array( 'existing-class', 'bsb-course-page' ), $classes );
+		$this->assertSame( array( 'existing-class', self::BODY_CLASS ), $classes );
 	}
 
 	/**

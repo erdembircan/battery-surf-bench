@@ -24,6 +24,7 @@ use ErdemBircan\BatterySurfBench\Course\CourseLibrary;
 use ErdemBircan\BatterySurfBench\Course\CourseOrderOption;
 use ErdemBircan\BatterySurfBench\Course\CourseOrderSanitizer;
 use ErdemBircan\BatterySurfBench\Course\CourseRouter;
+use ErdemBircan\BatterySurfBench\Course\UserPageEngine;
 use ErdemBircan\BatterySurfBench\DevTools\DevTools;
 use ErdemBircan\BatterySurfBench\DevTools\Views\DevToolsPanelView;
 use ErdemBircan\BatterySurfBench\Settings\OptionRegistry;
@@ -99,11 +100,11 @@ class BatterySurfBench {
 		);
 
 		// Course domain: the catalog describes the surf course and loads each
-		// page's block markup; the router serves a page off the course query
-		// parameter (rendered through the theme), and the library lists the
-		// pages' surf URLs for the cockpit.
+		// page's block markup; the router and the user-page engine each run
+		// the surf engine on their own half of the sequence (bundled virtual
+		// pages and real user pages, respectively), and the library lists the
+		// whole saved sequence's surf URLs for the cockpit.
 		$catalog = new CourseCatalog( $this->paths->path( 'includes/Course/content' ) );
-		$library = new CourseLibrary( $catalog, $this->registry->get( 'course.param' ) );
 
 		// Post types the settings screen's browse pane may add a user page
 		// from — the same list the sanitizer validates a saved user entry's
@@ -111,9 +112,18 @@ class BatterySurfBench {
 		$settings_post_types = explode( ',', $this->registry->get( 'settings.post_types' ) );
 
 		// Shared between the option's own definition (its sanitize + default
-		// callbacks) and the settings screen (which heals the saved order with
-		// it on every read, since the sanitize callback only runs on write).
+		// callbacks), the settings screen (which heals the saved order with
+		// it on every read, since the sanitize callback only runs on write),
+		// the library (which emits the saved sequence's surf links) and the
+		// user-page engine (which reads the same order to gate its own run).
 		$order_sanitizer = new CourseOrderSanitizer( $catalog, $settings_post_types );
+
+		$library = new CourseLibrary(
+			$catalog,
+			$this->registry->get( 'course.param' ),
+			$this->registry->get( 'settings.option' ),
+			$order_sanitizer
+		);
 
 		// Describes the surf-course order option; registering it with
 		// WordPress is OptionRegistry's job, not this provider's — see below.
@@ -193,7 +203,21 @@ class BatterySurfBench {
 				$this->registry->get( 'course.param' ),
 				$this->assets,
 				$this->registry->get( 'course.style' ),
-				$this->registry->get( 'course.script' )
+				$this->registry->get( 'course.script' ),
+				$this->registry->get( 'course.body_class' )
+			),
+			// Runs the surf engine on real, user-selected pages — the
+			// counterpart to CourseRouter above, which runs it on the
+			// bundled virtual pages. Shares the order option, its sanitizer,
+			// the surf engine script and the course-page body-class marker,
+			// so both surfaces the viewport load guard checks stay in sync.
+			new UserPageEngine(
+				$this->registry->get( 'settings.option' ),
+				$order_sanitizer,
+				$this->assets,
+				$this->registry->get( 'course.script' ),
+				$this->registry->get( 'course.traits_param' ),
+				$this->registry->get( 'course.body_class' )
 			),
 			new CoursePagesSource(
 				$this->registry->get( 'course.binding_source' ),

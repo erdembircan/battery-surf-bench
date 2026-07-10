@@ -44,13 +44,15 @@ class CourseRouter implements Manager {
 	 * @param Assets        $assets     Service used to enqueue the course stylesheet and surf engine.
 	 * @param string        $stylesheet Course stylesheet, relative to the plugin root.
 	 * @param string        $script     Surf engine script, relative to the plugin root.
+	 * @param string        $body_class Body-class marker stamped on every served course page, shared with {@see \ErdemBircan\BatterySurfBench\Course\UserPageEngine} so both surfaces the viewport load guard checks carry the same marker.
 	 */
 	public function __construct(
 		private CourseCatalog $catalog,
 		private string $param,
 		private Assets $assets,
 		private string $stylesheet,
-		private string $script
+		private string $script,
+		private string $body_class
 	) {
 	}
 
@@ -181,7 +183,7 @@ class CourseRouter implements Manager {
 	 * @return array<int, string> The classes with the course-page marker appended.
 	 */
 	public function mark_course_body( array $classes ): array {
-		$classes[] = 'bsb-course-page';
+		$classes[] = $this->body_class;
 
 		return $classes;
 	}

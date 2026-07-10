@@ -667,3 +667,203 @@ test.describe( 'Navigate/reload guard', () => {
 		await expectNoPhpNotices( page );
 	} );
 } );
+
+test.describe( 'User-selected page in the surf rotation', () => {
+	/** The `/wp/v2/settings` collection: hosts the `bsb_course_order` field — the same endpoint `CourseLibrary`/`UserPageEngine` read the saved order from. */
+	const SETTINGS_ENDPOINT = '/wp-json/wp/v2/settings';
+
+	/** The `/wp/v2/pages` collection, used to mint a throwaway published page as a "user" entry. */
+	const PAGES_ENDPOINT = '/wp-json/wp/v2/pages';
+
+	/** The option's REST field name, mirrors `Config.php`'s `settings.option`. */
+	const OPTION_KEY = 'bsb_course_order';
+
+	/**
+	 * Mints a fresh REST nonce for the logged-in admin session — the same
+	 * cookie-auth-plus-nonce pattern `SettingsScreen.spec.mts` uses.
+	 *
+	 * @param page - The authenticated page to mint the nonce for.
+	 * @return The nonce string.
+	 */
+	async function nonce( page: Page ): Promise< string > {
+		return (
+			await (
+				await page.request.get(
+					'/wp-admin/admin-ajax.php?action=rest-nonce'
+				)
+			).text()
+		).trim();
+	}
+
+	/**
+	 * Creates a throwaway published page to use as a "user" order entry.
+	 *
+	 * @param page  - The authenticated page to create through.
+	 * @param title - The page's title.
+	 * @return The created page's id.
+	 */
+	async function createUserPage(
+		page: Page,
+		title: string
+	): Promise< number > {
+		const response = await page.request.post( PAGES_ENDPOINT, {
+			headers: { 'X-WP-Nonce': await nonce( page ) },
+			data: { title, status: 'publish' },
+		} );
+		expect( response.status() ).toBe( 201 );
+		const record = await response.json();
+		return record.id as number;
+	}
+
+	/**
+	 * Permanently deletes a page created by {@link createUserPage}.
+	 *
+	 * @param page   - The authenticated page to delete through.
+	 * @param pageId - The page id to delete.
+	 */
+	async function deleteUserPage(
+		page: Page,
+		pageId: number
+	): Promise< void > {
+		await page.request.delete( `${ PAGES_ENDPOINT }/${ pageId }`, {
+			headers: { 'X-WP-Nonce': await nonce( page ) },
+			data: { force: true },
+		} );
+	}
+
+	/**
+	 * Resets the saved surf-course order back to its registered default (the 5
+	 * bundled pages, in catalog order) by posting `null` for the field.
+	 *
+	 * @param page - The authenticated page to reset through.
+	 */
+	async function resetCourseOrder( page: Page ): Promise< void > {
+		const response = await page.request.post( SETTINGS_ENDPOINT, {
+			headers: { 'X-WP-Nonce': await nonce( page ) },
+			data: { [ OPTION_KEY ]: null },
+		} );
+		expect( response.ok() ).toBeTruthy();
+	}
+
+	/**
+	 * Reorders the saved surf-course order so the given user page leads the
+	 * sequence, ahead of every bundled page. The settings screen's own picker
+	 * only ever appends a newly added page to the end of the sequence — that
+	 * ordering behavior is already covered end to end by
+	 * `SettingsScreen.spec.mts` — so this exists purely to make the user page
+	 * the very first one surfed, through the same persistence endpoint
+	 * (`/wp/v2/settings`) the settings screen itself saves through, rather than
+	 * this test waiting through all 5 bundled pages first.
+	 *
+	 * @param page   - The authenticated page to write through.
+	 * @param pageId - The user page's post id to move to the front.
+	 */
+	async function putUserPageFirst(
+		page: Page,
+		pageId: number
+	): Promise< void > {
+		const response = await page.request.post( SETTINGS_ENDPOINT, {
+			headers: { 'X-WP-Nonce': await nonce( page ) },
+			data: {
+				[ OPTION_KEY ]: [ { kind: 'user', id: pageId } ],
+			},
+		} );
+		expect( response.ok() ).toBeTruthy();
+	}
+
+	// Regression coverage for M3's front-end wiring: a real post or page the
+	// site owner picked from the settings screen must surf exactly like a
+	// bundled page — loaded through the theme (not the course router), the
+	// surf engine running on it, and the run advancing off its own
+	// `bsb:pageDone` — rather than being inert dead weight in the sequence.
+	test( 'a user page added via the settings screen appears in the rotation, loads, and advances', async ( {
+		page,
+	} ) => {
+		const title = 'Surf Rotation User Page';
+		const pageId = await createUserPage( page, title );
+
+		try {
+			// Add the page to the surf sequence through the real settings
+			// screen, exactly as a site owner would: browse, add, save.
+			await page.goto( '/wp-admin/admin.php?page=battery-surf-bench' );
+
+			const browseRow = page
+				.locator( '.bsb-browse__row', { hasText: title } )
+				.first();
+			await expect( browseRow ).toBeVisible();
+			await browseRow.getByRole( 'button', { name: 'Add' } ).click();
+			await expect(
+				browseRow.getByText( 'Added', { exact: true } )
+			).toBeVisible();
+
+			const saveButton = page.getByRole( 'button', {
+				name: 'Save changes',
+			} );
+			await expect( saveButton ).toBeEnabled();
+			await saveButton.click();
+			await expect( saveButton ).toBeDisabled();
+
+			await putUserPageFirst( page, pageId );
+
+			await page.goto( '/?bsbSession=cockpit' );
+
+			// The e2e blueprint's host reports charging, which blocks a live
+			// run; force discharging through the dev-tools override, as the
+			// other live-run specs in this file do.
+			await page.locator( '.bsb-devtools__pill' ).click();
+			await page
+				.locator( '[data-devtools-charging="discharging"]' )
+				.click();
+			await page.locator( '.bsb-devtools__card-close' ).click();
+
+			await page
+				.locator(
+					'.bsb-flipcard--idle .bsb-flipcard__flip[data-wp-on--click="actions.toggleIdleFlip"]'
+				)
+				.first()
+				.click();
+			await page
+				.locator( '.bsb-seg--speed .bsb-seg__option[data-speed="10"]' )
+				.click();
+			await page
+				.locator( '.bsb-run[data-wp-on--click="actions.toggleRun"]' )
+				.click();
+
+			const viewport = page.locator( 'iframe.bsb-cockpit__viewport' );
+
+			// The user page leads the sequence, so it is the very first page
+			// surfed: a real permalink carrying the traits param, never the
+			// course router's `bsbSessionPage` query parameter bundled pages
+			// carry.
+			await expect( viewport ).toHaveAttribute( 'src', /bsbTraits/ );
+			await expect( viewport ).not.toHaveAttribute(
+				'src',
+				/bsbSessionPage/
+			);
+
+			// `UserPageEngine` gated the real page in: the surf engine loaded
+			// and stamped the shared course-page body-class marker the
+			// viewport load guard looks for, so the run treats it as a
+			// successful load rather than stopping on it.
+			await expect(
+				viewport.contentFrame().locator( 'body.bsb-course-page' )
+			).toBeAttached();
+			await expect(
+				page.locator( '.bsb-cockpit__viewport-wrap' )
+			).toBeVisible();
+			await expect( page.locator( '.bsb-summary' ) ).toBeHidden();
+
+			// The engine posts `bsb:pageDone` once it moves on, and the run
+			// advances to the next page in the sequence — the first bundled
+			// page, back through the course router's URL shape.
+			await expect( viewport ).toHaveAttribute( 'src', /bsbSessionPage/, {
+				timeout: 30_000,
+			} );
+
+			expect( await page.content() ).not.toMatch( PHP_NOTICE );
+		} finally {
+			await resetCourseOrder( page );
+			await deleteUserPage( page, pageId );
+		}
+	} );
+} );
