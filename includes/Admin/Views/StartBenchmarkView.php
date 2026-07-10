@@ -33,10 +33,10 @@ class StartBenchmarkView implements View {
 	 * @return string The rendered page markup.
 	 */
 	public function render( array $data = array() ): string {
-		$title         = esc_html( isset( $data['title'] ) ? (string) $data['title'] : '' );
-		$message       = esc_html( isset( $data['message'] ) ? (string) $data['message'] : '' );
-		$cockpit_url   = esc_url( isset( $data['cockpit_url'] ) ? (string) $data['cockpit_url'] : '' );
-		$cockpit_label = esc_html( isset( $data['cockpit_label'] ) ? (string) $data['cockpit_label'] : '' );
+		$title         = esc_html( (string) ( $data['title'] ?? '' ) );
+		$message       = esc_html( (string) ( $data['message'] ?? '' ) );
+		$cockpit_url   = esc_url( (string) ( $data['cockpit_url'] ?? '' ) );
+		$cockpit_label = esc_html( (string) ( $data['cockpit_label'] ?? '' ) );
 
 		return <<<HTML
 <div class="wrap">

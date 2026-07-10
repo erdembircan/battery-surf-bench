@@ -31,10 +31,10 @@ class SessionsScreenView implements View {
 	 * @return string The rendered screen markup.
 	 */
 	public function render( array $data = array() ): string {
-		$title         = isset( $data['title'] ) ? (string) $data['title'] : '';
-		$subtitle      = isset( $data['subtitle'] ) ? (string) $data['subtitle'] : '';
-		$cockpit_url   = isset( $data['cockpit_url'] ) ? (string) $data['cockpit_url'] : '';
-		$cockpit_label = isset( $data['cockpit_label'] ) ? (string) $data['cockpit_label'] : '';
+		$title         = (string) ( $data['title'] ?? '' );
+		$subtitle      = (string) ( $data['subtitle'] ?? '' );
+		$cockpit_url   = (string) ( $data['cockpit_url'] ?? '' );
+		$cockpit_label = (string) ( $data['cockpit_label'] ?? '' );
 
 		$cockpit_pill = ( new AdminPillView() )->render(
 			array(

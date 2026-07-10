@@ -35,9 +35,9 @@ class AdminHeaderView implements View {
 	 * @return string The rendered header markup.
 	 */
 	public function render( array $data = array() ): string {
-		$title    = esc_html( isset( $data['title'] ) ? (string) $data['title'] : '' );
-		$subtitle = esc_html( isset( $data['subtitle'] ) ? (string) $data['subtitle'] : '' );
-		$actions  = isset( $data['actions'] ) ? (string) $data['actions'] : '';
+		$title    = esc_html( (string) ( $data['title'] ?? '' ) );
+		$subtitle = esc_html( (string) ( $data['subtitle'] ?? '' ) );
+		$actions  = (string) ( $data['actions'] ?? '' );
 
 		return <<<HTML
 <header class="bsb-admin-head">

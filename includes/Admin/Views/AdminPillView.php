@@ -36,11 +36,11 @@ class AdminPillView implements View {
 	 * @return string The rendered pill markup.
 	 */
 	public function render( array $data = array() ): string {
-		$label   = esc_html( isset( $data['label'] ) ? (string) $data['label'] : '' );
+		$label   = esc_html( (string) ( $data['label'] ?? '' ) );
 		$variant = isset( $data['variant'] ) && 'outline' === $data['variant'] ? 'outline' : 'solid';
 		$href    = isset( $data['href'] ) && '' !== $data['href'] ? esc_url( (string) $data['href'] ) : '';
-		$target  = esc_attr( isset( $data['target'] ) ? (string) $data['target'] : '' );
-		$icon    = esc_attr( isset( $data['icon'] ) ? (string) $data['icon'] : '' );
+		$target  = esc_attr( (string) ( $data['target'] ?? '' ) );
+		$icon    = esc_attr( (string) ( $data['icon'] ?? '' ) );
 
 		$class       = "bsb-admin-pill bsb-admin-pill--{$variant}";
 		$icon_markup = '' === $icon
