@@ -243,3 +243,16 @@ export const e2eBlueprint: BlueprintDeclaration = {
 	...base,
 	steps: [ ...loginStep, ...debugStep, ...activatePluginStep ],
 };
+
+/**
+ * End-to-end blueprint for a deterministic, non-persistent test instance that
+ * is never authenticated. Identical to {@link e2eBlueprint} but omits the
+ * `login` step, so the server never installs Playground's auto-login mu-plugin
+ * and a fresh browser context stays logged out. Backs the `unauthenticated`
+ * Playwright project, which drives gated surfaces as an anonymous visitor to
+ * prove they are actually refused.
+ */
+export const e2eUnauthenticatedBlueprint: BlueprintDeclaration = {
+	...base,
+	steps: [ ...debugStep, ...activatePluginStep ],
+};

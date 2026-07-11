@@ -41,3 +41,26 @@ jobs:
       # `pretest:e2e` builds the plugin; the Playwright config starts the
       # WordPress Playground server itself.
       - run: pnpm test:e2e
+
+  e2e-unauth:
+    needs: [checks]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    env:
+      CI: "true"
+    steps:
+      - uses: actions/checkout@v6
+      # `composer install` provides vendor/autoload.php, which the plugin's
+      # main file requires -- the blueprint activates the plugin at boot, so
+      # the autoloader must exist in the mounted plugin directory.
+      - uses: ./.github/actions/setup-php
+      - uses: ./.github/actions/setup-node
+      - uses: ./.github/actions/setup-playwright
+      # Runs on its own runner, separate from `e2e` above: the two jobs each
+      # boot exactly one WordPress Playground server (see `E2E_TARGET` in
+      # `playwright.config.mts`), so running them as separate jobs -- rather
+      # than both servers in one job -- is what keeps them from contending for
+      # the same box.
+      - run: pnpm test:e2e:unauth

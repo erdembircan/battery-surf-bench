@@ -33,6 +33,7 @@ sequenceDiagram
         M->>M: pnpm typecheck
         M->>M: pnpm license:verify
         M->>M: pnpm i18n:make-pot → commit .pot to master (WP-CLI, EndBug/add-and-commit)
-        M->>M: pnpm test:e2e (Playwright + WP Playground)
+        M->>M: pnpm test:e2e (Playwright + WP Playground, authenticated server; separate job)
+        M->>M: pnpm test:e2e:unauth (Playwright + WP Playground, login-free server; separate job)
         deactivate M
     end

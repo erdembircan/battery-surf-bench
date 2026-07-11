@@ -7,6 +7,12 @@
  * on the pinned CLI version, and whose eventual redirect fights LiveReload).
  * The e2e blueprint is a regression guard: it authenticates through its own
  * `login` step plus `auth.setup.mts`'s form login, and must stay untouched.
+ *
+ * The unauthenticated e2e blueprint backs the login-free test server the
+ * `unauthenticated` Playwright project targets: it must still activate the
+ * plugin and enable debug constants, but must never carry the `login` step or
+ * the dev auto-login mu-plugin, or a fresh browser context there would stop
+ * being genuinely anonymous.
  */
 
 import { describe, it, expect } from 'vitest';
@@ -18,6 +24,7 @@ import {
 	devBlueprint,
 	devResumeBlueprint,
 	e2eBlueprint,
+	e2eUnauthenticatedBlueprint,
 	autoLoginMuPlugin,
 } from './blueprint.mts';
 
@@ -131,6 +138,45 @@ describe( 'e2eBlueprint', () => {
 
 		expect( step ).toBeDefined();
 		expect( step?.username ).toBe( 'admin' );
+	} );
+
+	it( 'does not install the dev auto-login mu-plugin', () => {
+		const step = findWriteFileStep(
+			blueprint.steps as Record< string, unknown >[],
+			AUTO_LOGIN_PATH
+		);
+
+		expect( step ).toBeUndefined();
+	} );
+} );
+
+describe( 'e2eUnauthenticatedBlueprint', () => {
+	const blueprint = asV1( e2eUnauthenticatedBlueprint );
+
+	it( 'activates the plugin', () => {
+		expect(
+			blueprint.steps?.some(
+				( step ) =>
+					( step as { step: string } ).step === 'activatePlugin'
+			)
+		).toBe( true );
+	} );
+
+	it( 'defines the debug wp-config consts', () => {
+		expect(
+			blueprint.steps?.some(
+				( step ) =>
+					( step as { step: string } ).step === 'defineWpConfigConsts'
+			)
+		).toBe( true );
+	} );
+
+	it( 'does not include the login step -- the core behavioral guarantee that keeps a fresh browser context logged out', () => {
+		expect(
+			blueprint.steps?.some(
+				( step ) => ( step as { step: string } ).step === 'login'
+			)
+		).toBe( false );
 	} );
 
 	it( 'does not install the dev auto-login mu-plugin', () => {

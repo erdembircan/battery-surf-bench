@@ -2,7 +2,11 @@ import { runCLI } from '@wp-playground/cli';
 import type { BlueprintDeclaration } from '@wp-playground/blueprints';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { playgroundReadyLine, PLUGIN_VFS_PATH } from './config.mts';
+import {
+	playgroundReadyLine,
+	PLAYGROUND_READY_MARKER,
+	PLUGIN_VFS_PATH,
+} from './config.mts';
 import { logServerReady } from './log-server.mts';
 
 const __dirname = dirname( fileURLToPath( import.meta.url ) );
@@ -12,6 +16,8 @@ interface StartTestServerOptions {
 	port: number;
 	url: string;
 	blueprint: BlueprintDeclaration;
+	/** Ready marker to emit on stdout; defaults to {@link PLAYGROUND_READY_MARKER}. */
+	readyMarker?: string;
 }
 
 /**
@@ -57,15 +63,17 @@ async function waitForReady(
  * the port for its own config re-evaluation (see
  * `PLAYGROUND_TEST_PORT_ENV_VAR` in `config.mts`).
  *
- * @param options           - Server options.
- * @param options.port      - Port to listen on.
- * @param options.url       - Base URL for readiness polling.
- * @param options.blueprint - Blueprint declaration to apply.
+ * @param options             - Server options.
+ * @param options.port        - Port to listen on.
+ * @param options.url         - Base URL for readiness polling.
+ * @param options.blueprint   - Blueprint declaration to apply.
+ * @param options.readyMarker - Ready marker to emit on stdout; defaults to {@link PLAYGROUND_READY_MARKER}.
  */
 export async function startTestServer( {
 	port,
 	url,
 	blueprint,
+	readyMarker = PLAYGROUND_READY_MARKER,
 }: StartTestServerOptions ): Promise< void > {
 	const server = await runCLI( {
 		command: 'server',
@@ -88,5 +96,5 @@ export async function startTestServer( {
 
 	// Signal readiness to Playwright (matched via webServer.wait.stdout), and
 	// hand back the bound port via the same line's named capture group.
-	process.stdout.write( `${ playgroundReadyLine( port ) }\n` );
+	process.stdout.write( `${ playgroundReadyLine( port, readyMarker ) }\n` );
 }

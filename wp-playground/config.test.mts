@@ -13,9 +13,16 @@ import { describe, it, expect } from 'vitest';
 import {
 	playgroundTestUrl,
 	parsePlaygroundTestPortEnv,
+	parsePlaygroundUnauthTestPortEnv,
+	parsePlaygroundPortEnv,
 	playgroundReadyLine,
+	playgroundReadyPattern,
 	PLAYGROUND_READY_PATTERN,
+	PLAYGROUND_READY_MARKER,
 	PLAYGROUND_TEST_PORT_ENV_VAR,
+	PLAYGROUND_UNAUTH_READY_PATTERN,
+	PLAYGROUND_UNAUTH_READY_MARKER,
+	PLAYGROUND_UNAUTH_TEST_PORT_ENV_VAR,
 } from './config.mts';
 
 describe( 'playgroundTestUrl', () => {
@@ -51,11 +58,95 @@ describe( 'parsePlaygroundTestPortEnv', () => {
 	} );
 } );
 
+describe( 'parsePlaygroundUnauthTestPortEnv', () => {
+	it( 'returns undefined when the variable is unset', () => {
+		expect( parsePlaygroundUnauthTestPortEnv( undefined ) ).toBeUndefined();
+	} );
+
+	it( 'parses a valid port string to a number', () => {
+		expect( parsePlaygroundUnauthTestPortEnv( '9600' ) ).toBe( 9600 );
+	} );
+
+	it( 'throws on a non-numeric value, naming its own env var in the message', () => {
+		expect( () =>
+			parsePlaygroundUnauthTestPortEnv( 'not-a-port' )
+		).toThrow( /PLAYGROUND_UNAUTH_TEST_PORT/ );
+	} );
+} );
+
+describe( 'parsePlaygroundPortEnv', () => {
+	it( 'returns undefined when the variable is unset', () => {
+		expect(
+			parsePlaygroundPortEnv( undefined, 'SOME_PORT_VAR' )
+		).toBeUndefined();
+	} );
+
+	it( 'parses a valid port string to a number', () => {
+		expect( parsePlaygroundPortEnv( '9999', 'SOME_PORT_VAR' ) ).toBe(
+			9999
+		);
+	} );
+
+	it( 'throws on an invalid value, naming the given env var in the message', () => {
+		expect( () =>
+			parsePlaygroundPortEnv( 'nope', 'SOME_PORT_VAR' )
+		).toThrow( /SOME_PORT_VAR/ );
+	} );
+
+	it( 'throws on a port number out of the valid TCP range', () => {
+		expect( () =>
+			parsePlaygroundPortEnv( '0', 'SOME_PORT_VAR' )
+		).toThrow();
+		expect( () =>
+			parsePlaygroundPortEnv( '70000', 'SOME_PORT_VAR' )
+		).toThrow();
+	} );
+
+	it( 'throws on a non-integer numeric value', () => {
+		expect( () =>
+			parsePlaygroundPortEnv( '9500.5', 'SOME_PORT_VAR' )
+		).toThrow();
+	} );
+} );
+
 describe( 'playgroundReadyLine', () => {
-	it( 'embeds the port alongside the ready marker', () => {
+	it( 'embeds the port alongside the default ready marker', () => {
 		expect( playgroundReadyLine( 9500 ) ).toBe(
 			'[playground] ready (port 9500)'
 		);
+	} );
+
+	it( 'embeds the port alongside a custom marker', () => {
+		expect( playgroundReadyLine( 9600, '[custom] ready' ) ).toBe(
+			'[custom] ready (port 9600)'
+		);
+	} );
+} );
+
+describe( 'playgroundReadyPattern', () => {
+	it( 'matches a ready line built with the same marker, capturing under the given env-var name', () => {
+		const pattern = playgroundReadyPattern(
+			'[custom] ready',
+			'CUSTOM_PORT_VAR'
+		);
+
+		const match = pattern.exec(
+			playgroundReadyLine( 9700, '[custom] ready' )
+		);
+
+		expect( match ).not.toBeNull();
+		expect( match?.groups?.CUSTOM_PORT_VAR ).toBe( '9700' );
+	} );
+
+	it( 'does not match a ready line built with a different marker', () => {
+		const pattern = playgroundReadyPattern(
+			'[custom] ready',
+			'CUSTOM_PORT_VAR'
+		);
+
+		expect(
+			pattern.test( playgroundReadyLine( 9700, '[other] ready' ) )
+		).toBe( false );
 	} );
 } );
 
@@ -86,6 +177,51 @@ describe( 'PLAYGROUND_READY_PATTERN', () => {
 
 		expect( match?.groups?.[ PLAYGROUND_TEST_PORT_ENV_VAR ] ).toBe(
 			'9501'
+		);
+	} );
+} );
+
+describe( 'PLAYGROUND_UNAUTH_READY_PATTERN', () => {
+	it( 'matches an unauth ready line and captures the port under its own env var name', () => {
+		const line = playgroundReadyLine(
+			9600,
+			PLAYGROUND_UNAUTH_READY_MARKER
+		);
+
+		const match = PLAYGROUND_UNAUTH_READY_PATTERN.exec( line );
+
+		expect( match ).not.toBeNull();
+		expect( match?.groups?.[ PLAYGROUND_UNAUTH_TEST_PORT_ENV_VAR ] ).toBe(
+			'9600'
+		);
+	} );
+
+	it( "does not match the authenticated server's ready line", () => {
+		expect(
+			PLAYGROUND_UNAUTH_READY_PATTERN.test( playgroundReadyLine( 9500 ) )
+		).toBe( false );
+	} );
+
+	it( 'captures into a different named group than PLAYGROUND_READY_PATTERN, so the two can never collide', () => {
+		expect( PLAYGROUND_UNAUTH_TEST_PORT_ENV_VAR ).not.toBe(
+			PLAYGROUND_TEST_PORT_ENV_VAR
+		);
+
+		const authLine = playgroundReadyLine( 9500, PLAYGROUND_READY_MARKER );
+		const unauthLine = playgroundReadyLine(
+			9600,
+			PLAYGROUND_UNAUTH_READY_MARKER
+		);
+
+		// Each pattern matches only its own server's line...
+		expect( PLAYGROUND_READY_PATTERN.test( authLine ) ).toBe( true );
+		expect( PLAYGROUND_UNAUTH_READY_PATTERN.test( unauthLine ) ).toBe(
+			true
+		);
+		// ...and never the other's.
+		expect( PLAYGROUND_READY_PATTERN.test( unauthLine ) ).toBe( false );
+		expect( PLAYGROUND_UNAUTH_READY_PATTERN.test( authLine ) ).toBe(
+			false
 		);
 	} );
 } );
