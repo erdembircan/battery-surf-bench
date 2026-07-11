@@ -25,13 +25,29 @@ return array(
 		// menu-icon colours instead of showing a fixed-grey bitmap. Built from
 		// `src/admin/style.scss`.
 		'icon'       => 'none',
-		'style'      => 'build/style-admin-menu.css',
+		'icon_style' => 'build/style-admin-menu.css',
 		// Slug of the "Start Benchmark" submenu page, which redirects straight
 		// to the cockpit dashboard.
 		'start_slug' => 'bsb-start-benchmark',
 		// Nav script that upgrades the rendered submenu link to open the
 		// cockpit in a new tab. Built from `src/admin/StartBenchmarkLink.ts`.
 		'nav_script' => 'build/admin-start-benchmark.js',
+	),
+	'settings'   => array(
+		// Built assets the settings screen (the top-level menu's page) enqueues,
+		// relative to the plugin root. Built from `src/settings/index.tsx`.
+		'bundle'     => 'build/settings.js',
+		'style'      => 'build/style-settings.css',
+		// Option the surfer's test-page sequence is saved under: an ordered,
+		// heterogeneous list of `{kind:'bundled',slug}` / `{kind:'user',id}`
+		// entries, registered with `show_in_rest` so the settings app reads and
+		// writes it through the core-data site-settings entity.
+		'option'     => 'bsb_course_order',
+		// Post types the picker's browse pane may add a user page from.
+		// Comma-separated: the Registry only ever resolves scalars, never an
+		// array, so the bootstrap splits this into the list `SettingsScreen`
+		// receives — the same pattern `devtools.environments` uses below.
+		'post_types' => 'page,post',
 	),
 	'session'    => array(
 		// Post type benchmark sessions are stored as, and the prefix every one
@@ -47,21 +63,34 @@ return array(
 		'style'       => 'build/style-sessions.css',
 	),
 	'course'     => array(
-		// Query parameter that selects a course page: `?bsbSessionPage=<slug>`.
-		// The router renders the named page through the active theme; nothing
-		// is seeded as a real page.
-		'param'          => 'bsbSessionPage',
-		// Block Bindings source the cockpit's `pages` attribute binds to.
-		'binding_source' => 'bsb/course-pages',
+		// Query parameter carrying the opaque, client-incrementing page index:
+		// `?bsbSurfIndex=<n>`. The client never learns which page an index
+		// names, how many pages exist, or anything else about them — the
+		// router resolves the index against the saved order server-side
+		// (wrapping with modulo) and is the sole authority on what gets
+		// served. Never exposed as a per-page slug/URL to the client.
+		'index_param'  => 'bsbSurfIndex',
+		// Query parameter carrying the `bsb_surf` nonce that authorizes an
+		// index request, minted only for the gated cockpit route.
+		'nonce_param'  => 'bsbNonce',
+		// The nonce action the cockpit mints the surf nonce under and the
+		// router verifies it against.
+		'nonce_action' => 'bsb_surf',
 		// Stylesheet that styles the course content, scoped to its
 		// `.bsb-course-content` wrapper, enqueued only on course pages. Built
 		// from `src/course/style.scss`.
-		'style'          => 'build/style-course.css',
+		'style'        => 'build/style-course.css',
 		// The headless surf engine, enqueued only on course pages alongside the
 		// stylesheet above. Boots itself only when the traits URL param is
 		// present, so a human opening a course URL directly sees a static page.
 		// Built from `src/surfer/index.ts`.
-		'script'         => 'build/surfer.js',
+		'script'       => 'build/surfer.js',
+		// Body-class marker stamped on every page the surf engine actually
+		// runs on — both the bundled and the real user pages `CourseRouter`
+		// serves through its own controlled synthetic-render route. The
+		// cockpit's viewport load guard (`PageGuard.COURSE_PAGE_SELECTOR`)
+		// looks for it from inside the iframe.
+		'body_class'   => 'bsb-course-page',
 	),
 	'cockpit'    => array(
 		// Query parameter + value that serve the cockpit dashboard:

@@ -65,6 +65,72 @@ if ( ! class_exists( 'WP_Post' ) ) {
 	}
 }
 
+if ( ! class_exists( 'WP_REST_Request' ) ) {
+	/**
+	 * Minimal WP_REST_Request stub: records the query params set on it so a
+	 * test can assert what an internal REST dispatch (e.g. the settings
+	 * screen's seeded Browse query) actually queried, without a real REST
+	 * server. `rest_do_request()` itself is a plain function Brain Monkey
+	 * mocks directly, so this stub only needs to satisfy code that builds and
+	 * populates a request object.
+	 */
+	class WP_REST_Request {
+
+		/**
+		 * The params set on this request via `set_query_params()`.
+		 *
+		 * @var array<string, mixed>
+		 */
+		private array $query_params = array();
+
+		/**
+		 * Stores the request's method and route.
+		 *
+		 * @param string $method HTTP method, e.g. `GET`.
+		 * @param string $route  REST route, e.g. `/wp/v2/search`.
+		 */
+		public function __construct( private string $method = 'GET', private string $route = '' ) {
+		}
+
+		/**
+		 * Stores the given query params, replacing any set previously.
+		 *
+		 * @param array<string, mixed> $params The query params to set.
+		 * @return void
+		 */
+		public function set_query_params( array $params ): void {
+			$this->query_params = $params;
+		}
+
+		/**
+		 * Returns the query params set on this request.
+		 *
+		 * @return array<string, mixed> The stored query params.
+		 */
+		public function get_query_params(): array {
+			return $this->query_params;
+		}
+
+		/**
+		 * Returns the HTTP method this request was built with.
+		 *
+		 * @return string The request method.
+		 */
+		public function get_method(): string {
+			return $this->method;
+		}
+
+		/**
+		 * Returns the route this request was built with.
+		 *
+		 * @return string The request route.
+		 */
+		public function get_route(): string {
+			return $this->route;
+		}
+	}
+}
+
 if ( ! class_exists( 'WP_Filesystem_Base' ) ) {
 	/**
 	 * In-memory stand-in for WordPress's filesystem abstraction. It touches no

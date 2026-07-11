@@ -16,8 +16,9 @@ mockup-first workflow in the repo `CLAUDE.md`.
 | `2-citrus.html`   | Citrus Pop — light / warm          |
 | `3-dusk.html`     | Dusk Lineup — refined dark ocean   |
 
-The shipped deck draws from **Coastal Daybreak** (light) and **Dusk Lineup**
-(dark), selectable via a light/dark toggle.
+The shipped deck is **Coastal Daybreak** (light only) — dark mode (Dusk
+Lineup) was explored here but was severed from the plugin; the dark-mode
+studies below are kept as history, not as an active direction.
 
 ## Component studies
 
@@ -52,3 +53,24 @@ The shipped deck draws from **Coastal Daybreak** (light) and **Dusk Lineup**
 | `surfer-stats.html`    | **Surfer profile — RPG stats, shown inside the real cockpit deck** (not a floating card): the profile sits as a `.bsb-field` among the actual Mode / Run-for / Speed controls, at true deck width (`clamp(300px,28vw,372px)`), reusing the deck brand header, `.bsb-seg`/`.bsb-stepper` inset surfaces and the full-width `.bsb-run` footer. The Surfer field is **class chips** (Balanced / Scholar / Binge-Watcher / Doomscroller / Skimmer / Re-Reader) + a **Customize** disclosure that reveals the six atomic stats (Haste / Endurance / Reach / Literacy / Recall / Allure), each a 1–10 slider driving one sim lever. A **fixed 30-point pool** (1–10 each) makes it point-buy — raising one stat forces lowering another; a live "points left" number + pip strip shows the budget. Editing any slider flips off-preset and the field label shows the live "≈ nearest class" build name. Two deck states side by side (class-picked-collapsed / customize-open). Coastal Daybreak (light only). Serve from the **repo root** so the brand mark can mask `/assets/images/menu-icon.svg` |
 | `unsupported-postcard-back.html` | The chosen direction for backlog #15: the startup **flip postcard carries the unsupported warning on its back** instead of the how-it-works note, and — unlike the normal startup — **flipping never reveals the deck** (no run is possible). Same shared postcard shell. Front is the plain greeting (the "See why" flip badge invites the flip); the back is the warning (Caveat heading, plain copy with no API jargon, coral "open in Chrome/Edge" hint) **franked with the real cancellation postmark recoloured red** (normally grey for the summary "run done") reading NO BATTERY / NOT SUPPORTED. Serve from the **repo root** for the brand mark |
 | `dev-tools-panel.html` | Redesign of the env-gated dev-tools floating widget, replacing the rejected dark "AI console" pill: collapsed is a simple coastal **DEV pill** (Anton on the card surface, no decoration) whose text and border quietly turn **coral** while an override is armed, swapping — mutually exclusive, never both on screen — into a coastal field card (battery enable switch, charging tri-state segmented control, force-level slider, plain coral "Override active" header text when armed). Armed state is **derived from the real controls** (battery on + a non-System charging choice or forced level), never set directly. Toggle collapsed/expanded, armed, and reduced-motion. Self-contained (no asset) |
+
+## Admin config screen
+
+M1 of the admin-config-pages feature (see `docs/plans/admin-config-pages.md`):
+the approved mock of the new **Settings** admin screen whose first section
+lets a site owner add their own posts/pages to the surfer's test-page
+rotation alongside the bundled set. Shares the same brand header (mirrors
+`bsb-sessions__*` exactly) and full-bleed coastal deck as the earlier
+variants. There is no separate bundled-pages group or include toggle — the
+5 bundled pages live **inside** the single selected sequence as locked rows
+(no remove control, but fully drag-reorderable). Two earlier single-control
+variants (a combobox+list and a FormTokenField, each with their own bundled
+group) were rejected as not built for scale — a real site can have hundreds
+of pages/posts, and a single box filtering an already-loaded short list
+reads as a filter, not a selection. Serve from the **repo root**
+(`python3 -m http.server` at the project root) so `surfer.svg` loads for the
+brand mark, or open directly — the mark also resolves relative to the file.
+
+| File                | Direction                          |
+| ------------------- | ----------------------------------- |
+| `config-pages.html` | **Two-pane content picker, built for scale.** Left pane ("Browse your content") is a DataViews-style paginated, server-searched list of the site's whole content (10/page, `All \| Pages \| Posts` segmented filter, search that queries the full pool and re-paginates from page 1, `‹ Prev`/`Next ›`) with a per-row outline "Add" pill that flips to a disabled "✓ Added" state. Right pane ("Selected pages") is the single ordered surf sequence — seeded with the 5 bundled pages (lock glyph + "Bundled" badge, no `×`) followed by user picks (type badge, Space Mono permalink, coral `×` remove) — that persists independently of the browse pane's paging/search and is fully drag-reorderable end to end, bundled rows included. Wired with dummy JS over ~140 fake pages/posts spanning 14 browse pages. |

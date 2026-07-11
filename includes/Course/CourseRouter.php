@@ -8,89 +8,147 @@
 namespace ErdemBircan\BatterySurfBench\Course;
 
 use ErdemBircan\BatterySurfBench\Assets;
+use ErdemBircan\BatterySurfBench\Course\Views\UserPageView;
+use ErdemBircan\BatterySurfBench\Support\CapabilityInterface;
 use ErdemBircan\BatterySurfBench\Support\Manager;
 use WP_Post;
 use WP_Query;
 
 use function __return_empty_string;
+use function absint;
 use function add_action;
 use function add_filter;
+use function count;
+use function get_option;
+use function get_post;
 use function get_query_var;
-use function sanitize_key;
+use function get_the_title;
+use function wp_verify_nonce;
 
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Serves the course pages off a URL parameter instead of seeding real pages.
- * When the request carries the course query parameter (e.g.
- * `?bsbSessionPage=article-1`) and the slug names a catalog page, the router
- * injects that page's block markup as a virtual post and lets WordPress render
- * it through the active theme — full header, footer, scripts and styles, with
- * `the_content` running `do_blocks()` on the markup. Nothing is seeded and no
- * theme output is stripped, so a course page reflects the theme exactly as any
- * real page would.
+ * Serves the surfer's whole page sequence off a single opaque index instead
+ * of seeding real pages or exposing per-page identity: a request carrying
+ * `?bsbSurfIndex=<n>&bsbNonce=<nonce>` resolves, entirely server-side, to the
+ * saved surf-course order's `n`-th entry (wrapping via modulo, so the client
+ * never needs to know how many pages exist), and the router injects that
+ * entry's markup as a virtual post and lets WordPress render it through the
+ * active theme — full header, footer, scripts and styles, with `the_content`
+ * running `do_blocks()` on the markup. Nothing is seeded and no theme output
+ * is stripped, so a course page reflects the theme exactly as any real page
+ * would.
  *
- * The virtual post never touches the database: it exists only for the duration
- * of the request that asked for it.
+ * This is a deliberate security boundary. The client (the cockpit's
+ * `RunStore`) holds nothing but an incrementing counter — no page ids, URLs,
+ * titles, order, or count ever reach it — so there is nothing in the request
+ * for an attacker to read off or manipulate into targeting a specific page.
+ * The route itself is gated, for EVERY entry it could resolve to (bundled or
+ * user alike, decided only after the gate passes): holding the plugin's
+ * capability (via {@see \ErdemBircan\BatterySurfBench\Support\Capability})
+ * AND a valid `bsb_surf` nonce are both required
+ * before any index is even resolved against the saved order. Neither
+ * condition being met falls through untouched, ordinarily to a 404 — no
+ * render path, bundled or user, is ever reached without both. The old
+ * `?bsbSessionPage=<slug>` (and `user-<id>`) public routes are retired
+ * entirely; a bundled slug is still resolved internally, against the
+ * catalog, once an authorized request's index has picked it.
+ *
+ * Nothing in the URL besides the index and the nonce is allowed to decide
+ * what gets served — in particular, never the `bsbTraits` behavior
+ * parameter, which is the surf engine's behavior input, not a gate.
+ *
+ * The virtual post never touches the database: it exists only for the
+ * duration of the request that asked for it.
  */
 class CourseRouter implements Manager {
 
 	/**
-	 * Stores the catalog the pages come from and the query parameter that
-	 * selects one.
+	 * Stores the catalog the pages come from and everything needed to gate
+	 * and resolve an index request.
 	 *
-	 * @param CourseCatalog $catalog    Source of the course pages and their markup.
-	 * @param string        $param      Query parameter the page slug is read from.
-	 * @param Assets        $assets     Service used to enqueue the course stylesheet and surf engine.
-	 * @param string        $stylesheet Course stylesheet, relative to the plugin root.
-	 * @param string        $script     Surf engine script, relative to the plugin root.
+	 * @param CourseCatalog        $catalog         Source of the bundled course pages and their markup.
+	 * @param string               $index_param     Query parameter carrying the opaque, client-incrementing page index.
+	 * @param string               $nonce_param     Query parameter carrying the `bsb_surf` nonce authorizing the request.
+	 * @param string               $nonce_action    Nonce action the surf nonce is verified against.
+	 * @param CapabilityInterface  $capability      Capability required to have an index request served.
+	 * @param Assets               $assets          Service used to enqueue the course stylesheet and surf engine.
+	 * @param string               $stylesheet      Course stylesheet, relative to the plugin root.
+	 * @param string               $script          Surf engine script, relative to the plugin root.
+	 * @param string               $body_class      Body-class marker stamped on every served course page.
+	 * @param string               $option_name     Name of the option the surf-course order is saved under — the authoritative, server-side source of the sequence an index resolves against.
+	 * @param CourseOrderSanitizer $order_sanitizer Heals the saved order on every read.
+	 * @param UserPageView         $user_page_view  Renders a real user page's own title as a heading above its content, so a served user entry stays faithful to the real page.
 	 */
 	public function __construct(
 		private CourseCatalog $catalog,
-		private string $param,
+		private string $index_param,
+		private string $nonce_param,
+		private string $nonce_action,
+		private CapabilityInterface $capability,
 		private Assets $assets,
 		private string $stylesheet,
-		private string $script
+		private string $script,
+		private string $body_class,
+		private string $option_name,
+		private CourseOrderSanitizer $order_sanitizer,
+		private UserPageView $user_page_view
 	) {
 	}
 
 	/**
-	 * Registers the course query parameter and the main-query interceptor.
+	 * Registers the course query parameters and the main-query interceptor.
 	 *
 	 * @return void
 	 */
 	public function register(): void {
-		add_filter( 'query_vars', array( $this, 'add_query_var' ) );
+		add_filter( 'query_vars', array( $this, 'add_query_vars' ) );
 		add_filter( 'the_posts', array( $this, 'maybe_render' ), 10, 2 );
 	}
 
 	/**
-	 * Declares the course query parameter so WordPress parses it off the URL.
+	 * Declares the course query parameters so WordPress parses them off the
+	 * URL.
 	 *
 	 * @param array<int, string> $vars Registered public query vars.
-	 * @return array<int, string> The query vars with the course parameter added.
+	 * @return array<int, string> The query vars with the index and nonce parameters added.
 	 */
-	public function add_query_var( array $vars ): array {
-		$vars[] = $this->param;
+	public function add_query_vars( array $vars ): array {
+		$vars[] = $this->index_param;
+		$vars[] = $this->nonce_param;
 
 		return $vars;
 	}
 
 	/**
-	 * Turns the main query into the requested course page when the course
-	 * parameter names a catalog page, so the theme renders it as a singular
-	 * page. Runs on the main query only and leaves every other query untouched.
+	 * Turns the main query into the course page named by the requested,
+	 * authorized index, so the theme renders it as a singular page. Runs on
+	 * the main query only and leaves every other query untouched.
+	 *
+	 * The gate — capability AND a valid `bsb_surf` nonce — is checked before
+	 * anything about the saved order is even read, so it guards EVERY entry
+	 * the index could resolve to, bundled or user alike; a request that
+	 * fails either check never reaches the order at all and falls through to
+	 * whatever the site would otherwise resolve (ordinarily a 404).
 	 *
 	 * @param array<int, WP_Post> $posts The posts the query found.
 	 * @param WP_Query            $query The query being run.
-	 * @return array<int, WP_Post> The course page's virtual post, or the posts unchanged.
+	 * @return array<int, WP_Post> The resolved course page's virtual post, or the posts unchanged.
 	 */
 	public function maybe_render( array $posts, WP_Query $query ): array {
 		if ( ! $query->is_main_query() ) {
 			return $posts;
 		}
 
-		$page = $this->catalog->find( $this->requested_slug() );
+		if ( '' === (string) get_query_var( $this->index_param, '' ) ) {
+			return $posts;
+		}
+
+		if ( ! $this->request_authorized() ) {
+			return $posts;
+		}
+
+		$page = $this->resolve_indexed_page();
 
 		if ( null === $page ) {
 			return $posts;
@@ -100,15 +158,80 @@ class CourseRouter implements Manager {
 	}
 
 	/**
-	 * Resolves the requested course slug from the registered query parameter.
-	 * The parameter is a public query var ({@see CourseRouter::add_query_var()}),
-	 * so WordPress parses it off the URL and exposes it through `get_query_var()`
-	 * — no need to read the superglobal.
+	 * The authoritative, server-side gate every index request must clear
+	 * before any entry — bundled or user — is resolved or rendered: the
+	 * requester must hold the plugin capability AND carry a nonce valid for
+	 * the `bsb_surf` action. Nothing else about the request has any say.
 	 *
-	 * @return string The sanitized slug, or '' when the parameter is absent.
+	 * @return bool Whether the request is authorized to have an index served.
 	 */
-	private function requested_slug(): string {
-		return sanitize_key( (string) get_query_var( $this->param ) );
+	private function request_authorized(): bool {
+		if ( ! $this->capability->allows() ) {
+			return false;
+		}
+
+		$nonce = (string) get_query_var( $this->nonce_param, '' );
+
+		return false !== wp_verify_nonce( $nonce, $this->nonce_action );
+	}
+
+	/**
+	 * Resolves the requested index against the saved, healed surf-course
+	 * order: the index wraps via modulo, so the client's ever-incrementing
+	 * counter never needs to know how many pages exist. An empty order (which
+	 * should not happen — bundled pages can never be dropped) resolves to
+	 * nothing rather than dividing by zero.
+	 *
+	 * @return CoursePage|null The resolved course page, or null when the saved order is empty or the entry no longer resolves.
+	 */
+	private function resolve_indexed_page(): ?CoursePage {
+		$order = $this->order_sanitizer->sanitize( get_option( $this->option_name, $this->order_sanitizer->default_order() ) );
+		$count = count( $order );
+
+		if ( 0 === $count ) {
+			return null;
+		}
+
+		$index = absint( get_query_var( $this->index_param ) ) % $count;
+		$entry = $order[ $index ];
+
+		return 'bundled' === $entry['kind']
+			? $this->catalog->find( $entry['slug'] )
+			: $this->resolve_user_entry( $entry['id'] );
+	}
+
+	/**
+	 * Resolves a user entry's post id to its real content. The sanitizer
+	 * already validated the id when healing the saved order, so this only
+	 * guards the rare case the post vanished between that read and this one.
+	 *
+	 * The returned page's content is the real post's own raw block markup
+	 * with its title prefixed as a heading (see {@see UserPageView}) — a real
+	 * page's title is a field separate from its content, so without the
+	 * prefix a surfed user page would render without it. Prefixed or not,
+	 * the content renders — and enqueues its blocks' own view assets —
+	 * through the exact same `the_content` / `do_blocks()` path {@see serve()}
+	 * already runs bundled pages through.
+	 *
+	 * @param int $id The user page's post id.
+	 * @return CoursePage|null The resolved user page, or null when the post no longer resolves.
+	 */
+	private function resolve_user_entry( int $id ): ?CoursePage {
+		$post = get_post( $id );
+
+		if ( null === $post ) {
+			return null;
+		}
+
+		$title   = get_the_title( $id );
+		$content = $this->user_page_view->render(
+			array(
+				'title'   => $title,
+				'content' => $post->post_content,
+			)
+		);
+
+		return new CoursePage( 'user-' . $id, $title, $content );
 	}
 
 	/**
@@ -181,7 +304,7 @@ class CourseRouter implements Manager {
 	 * @return array<int, string> The classes with the course-page marker appended.
 	 */
 	public function mark_course_body( array $classes ): array {
-		$classes[] = 'bsb-course-page';
+		$classes[] = $this->body_class;
 
 		return $classes;
 	}

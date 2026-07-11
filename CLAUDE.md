@@ -1,17 +1,5 @@
 # CLAUDE.md
 
-## Isolate Before Reading
-
-Sync the default branch and isolate into a fresh worktree as the first action of any task — before reading, searching, or inspecting a single repository file. Otherwise reads may come from a stale ref while other sessions merge, and no operation can trust what it read.
-
-## Announce Completion Out Loud
-
-The maintainer is frequently away from the keyboard or tapped out while work runs. Whenever you finish a unit of work — a task, a subtask, a fix, a commit, a pushed PR, anything you'd report as done — **announce it aloud** with the macOS `say` command, in addition to writing the result as text.
-
-- Keep the spoken line short and specific: what got done, and whether checks/CI are green (e.g. `say "Timer auto-stop fixed and pushed, all checks green"`). Don't read out long output.
-- Say it at the actual completion point, not before verification finishes — speaking "done" while tests are still running is misleading.
-- This is about finishing work; routine progress chatter mid-task doesn't need narration.
-
 ## WordPress APIs Move Fast — Verify Against Current Docs
 
 This plugin leans on fast-moving, recently-changed WordPress APIs (Script Modules, the Interactivity API, Block Bindings, performant translations, the i18n stack). Your training data about WordPress is very likely **stale** — and so are many tutorials and even some official handbook pages (parts of which predate the current behavior).

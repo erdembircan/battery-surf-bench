@@ -14,6 +14,7 @@ use ErdemBircan\BatterySurfBench\Admin\SessionsScreen;
 use ErdemBircan\BatterySurfBench\Assets;
 use ErdemBircan\BatterySurfBench\Content\SessionSchema;
 use ErdemBircan\BatterySurfBench\Support\Manager;
+use ErdemBircan\BatterySurfBench\Tests\Support\FakeCapability;
 use ErdemBircan\BatterySurfBench\Tests\TestCase;
 use Mockery;
 
@@ -42,7 +43,7 @@ final class SessionsScreenTest extends TestCase {
 		return new SessionsScreen(
 			self::PARENT,
 			self::PAGE_SLUG,
-			self::CAPABILITY,
+			new FakeCapability( true, self::CAPABILITY ),
 			self::BUNDLE,
 			self::STYLE,
 			new SessionSchema( 'bsb_session', 'bsb_' ),

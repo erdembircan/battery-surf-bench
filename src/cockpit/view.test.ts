@@ -11,14 +11,7 @@
 
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 
-interface CoursePage {
-	slug: string;
-	title: string;
-	url: string;
-}
-
 interface CockpitContext {
-	pages: CoursePage[];
 	activeIndex: number;
 	mode: 'duration' | 'targetDrop';
 	durationMinutes: number;
@@ -179,7 +172,6 @@ interface MockElement {
 }
 
 const baseContext = (): CockpitContext => ( {
-	pages: [],
 	activeIndex: 0,
 	mode: 'duration',
 	durationMinutes: 30,
@@ -225,6 +217,16 @@ const mocks = vi.hoisted( () => ( {
 	config: undefined as CockpitConfig | undefined,
 	context: undefined as unknown as CockpitContext,
 	element: { dataset: {}, checked: false, value: '' } as MockElement,
+	// The Interactivity config the cockpit's PHP route seeds via
+	// `getConfig()`: the surf-route base URL + nonce `currentSrc` builds an
+	// index request from (plus whatever REST access fields a given test
+	// needs). Seeded with a surf base/nonce by default so most tests exercise
+	// `currentSrc` without restating them; a test can overwrite this object to
+	// probe the unseeded case.
+	interactivityConfig: {
+		surfBase: 'https://example.test/',
+		surfNonce: 'test-surf-nonce',
+	} as Record< string, unknown >,
 } ) );
 
 vi.mock( '@wordpress/interactivity', () => ( {
@@ -241,19 +243,14 @@ vi.mock( '@wordpress/interactivity', () => ( {
 	},
 	getContext: () => mocks.context,
 	getElement: () => ( { ref: mocks.element } ),
-	// The end-of-run upload reads its REST access through `getConfig`; returning
-	// an empty config makes the upload a no-op here, so these store tests never
-	// reach the network while ending a run.
-	getConfig: () => ( {} ),
+	// The end-of-run upload and `currentSrc` both read their configuration
+	// through `getConfig`; the end-of-run upload treats a missing
+	// `restUrl`/`restNonce` as a no-op, so these store tests never reach the
+	// network while ending a run.
+	getConfig: () => mocks.interactivityConfig,
 } ) );
 
 import { __resetInstance } from './view';
-
-const page = ( n: string ): CoursePage => ( {
-	slug: n,
-	title: n.toUpperCase(),
-	url: `https://example.test/${ n }`,
-} );
 
 /**
  * Sets the element the next action will read.
@@ -299,6 +296,12 @@ const key = ( name: string ): KeyboardEvent =>
 beforeEach( () => {
 	mocks.context = baseContext();
 	mocks.element = { dataset: {}, checked: false, value: '' };
+	// Reset to the default seeded surf-route config so a test that overwrote
+	// it (to probe the unseeded case) never leaks into the next one.
+	mocks.interactivityConfig = {
+		surfBase: 'https://example.test/',
+		surfNonce: 'test-surf-nonce',
+	};
 	// The run state is a module singleton; reset it so tests stay isolated.
 	__resetInstance();
 	// `mocks.config` (and its `state`) is the one real merged store, captured
@@ -314,45 +317,42 @@ beforeEach( () => {
 
 describe( 'bsb/cockpit view store', () => {
 	describe( 'viewport', () => {
-		it( 'derives the viewport src from the active course page once running', () => {
+		it( 'derives the viewport src from the seeded surf config and the active index once running', () => {
 			mocks.context.running = true;
-			mocks.context.pages = [ page( 'article-1' ) ];
 
 			const src = new URL( mocks.config?.state.currentSrc ?? '' );
 
-			expect( src.origin + src.pathname ).toBe(
-				'https://example.test/article-1'
+			expect( src.origin + src.pathname ).toBe( 'https://example.test/' );
+			expect( src.searchParams.get( 'bsbSurfIndex' ) ).toBe( '0' );
+			expect( src.searchParams.get( 'bsbNonce' ) ).toBe(
+				'test-surf-nonce'
 			);
 		} );
 
 		it( 'yields an empty src while idle, so pages do not load before a run', () => {
 			mocks.context.running = false;
-			mocks.context.pages = [ page( 'article-1' ) ];
 
 			expect( mocks.config?.state.currentSrc ).toBe( '' );
 		} );
 
-		it( 'yields an empty src when there are no pages to surf', () => {
+		it( 'yields an empty src when the surf-route config is not seeded', () => {
 			mocks.context.running = true;
+			mocks.interactivityConfig = {};
 
 			expect( mocks.config?.state.currentSrc ).toBe( '' );
 		} );
 
-		it( 'tracks the active page index for the src', () => {
+		it( 'tracks the active index for the src', () => {
 			mocks.context.running = true;
-			mocks.context.pages = [ page( 'article-1' ), page( 'gallery' ) ];
-			mocks.context.activeIndex = 1;
+			mocks.context.activeIndex = 4;
 
 			const src = new URL( mocks.config?.state.currentSrc ?? '' );
 
-			expect( src.origin + src.pathname ).toBe(
-				'https://example.test/gallery'
-			);
+			expect( src.searchParams.get( 'bsbSurfIndex' ) ).toBe( '4' );
 		} );
 
 		it( 'carries the trait vector and demo speed as query params', () => {
 			mocks.context.running = true;
-			mocks.context.pages = [ page( 'article-1' ) ];
 			mocks.context.traits = [ 2, 8, 10, 2, 3 ];
 			mocks.context.speed = 4;
 
@@ -370,9 +370,8 @@ describe( 'bsb/cockpit view store', () => {
 			);
 		};
 
-		it( 'advances to the next page on a same-origin page-done message', () => {
+		it( 'advances to the next index on a same-origin page-done message', () => {
 			mocks.context.running = true;
-			mocks.context.pages = [ page( 'article-1' ), page( 'gallery' ) ];
 			mocks.context.activeIndex = 0;
 
 			mocks.config?.callbacks.initPageAdvance();
@@ -381,20 +380,18 @@ describe( 'bsb/cockpit view store', () => {
 			expect( mocks.context.activeIndex ).toBe( 1 );
 		} );
 
-		it( 'wraps back to the first page after the last', () => {
+		it( 'keeps incrementing past any bound — the server wraps, not the client', () => {
 			mocks.context.running = true;
-			mocks.context.pages = [ page( 'article-1' ), page( 'gallery' ) ];
-			mocks.context.activeIndex = 1;
+			mocks.context.activeIndex = 4;
 
 			mocks.config?.callbacks.initPageAdvance();
 			dispatchMessage( window.location.origin, { type: 'bsb:pageDone' } );
 
-			expect( mocks.context.activeIndex ).toBe( 0 );
+			expect( mocks.context.activeIndex ).toBe( 5 );
 		} );
 
 		it( 'ignores a page-done message while idle', () => {
 			mocks.context.running = false;
-			mocks.context.pages = [ page( 'article-1' ), page( 'gallery' ) ];
 			mocks.context.activeIndex = 0;
 
 			mocks.config?.callbacks.initPageAdvance();
@@ -405,7 +402,6 @@ describe( 'bsb/cockpit view store', () => {
 
 		it( 'ignores a message from a different origin', () => {
 			mocks.context.running = true;
-			mocks.context.pages = [ page( 'article-1' ), page( 'gallery' ) ];
 			mocks.context.activeIndex = 0;
 
 			mocks.config?.callbacks.initPageAdvance();
@@ -416,7 +412,6 @@ describe( 'bsb/cockpit view store', () => {
 
 		it( 'detaches the listener once the returned cleanup runs', () => {
 			mocks.context.running = true;
-			mocks.context.pages = [ page( 'article-1' ), page( 'gallery' ) ];
 			mocks.context.activeIndex = 0;
 
 			const cleanup = mocks.config?.callbacks.initPageAdvance();
@@ -488,7 +483,7 @@ describe( 'bsb/cockpit view store', () => {
 		const fakeIframe = ( hasCourseContent: boolean ): MockElement =>
 			( {
 				contentDocument: {
-					URL: 'http://test/?bsbSessionPage=article-1',
+					URL: 'http://test/?bsbSurfIndex=0',
 					querySelector: ( selector: string ) =>
 						hasCourseContent && selector === '.bsb-course-page'
 							? {}
@@ -578,7 +573,6 @@ describe( 'bsb/cockpit view store', () => {
 
 		it( 'stops the run once the timeout elapses with no load/error', () => {
 			mocks.context.running = true;
-			mocks.context.pages = [ page( 'article-1' ) ];
 			mocks.context.activeIndex = 0;
 
 			mocks.config?.callbacks.syncViewportWatchdog();
@@ -592,11 +586,10 @@ describe( 'bsb/cockpit view store', () => {
 
 		it( 'is cancelled by a timely load, so the run keeps going', () => {
 			mocks.context.running = true;
-			mocks.context.pages = [ page( 'article-1' ) ];
 			mocks.context.activeIndex = 0;
 			mocks.element = {
 				contentDocument: {
-					URL: 'http://test/?bsbSessionPage=article-1',
+					URL: 'http://test/?bsbSurfIndex=0',
 					querySelector: ( selector: string ) =>
 						selector === '.bsb-course-page' ? {} : null,
 				},
@@ -612,14 +605,13 @@ describe( 'bsb/cockpit view store', () => {
 
 		it( 'is cancelled when the run ends, so it never double-tears-down', () => {
 			mocks.context.running = true;
-			mocks.context.pages = [ page( 'article-1' ) ];
 			mocks.context.activeIndex = 0;
 
 			mocks.config?.callbacks.syncViewportWatchdog();
 
 			// The run ends by some other cause; the watch re-runs (its `running`
-			// dependency changed) and, finding no pages to guard, clears the
-			// pending watchdog without re-arming.
+			// dependency changed) and clears the pending watchdog without
+			// re-arming.
 			mocks.context.running = false;
 			mocks.config?.callbacks.syncViewportWatchdog();
 			vi.advanceTimersByTime( 15000 );
@@ -630,7 +622,6 @@ describe( 'bsb/cockpit view store', () => {
 
 		it( 'no-ops while idle', () => {
 			mocks.context.running = false;
-			mocks.context.pages = [ page( 'article-1' ) ];
 			mocks.context.activeIndex = 0;
 
 			mocks.config?.callbacks.syncViewportWatchdog();

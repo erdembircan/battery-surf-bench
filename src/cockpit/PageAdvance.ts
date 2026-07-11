@@ -23,13 +23,10 @@ export const isPageDoneMessage = (
 	( event.data as { type?: unknown } | null )?.type === PAGE_DONE_TYPE;
 
 /**
- * The next page index once the current one's surf session ends, wrapping back
- * to the first page after the last. Returns the index unchanged when there
- * are no pages to surf.
+ * The next page index once the current one's surf session ends: a plain
+ * increment. The client is a pure counter that never learns how many pages
+ * exist, so it never wraps — `CourseRouter` resolves the index against the
+ * saved course order's length (via modulo) entirely server-side.
  * @param activeIndex
- * @param pageCount
  */
-export const nextPageIndex = (
-	activeIndex: number,
-	pageCount: number
-): number => ( pageCount > 0 ? ( activeIndex + 1 ) % pageCount : activeIndex );
+export const nextPageIndex = ( activeIndex: number ): number => activeIndex + 1;

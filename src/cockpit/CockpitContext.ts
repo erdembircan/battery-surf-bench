@@ -7,13 +7,6 @@
 import { type RunMode } from './RunConfig';
 import { type Sample } from './DrainRate';
 
-/** One surfable course page, as supplied by the `bsb/course-pages` binding. */
-export interface CoursePage {
-	slug: string;
-	title: string;
-	url: string;
-}
-
 /**
  * Why a run ended — drives the summary's verdict; empty before any run ends.
  * `loadError` covers the viewport load guard: a course page that never loaded
@@ -47,7 +40,13 @@ export interface ReasonText {
 
 /** Per-instance context the cockpit's PHP render seeds onto the block. */
 export interface CockpitContext {
-	pages: CoursePage[];
+	/**
+	 * The opaque, ever-incrementing surf-page counter — the ONLY thing the
+	 * client knows about which page is active. It carries no ids, URLs,
+	 * titles, order, or count; `CourseRouter` resolves it against the saved
+	 * course order entirely server-side (see `RunStore.currentSrc` and
+	 * `SurfIndexUrl`).
+	 */
 	activeIndex: number;
 	mode: RunMode;
 	durationMinutes: number;

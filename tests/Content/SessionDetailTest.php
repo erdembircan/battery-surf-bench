@@ -14,6 +14,7 @@ use ErdemBircan\BatterySurfBench\Assets;
 use ErdemBircan\BatterySurfBench\Cockpit\Views\SessionDetailView;
 use ErdemBircan\BatterySurfBench\Content\SessionDetail;
 use ErdemBircan\BatterySurfBench\Support\Manager;
+use ErdemBircan\BatterySurfBench\Tests\Support\FakeCapability;
 use ErdemBircan\BatterySurfBench\Tests\TestCase;
 use Mockery;
 use WP_Post;
@@ -39,16 +40,20 @@ final class SessionDetailTest extends TestCase {
 	private const STYLE       = 'build/style-cockpit-dashboard.css';
 
 	/**
-	 * Builds the detail screen under test.
+	 * Builds the detail screen under test. The capability is a fake test
+	 * double rather than a mock of `current_user_can()`: injecting
+	 * {@see FakeCapability} instead lets a test control whether the editor
+	 * replacement gate passes without touching any WordPress global.
 	 *
 	 * @param Assets|null $assets Asset service to inject; a dummy mock by default.
+	 * @param bool        $can    Whether the fake capability reports the requester authorized.
 	 * @return SessionDetail The manager.
 	 */
-	private function detail( ?Assets $assets = null ): SessionDetail {
+	private function detail( ?Assets $assets = null, bool $can = true ): SessionDetail {
 		return new SessionDetail(
 			self::POST_TYPE,
 			self::PREFIX,
-			self::CAPABILITY,
+			new FakeCapability( $can ),
 			self::BLOCK_NAME,
 			self::SCREEN_SLUG,
 			self::STYLE,
@@ -103,9 +108,7 @@ final class SessionDetailTest extends TestCase {
 	 * session screen never renders for the unauthorized.
 	 */
 	public function test_maybe_render_leaves_the_editor_for_an_unauthorized_visitor(): void {
-		Functions\when( 'current_user_can' )->justReturn( false );
-
-		$this->assertFalse( $this->detail()->maybe_render( false, $this->post( self::POST_TYPE ) ) );
+		$this->assertFalse( $this->detail( null, false )->maybe_render( false, $this->post( self::POST_TYPE ) ) );
 	}
 
 	/**
@@ -114,7 +117,6 @@ final class SessionDetailTest extends TestCase {
 	 * nothing — rendering then would output before the admin header and menu.
 	 */
 	public function test_maybe_render_claims_replacement_without_rendering_on_the_setup_pass(): void {
-		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'did_action' )->justReturn( 0 );
 
 		$this->assertTrue( $this->detail()->maybe_render( false, $this->post( self::POST_TYPE ) ) );

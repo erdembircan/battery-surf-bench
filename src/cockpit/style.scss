@@ -11,6 +11,7 @@
  */
 
 @use '../styles/theme' as theme;
+@use '../styles/toast';
 
 $deck-width: clamp(300px, 28vw, 372px);
 $ease: cubic-bezier(0.22, 1, 0.36, 1);
@@ -909,163 +910,62 @@ body.bsb-cockpit-dashboard {
 // the running viewport (notice). One shows at a time; the store queues the rest
 // and drives the enter/leave animation through the pill's `animationend`.
 .bsb-cockpit__toast-layer {
-	position: fixed;
-	inset-inline: 0;
-	inset-block-end: 2.5rem;
-	display: flex;
-	justify-content: center;
-	padding-inline: 1rem;
-	pointer-events: none;
-	z-index: 1000;
+	@extend %bsb-toast-layer;
 }
 
+// Both the resting shape (padding, radius, border, shadow, colours) AND the
+// enter/hold/leave phase animation come from the shared `%bsb-toast`
+// placeholder (`../styles/toast`) — the same one the admin `<Notice>`
+// extends, so the two render and animate pixel- and motion-identical. This
+// rule only supplies what stays genuinely cockpit-local: the pill's own font
+// and its single-line layout.
 .bsb-cockpit__toast {
-	pointer-events: auto;
-	display: inline-flex;
-	align-items: center;
-	gap: 0.55rem;
-	max-width: min(28rem, 100%);
-	padding: 0.5rem 0.7rem 0.5rem 0.6rem;
-	border-radius: 999px;
-	background: var(--toast-bg);
-	border: 1px solid var(--toast-accent-line);
-	box-shadow:
-		0 10px 26px var(--toast-shadow),
-		0 0 0 4px var(--toast-accent-halo);
-	backdrop-filter: blur(8px);
-	color: var(--toast-ink);
+	@extend %bsb-toast;
+
 	font-family: theme.$font-ui;
-	font-size: 0.82rem;
-	font-weight: 600;
-	letter-spacing: 0.01em;
 	white-space: nowrap;
-	opacity: 0;
 
 	&[hidden] {
 		display: none;
 	}
 
-	&.is-entering,
-	&.is-holding {
-		opacity: 1;
-	}
-
-	&.is-entering {
-		animation: bsb-toast-in 460ms cubic-bezier(0.16, 1, 0.3, 1) both;
-	}
-
-	&.is-leaving {
-		animation: bsb-toast-out 320ms cubic-bezier(0.5, 0, 1, 0.5) both;
-	}
-
-	// Per-kind accent: coral warning for an error, teal padlock for the notice.
+	// Per-kind accent: coral warning for an error, teal padlock for the notice —
+	// the exact same tokens the shared admin `<Notice>` draws its `is-error`/
+	// `is-info` severities from.
 	&.is-error {
-		--toast-accent: #{theme.$coastal-coral};
-		--toast-accent-deep: #{theme.$coastal-coral-deep};
-		--toast-accent-line: #{rgba(theme.$coastal-coral-deep, 0.45)};
-		--toast-accent-halo: #{rgba(theme.$coastal-coral, 0.1)};
-		--toast-icon: #{theme.$icon-warning};
+		@include toast.toast-severity(
+			theme.$coastal-coral,
+			theme.$coastal-coral-deep,
+			rgba(theme.$coastal-coral-deep, 0.45),
+			rgba(theme.$coastal-coral, 0.1),
+			theme.$icon-warning
+		);
 	}
 
 	&.is-notice {
-		--toast-accent: #{theme.$coastal-teal};
-		--toast-accent-deep: #{theme.$coastal-teal-deep};
-		--toast-accent-line: #{rgba(theme.$coastal-teal-deep, 0.4)};
-		--toast-accent-halo: #{rgba(theme.$coastal-teal, 0.12)};
-		--toast-icon: #{theme.$icon-lock};
+		@include toast.toast-severity(
+			theme.$coastal-teal,
+			theme.$coastal-teal-deep,
+			rgba(theme.$coastal-teal-deep, 0.4),
+			rgba(theme.$coastal-teal, 0.12),
+			theme.$icon-lock
+		);
 	}
 }
 
-// A small accent circle carrying the white masked glyph (warning / padlock).
 .bsb-cockpit__toast-icon {
-	position: relative;
-	flex: none;
-	width: 1.25rem;
-	height: 1.25rem;
-	border-radius: 50%;
-	background: radial-gradient(
-		circle at 30% 30%,
-		var(--toast-accent),
-		var(--toast-accent-deep)
-	);
-	box-shadow: 0 2px 6px var(--toast-accent-halo);
-
-	&::before {
-		content: '';
-		position: absolute;
-		inset: 0;
-		margin: auto;
-		width: 0.72rem;
-		height: 0.72rem;
-		background: #fff;
-		mask: var(--toast-icon) center / contain no-repeat;
-		-webkit-mask: var(--toast-icon) center / contain no-repeat;
-	}
+	@extend %bsb-toast-icon;
 }
 
 .bsb-cockpit__toast-msg {
-	padding-block: 1px;
+	@extend %bsb-toast-msg;
 }
 
 .bsb-cockpit__toast-close {
-	flex: none;
-	display: grid;
-	place-items: center;
-	width: 1.15rem;
-	height: 1.15rem;
-	margin-inline-start: 0.15rem;
-	padding: 0;
-	border: 0;
-	border-radius: 50%;
-	background: transparent;
-	color: inherit;
-	cursor: pointer;
-	opacity: 0.6;
-
-	&::before {
-		content: '\00d7';
-		font-size: 0.95rem;
-		line-height: 1;
-	}
+	@extend %bsb-toast-close;
 
 	&:hover {
-		opacity: 1;
 		background: #{rgba(theme.$coastal-navy, 0.08)};
-	}
-}
-
-@keyframes bsb-toast-in {
-	0% {
-		opacity: 0;
-		transform: translateY(220%);
-		filter: blur(6px);
-	}
-
-	100% {
-		opacity: 1;
-		transform: translateY(0);
-		filter: blur(0);
-	}
-}
-
-@keyframes bsb-toast-out {
-	0% {
-		opacity: 1;
-		transform: translateY(0);
-		filter: blur(0);
-	}
-
-	100% {
-		opacity: 0;
-		transform: translateY(220%);
-		filter: blur(5px);
-	}
-}
-
-@media (prefers-reduced-motion: reduce) {
-	.bsb-cockpit__toast.is-entering,
-	.bsb-cockpit__toast.is-leaving {
-		animation-duration: 1ms;
 	}
 }
 

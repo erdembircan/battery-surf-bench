@@ -52,15 +52,12 @@ describe( 'isPageDoneMessage', () => {
 
 describe( 'nextPageIndex', () => {
 	it( 'advances to the next index', () => {
-		expect( nextPageIndex( 0, 3 ) ).toBe( 1 );
-		expect( nextPageIndex( 1, 3 ) ).toBe( 2 );
+		expect( nextPageIndex( 0 ) ).toBe( 1 );
+		expect( nextPageIndex( 1 ) ).toBe( 2 );
 	} );
 
-	it( 'wraps back to the first page after the last', () => {
-		expect( nextPageIndex( 2, 3 ) ).toBe( 0 );
-	} );
-
-	it( 'leaves the index unchanged when there are no pages', () => {
-		expect( nextPageIndex( 0, 0 ) ).toBe( 0 );
+	it( 'keeps incrementing past any bound — the server wraps, not the client', () => {
+		expect( nextPageIndex( 4 ) ).toBe( 5 );
+		expect( nextPageIndex( 999 ) ).toBe( 1000 );
 	} );
 } );

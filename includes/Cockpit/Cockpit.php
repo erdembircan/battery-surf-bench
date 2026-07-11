@@ -9,6 +9,7 @@ namespace ErdemBircan\BatterySurfBench\Cockpit;
 
 use ErdemBircan\BatterySurfBench\Assets;
 use ErdemBircan\BatterySurfBench\Cockpit\Views\CockpitDashboard;
+use ErdemBircan\BatterySurfBench\Support\CapabilityInterface;
 use ErdemBircan\BatterySurfBench\Support\Manager;
 use ErdemBircan\BatterySurfBench\Support\StandaloneChrome;
 
@@ -17,7 +18,6 @@ use function add_action;
 use function add_filter;
 use function add_query_arg;
 use function apply_filters;
-use function current_user_can;
 use function do_blocks;
 use function esc_html__;
 use function esc_url;
@@ -46,52 +46,51 @@ defined( 'ABSPATH' ) || exit;
  * is enqueued and spared — while the block's Interactivity API view (a script
  * module, a separate registry) is left to load and hydrate the viewport iframe.
  *
- * The block's `pages` attribute is fed the surfable course list through the
- * Block Bindings API. Custom block attributes are not bindable by default, so
- * the cockpit opts `pages` in via the per-block-type
- * `block_bindings_supported_attributes_{$name}` filter.
+ * The client is fed no page data at all — no ids, URLs, titles, order, or
+ * count. The cockpit's `RunStore` holds only an incrementing index counter;
+ * {@see \ErdemBircan\BatterySurfBench\Course\CourseRouter} resolves which
+ * page an index names entirely server-side, gated on a `bsb_surf` nonce this
+ * class mints (see {@see configure_rest_access()}) alongside the site's home
+ * URL, so the viewport's index-request URLs are assembled client-side from
+ * seeded configuration rather than a bound page list.
  */
 class Cockpit implements Manager {
 
 	/**
 	 * Stores everything needed to register the block and serve its dashboard.
 	 *
-	 * @param string           $block_dir   Absolute path to the built block directory holding its `block.json`.
-	 * @param string           $block_name  The block's registered name (e.g. `bsb/cockpit`).
-	 * @param string           $source_name Bindings source name the `pages` attribute binds to.
-	 * @param string           $param       Query parameter that selects the cockpit dashboard.
-	 * @param string           $value       Value of the parameter that serves the cockpit.
-	 * @param string           $capability  Capability required to open the cockpit.
-	 * @param CockpitDashboard $dashboard  View that renders the standalone dashboard document.
-	 * @param Assets           $assets      Service used to register the view module's translations.
-	 * @param string           $session_post_type Post type sessions are stored as, exposed to the cockpit so it can POST a finished run to that REST collection.
-	 * @param StandaloneChrome $chrome      Strips the front end so the dashboard renders as a clean standalone document.
+	 * @param string              $block_dir         Absolute path to the built block directory holding its `block.json`.
+	 * @param string              $block_name        The block's registered name (e.g. `bsb/cockpit`).
+	 * @param string              $param             Query parameter that selects the cockpit dashboard.
+	 * @param string              $value             Value of the parameter that serves the cockpit.
+	 * @param CapabilityInterface $capability        Capability required to open the cockpit.
+	 * @param CockpitDashboard    $dashboard         View that renders the standalone dashboard document.
+	 * @param Assets              $assets            Service used to register the view module's translations.
+	 * @param string              $session_post_type Post type sessions are stored as, exposed to the cockpit so it can POST a finished run to that REST collection.
+	 * @param string              $surf_nonce_action Nonce action the surf nonce seeded to the client is minted under; {@see \ErdemBircan\BatterySurfBench\Course\CourseRouter} verifies index requests against the same action.
+	 * @param StandaloneChrome    $chrome            Strips the front end so the dashboard renders as a clean standalone document.
 	 */
 	public function __construct(
 		private string $block_dir,
 		private string $block_name,
-		private string $source_name,
 		private string $param,
 		private string $value,
-		private string $capability,
+		private CapabilityInterface $capability,
 		private CockpitDashboard $dashboard,
 		private Assets $assets,
 		private string $session_post_type,
+		private string $surf_nonce_action,
 		private StandaloneChrome $chrome
 	) {
 	}
 
 	/**
-	 * Opts the `pages` attribute into Block Bindings, declares the dashboard
-	 * query parameter, registers the block, and hooks the dashboard route.
+	 * Declares the dashboard query parameter, registers the block, and hooks
+	 * the dashboard route.
 	 *
 	 * @return void
 	 */
 	public function register(): void {
-		add_filter(
-			'block_bindings_supported_attributes_' . $this->block_name,
-			array( $this, 'allow_pages_binding' )
-		);
 		add_filter( 'query_vars', array( $this, 'add_query_var' ) );
 		add_action( 'init', array( $this, 'register_block' ) );
 		add_action( 'template_redirect', array( $this, 'maybe_render' ), 1 );
@@ -128,20 +127,6 @@ class Cockpit implements Manager {
 	}
 
 	/**
-	 * Adds the cockpit's `pages` attribute to the attributes the Block Bindings
-	 * API may resolve for this block. Without this, WordPress only binds a fixed
-	 * set of core block attributes and would ignore the binding.
-	 *
-	 * @param array<int, string> $attributes Attributes already bindable for the block.
-	 * @return array<int, string> The attributes with `pages` added.
-	 */
-	public function allow_pages_binding( array $attributes ): array {
-		$attributes[] = 'pages';
-
-		return $attributes;
-	}
-
-	/**
 	 * Serves the cockpit dashboard when its parameter is requested. Gated to the
 	 * plugin capability; renders a standalone, theme-stripped document and exits.
 	 *
@@ -152,7 +137,7 @@ class Cockpit implements Manager {
 			return;
 		}
 
-		if ( ! current_user_can( $this->capability ) ) {
+		if ( ! $this->capability->allows() ) {
 			$this->deny();
 		}
 
@@ -190,16 +175,23 @@ class Cockpit implements Manager {
 	}
 
 	/**
-	 * Hands the cockpit's Interactivity store what it needs to persist a finished
-	 * run: the full session-collection REST URL and a `wp_rest` nonce. The backend
-	 * builds the complete endpoint URL (route namespace included) so the client
-	 * never assembles it — if the route ever moves, only this server side changes.
-	 * The cockpit is a script module, so this travels through
-	 * `wp_interactivity_config()` (read client-side with `getConfig()`) rather
-	 * than `wp_localize_script`. Set only on the gated dashboard route, after the
-	 * administrator check, so the nonce is minted for the very user authorized to
-	 * write — the post type's capability map and meta `auth_callback` still gate
-	 * the write server-side; the nonce only proves request intent.
+	 * Hands the cockpit's Interactivity store what it needs to persist a
+	 * finished run and to surf the saved course: the full session-collection
+	 * REST URL and a `wp_rest` nonce, plus the site's home URL and a
+	 * `bsb_surf` nonce so `RunStore.currentSrc` can build each
+	 * `?bsbSurfIndex=<n>&bsbNonce=<nonce>` viewport request without the
+	 * client ever holding a page list. The backend builds the complete REST
+	 * endpoint URL (route namespace included) so the client never assembles
+	 * it — if the route ever moves, only this server side changes. The
+	 * cockpit is a script module, so this travels through
+	 * `wp_interactivity_config()` (read client-side with `getConfig()`)
+	 * rather than `wp_localize_script`. Set only on the gated dashboard
+	 * route, after the administrator check, so both nonces are minted for
+	 * the very user authorized to act on them — the session post type's
+	 * capability map/meta `auth_callback` and
+	 * {@see \ErdemBircan\BatterySurfBench\Course\CourseRouter}'s own
+	 * capability check still gate the respective write/read server-side;
+	 * each nonce only proves request intent.
 	 *
 	 * @return void
 	 */
@@ -209,22 +201,22 @@ class Cockpit implements Manager {
 			array(
 				'restUrl'   => esc_url_raw( rest_url( 'wp/v2/' . $this->session_post_type ) ),
 				'restNonce' => wp_create_nonce( 'wp_rest' ),
+				'surfBase'  => esc_url_raw( home_url( '/' ) ),
+				'surfNonce' => wp_create_nonce( $this->surf_nonce_action ),
 			)
 		);
 	}
 
 	/**
-	 * Builds the cockpit block markup, with its `pages` attribute bound to the
-	 * course-pages source so the surfable page list is supplied server-side.
+	 * Builds the cockpit block markup. The block carries no page data of its
+	 * own — the client-side store builds each viewport request from the
+	 * seeded index-route configuration (see {@see configure_rest_access()})
+	 * rather than a bound page list.
 	 *
 	 * @return string The serialized block markup.
 	 */
 	private function host_markup(): string {
-		return sprintf(
-			'<!-- wp:%s {"metadata":{"bindings":{"pages":{"source":"%s"}}}} /-->',
-			$this->block_name,
-			$this->source_name
-		);
+		return sprintf( '<!-- wp:%s /-->', $this->block_name );
 	}
 
 	/**
