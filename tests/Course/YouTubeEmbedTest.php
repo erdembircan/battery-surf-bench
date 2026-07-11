@@ -10,302 +10,346 @@ declare( strict_types=1 );
 namespace ErdemBircan\BatterySurfBench\Tests\Course;
 
 use Brain\Monkey\Functions;
-use ErdemBircan\BatterySurfBench\Course\Views\YouTubeEmbedView;
 use ErdemBircan\BatterySurfBench\Course\YouTubeEmbed;
 use ErdemBircan\BatterySurfBench\Tests\TestCase;
 
 use function has_filter;
 
 /**
- * `YouTubeEmbed` keeps a YouTube (or youtube-nocookie) embed on a served
- * course page offline/deterministic (`pre_oembed_result`) and controllable
- * by the surf engine (`embed_oembed_html`, which normalizes ANY YouTube
- * iframe HTML reaching `WP_Embed::shortcode()`, including a pre-existing
- * cache hit that never runs through `pre_oembed_result` at all).
+ * `YouTubeEmbed` never replaces WordPress's own oEmbed handling — real
+ * oEmbed still resolves every YouTube URL, network fetch and all, for the
+ * bundled video page and any user page alike. Its sole production touch,
+ * `embed_oembed_html`, amends the `src` of a YouTube/youtube-nocookie
+ * iframe WordPress's own handling already produced, via the real
+ * `WP_HTML_Tag_Processor` — which this test process has no real WordPress
+ * to load, so that orchestration is covered exclusively by e2e (see
+ * `tests/e2e/CockpitCourse.spec.mts`).
+ *
+ * What IS unit-tested here is the pure logic `embed_oembed_html` delegates
+ * to — {@see YouTubeEmbed::is_youtube_src()} (host detection) and
+ * {@see YouTubeEmbed::amend_control_params()} (the query-param merge) —
+ * neither of which touches the tag processor at all, plus the two early
+ * returns of `embed_oembed_html` itself that never reach it (an empty
+ * string, and HTML carrying no `<iframe` at all).
  */
 final class YouTubeEmbedTest extends TestCase {
 
 	/**
-	 * Stubs the WordPress functions `YouTubeEmbed` calls to build its control
-	 * params: `home_url()` (the origin source) and `wp_parse_url()` (a thin
-	 * `parse_url()` wrapper in real WordPress, stubbed here as exactly that).
+	 * Stubs `wp_parse_url()` against a fixed lookup of exact URL strings to
+	 * their already-parsed component arrays, so a test can drive both the
+	 * full-array form (`wp_parse_url( $url )`) and the single-component form
+	 * (`wp_parse_url( $url, PHP_URL_HOST )`) the class under test uses —
+	 * without reimplementing a general URL parser, which would itself have
+	 * to call the discouraged raw `parse_url()`.
+	 *
+	 * @param array<string, array<string, mixed>> $known Exact URL string => its parsed component array.
 	 */
-	protected function setUp(): void {
-		parent::setUp();
+	private function stub_wp_parse_url( array $known ): void {
+		Functions\when( 'wp_parse_url' )->alias(
+			static function ( string $url, int $component = -1 ) use ( $known ) {
+				$parts = $known[ $url ] ?? null;
 
-		Functions\when( 'home_url' )->justReturn( 'https://example.org/' );
-		// `wp_parse_url()` is a thin, WordPress-only wrapper around PHP's
-		// `parse_url()` — stubbed here with the fixed result for the one URL
-		// `home_url( '/' )` above ever produces in these tests, rather than
-		// reimplementing a general parser (which would itself have to call
-		// the discouraged raw `parse_url()`).
-		Functions\when( 'wp_parse_url' )->justReturn(
+				if ( null === $parts ) {
+					return false;
+				}
+
+				if ( -1 === $component ) {
+					return $parts;
+				}
+
+				$map = array(
+					PHP_URL_SCHEME   => 'scheme',
+					PHP_URL_HOST     => 'host',
+					PHP_URL_PORT     => 'port',
+					PHP_URL_PATH     => 'path',
+					PHP_URL_QUERY    => 'query',
+					PHP_URL_FRAGMENT => 'fragment',
+				);
+				$key = $map[ $component ] ?? null;
+
+				return ( null !== $key && isset( $parts[ $key ] ) ) ? $parts[ $key ] : null;
+			}
+		);
+	}
+
+	/**
+	 * Registering hooks the single amend filter.
+	 */
+	public function test_register_hooks_the_embed_oembed_html_filter(): void {
+		$embed = new YouTubeEmbed();
+		$embed->register();
+
+		$this->assertNotFalse( has_filter( 'embed_oembed_html', array( $embed, 'embed_oembed_html' ) ) );
+	}
+
+	/**
+	 * A `youtube.com` embed iframe src is recognized.
+	 */
+	public function test_is_youtube_src_true_for_youtube_com(): void {
+		$this->stub_wp_parse_url(
+			array( 'https://www.youtube.com/embed/jNQXAC9IVRw' => array( 'host' => 'www.youtube.com' ) )
+		);
+
+		$this->assertTrue( ( new YouTubeEmbed() )->is_youtube_src( 'https://www.youtube.com/embed/jNQXAC9IVRw' ) );
+	}
+
+	/**
+	 * A bare (no `www.`) `youtube.com` host is also recognized.
+	 */
+	public function test_is_youtube_src_true_for_a_bare_youtube_com_host(): void {
+		$this->stub_wp_parse_url(
+			array( 'https://youtube.com/embed/jNQXAC9IVRw' => array( 'host' => 'youtube.com' ) )
+		);
+
+		$this->assertTrue( ( new YouTubeEmbed() )->is_youtube_src( 'https://youtube.com/embed/jNQXAC9IVRw' ) );
+	}
+
+	/**
+	 * A `youtube-nocookie.com` embed iframe src is recognized too.
+	 */
+	public function test_is_youtube_src_true_for_youtube_nocookie_com(): void {
+		$this->stub_wp_parse_url(
 			array(
-				'scheme' => 'https',
-				'host'   => 'example.org',
+				'https://www.youtube-nocookie.com/embed/jNQXAC9IVRw' => array(
+					'host' => 'www.youtube-nocookie.com',
+				),
 			)
 		);
-	}
 
-	/**
-	 * Builds the service under test.
-	 *
-	 * @return YouTubeEmbed The service under test.
-	 */
-	private function embed(): YouTubeEmbed {
-		return new YouTubeEmbed( new YouTubeEmbedView() );
-	}
-
-	/**
-	 * A `youtube.com/watch?v=` URL resolves to its video id.
-	 */
-	public function test_parse_video_id_from_a_watch_url(): void {
-		$this->assertSame(
-			'jNQXAC9IVRw',
-			$this->embed()->parse_video_id( 'https://www.youtube.com/watch?v=jNQXAC9IVRw' )
+		$this->assertTrue(
+			( new YouTubeEmbed() )->is_youtube_src( 'https://www.youtube-nocookie.com/embed/jNQXAC9IVRw' )
 		);
-	}
-
-	/**
-	 * A `youtube.com/watch?v=` URL with the id positioned after other query
-	 * params still resolves.
-	 */
-	public function test_parse_video_id_from_a_watch_url_with_extra_leading_params(): void {
-		$this->assertSame(
-			'jNQXAC9IVRw',
-			$this->embed()->parse_video_id( 'https://www.youtube.com/watch?feature=share&v=jNQXAC9IVRw' )
-		);
-	}
-
-	/**
-	 * A `youtube.com/watch?v=` URL with trailing extra params still resolves.
-	 */
-	public function test_parse_video_id_from_a_watch_url_with_extra_trailing_params(): void {
-		$this->assertSame(
-			'jNQXAC9IVRw',
-			$this->embed()->parse_video_id( 'https://www.youtube.com/watch?v=jNQXAC9IVRw&list=xyz' )
-		);
-	}
-
-	/**
-	 * A `youtu.be/` short URL resolves to its video id.
-	 */
-	public function test_parse_video_id_from_a_short_url(): void {
-		$this->assertSame(
-			'jNQXAC9IVRw',
-			$this->embed()->parse_video_id( 'https://youtu.be/jNQXAC9IVRw' )
-		);
-	}
-
-	/**
-	 * A `youtu.be/` short URL with extra query params still resolves.
-	 */
-	public function test_parse_video_id_from_a_short_url_with_extra_params(): void {
-		$this->assertSame(
-			'jNQXAC9IVRw',
-			$this->embed()->parse_video_id( 'https://youtu.be/jNQXAC9IVRw?t=42' )
-		);
-	}
-
-	/**
-	 * A `youtube.com/embed/` URL resolves to its video id.
-	 */
-	public function test_parse_video_id_from_a_youtube_com_embed_url(): void {
-		$this->assertSame(
-			'jNQXAC9IVRw',
-			$this->embed()->parse_video_id( 'https://www.youtube.com/embed/jNQXAC9IVRw' )
-		);
-	}
-
-	/**
-	 * A `youtube-nocookie.com/embed/` URL resolves to its video id, extra
-	 * query params included.
-	 */
-	public function test_parse_video_id_from_a_nocookie_embed_url_with_extra_params(): void {
-		$this->assertSame(
-			'jNQXAC9IVRw',
-			$this->embed()->parse_video_id( 'https://www.youtube-nocookie.com/embed/jNQXAC9IVRw?feature=oembed' )
-		);
-	}
-
-	/**
-	 * A Vimeo URL is not a recognized YouTube URL.
-	 */
-	public function test_parse_video_id_returns_null_for_a_vimeo_url(): void {
-		$this->assertNull( $this->embed()->parse_video_id( 'https://player.vimeo.com/video/76979871' ) );
 	}
 
 	/**
 	 * A host that merely CONTAINS "youtube.com" as a substring — but isn't
-	 * actually that host — is not a recognized YouTube URL. The host match is
-	 * boundary-anchored specifically to rule this out.
+	 * actually that host — is not recognized. The host match is
+	 * boundary-anchored specifically to rule this out, mirroring the JS
+	 * side's `youtubeTargetOrigin` (`src/surfer/VideoControl.ts`).
 	 */
-	public function test_parse_video_id_returns_null_for_a_host_that_merely_contains_youtube_com(): void {
-		$this->assertNull( $this->embed()->parse_video_id( 'https://myyoutube.com/watch?v=abcdefghijk' ) );
+	public function test_is_youtube_src_false_for_a_host_that_merely_contains_youtube_com(): void {
+		$this->stub_wp_parse_url(
+			array( 'https://myyoutube.com/watch?v=abcdefghijk' => array( 'host' => 'myyoutube.com' ) )
+		);
+
+		$this->assertFalse( ( new YouTubeEmbed() )->is_youtube_src( 'https://myyoutube.com/watch?v=abcdefghijk' ) );
 	}
 
 	/**
 	 * A hyphen-prefixed lookalike host is likewise not recognized.
 	 */
-	public function test_parse_video_id_returns_null_for_a_hyphen_prefixed_lookalike_host(): void {
-		$this->assertNull( $this->embed()->parse_video_id( 'https://foo-youtube.com/embed/abcdefghijk' ) );
-	}
-
-	/**
-	 * The genuine host still resolves — the boundary anchor doesn't over-tighten.
-	 */
-	public function test_parse_video_id_still_resolves_the_genuine_host(): void {
-		$this->assertSame(
-			'abcdefghijk',
-			$this->embed()->parse_video_id( 'https://www.youtube.com/watch?v=abcdefghijk' )
+	public function test_is_youtube_src_false_for_a_hyphen_prefixed_lookalike_host(): void {
+		$this->stub_wp_parse_url(
+			array( 'https://foo-youtube.com/embed/abcdefghijk' => array( 'host' => 'foo-youtube.com' ) )
 		);
+
+		$this->assertFalse( ( new YouTubeEmbed() )->is_youtube_src( 'https://foo-youtube.com/embed/abcdefghijk' ) );
 	}
 
 	/**
-	 * A non-URL string is not a recognized YouTube URL.
+	 * A non-YouTube host (Vimeo) is not recognized.
 	 */
-	public function test_parse_video_id_returns_null_for_garbage(): void {
-		$this->assertNull( $this->embed()->parse_video_id( 'not a url at all' ) );
+	public function test_is_youtube_src_false_for_vimeo(): void {
+		$this->stub_wp_parse_url(
+			array( 'https://player.vimeo.com/video/76979871' => array( 'host' => 'player.vimeo.com' ) )
+		);
+
+		$this->assertFalse( ( new YouTubeEmbed() )->is_youtube_src( 'https://player.vimeo.com/video/76979871' ) );
 	}
 
 	/**
-	 * Registering hooks both filters.
+	 * A src that fails to parse at all (no known host) is not recognized
+	 * rather than fataling.
 	 */
-	public function test_register_hooks_both_filters(): void {
-		$embed = $this->embed();
-		$embed->register();
+	public function test_is_youtube_src_false_for_an_unparseable_src(): void {
+		$this->stub_wp_parse_url( array() );
 
-		$this->assertNotFalse( has_filter( 'pre_oembed_result', array( $embed, 'pre_oembed_result' ) ) );
-		$this->assertNotFalse( has_filter( 'embed_oembed_html', array( $embed, 'embed_oembed_html' ) ) );
+		$this->assertFalse( ( new YouTubeEmbed() )->is_youtube_src( 'not a url at all' ) );
 	}
 
 	/**
-	 * A recognized YouTube URL builds the offline base iframe: JS-API
-	 * enabled, carrying the video id, on the nocookie host, with no
-	 * autoplay.
+	 * The control params are merged onto the src's existing query string,
+	 * preserving whatever oEmbed already set (e.g. `feature=oembed`) and the
+	 * scheme/host/path exactly.
 	 */
-	public function test_pre_oembed_result_builds_the_offline_base_for_a_youtube_url(): void {
-		$html = $this->embed()->pre_oembed_result( null, 'https://www.youtube.com/watch?v=jNQXAC9IVRw' );
+	public function test_amend_control_params_merges_onto_the_existing_query(): void {
+		Functions\when( 'home_url' )->justReturn( 'https://example.org/' );
+		$this->stub_wp_parse_url(
+			array(
+				'https://example.org/' => array(
+					'scheme' => 'https',
+					'host'   => 'example.org',
+				),
+				'https://www.youtube.com/embed/jNQXAC9IVRw?feature=oembed' => array(
+					'scheme' => 'https',
+					'host'   => 'www.youtube.com',
+					'path'   => '/embed/jNQXAC9IVRw',
+					'query'  => 'feature=oembed',
+				),
+			)
+		);
 
-		$this->assertIsString( $html );
-		$this->assertStringContainsString( 'enablejsapi=1', $html );
-		$this->assertStringContainsString( 'jNQXAC9IVRw', $html );
-		$this->assertStringContainsString( 'youtube-nocookie.com/embed', $html );
-		// Not the `autoplay=1` query param — the iframe's `allow` attribute
-		// legitimately carries the bare `autoplay` *permission* token (the
-		// browser feature policy that lets the surf engine's later
-		// `postMessage` command actually start playback), which is a
-		// different thing entirely.
-		$this->assertStringNotContainsString( 'autoplay=1', $html );
+		$amended = ( new YouTubeEmbed() )->amend_control_params(
+			'https://www.youtube.com/embed/jNQXAC9IVRw?feature=oembed'
+		);
+
+		$this->assertStringStartsWith( 'https://www.youtube.com/embed/jNQXAC9IVRw?', $amended );
+		$this->assertStringContainsString( 'feature=oembed', $amended );
+		$this->assertStringContainsString( 'enablejsapi=1', $amended );
+		$this->assertStringContainsString( 'mute=1', $amended );
+		$this->assertStringContainsString( 'playsinline=1', $amended );
+		$this->assertStringContainsString( 'rel=0', $amended );
+	}
+
+	/**
+	 * Any `autoplay` param oEmbed happened to carry is stripped — the surf
+	 * engine starts playback itself, not the embed on load.
+	 */
+	public function test_amend_control_params_strips_autoplay(): void {
+		Functions\when( 'home_url' )->justReturn( 'https://example.org/' );
+		$this->stub_wp_parse_url(
+			array(
+				'https://example.org/' => array(
+					'scheme' => 'https',
+					'host'   => 'example.org',
+				),
+				'https://www.youtube.com/embed/jNQXAC9IVRw?autoplay=1&feature=oembed' => array(
+					'scheme' => 'https',
+					'host'   => 'www.youtube.com',
+					'path'   => '/embed/jNQXAC9IVRw',
+					'query'  => 'autoplay=1&feature=oembed',
+				),
+			)
+		);
+
+		$amended = ( new YouTubeEmbed() )->amend_control_params(
+			'https://www.youtube.com/embed/jNQXAC9IVRw?autoplay=1&feature=oembed'
+		);
+
+		$this->assertStringNotContainsString( 'autoplay=1', $amended );
+		$this->assertStringContainsString( 'feature=oembed', $amended );
 	}
 
 	/**
 	 * A non-default-port site origin (e.g. the maintainer's own
 	 * `http://localhost:9400` dev server) carries its port through into the
 	 * `origin` param — YouTube's JS API validates `origin` against the real
-	 * parent origin including port, so dropping it would silently break every
-	 * `playVideo`/`pauseVideo` postMessage command on such a host.
+	 * parent origin including port, so dropping it would silently break
+	 * every `playVideo`/`pauseVideo` postMessage command on such a host.
 	 */
-	public function test_pre_oembed_result_includes_the_port_in_the_origin_param_when_present(): void {
+	public function test_amend_control_params_includes_the_port_in_the_origin_param_when_present(): void {
 		Functions\when( 'home_url' )->justReturn( 'http://localhost:9400/' );
-		Functions\when( 'wp_parse_url' )->justReturn(
+		$this->stub_wp_parse_url(
 			array(
-				'scheme' => 'http',
-				'host'   => 'localhost',
-				'port'   => 9400,
+				'http://localhost:9400/' => array(
+					'scheme' => 'http',
+					'host'   => 'localhost',
+					'port'   => 9400,
+				),
+				'https://www.youtube.com/embed/jNQXAC9IVRw' => array(
+					'scheme' => 'https',
+					'host'   => 'www.youtube.com',
+					'path'   => '/embed/jNQXAC9IVRw',
+				),
 			)
 		);
 
-		$html = $this->embed()->pre_oembed_result( null, 'https://www.youtube.com/watch?v=jNQXAC9IVRw' );
+		$amended = ( new YouTubeEmbed() )->amend_control_params( 'https://www.youtube.com/embed/jNQXAC9IVRw' );
 
-		$this->assertStringContainsString( 'origin=http://localhost:9400', $html );
+		// http_build_query() percent-encodes the origin's `:`/`/` characters.
+		$this->assertStringContainsString( 'origin=http%3A%2F%2Flocalhost%3A9400', $amended );
 	}
 
 	/**
-	 * A default-port origin (the class-level `setUp()` stub) carries no port
-	 * suffix — only a genuinely non-default port is appended.
+	 * A default-port origin carries no port suffix — only a genuinely
+	 * non-default port is appended.
 	 */
-	public function test_pre_oembed_result_omits_the_port_for_a_default_port_origin(): void {
-		$html = $this->embed()->pre_oembed_result( null, 'https://www.youtube.com/watch?v=jNQXAC9IVRw' );
-
-		$this->assertStringContainsString( 'origin=https://example.org', $html );
-		$this->assertStringNotContainsString( 'example.org:', $html );
-	}
-
-	/**
-	 * A non-YouTube URL is left to WordPress's normal oEmbed flow: the
-	 * passed-through result (null, to continue) is returned unchanged.
-	 */
-	public function test_pre_oembed_result_leaves_a_non_youtube_url_unchanged(): void {
-		$this->assertNull(
-			$this->embed()->pre_oembed_result( null, 'https://player.vimeo.com/video/76979871' )
-		);
-	}
-
-	/**
-	 * A non-null passed-through result (e.g. another filter already resolved
-	 * it) is preserved for a non-YouTube URL.
-	 */
-	public function test_pre_oembed_result_preserves_an_existing_result_for_a_non_youtube_url(): void {
-		$this->assertSame(
-			'<iframe src="https://player.vimeo.com/video/76979871"></iframe>',
-			$this->embed()->pre_oembed_result(
-				'<iframe src="https://player.vimeo.com/video/76979871"></iframe>',
-				'https://player.vimeo.com/video/76979871'
+	public function test_amend_control_params_omits_the_port_for_a_default_port_origin(): void {
+		Functions\when( 'home_url' )->justReturn( 'https://example.org/' );
+		$this->stub_wp_parse_url(
+			array(
+				'https://example.org/' => array(
+					'scheme' => 'https',
+					'host'   => 'example.org',
+				),
+				'https://www.youtube.com/embed/jNQXAC9IVRw' => array(
+					'scheme' => 'https',
+					'host'   => 'www.youtube.com',
+					'path'   => '/embed/jNQXAC9IVRw',
+				),
 			)
 		);
+
+		$amended = ( new YouTubeEmbed() )->amend_control_params( 'https://www.youtube.com/embed/jNQXAC9IVRw' );
+
+		$this->assertStringContainsString( 'origin=https%3A%2F%2Fexample.org', $amended );
+		$this->assertStringNotContainsString( 'origin=https%3A%2F%2Fexample.org%3A', $amended );
 	}
 
 	/**
-	 * A freshly fetched (or cached) YouTube iframe is normalized to carry the
-	 * control params, with no autoplay.
+	 * Running the amend again on its own output changes nothing further.
 	 */
-	public function test_embed_oembed_html_normalizes_a_youtube_iframe(): void {
-		$html = $this->embed()->embed_oembed_html(
-			'<iframe src="https://www.youtube.com/embed/jNQXAC9IVRw?feature=oembed"></iframe>'
+	public function test_amend_control_params_is_idempotent(): void {
+		Functions\when( 'home_url' )->justReturn( 'https://example.org/' );
+		$src = 'https://www.youtube.com/embed/jNQXAC9IVRw?feature=oembed';
+
+		$this->stub_wp_parse_url(
+			array(
+				'https://example.org/' => array(
+					'scheme' => 'https',
+					'host'   => 'example.org',
+				),
+				$src                   => array(
+					'scheme' => 'https',
+					'host'   => 'www.youtube.com',
+					'path'   => '/embed/jNQXAC9IVRw',
+					'query'  => 'feature=oembed',
+				),
+			)
 		);
 
-		$this->assertStringContainsString( 'enablejsapi=1', $html );
-		$this->assertStringContainsString( 'mute=1', $html );
-		$this->assertStringContainsString( 'origin=', $html );
-		$this->assertStringNotContainsString( 'autoplay', $html );
-	}
+		$embed = new YouTubeEmbed();
+		$once  = $embed->amend_control_params( $src );
 
-	/**
-	 * Normalizing already-normalized HTML changes nothing further.
-	 */
-	public function test_embed_oembed_html_is_idempotent(): void {
-		$embed = $this->embed();
-		$once  = $embed->embed_oembed_html(
-			'<iframe src="https://www.youtube.com/embed/jNQXAC9IVRw?feature=oembed"></iframe>'
+		// Re-stub so the amend's own output also resolves: a plain string
+		// split, not a parser, since the shape (scheme/host/path unchanged,
+		// only the query differs) is already known from building $once above.
+		$once_parts = explode( '?', $once, 2 );
+		$this->stub_wp_parse_url(
+			array(
+				'https://example.org/' => array(
+					'scheme' => 'https',
+					'host'   => 'example.org',
+				),
+				$once                  => array(
+					'scheme' => 'https',
+					'host'   => 'www.youtube.com',
+					'path'   => '/embed/jNQXAC9IVRw',
+					'query'  => $once_parts[1] ?? '',
+				),
+			)
 		);
-		$twice = $embed->embed_oembed_html( $once );
+
+		$twice = $embed->amend_control_params( $once );
 
 		$this->assertSame( $once, $twice );
 	}
 
 	/**
-	 * A non-YouTube iframe (Vimeo) is returned completely untouched.
+	 * An empty string is returned untouched — this returns before
+	 * `embed_oembed_html` ever constructs a `WP_HTML_Tag_Processor`.
 	 */
-	public function test_embed_oembed_html_leaves_a_non_youtube_iframe_untouched(): void {
-		$html = '<iframe src="https://player.vimeo.com/video/76979871"></iframe>';
-
-		$this->assertSame( $html, $this->embed()->embed_oembed_html( $html ) );
+	public function test_embed_oembed_html_leaves_an_empty_string_untouched(): void {
+		$this->assertSame( '', ( new YouTubeEmbed() )->embed_oembed_html( '' ) );
 	}
 
 	/**
-	 * HTML with no iframe at all is returned untouched rather than fataling.
+	 * HTML with no iframe at all is returned untouched rather than fataling
+	 * — this also returns before a `WP_HTML_Tag_Processor` is constructed.
 	 */
 	public function test_embed_oembed_html_leaves_html_with_no_iframe_untouched(): void {
 		$html = '<blockquote>Not an embed.</blockquote>';
 
-		$this->assertSame( $html, $this->embed()->embed_oembed_html( $html ) );
-	}
-
-	/**
-	 * An empty string is returned untouched.
-	 */
-	public function test_embed_oembed_html_leaves_an_empty_string_untouched(): void {
-		$this->assertSame( '', $this->embed()->embed_oembed_html( '' ) );
+		$this->assertSame( $html, ( new YouTubeEmbed() )->embed_oembed_html( $html ) );
 	}
 }

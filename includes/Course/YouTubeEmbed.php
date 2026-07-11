@@ -7,14 +7,14 @@
 
 namespace ErdemBircan\BatterySurfBench\Course;
 
-use ErdemBircan\BatterySurfBench\Course\Views\YouTubeEmbedView;
 use WP_HTML_Tag_Processor;
 
 use function add_filter;
-use function esc_attr__;
-use function esc_url;
+use function array_merge;
 use function home_url;
+use function http_build_query;
 use function is_string;
+use function parse_str;
 use function preg_match;
 use function str_contains;
 use function wp_parse_url;
@@ -22,98 +22,68 @@ use function wp_parse_url;
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Makes a YouTube (or youtube-nocookie) embed on a served course page
- * deterministic (offline-safe) and controllable through the surf engine's
- * `VideoControl` (see `src/surfer/VideoControl.ts`), scoped to course
- * rendering by {@see CourseRouter}, which registers this service only while
- * serving a course page.
+ * Amends the `src` of a YouTube (or youtube-nocookie) iframe that WordPress's
+ * OWN native oEmbed handling already produced — for the bundled video course
+ * page and any user-selected surf page alike — so the surf engine's
+ * `VideoControl` (see `src/surfer/VideoControl.ts`) can start and stop
+ * playback through YouTube's IFrame API. Registered by {@see CourseRouter}
+ * per served course page.
  *
- * Two `WP_Embed` filters are hooked, because a YouTube embed can reach a
- * served page through either path and both must carry the same control
- * params:
+ * This does NOT replace WordPress's embedding machinery. Real oEmbed still
+ * resolves every YouTube URL exactly as it would on any WordPress site —
+ * network fetch and all — for the bundled page and a user's own page alike.
+ * The single production touch is `embed_oembed_html`, which merges four
+ * query params onto the `src` WordPress's `WP_Embed::shortcode()` already
+ * built, for ANY iframe reaching that filter (a fresh fetch or a
+ * pre-existing cache hit), preserving the host, the path and every other
+ * param oEmbed set (e.g. `feature=oembed`):
  *
- * - `pre_oembed_result` builds the iframe locally for a recognized YouTube
- *   URL, short-circuiting `WP_oEmbed::get_html()` before it would otherwise
- *   make a network request — this is what keeps rendering the bundled video
- *   course page (and any user page carrying a bare YouTube URL) offline and
- *   deterministic.
- * - `embed_oembed_html` normalizes ANY youtube/youtube-nocookie iframe HTML
- *   that reaches `WP_Embed::shortcode()` — including a result already
- *   cached from before this service existed, which never runs through
- *   `pre_oembed_result` at all (`WP_Embed::shortcode()` returns a cache hit
- *   straight through this filter) — guaranteeing the same control params on
- *   every path. It is idempotent: running it again on its own output leaves
- *   it unchanged.
+ * - `enablejsapi=1` — required for the postMessage command protocol; without
+ *   it the surf engine cannot control playback at all.
+ * - `mute=1` — a programmatic (non-user-gesture) `playVideo` command is only
+ *   honored under browser autoplay policy when the player is muted.
+ * - `playsinline=1`, `rel=0` — cosmetic/UX parity with a typical embed.
+ * - `origin={home origin, port included}` — required by YouTube's IFrame API
+ *   for it to accept postMessage commands from this page at all.
  *
- * Neither filter touches a non-YouTube URL/iframe (Vimeo, or anything else)
- * — the passed value is returned unchanged.
+ * Any `autoplay` param oEmbed happened to carry is stripped — the surf
+ * engine starts playback itself, not the embed on load. The amend is
+ * idempotent and touches only a recognized YouTube/youtube-nocookie host
+ * (boundary-anchored: a lookalike host like `myyoutube.com` is left
+ * completely untouched), never any other iframe (Vimeo, etc.).
+ *
+ * wp-playground (both the persistent dev server and the non-persistent e2e
+ * instances) has no reliable outbound network, so real oEmbed there yields
+ * no iframe at all — a dev/e2e-only mu-plugin
+ * (`wp-playground/blueprint.mts`'s `youtubeOembedStubMuPlugin`) stubs that
+ * one HTTP fetch so this class's real, unmodified production code still has
+ * something to amend. Production carries no such stub.
  */
 class YouTubeEmbed {
 
-	/** Matches a YouTube video id: 11 characters from YouTube's URL-safe id alphabet. */
-	private const VIDEO_ID_PATTERN = '[A-Za-z0-9_-]{11}';
-
 	/**
-	 * Stores the view the offline base iframe's markup is rendered through.
-	 *
-	 * @param YouTubeEmbedView $view Renders the base iframe's markup.
-	 */
-	public function __construct( private YouTubeEmbedView $view ) {
-	}
-
-	/**
-	 * Hooks the offline base and the normalizer.
+	 * Hooks the amend.
 	 *
 	 * @return void
 	 */
 	public function register(): void {
-		// Only as many of each hook's arguments as this class actually reads
-		// are declared/accepted — `pre_oembed_result` also carries oEmbed
-		// `$args`, and `embed_oembed_html` also carries `$url`/`$attr`/
-		// `$post_id`, but every recognized YouTube URL gets the exact same
-		// control params regardless, and the iframe's own `src` (read back
-		// via `WP_HTML_Tag_Processor`) is the only authoritative source for
-		// the normalizer.
-		add_filter( 'pre_oembed_result', array( $this, 'pre_oembed_result' ), 10, 2 );
+		// `embed_oembed_html` also carries `$url`/`$attr`/`$post_id`, but the
+		// iframe's own `src` (read back via `WP_HTML_Tag_Processor`) is the
+		// only thing this amend needs.
 		add_filter( 'embed_oembed_html', array( $this, 'embed_oembed_html' ), 10, 1 );
 	}
 
 	/**
-	 * Builds a deterministic, offline base iframe for a recognized YouTube
-	 * URL, short-circuiting `WP_oEmbed::get_html()`'s network fetch. A
-	 * non-YouTube (or unrecognized) URL is left to WordPress's normal oEmbed
-	 * flow by returning `$result` unchanged.
+	 * Amends the `src` of any YouTube/youtube-nocookie iframe in the given
+	 * embed HTML — HTML WordPress's own oEmbed handling produced, from a
+	 * fresh fetch or a pre-existing cache hit — with the control params
+	 * described in the class doc comment. HTML with no recognized YouTube
+	 * iframe (a non-YouTube embed, or no iframe at all) is returned
+	 * unchanged. Idempotent: running it again on its own output changes
+	 * nothing further.
 	 *
-	 * @param mixed  $result The oEmbed result so far — null continues WordPress's normal (network) flow.
-	 * @param string $url    The URL being embedded.
-	 * @return mixed The base iframe HTML for a recognized YouTube URL, else `$result` unchanged.
-	 */
-	public function pre_oembed_result( $result, string $url ) {
-		$id = $this->parse_video_id( $url );
-
-		if ( null === $id ) {
-			return $result;
-		}
-
-		return $this->view->render(
-			array(
-				'src'   => esc_url( $this->build_src( $id ) ),
-				'title' => esc_attr__( 'YouTube video player', 'battery-surf-bench' ),
-			)
-		);
-	}
-
-	/**
-	 * Normalizes any YouTube/youtube-nocookie iframe HTML — from a fresh
-	 * fetch, from {@see pre_oembed_result()} above, or from a pre-existing
-	 * cache — so its `src` always carries the control params the surf
-	 * engine's `VideoControl` needs, with autoplay stripped. HTML with no
-	 * recognized YouTube iframe (a non-YouTube embed, or no iframe at all) is
-	 * returned unchanged. Idempotent: running it again on its own output
-	 * changes nothing further.
-	 *
-	 * @param string $html The embed HTML (cached or freshly fetched).
-	 * @return string The normalized HTML.
+	 * @param string $html The embed HTML WordPress's own oEmbed handling produced.
+	 * @return string The amended HTML.
 	 */
 	public function embed_oembed_html( string $html ): string {
 		if ( '' === $html || ! str_contains( $html, '<iframe' ) ) {
@@ -125,66 +95,95 @@ class YouTubeEmbed {
 		while ( $processor->next_tag( 'iframe' ) ) {
 			$src = $processor->get_attribute( 'src' );
 
-			if ( ! is_string( $src ) ) {
-				continue;
-			}
-
-			$id = $this->parse_video_id( $src );
-
-			if ( null === $id ) {
+			if ( ! is_string( $src ) || ! $this->is_youtube_src( $src ) ) {
 				continue;
 			}
 
 			// `set_attribute()` escapes a URI-bearing attribute's value with
 			// `esc_url()` itself (it recognizes `src` as one), so the raw,
-			// unescaped src is passed here — escaping it again here would
-			// double-escape it.
-			$processor->set_attribute( 'src', $this->build_src( $id ) );
+			// unescaped amended src is passed here — escaping it again here
+			// would double-escape it.
+			$processor->set_attribute( 'src', $this->amend_control_params( $src ) );
 		}
 
 		return $processor->get_updated_html();
 	}
 
 	/**
-	 * Extracts an 11-character YouTube video id from any recognized YouTube
-	 * URL form: `youtube.com/watch?v=`, `youtu.be/`, or
-	 * `youtube(-nocookie).com/embed/` — each tolerant of extra query params.
+	 * Whether `$src`'s host is a genuine YouTube/youtube-nocookie host —
+	 * boundary-anchored (the host must equal `youtube(-nocookie).com` or end
+	 * with `.youtube(-nocookie).com`), so a host that merely CONTAINS that
+	 * substring (`myyoutube.com`, `foo-youtube.com`) is never mistaken for
+	 * it. Mirrors the JS side's `youtubeTargetOrigin`
+	 * (`src/surfer/VideoControl.ts`), which applies the same boundary rule to
+	 * `URL.hostname`.
 	 *
-	 * The `youtube(-nocookie).com` host is boundary-anchored (must be preceded
-	 * by the start of the string, `//` (a scheme boundary) or `.` (a
-	 * subdomain boundary)) so a host that merely CONTAINS that substring —
-	 * `myyoutube.com`, `foo-youtube.com` — is never mistaken for it. `youtu.be`
-	 * needs no such guard: the required trailing `/` before the id already
-	 * rules out a host like `youtu.be.evil.com`, which has no `/` there.
+	 * Public (rather than the class's sole private detail) specifically so
+	 * this pure host-detection logic — which touches no
+	 * `WP_HTML_Tag_Processor` — is unit-testable on its own; see
+	 * `tests/Course/YouTubeEmbedTest.php`.
 	 *
-	 * @param string $url The URL to inspect.
-	 * @return string|null The video id, or null when the URL is not a recognized YouTube URL.
+	 * @param string $src The iframe src to inspect.
+	 * @return bool Whether the host is a recognized YouTube host.
 	 */
-	public function parse_video_id( string $url ): ?string {
-		$pattern = '#(?:(?:^|//|\.)youtube(?:-nocookie)?\.com/(?:watch\?(?:.*&)?v=|embed/)|youtu\.be/)(' . self::VIDEO_ID_PATTERN . ')#i';
+	public function is_youtube_src( string $src ): bool {
+		$host = wp_parse_url( $src, PHP_URL_HOST );
 
-		if ( 1 === preg_match( $pattern, $url, $matches ) ) {
-			return $matches[1];
+		if ( ! is_string( $host ) ) {
+			return false;
 		}
 
-		return null;
+		return 1 === preg_match( '#(?:^|\.)youtube(?:-nocookie)?\.com$#i', $host );
 	}
 
 	/**
-	 * Builds the control-ready iframe src for a video id: JS-API enabled,
-	 * muted so a programmatic `playVideo` command is allowed under browser
-	 * autoplay policy, no related-video panel, and carrying the served
-	 * page's own origin so YouTube accepts the surf engine's postMessage
-	 * commands. Deliberately carries no `autoplay`/`loop` — the surf engine
-	 * starts and stops playback itself.
+	 * Merges the control params described in the class doc comment onto
+	 * `$src`'s existing query string, stripping any `autoplay`, and leaving
+	 * the scheme, host, port, path and every other existing param untouched.
 	 *
-	 * @param string $id The YouTube video id.
-	 * @return string The unescaped iframe src URL.
+	 * Public (rather than the class's sole private detail) specifically so
+	 * this pure param-merge logic — which touches no
+	 * `WP_HTML_Tag_Processor` — is unit-testable on its own; see
+	 * `tests/Course/YouTubeEmbedTest.php`.
+	 *
+	 * @param string $src A YouTube/youtube-nocookie iframe src, already confirmed by {@see is_youtube_src()}.
+	 * @return string The amended, unescaped src.
 	 */
-	private function build_src( string $id ): string {
-		$origin = $this->origin();
+	public function amend_control_params( string $src ): string {
+		$parts = wp_parse_url( $src );
 
-		return "https://www.youtube-nocookie.com/embed/{$id}?enablejsapi=1&playsinline=1&mute=1&rel=0&origin={$origin}";
+		if ( ! isset( $parts['scheme'], $parts['host'] ) ) {
+			return $src;
+		}
+
+		parse_str( $parts['query'] ?? '', $query );
+		unset( $query['autoplay'] );
+
+		$query = array_merge(
+			$query,
+			array(
+				'enablejsapi' => '1',
+				'mute'        => '1',
+				'playsinline' => '1',
+				'rel'         => '0',
+				'origin'      => $this->origin(),
+			)
+		);
+
+		$amended = $parts['scheme'] . '://' . $parts['host'];
+
+		if ( isset( $parts['port'] ) ) {
+			$amended .= ':' . $parts['port'];
+		}
+
+		$amended .= $parts['path'] ?? '';
+		$amended .= '?' . http_build_query( $query, '', '&' );
+
+		if ( isset( $parts['fragment'] ) ) {
+			$amended .= '#' . $parts['fragment'];
+		}
+
+		return $amended;
 	}
 
 	/**
