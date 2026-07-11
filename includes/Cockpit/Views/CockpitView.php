@@ -369,7 +369,7 @@ HTML;
 		foreach ( $trait_classes as $bsb_class ) {
 			$bsb_chip_key   = isset( $bsb_class['key'] ) ? (string) $bsb_class['key'] : '';
 			$bsb_chip_attr  = esc_attr( $bsb_chip_key );
-			$bsb_chip_state = 'state.isClass' . preg_replace( '/[^a-zA-Z0-9]/', '', $bsb_chip_key );
+			$bsb_chip_state = esc_attr( 'state.isClass' . preg_replace( '/[^a-zA-Z0-9]/', '', $bsb_chip_key ) );
 			$bsb_chip_text  = esc_html( isset( $bsb_class['label'] ) ? (string) $bsb_class['label'] : '' );
 			$bsb_chips     .= <<<CHIP
 <button type="button" class="bsb-chip" data-class="{$bsb_chip_attr}" data-wp-on--click="actions.selectClass" data-wp-bind--aria-pressed="{$bsb_chip_state}" data-wp-class--is-active="{$bsb_chip_state}">{$bsb_chip_text}</button>
