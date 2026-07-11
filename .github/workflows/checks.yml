@@ -28,7 +28,7 @@ jobs:
       # Services.php recipe — without building or writing the compiled
       # artifact (it is gitignored and regenerated on real builds, so there is
       # nothing to emit or diff here).
-      - run: php bin/BuildContainer.php --check
+      - run: composer validate:container
 
   js-lint:
     runs-on: ubuntu-latest
