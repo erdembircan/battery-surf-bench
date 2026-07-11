@@ -172,25 +172,30 @@ test.describe( 'REST endpoints reject anonymous requests', () => {
 		},
 	};
 
-	// KNOWN GAP, not fixed by this change — flagged for the maintainer:
-	// `WP_REST_Posts_Controller::get_items_permissions_check()` only enforces a
-	// capability when `context=edit` or a non-`publish` `status` is requested;
-	// a bare GET (the default `status=publish`) returns `true` unconditionally,
-	// regardless of `SessionType`'s `public`/`publicly_queryable`/`capabilities`
-	// settings, which map every OTHER post capability to `manage_options`. So
-	// while create/update/delete are genuinely gated (proven below and by
-	// `SessionPersistence.spec.mts`), an anonymous visitor can currently LIST
-	// any bsb_session that has been published — contradicting `SessionType`'s
-	// own "admin-only" doc comment. This is pre-existing WordPress REST
-	// behavior, not something introduced here; asserting the actual response
-	// rather than the intended one so this gap is visible instead of hidden
-	// behind a false-green assertion.
-	test( 'GET wp/v2/bsb_session is NOT refused (documents a known gap, see comment above)', async ( {
-		request,
-	} ) => {
-		const response = await request.get( '/wp-json/wp/v2/bsb_session' );
-		expect( response.status() ).toBe( 200 );
-	} );
+	// KNOWN GAP, not fixed by this change — flagged for the maintainer's
+	// decision, not silently normalized: this asserts the DESIRED behavior
+	// (401, matching every other endpoint in this describe block) and is
+	// marked `fixme` because that desired behavior does not hold today.
+	//
+	// Actual current behavior: an anonymous GET returns 200 with a (possibly
+	// non-empty) list of published sessions. `WP_REST_Posts_Controller::get_items_permissions_check()`
+	// only consults a capability when `context=edit` or a non-`publish`
+	// `status` is requested; a bare GET (the default `view` context and
+	// `publish` status) returns `true` unconditionally, regardless of
+	// `SessionType`'s `public`/`publicly_queryable`/`capabilities` settings,
+	// which map every OTHER post capability (create/edit/delete) to
+	// `manage_options`. So while create/update/delete are genuinely gated
+	// (proven below and by `SessionPersistence.spec.mts`), an anonymous
+	// visitor can currently LIST any bsb_session that has been published —
+	// contradicting `SessionType`'s own "admin-only" doc comment. This is
+	// pre-existing WordPress REST behavior, not something introduced here.
+	test.fixme(
+		'GET wp/v2/bsb_session is refused (currently is not — see comment above)',
+		async ( { request } ) => {
+			const response = await request.get( '/wp-json/wp/v2/bsb_session' );
+			expect( response.status() ).toBe( 401 );
+		}
+	);
 
 	test( 'POST wp/v2/bsb_session is refused', async ( { request } ) => {
 		const response = await request.post( '/wp-json/wp/v2/bsb_session', {
