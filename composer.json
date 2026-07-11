@@ -2,7 +2,7 @@
     "name": "erdembircan/battery-surf-bench",
     "description": "WordPress plugin that benchmarks battery drain by simulating real-world web surfing.",
     "type": "wordpress-plugin",
-    "license": "Apache-2.0",
+    "license": "GPL-2.0-or-later",
     "authors": [
         {
             "name": "Erdem Bircan"
