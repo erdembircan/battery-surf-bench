@@ -24,6 +24,7 @@ use ErdemBircan\BatterySurfBench\Tests\Fixtures\FixtureGarage;
 use ErdemBircan\BatterySurfBench\Tests\Fixtures\FixtureListing;
 use ErdemBircan\BatterySurfBench\Tests\Fixtures\FixtureLoggerConsumer;
 use ErdemBircan\BatterySurfBench\Tests\Fixtures\FixtureNamed;
+use ErdemBircan\BatterySurfBench\Tests\Fixtures\FixtureVehicle;
 use RuntimeException;
 
 /**
@@ -251,5 +252,75 @@ final class InstantiatorTest extends TestCase {
 	public function test_make_throws_for_an_unresolvable_scalar_parameter(): void {
 		$this->expectException( RuntimeException::class );
 		$this->instantiator()->make( FixtureNamed::class );
+	}
+
+	/**
+	 * `plan_for()` returns the exact instruction list for a class taking a
+	 * recipe-supplied scalar plus an autowired concrete dependency: a
+	 * `value` instruction for the scalar, a `make` instruction for the
+	 * dependency, in constructor parameter order.
+	 */
+	public function test_plan_for_returns_the_expected_instruction_list(): void {
+		$instantiator = $this->instantiator(
+			array( FixtureVehicle::class => array( 'args' => array( 'label' => 'roadster' ) ) )
+		);
+
+		$plan = $instantiator->plan_for( FixtureVehicle::class );
+
+		$this->assertSame(
+			array(
+				array( 'value', 'roadster' ),
+				array( 'make', FixtureEngine::class ),
+			),
+			$plan
+		);
+	}
+
+	/**
+	 * `make()` builds a class straight from a definitions recipe's
+	 * precompiled `plan` — with no `args` key at all — wiring it exactly as
+	 * the plan instructs.
+	 */
+	public function test_make_builds_from_a_precompiled_plan_with_no_args(): void {
+		$instantiator = $this->instantiator(
+			array(
+				FixtureVehicle::class => array(
+					'plan' => array(
+						array( 'value', 'precompiled' ),
+						array( 'make', FixtureEngine::class ),
+					),
+				),
+			)
+		);
+
+		$vehicle = $instantiator->make( FixtureVehicle::class );
+
+		$this->assertSame( 'precompiled', $vehicle->label() );
+		$this->assertInstanceOf( FixtureEngine::class, $vehicle->engine() );
+	}
+
+	/**
+	 * A class built through a precompiled plan is wired identically to the
+	 * same class built through the live reflect path — the plan is just a
+	 * cached shortcut to the same result, never a different one.
+	 */
+	public function test_make_wires_identically_through_the_precompiled_and_live_paths(): void {
+		$live = $this->instantiator(
+			array( FixtureVehicle::class => array( 'args' => array( 'label' => 'parity' ) ) )
+		)->make( FixtureVehicle::class );
+
+		$precompiled = $this->instantiator(
+			array(
+				FixtureVehicle::class => array(
+					'plan' => array(
+						array( 'value', 'parity' ),
+						array( 'make', FixtureEngine::class ),
+					),
+				),
+			)
+		)->make( FixtureVehicle::class );
+
+		$this->assertSame( $live->label(), $precompiled->label() );
+		$this->assertSame( $live->engine()::class, $precompiled->engine()::class );
 	}
 }

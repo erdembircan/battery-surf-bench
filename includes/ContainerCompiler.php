@@ -1,72 +1,111 @@
 <?php
 /**
- * Build-time container-definition token flattener.
+ * Build-time container-definition plan compiler.
  *
  * @package ErdemBircan\BatterySurfBench
  */
 
 namespace ErdemBircan\BatterySurfBench;
 
-use function is_array;
-use function is_string;
-use function str_ends_with;
-use function str_starts_with;
-use function trim;
+use function array_key_exists;
+use function array_keys;
+use function array_shift;
+use function array_values;
 
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Pre-resolves every `%token%` config-lookup string in a service-recipe map
- * to its literal {@see Registry} value, so a build step can produce a
- * compiled definitions array the runtime loads without resolving tokens
- * against the registry at boot. Everything else in the recipes — class-FQCN
- * strings, `runtime`/`services`/`csv`/`path` wrapper keys, scalars — is left
- * byte-for-byte identical; only `%token%` leaves are rewritten.
+ * Precomputes a reflection-free build PLAN for every class in the plugin's
+ * dependency closure, so a build step can produce a compiled definitions
+ * array {@see Instantiator::make()} can execute directly at runtime —
+ * touching the Reflection API zero times, the same way a dumped Symfony
+ * container works. Each plan's `%token%` config-lookup values are baked to
+ * their literal {@see Registry} value along the way; everything else in a
+ * recipe — class-FQCN strings, `runtime`/`services` operands, scalars — is
+ * carried through the plan unchanged.
  *
- * This class performs no file I/O: it is a pure transform over the array
- * `Services.php` returns, exercised directly by its own tests. Writing the
- * flattened result to disk is `bin/CompileContainer.php`'s job, not this
- * class's.
+ * Driving a fresh {@see Instantiator} (over a throwaway {@see InstanceStore},
+ * since compiling never builds a real instance) to reflect each class via
+ * {@see Instantiator::plan_for()}, this walks the transitive closure
+ * starting from the given service recipes: every class a plan's `make` or
+ * `services` instruction references — and, whenever a `path` instruction
+ * appears, {@see Paths} itself, since that instruction calls
+ * {@see Paths::path()} at runtime — is enqueued and planned in turn. This is
+ * how classes reachable only by autowiring (bare Views with no recipe of
+ * their own) still end up with a plan in the compiled output.
+ *
+ * This class performs no file I/O: it is a pure transform, exercised
+ * directly by its own tests. Writing the compiled output to disk is
+ * `bin/CompileContainer.php`'s job, not this class's.
  */
 class ContainerCompiler {
 
 	/**
-	 * Returns a deep copy of the given service recipes with every `%token%`
-	 * leaf replaced by its resolved value from the registry.
+	 * Compiles a build plan for every class reachable from the given service
+	 * recipes — the recipes' own classes plus their whole dependency
+	 * closure — baking every `%token%` recipe value against the registry
+	 * along the way.
 	 *
-	 * @param array<string, mixed> $services The service-recipe map to flatten.
-	 * @param Registry             $registry Source of the config values `%token%` leaves resolve against.
-	 * @return array<string, mixed> The flattened recipe map.
+	 * @param array<string, array<string, mixed>> $services The service-recipe map to compile.
+	 * @param Registry                            $registry Source of the config values `%token%` specs resolve against.
+	 * @return array<string, array{plan: array<int, array{0: string, 1: mixed}>, shared: bool}> The compiled plan map, keyed by class name.
 	 */
 	public function compile( array $services, Registry $registry ): array {
-		return $this->flatten( $services, $registry );
+		$instantiator = new Instantiator( $registry, new Definitions( $services ), new InstanceStore() );
+
+		$compiled = array();
+		$worklist = array_keys( $services );
+
+		while ( ! empty( $worklist ) ) {
+			$class_name = array_shift( $worklist );
+
+			if ( array_key_exists( $class_name, $compiled ) ) {
+				continue;
+			}
+
+			$plan = $instantiator->plan_for( $class_name );
+
+			$compiled[ $class_name ] = array(
+				'plan'   => $plan,
+				'shared' => $services[ $class_name ]['shared'] ?? true,
+			);
+
+			foreach ( $this->referenced_classes( $plan ) as $referenced ) {
+				if ( ! array_key_exists( $referenced, $compiled ) ) {
+					$worklist[] = $referenced;
+				}
+			}
+		}
+
+		return $compiled;
 	}
 
 	/**
-	 * Recursively walks a value, replacing every `%token%` string leaf with
-	 * its resolved registry value and rebuilding arrays with their keys
-	 * preserved. Anything else — a class-FQCN string, a scalar, a wrapper's
-	 * non-token contents — is returned unchanged.
+	 * Finds every class a plan's instructions reference — a `make`
+	 * instruction's operand, each `services` instruction operand's
+	 * elements, and {@see Paths} whenever a `path` instruction appears — so
+	 * the compiler can enqueue it for planning in turn.
 	 *
-	 * @param mixed    $value    The value to flatten.
-	 * @param Registry $registry Source of the config values `%token%` leaves resolve against.
-	 * @return mixed The flattened value.
+	 * @param array<int, array{0: string, 1: mixed}> $plan The plan to scan.
+	 * @return array<int, string> The referenced class names.
 	 */
-	private function flatten( mixed $value, Registry $registry ): mixed {
-		if ( is_array( $value ) ) {
-			$flattened = array();
+	private function referenced_classes( array $plan ): array {
+		$classes = array();
 
-			foreach ( $value as $key => $item ) {
-				$flattened[ $key ] = $this->flatten( $item, $registry );
+		foreach ( $plan as $instruction ) {
+			list( $opcode, $operand ) = $instruction;
+
+			if ( 'make' === $opcode ) {
+				$classes[] = $operand;
+			} elseif ( 'services' === $opcode ) {
+				foreach ( array_values( $operand ) as $service ) {
+					$classes[] = $service;
+				}
+			} elseif ( 'path' === $opcode ) {
+				$classes[] = Paths::class;
 			}
-
-			return $flattened;
 		}
 
-		if ( is_string( $value ) && str_starts_with( $value, '%' ) && str_ends_with( $value, '%' ) ) {
-			return $registry->get( trim( $value, '%' ) );
-		}
-
-		return $value;
+		return $classes;
 	}
 }

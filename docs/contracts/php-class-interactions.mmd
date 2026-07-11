@@ -1,8 +1,10 @@
 %% PHP class interactions — contract chart.
 %% At boot, BatterySurfBench loads build/Services.compiled.php when present
 %% (produced ahead of time by ContainerCompiler, run via bin/CompileContainer.php,
-%% with every %token% baked to its configuration value) and falls back to the
-%% live, token-bearing Services.php otherwise.
+%% which precomputes a reflection-free build plan for every class in the
+%% plugin's dependency closure, baking each %token% to its configuration
+%% value along the way) and falls back to the live, token-bearing
+%% Services.php otherwise, planning each class via reflection on demand.
 classDiagram
     direction LR
 
@@ -37,6 +39,7 @@ classDiagram
 
     class Instantiator {
         +__construct(Registry registry, Definitions definitions, InstanceStore instances, array runtime)
+        +plan_for(string class_name) array
         +make(string class) object
     }
 
@@ -309,7 +312,8 @@ classDiagram
     Instantiator --> Registry : reads config tokens
     Instantiator --> Definitions : reads recipes
     Instantiator --> InstanceStore : caches singletons
-    ContainerCompiler ..> Registry : flattens tokens via
+    ContainerCompiler ..> Instantiator : builds plans via
+    ContainerCompiler ..> Registry : bakes %token% values via
     Definitions ..|> ContainerInterface : implements
     InstanceStore ..|> ContainerInterface : implements
     I18n ..|> Manager : implements
