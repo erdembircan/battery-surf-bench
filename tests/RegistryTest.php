@@ -172,4 +172,38 @@ final class RegistryTest extends TestCase {
 		$this->assertSame( array( 'local', 'development' ), $registry->get( 'container.dev_environments' ) );
 		$this->assertTrue( $registry->has( 'container.dev_environments' ) );
 	}
+
+	/**
+	 * A list array is a terminal value: a further dot-notated segment can
+	 * never index into it, even though the segment looks like a valid array
+	 * offset. The whole list is still reachable at its own identifier.
+	 */
+	public function test_cannot_index_into_a_list_array_leaf(): void {
+		$registry = new Registry( array( 'foo' => array( 'a', 'b' ) ) );
+
+		$this->assertFalse( $registry->has( 'foo.0' ) );
+		$this->assertTrue( $registry->has( 'foo' ) );
+		$this->assertSame( array( 'a', 'b' ), $registry->get( 'foo' ) );
+
+		$this->expectException( NotFoundExceptionInterface::class );
+		$registry->get( 'foo.0' );
+	}
+
+	/**
+	 * The same terminal rule holds for a list array reached through a
+	 * dot-notated namespace: the list itself resolves, but indexing past it
+	 * does not.
+	 */
+	public function test_cannot_index_into_a_nested_list_array_leaf(): void {
+		$registry = new Registry(
+			array(
+				'a' => array(
+					'b' => array( 'x', 'y' ),
+				),
+			)
+		);
+
+		$this->assertSame( array( 'x', 'y' ), $registry->get( 'a.b' ) );
+		$this->assertFalse( $registry->has( 'a.b.0' ) );
+	}
 }

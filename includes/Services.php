@@ -48,7 +48,7 @@ return array(
 	CourseCatalog::class        => array( 'args' => array( 'content_dir' => array( 'path' => 'includes/Course/content' ) ) ),
 	CourseOrderSanitizer::class => array(
 		'args' => array(
-			'selectable_post_types' => array( 'csv' => '%settings.post_types%' ),
+			'selectable_post_types' => '%settings.post_types%',
 		),
 	),
 	CourseOrderOption::class    => array( 'args' => array( 'option_name' => '%settings.option%' ) ),
@@ -75,7 +75,7 @@ return array(
 			'bundle'                => '%settings.bundle%',
 			'style'                 => '%settings.style%',
 			'option_name'           => '%settings.option%',
-			'selectable_post_types' => array( 'csv' => '%settings.post_types%' ),
+			'selectable_post_types' => '%settings.post_types%',
 			'cockpit_param'         => '%cockpit.param%',
 			'cockpit_value'         => '%cockpit.value%',
 		),
@@ -139,7 +139,7 @@ return array(
 	),
 	DevTools::class             => array(
 		'args' => array(
-			'environments'  => array( 'csv' => '%devtools.environments%' ),
+			'environments'  => '%devtools.environments%',
 			'module'        => '%devtools.module%',
 			'style'         => '%devtools.style%',
 			'cockpit_param' => '%cockpit.param%',

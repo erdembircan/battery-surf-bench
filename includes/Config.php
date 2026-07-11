@@ -43,11 +43,10 @@ return array(
 		// entries, registered with `show_in_rest` so the settings app reads and
 		// writes it through the core-data site-settings entity.
 		'option'     => 'bsb_course_order',
-		// Post types the picker's browse pane may add a user page from.
-		// Comma-separated: the Registry only ever resolves scalars, never an
-		// array, so the bootstrap splits this into the list `SettingsScreen`
-		// receives — the same pattern `devtools.environments` uses below.
-		'post_types' => 'page,post',
+		// Post types the picker's browse pane may add a user page from. A
+		// list array — the Registry returns a sequential array leaf as-is,
+		// so the plugin's service recipes inject it directly.
+		'post_types' => array( 'page', 'post' ),
 	),
 	'session'    => array(
 		// Post type benchmark sessions are stored as, and the prefix every one
@@ -110,17 +109,16 @@ return array(
 		// Environments in which the live Services.php is always used and any
 		// compiled artifact is ignored, so edits to the recipes take effect
 		// immediately. Matched against wp_get_environment_type(). A list array —
-		// the Registry returns a sequential array leaf as-is, unlike
-		// devtools.environments below, which is still comma-separated.
+		// the Registry returns a sequential array leaf as-is.
 		'dev_environments' => array( 'local', 'development' ),
 	),
 	'devtools'   => array(
 		// Environments the dev-tools gate opens for, read against
 		// `wp_get_environment_type()`. Anything else (staging, production) keeps
 		// the gate closed, so the panel and its script module ship zero bytes.
-		// Comma-separated: the Registry only ever resolves scalars, never an
-		// array, so the bootstrap splits this into the list `DevTools` receives.
-		'environments' => 'local,development',
+		// A list array — the Registry returns a sequential array leaf as-is,
+		// so the plugin's service recipes inject it directly into `DevTools`.
+		'environments' => array( 'local', 'development' ),
 		// The dev-tools Interactivity view module, which joins the `bsb/cockpit`
 		// store to add the battery override. Built from `src/devtools/view.ts`.
 		'module'       => 'build/devtools/view.js',

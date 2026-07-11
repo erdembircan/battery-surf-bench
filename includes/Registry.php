@@ -20,10 +20,12 @@ defined( 'ABSPATH' ) || exit;
  *
  * The whole configuration is handed to the constructor once and never changes
  * afterwards; there is no setter. Identifiers use dot notation to reach nested
- * values (e.g. `admin_menu.slug`), and a lookup resolves to either a scalar or
- * a sequential (list) array value; an identifier that lands on an associative
- * array is treated as a namespace to traverse further, not a value, and is
- * not found on its own.
+ * values (e.g. `admin_menu.slug`); traversal descends only through
+ * associative arrays (namespaces). A lookup resolves to either a scalar or a
+ * sequential (list) array value — both are terminal, so a further segment can
+ * never index into one (a list-valued `foo` cannot be reached at `foo.0`) —
+ * while an identifier that lands on an associative array is treated as a
+ * namespace, not a value, and is not found on its own.
  */
 class Registry implements ContainerInterface {
 
@@ -56,7 +58,8 @@ class Registry implements ContainerInterface {
 	 * Tells whether a scalar or list-array entry resolves for the given
 	 * identifier. An associative array is a namespace to traverse, not a
 	 * value, so it is not itself "found"; a sequential (list) array is a
-	 * value in its own right and is found.
+	 * value in its own right and is found, but — being terminal, like a
+	 * scalar — cannot itself be traversed into by a further segment.
 	 *
 	 * @param string $id Dot-notated identifier of the entry to look for.
 	 * @return bool Whether a scalar or list-array entry exists.
@@ -65,13 +68,19 @@ class Registry implements ContainerInterface {
 		$current = $this->entries;
 
 		foreach ( $this->segments( $id ) as $segment ) {
-			if ( ! is_array( $current ) || ! array_key_exists( $segment, $current ) ) {
+			// Only an associative array is a traversable namespace. A scalar
+			// or a list (indexed) array is a terminal value — never descend
+			// into it, so `foo.0` cannot pluck an element out of a
+			// list-valued `foo`.
+			if ( ! is_array( $current ) || array_is_list( $current ) || ! array_key_exists( $segment, $current ) ) {
 				return false;
 			}
 
 			$current = $current[ $segment ];
 		}
 
+		// A resolvable leaf is a scalar or a list array; an associative
+		// array is a namespace and is never returned whole.
 		return ! is_array( $current ) || array_is_list( $current );
 	}
 

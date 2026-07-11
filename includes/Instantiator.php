@@ -19,7 +19,6 @@ use function array_map;
 use function array_values;
 use function class_exists;
 use function esc_html;
-use function explode;
 use function is_array;
 use function is_string;
 use function sprintf;
@@ -214,9 +213,13 @@ class Instantiator {
 	}
 
 	/**
-	 * Converts an array-shaped recipe arg spec — `runtime`, `csv`, `path` or
+	 * Converts an array-shaped recipe arg spec — `runtime`, `path` or
 	 * `services` — into one plan instruction, falling back to a `value`
-	 * instruction carrying the array itself as a plain literal.
+	 * instruction carrying the array itself as a plain literal. A list-typed
+	 * config value (e.g. `%settings.post_types%` resolving to an array) is
+	 * not a special-cased array spec at all: it is a plain `%token%` string,
+	 * handled by {@see plan_arg()} and baked straight into a `value`
+	 * instruction carrying the resolved array.
 	 *
 	 * @param array<string, mixed> $spec The array spec.
 	 * @return array{0: string, 1: mixed} The plan instruction.
@@ -224,10 +227,6 @@ class Instantiator {
 	private function plan_array_arg( array $spec ): array {
 		if ( array_key_exists( 'runtime', $spec ) ) {
 			return array( 'runtime', $spec['runtime'] );
-		}
-
-		if ( array_key_exists( 'csv', $spec ) ) {
-			return array( 'value', explode( ',', (string) $this->plan_token( $spec['csv'] ) ) );
 		}
 
 		if ( array_key_exists( 'path', $spec ) ) {
@@ -242,9 +241,9 @@ class Instantiator {
 	}
 
 	/**
-	 * Resolves the inner token of a `csv`/`path` spec to a scalar so it can
-	 * be baked into the plan instruction: a `%token%` string resolves
-	 * against the registry, anything else is returned as-is.
+	 * Resolves the inner token of a `path` spec to a scalar so it can be
+	 * baked into the plan instruction: a `%token%` string resolves against
+	 * the registry, anything else is returned as-is.
 	 *
 	 * @param mixed $spec The inner spec to resolve.
 	 * @return mixed The resolved scalar.

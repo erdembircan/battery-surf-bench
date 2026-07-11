@@ -189,6 +189,57 @@ final class ContainerValidatorTest extends TestCase {
 	}
 
 	/**
+	 * A `%token%` that resolves to a list-array config value into an
+	 * `array`-typed parameter is valid — the Registry returns list values
+	 * whole, so this is the array-typed sibling of a scalar token.
+	 */
+	public function test_validate_accepts_a_token_array_into_an_array_param(): void {
+		$registry = new Registry( array( 'surf' => array( 'pages' => array( 'a', 'b' ) ) ) );
+		$services = array(
+			FixtureListing::class => array( 'args' => array( 'items' => '%surf.pages%' ) ),
+		);
+
+		$errors = ( new ContainerValidator() )->validate( $services, $registry );
+
+		$this->assertSame( array(), $errors );
+	}
+
+	/**
+	 * A `%token%` that resolves to a list-array config value into a
+	 * `string`-typed parameter is a type mismatch — the validator resolves
+	 * the token's actual kind rather than assuming every token is a string.
+	 */
+	public function test_validate_reports_a_token_array_given_to_a_string_param(): void {
+		$registry = new Registry( array( 'surf' => array( 'pages' => array( 'a', 'b' ) ) ) );
+		$services = array(
+			FixtureNamed::class => array( 'args' => array( 'name' => '%surf.pages%' ) ),
+		);
+
+		$errors = ( new ContainerValidator() )->validate( $services, $registry );
+
+		$this->assertCount( 1, $errors );
+		$this->assertStringContainsString( FixtureNamed::class . '::name', $errors[0] );
+		$this->assertStringContainsString( 'expects string', $errors[0] );
+	}
+
+	/**
+	 * A `%token%` that resolves to a scalar string config value into an
+	 * `array`-typed parameter is a type mismatch.
+	 */
+	public function test_validate_reports_a_token_string_given_to_an_array_param(): void {
+		$registry = new Registry( array( 'surfer' => array( 'name' => 'kai' ) ) );
+		$services = array(
+			FixtureListing::class => array( 'args' => array( 'items' => '%surfer.name%' ) ),
+		);
+
+		$errors = ( new ContainerValidator() )->validate( $services, $registry );
+
+		$this->assertCount( 1, $errors );
+		$this->assertStringContainsString( FixtureListing::class . '::items', $errors[0] );
+		$this->assertStringContainsString( 'expects array', $errors[0] );
+	}
+
+	/**
 	 * A `make`-position class reference that does not satisfy the
 	 * parameter's declared type is reported.
 	 */

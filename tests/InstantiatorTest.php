@@ -155,17 +155,34 @@ final class InstantiatorTest extends TestCase {
 	}
 
 	/**
-	 * A `csv` arg spec splits the resolved token string into an array.
+	 * A `%token%` arg spec resolving to a list-array config value is
+	 * injected as that array directly — the Registry returns list values
+	 * whole, with no wrapper spec needed.
 	 */
-	public function test_make_resolves_a_csv_spec_into_an_array(): void {
+	public function test_make_resolves_a_token_list_array_into_the_array(): void {
 		$instantiator = $this->instantiator(
-			array( FixtureListing::class => array( 'args' => array( 'items' => array( 'csv' => '%surf.pages%' ) ) ) ),
-			array( 'surf' => array( 'pages' => 'article-1,gallery,article-2' ) )
+			array( FixtureListing::class => array( 'args' => array( 'items' => '%surf.pages%' ) ) ),
+			array( 'surf' => array( 'pages' => array( 'article-1', 'gallery', 'article-2' ) ) )
 		);
 
 		$listing = $instantiator->make( FixtureListing::class );
 
 		$this->assertSame( array( 'article-1', 'gallery', 'article-2' ), $listing->items() );
+	}
+
+	/**
+	 * The plan for a `%token%` arg spec resolving to a list-array config
+	 * value carries a single `value` instruction with the array baked in.
+	 */
+	public function test_plan_for_bakes_a_token_list_array_into_a_value_instruction(): void {
+		$instantiator = $this->instantiator(
+			array( FixtureListing::class => array( 'args' => array( 'items' => '%surf.pages%' ) ) ),
+			array( 'surf' => array( 'pages' => array( 'a', 'b' ) ) )
+		);
+
+		$plan = $instantiator->plan_for( FixtureListing::class );
+
+		$this->assertSame( array( array( 'value', array( 'a', 'b' ) ) ), $plan );
 	}
 
 	/**

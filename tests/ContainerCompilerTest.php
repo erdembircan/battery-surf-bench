@@ -69,14 +69,14 @@ final class ContainerCompilerTest extends TestCase {
 	}
 
 	/**
-	 * A `csv` spec compiles to a `value` instruction carrying the already
-	 * pre-exploded array — never a `csv` instruction the runtime would have
-	 * to re-split.
+	 * A `%token%` arg resolving to a list-array config value compiles to a
+	 * `value` instruction carrying that array directly — the Registry
+	 * returns list values whole, with no wrapper spec involved.
 	 */
-	public function test_compile_pre_explodes_a_csv_spec(): void {
-		$registry = new Registry( array( 'surf' => array( 'pages' => 'article-1,gallery' ) ) );
+	public function test_compile_bakes_a_token_list_array_into_a_value_instruction(): void {
+		$registry = new Registry( array( 'surf' => array( 'pages' => array( 'article-1', 'gallery' ) ) ) );
 		$services = array(
-			FixtureListing::class => array( 'args' => array( 'items' => array( 'csv' => '%surf.pages%' ) ) ),
+			FixtureListing::class => array( 'args' => array( 'items' => '%surf.pages%' ) ),
 		);
 
 		$compiled = ( new ContainerCompiler() )->compile( $services, $registry );

@@ -237,10 +237,6 @@ class ContainerValidator {
 				return $this->validate_runtime_arg( $class_name, $param_name, $spec['runtime'], $type, $runtime_keys );
 			}
 
-			if ( array_key_exists( 'csv', $spec ) ) {
-				return $this->validate_csv_arg( $class_name, $param_name, $spec['csv'], $type, $registry );
-			}
-
 			if ( array_key_exists( 'path', $spec ) ) {
 				return $this->validate_path_arg( $class_name, $param_name, $spec['path'], $type, $registry );
 			}
@@ -281,33 +277,6 @@ class ContainerValidator {
 
 		if ( ! $this->type_compat( $type, 'string' ) ) {
 			$errors[] = $this->mismatch_message( $class_name, $param_name, $type, 'string' );
-		}
-
-		return $errors;
-	}
-
-	/**
-	 * Validates a `['csv' => inner]` spec: the inner token, when present,
-	 * must resolve, and the produced value — always an array — must fit the
-	 * parameter's type.
-	 *
-	 * @param string                   $class_name Fully-qualified class name the spec belongs to, for error messages.
-	 * @param string                   $param_name Name of the parameter the spec is supplied for, for error messages.
-	 * @param mixed                    $inner      The spec's inner value.
-	 * @param ReflectionNamedType|null $type    The parameter's declared type, or null when untyped.
-	 * @param Registry                 $registry   Source of the config values `%token%` specs are checked against.
-	 * @return array<int, string> Human-readable error messages; empty when the spec is valid.
-	 */
-	private function validate_csv_arg( string $class_name, string $param_name, mixed $inner, ?ReflectionNamedType $type, Registry $registry ): array {
-		$errors = $this->validate_token_if_present( $class_name, $param_name, $inner, $registry );
-
-		if ( ! $this->type_compat( $type, 'array' ) ) {
-			$errors[] = sprintf(
-				'%s::%s: a csv spec produces an array but the parameter expects %s',
-				$class_name,
-				$param_name,
-				$this->type_label( $type )
-			);
 		}
 
 		return $errors;
@@ -380,13 +349,17 @@ class ContainerValidator {
 	 */
 	private function validate_string_arg( string $class_name, string $param_name, string $spec, ?ReflectionNamedType $type, Registry $registry, array &$referenced ): array {
 		if ( $this->is_token( $spec ) ) {
-			$errors = $this->validate_token_if_present( $class_name, $param_name, $spec, $registry );
+			$key = trim( $spec, '%' );
 
-			if ( array() === $errors && ! $this->type_compat( $type, 'string' ) ) {
-				$errors[] = $this->mismatch_message( $class_name, $param_name, $type, 'string' );
+			if ( ! $registry->has( $key ) ) {
+				return array( sprintf( '%s::%s: unknown config token "%s"', $class_name, $param_name, $spec ) );
 			}
 
-			return $errors;
+			$kind = $this->kind_of( $registry->get( $key ) );
+
+			return $this->type_compat( $type, $kind )
+				? array()
+				: array( $this->mismatch_message( $class_name, $param_name, $type, $kind ) );
 		}
 
 		if ( class_exists( $spec ) ) {
@@ -417,8 +390,8 @@ class ContainerValidator {
 	}
 
 	/**
-	 * Validates that a `csv`/`path` spec's inner value, when it is a
-	 * `%token%`, resolves against the registry.
+	 * Validates that a `path` spec's inner value, when it is a `%token%`,
+	 * resolves against the registry.
 	 *
 	 * @param string   $class_name Fully-qualified class name the spec belongs to, for error messages.
 	 * @param string   $param_name Name of the parameter the spec is supplied for, for error messages.

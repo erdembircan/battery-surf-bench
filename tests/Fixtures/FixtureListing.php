@@ -10,8 +10,8 @@ declare( strict_types=1 );
 namespace ErdemBircan\BatterySurfBench\Tests\Fixtures;
 
 /**
- * Takes a plain array, used to prove a `csv` spec splits a resolved string
- * into the array a consumer receives.
+ * Takes a plain array, used to prove a `%token%` arg spec resolving to a
+ * list-array config value is injected as that array directly.
  */
 final class FixtureListing {
 
