@@ -32,6 +32,16 @@ export const PLAYGROUND_DEV_PORT = 9400;
 export const PLAYGROUND_TEST_PORT = 9500;
 
 /**
+ * Preferred port for the non-persistent, never-authenticated test playground
+ * (see `e2eUnauthenticatedBlueprint` in `blueprint.mts`). Resolved the
+ * same way as {@link PLAYGROUND_TEST_PORT} — this is a starting point, not a
+ * guarantee. Set well clear of {@link PLAYGROUND_TEST_PORT}'s own increment
+ * range (9500..9510) so the two test playgrounds' port resolution can never
+ * collide with each other.
+ */
+export const PLAYGROUND_UNAUTH_TEST_PORT = 9600;
+
+/**
  * Preferred port for the LiveReload server during development. The watcher
  * resolves the actual port at startup — incrementing from this one if it is
  * already taken, mirroring the playground's own port resolution — and publishes
@@ -84,7 +94,20 @@ export function playgroundTestUrl( port: number ): string {
 export const PLAYGROUND_TEST_PORT_ENV_VAR = 'PLAYGROUND_TEST_PORT';
 
 /**
- * Parse the test playground port captured into {@link PLAYGROUND_TEST_PORT_ENV_VAR}.
+ * Name of the environment variable Playwright's `webServer.wait.stdout` named
+ * capture group populates with the unauthenticated test playground's
+ * actually-bound port (see {@link PLAYGROUND_UNAUTH_READY_PATTERN}). Distinct
+ * from {@link PLAYGROUND_TEST_PORT_ENV_VAR} on purpose: each of the two
+ * concurrent test servers needs its own capture group name, or Playwright's
+ * `wait.stdout` matches on either server's ready line would clobber the same
+ * `process.env` key and one project would end up dialing the other server's
+ * port.
+ */
+export const PLAYGROUND_UNAUTH_TEST_PORT_ENV_VAR =
+	'PLAYGROUND_UNAUTH_TEST_PORT';
+
+/**
+ * Parse a test playground port captured into the given environment variable.
  *
  * Returns `undefined` when the variable is unset -- true for the orchestrator
  * process's own config evaluation, which runs before the webServer (and thus
@@ -93,12 +116,14 @@ export const PLAYGROUND_TEST_PORT_ENV_VAR = 'PLAYGROUND_TEST_PORT';
  * port, since a malformed value at that point means something upstream is
  * already broken and continuing would fail silently later.
  *
- * @param value - The raw environment variable value, or undefined if unset.
+ * @param value      - The raw environment variable value, or undefined if unset.
+ * @param envVarName - The environment variable's name, used only to name it in the thrown error.
  * @return The parsed port number, or undefined if the variable is unset.
  * @throws If the variable is set but is not a valid port number.
  */
-export function parsePlaygroundTestPortEnv(
-	value: string | undefined
+export function parsePlaygroundPortEnv(
+	value: string | undefined,
+	envVarName: string
 ): number | undefined {
 	if ( value === undefined ) {
 		return undefined;
@@ -107,11 +132,38 @@ export function parsePlaygroundTestPortEnv(
 	const port = Number( value );
 	if ( ! Number.isInteger( port ) || port < 1 || port > 65535 ) {
 		throw new Error(
-			`Invalid ${ PLAYGROUND_TEST_PORT_ENV_VAR } value: "${ value }" is not a valid port number.`
+			`Invalid ${ envVarName } value: "${ value }" is not a valid port number.`
 		);
 	}
 
 	return port;
+}
+
+/**
+ * Parse the test playground port captured into {@link PLAYGROUND_TEST_PORT_ENV_VAR}.
+ *
+ * @param value - The raw environment variable value, or undefined if unset.
+ * @return The parsed port number, or undefined if the variable is unset.
+ * @throws If the variable is set but is not a valid port number.
+ */
+export function parsePlaygroundTestPortEnv(
+	value: string | undefined
+): number | undefined {
+	return parsePlaygroundPortEnv( value, PLAYGROUND_TEST_PORT_ENV_VAR );
+}
+
+/**
+ * Parse the unauthenticated test playground port captured into
+ * {@link PLAYGROUND_UNAUTH_TEST_PORT_ENV_VAR}.
+ *
+ * @param value - The raw environment variable value, or undefined if unset.
+ * @return The parsed port number, or undefined if the variable is unset.
+ * @throws If the variable is set but is not a valid port number.
+ */
+export function parsePlaygroundUnauthTestPortEnv(
+	value: string | undefined
+): number | undefined {
+	return parsePlaygroundPortEnv( value, PLAYGROUND_UNAUTH_TEST_PORT_ENV_VAR );
 }
 
 /**
@@ -150,33 +202,79 @@ export const LIVERELOAD_PORT_FILE = resolve(
 export const PLAYGROUND_READY_MARKER = '[playground] ready';
 
 /**
- * Build the stdout line `start-test-server.mts` emits once the test
- * playground can handle requests.
+ * Marker written to stdout once the unauthenticated test playground (see
+ * `e2eUnauthenticatedBlueprint` in `blueprint.mts`) is fully initialised
+ * and can handle HTTP requests. Distinct string from
+ * {@link PLAYGROUND_READY_MARKER} so Playwright's `webServer.wait.stdout` for
+ * one server's config entry can never match the other server's ready line.
+ */
+export const PLAYGROUND_UNAUTH_READY_MARKER = '[playground:unauth] ready';
+
+/**
+ * Build the stdout line a test server emits once it can handle requests.
  *
- * Carries the bound port alongside {@link PLAYGROUND_READY_MARKER} so
- * {@link PLAYGROUND_READY_PATTERN}'s named capture group can report it back to
+ * Carries the bound port alongside the given marker so
+ * {@link playgroundReadyPattern}'s named capture group can report it back to
  * Playwright -- see {@link PLAYGROUND_TEST_PORT_ENV_VAR} for why that
  * round-trip is how the two independently-reloaded processes agree on the
  * port at all.
  *
- * @param port - The port the test playground is listening on.
+ * @param port   - The port the test playground is listening on.
+ * @param marker - The ready marker to embed; defaults to {@link PLAYGROUND_READY_MARKER}.
  * @return The ready-marker stdout line for that port.
  */
-export function playgroundReadyLine( port: number ): string {
-	return `${ PLAYGROUND_READY_MARKER } (port ${ port })`;
+export function playgroundReadyLine(
+	port: number,
+	marker: string = PLAYGROUND_READY_MARKER
+): string {
+	return `${ marker } (port ${ port })`;
 }
 
 /**
- * Regex matching {@link playgroundReadyLine}'s output. The named capture
- * group -- keyed by {@link PLAYGROUND_TEST_PORT_ENV_VAR} -- is what Playwright's
+ * Build the regex matching a {@link playgroundReadyLine} for a given marker,
+ * capturing the bound port into a named group keyed by `portEnvVar`. Each test
+ * server needs a distinct env-var name: Playwright writes the captured group
+ * into `process.env[portEnvVar]`, so two servers sharing a name would clobber
+ * each other's port and send a project to the wrong baseURL.
+ *
+ * @param marker     - The ready marker the pattern must match.
+ * @param portEnvVar - Name of the named capture group the bound port is read back under.
+ * @return The regex matching that marker's ready line.
+ */
+export function playgroundReadyPattern(
+	marker: string,
+	portEnvVar: string
+): RegExp {
+	return new RegExp(
+		`${ marker.replace(
+			/[[\]]/g,
+			'\\$&'
+		) } \\(port (?<${ portEnvVar }>\\d+)\\)`
+	);
+}
+
+/**
+ * Regex matching {@link playgroundReadyLine}'s output for the authenticated
+ * test playground. The named capture group -- keyed by
+ * {@link PLAYGROUND_TEST_PORT_ENV_VAR} -- is what Playwright's
  * `webServer.wait.stdout` uses to populate `process.env[PLAYGROUND_TEST_PORT_ENV_VAR]`
  * once the marker appears.
  */
-export const PLAYGROUND_READY_PATTERN = new RegExp(
-	`${ PLAYGROUND_READY_MARKER.replace(
-		/[[\]]/g,
-		'\\$&'
-	) } \\(port (?<${ PLAYGROUND_TEST_PORT_ENV_VAR }>\\d+)\\)`
+export const PLAYGROUND_READY_PATTERN = playgroundReadyPattern(
+	PLAYGROUND_READY_MARKER,
+	PLAYGROUND_TEST_PORT_ENV_VAR
+);
+
+/**
+ * Regex matching {@link playgroundReadyLine}'s output for the unauthenticated
+ * test playground. The named capture group -- keyed by
+ * {@link PLAYGROUND_UNAUTH_TEST_PORT_ENV_VAR} -- is what Playwright's
+ * `webServer.wait.stdout` uses to populate `process.env[PLAYGROUND_UNAUTH_TEST_PORT_ENV_VAR]`
+ * once the marker appears.
+ */
+export const PLAYGROUND_UNAUTH_READY_PATTERN = playgroundReadyPattern(
+	PLAYGROUND_UNAUTH_READY_MARKER,
+	PLAYGROUND_UNAUTH_TEST_PORT_ENV_VAR
 );
 
 /** File the authenticated admin session is persisted to by the e2e setup project. */
