@@ -5,8 +5,12 @@
  * the custom `bsb-dev-auto-login.php` mu-plugin and must not carry the shared
  * `login` step (whose constant the bundled auto-login mu-plugin reads too late
  * on the pinned CLI version, and whose eventual redirect fights LiveReload).
- * The e2e blueprint is a regression guard: it authenticates through its own
- * `login` step plus `auth.setup.mts`'s form login, and must stay untouched.
+ * The e2e blueprint is a regression guard too: that same CLI-version race also
+ * made the `login` step's bundled auto-login mu-plugin race the server's ready
+ * flag against a cookie-less `wp-login.php` request, so it must never carry
+ * that step either — `auth.setup.mts`'s own form login plus the `storageState`
+ * it persists are the only source of authentication for the `authenticated`
+ * project.
  *
  * The unauthenticated e2e blueprint backs the login-free test server the
  * `unauthenticated` Playwright project targets: it must still activate the
@@ -131,13 +135,30 @@ describe( 'devResumeBlueprint', () => {
 describe( 'e2eBlueprint', () => {
 	const blueprint = asV1( e2eBlueprint );
 
-	it( 'still includes the login step authenticating as admin', () => {
-		const step = blueprint.steps?.find(
-			( s ) => ( s as { step: string } ).step === 'login'
-		) as { step: string; username: string } | undefined;
+	it( 'does not include the login step -- auth.setup.mts drives a real form login instead, whose storageState the authenticated project reuses', () => {
+		expect(
+			blueprint.steps?.some(
+				( step ) => ( step as { step: string } ).step === 'login'
+			)
+		).toBe( false );
+	} );
 
-		expect( step ).toBeDefined();
-		expect( step?.username ).toBe( 'admin' );
+	it( 'activates the plugin', () => {
+		expect(
+			blueprint.steps?.some(
+				( step ) =>
+					( step as { step: string } ).step === 'activatePlugin'
+			)
+		).toBe( true );
+	} );
+
+	it( 'defines the debug wp-config consts', () => {
+		expect(
+			blueprint.steps?.some(
+				( step ) =>
+					( step as { step: string } ).step === 'defineWpConfigConsts'
+			)
+		).toBe( true );
 	} );
 
 	it( 'does not install the dev auto-login mu-plugin', () => {

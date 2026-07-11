@@ -144,19 +144,19 @@ const unauthProjects: NonNullable< PlaywrightTestConfig[ 'projects' ] > = [
  * Exactly one non-persistent WordPress Playground server boots per
  * invocation, selected by {@link E2E_TARGET}:
  *
- * - The **authenticated** server (`start-test.mts` / `e2eBlueprint`) logs a
- *   fresh browser context in as admin via Playground's own `login` step. The
- *   `setup` project performs a real form login against it once and persists
- *   the session to {@link ADMIN_STORAGE_STATE}; the `authenticated` project
- *   reuses that storage state for every other spec.
+ * - The **authenticated** server (`start-test.mts` / `e2eBlueprint`) carries
+ *   no login step of its own; the `setup` project performs a real form login
+ *   against it once and persists the session to {@link ADMIN_STORAGE_STATE},
+ *   and the `authenticated` project reuses that storage state for every other
+ *   spec.
  * - The **unauthenticated** server (`start-unauth-test.mts` /
- *   `e2eUnauthenticatedBlueprint`) omits the `login` step entirely, so a
+ *   `e2eUnauthenticatedBlueprint`) boots the same login-free blueprint, so a
  *   fresh browser context stays genuinely logged out. The `unauthenticated`
  *   project targets it with no `storageState` and no `setup` dependency, to
  *   prove gated admin screens, front-end routes and REST endpoints actually
  *   refuse an anonymous visitor -- something the authenticated server cannot
- *   exercise, since its blueprint auto-promotes any cookie-less request to
- *   admin.
+ *   exercise, since the `setup` project has already authenticated a session
+ *   against it.
  *
  * See {@link E2E_TARGET}'s own doc comment for why the two servers never run
  * at once.

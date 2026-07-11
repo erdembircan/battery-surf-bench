@@ -5,20 +5,20 @@ import { test, expect, type Page } from '@playwright/test';
  * anonymous visitor.
  *
  * Every other e2e spec runs under the `authenticated` Playwright project,
- * whose server (`e2eBlueprint`) installs WordPress Playground's own `login`
- * step — which, on the pinned `@wp-playground/cli`, silently promotes ANY
- * cookie-less browser page request to admin (it only skips REST/AJAX
- * requests). That makes it impossible to prove anonymous *page* access is
- * refused against that server: a logged-out browser context there is not
- * actually logged out. This spec runs only under the `unauthenticated`
- * project, which targets a second, independent server booted from
- * `e2eUnauthenticatedBlueprint` (see `wp-playground/blueprint.mts`) — the same
- * blueprint minus the `login` step — so a fresh browser context here stays
- * genuinely anonymous. The `.unauth.spec.mts` suffix is what routes this file
- * to that project and excludes it from `authenticated` (see
- * `playwright.config.mts`). The unauth blueprint also enables
- * `WP_DEBUG_DISPLAY`, so a PHP warning or notice printed into any of these
- * responses fails the run too.
+ * whose server (`e2eBlueprint`) starts with no session at all; the `setup`
+ * project logs in with a real form submission and persists a `storageState`
+ * that every spec in that project reuses. That makes it impossible to prove
+ * anonymous *page* access is refused against that server through the
+ * `authenticated` project itself — there, a spec's browser context always
+ * carries the saved admin session. This spec runs only under the
+ * `unauthenticated` project, which targets a second, independent server
+ * booted from `e2eUnauthenticatedBlueprint` (see `wp-playground/blueprint.mts`)
+ * with no `storageState` and no `setup` dependency (see
+ * `playwright.config.mts`), so a fresh browser context here stays genuinely
+ * anonymous. The `.unauth.spec.mts` suffix is what routes this file to that
+ * project and excludes it from `authenticated`. The unauth blueprint also
+ * enables `WP_DEBUG_DISPLAY`, so a PHP warning or notice printed into any of
+ * these responses fails the run too.
  */
 
 /** PHP error/warning/notice text WordPress prints when WP_DEBUG_DISPLAY is on. */
