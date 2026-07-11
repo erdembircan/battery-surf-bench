@@ -111,6 +111,46 @@ test.describe( 'Course page route', () => {
 	} );
 } );
 
+test.describe( 'Video course page (native YouTube embed)', () => {
+	// The bundled video page ("video") leads at index 3 in the default
+	// order: article-1, gallery, article-2, video, links.
+	const VIDEO_INDEX = 3;
+
+	test( 'renders the native core/embed YouTube block, deterministic and controllable, no PHP notices', async ( {
+		page,
+	} ) => {
+		// Mint the `bsb_surf` nonce the same way a real run does, then request
+		// the video page's index through the authorized index route. The
+		// iframe renders with no network request to YouTube's oEmbed endpoint
+		// — `YouTubeEmbed::pre_oembed_result` builds it locally — so this is
+		// deterministic and works offline in CI.
+		await page.goto( '/?bsbSession=cockpit' );
+		const nonce = await surfNonce( page );
+
+		await page.goto( indexUrl( nonce, VIDEO_INDEX ) );
+
+		// The native block's own markup: a `figure.wp-block-embed` wrapping
+		// the iframe, produced by WordPress's own embed handling
+		// (`WP_Embed::autoembed()` + `do_blocks()`), not hand-authored markup.
+		const embed = page.locator( 'figure.wp-block-embed' );
+		await expect( embed ).toBeAttached();
+		const iframe = embed.locator( 'iframe' );
+		await expect( iframe ).toBeAttached();
+
+		// The control params `YouTubeEmbed` normalizes onto the iframe: JS-API
+		// enabled (required for the surf engine's postMessage commands — see
+		// `VideoControl.ts` — covered at the unit level, not here, since
+		// cross-origin playback state can't be asserted deterministically in
+		// e2e), and no `autoplay=1` — the simulation starts playback itself,
+		// the embed no longer autoplays on load.
+		const src = await iframe.getAttribute( 'src' );
+		expect( src ).toMatch( /enablejsapi=1/ );
+		expect( src ).not.toMatch( /autoplay=1/ );
+
+		await expectNoPhpNotices( page );
+	} );
+} );
+
 test.describe( 'Surf engine', () => {
 	test( 'boots and surfs when the traits URL param is present', async ( {
 		page,
