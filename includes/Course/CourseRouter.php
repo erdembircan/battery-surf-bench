@@ -79,6 +79,7 @@ class CourseRouter implements Manager {
 	 * @param string               $option_name     Name of the option the surf-course order is saved under — the authoritative, server-side source of the sequence an index resolves against.
 	 * @param CourseOrderSanitizer $order_sanitizer Heals the saved order on every read.
 	 * @param UserPageView         $user_page_view  Renders a real user page's own title as a heading above its content, so a served user entry stays faithful to the real page.
+	 * @param YouTubeEmbed         $youtube_embed   Makes a YouTube embed on the served page deterministic and controllable by the surf engine.
 	 */
 	public function __construct(
 		private CourseCatalog $catalog,
@@ -92,7 +93,8 @@ class CourseRouter implements Manager {
 		private string $body_class,
 		private string $option_name,
 		private CourseOrderSanitizer $order_sanitizer,
-		private UserPageView $user_page_view
+		private UserPageView $user_page_view,
+		private YouTubeEmbed $youtube_embed
 	) {
 	}
 
@@ -244,6 +246,12 @@ class CourseRouter implements Manager {
 	 * @return array<int, WP_Post> The virtual post for the query to render.
 	 */
 	private function serve( WP_Query $query, CoursePage $page ): array {
+		// Registered per served course page (never globally): guarantees any
+		// YouTube embed on THIS page — bundled or a user page's own bare URL —
+		// renders deterministically and is controllable by the surf engine,
+		// without touching oEmbed rendering anywhere else on the site.
+		$this->youtube_embed->register();
+
 		$virtual = new WP_Post(
 			(object) array(
 				'ID'             => 0,
