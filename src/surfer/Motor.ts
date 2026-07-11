@@ -9,6 +9,7 @@ import type { Rng } from './Rng';
 import { FakeCursor, framesForDistance, type Point } from './FakeCursor';
 import { easeInOutQuad } from './Ease';
 import { contentRoot, VIDEO_EMBED_SELECTOR } from './Affordances';
+import { createVideoControl, type VideoControl } from './VideoControl';
 
 /** A motion primitive the surfer can perform. */
 export interface Motor {
@@ -19,10 +20,15 @@ export interface Motor {
 	/** Briefly selects a snippet of page text, then clears the selection. */
 	selectSnippet: () => Promise< void >;
 	/**
-	 * Attends (scrolls into view, approaches with the cursor) and plays the
+	 * Attends (scrolls into view, approaches with the cursor) and starts the
 	 * page's video or video-host embed, if one is present.
 	 */
 	playVideo: () => Promise< void >;
+	/**
+	 * Stops whatever `playVideo` last started, if anything. A safe no-op
+	 * when nothing was started (never called, or the page had no video).
+	 */
+	stopVideo: () => Promise< void >;
 	/**
 	 * Attends a content image: scrolls it into view if needed, travels the
 	 * cursor onto it, and dwells there for the remainder of `ms`. Falls back
@@ -195,6 +201,8 @@ export class DomMotor implements Motor {
 	private readonly rng: Rng;
 	private readonly nextFrameFn: () => Promise< void >;
 	private readonly cursor: FakeCursor;
+	/** The control `playVideo` last started, so `stopVideo` pauses the same element. */
+	private activeVideo: VideoControl | null = null;
 
 	/**
 	 * @param rng
@@ -344,19 +352,17 @@ export class DomMotor implements Motor {
 			this.rng
 		);
 
-		if ( ! ( target instanceof HTMLVideoElement ) ) {
-			// A course embed already autoplays muted; "watching" is the dwell
-			// WatchVideo.run performs after this returns — nothing to play here.
-			return;
-		}
+		const control = createVideoControl( target );
+		this.activeVideo = control;
+		await control.play();
+	}
 
-		try {
-			await target.play();
-		} catch {
-			// Autoplay with sound is blocked without a user gesture; muted
-			// autoplay is allowed, so retry muted rather than staying paused.
-			target.muted = true;
-			await target.play().catch( () => undefined );
+	async stopVideo(): Promise< void > {
+		const control = this.activeVideo;
+		this.activeVideo = null;
+
+		if ( null !== control ) {
+			await control.pause();
 		}
 	}
 

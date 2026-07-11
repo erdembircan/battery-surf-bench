@@ -7,6 +7,7 @@ export interface RecordedCommand {
 		| 'pointerDrift'
 		| 'selectSnippet'
 		| 'playVideo'
+		| 'stopVideo'
 		| 'lingerImage'
 		| 'readTrace'
 		| 'idle';
@@ -38,6 +39,11 @@ export class FakeMotor implements Motor {
 
 	playVideo(): Promise< void > {
 		this.commands.push( { kind: 'playVideo', args: [] } );
+		return Promise.resolve();
+	}
+
+	stopVideo(): Promise< void > {
+		this.commands.push( { kind: 'stopVideo', args: [] } );
 		return Promise.resolve();
 	}
 
