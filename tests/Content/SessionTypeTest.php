@@ -10,6 +10,7 @@ declare( strict_types=1 );
 namespace ErdemBircan\BatterySurfBench\Tests\Content;
 
 use Brain\Monkey\Functions;
+use ErdemBircan\BatterySurfBench\Content\SessionRestController;
 use ErdemBircan\BatterySurfBench\Content\SessionSchema;
 use ErdemBircan\BatterySurfBench\Content\SessionType;
 use ErdemBircan\BatterySurfBench\Support\Manager;
@@ -124,6 +125,28 @@ final class SessionTypeTest extends TestCase {
 						}
 
 						return true;
+					}
+				)
+			);
+
+		$this->type()->register_post_type();
+
+		$this->addToAssertionCount( 1 );
+	}
+
+	/**
+	 * The post type is registered with the custom controller class, so the
+	 * capability gate on the published-post read paths ({@see SessionRestController})
+	 * is actually wired in, not merely defined.
+	 */
+	public function test_registers_the_custom_rest_controller_class(): void {
+		Functions\expect( 'register_post_type' )
+			->once()
+			->with(
+				self::POST_TYPE,
+				Mockery::on(
+					static function ( $args ) {
+						return SessionRestController::class === ( $args['rest_controller_class'] ?? null );
 					}
 				)
 			);
