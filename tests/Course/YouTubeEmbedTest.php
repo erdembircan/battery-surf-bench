@@ -136,6 +136,32 @@ final class YouTubeEmbedTest extends TestCase {
 	}
 
 	/**
+	 * A host that merely CONTAINS "youtube.com" as a substring — but isn't
+	 * actually that host — is not a recognized YouTube URL. The host match is
+	 * boundary-anchored specifically to rule this out.
+	 */
+	public function test_parse_video_id_returns_null_for_a_host_that_merely_contains_youtube_com(): void {
+		$this->assertNull( $this->embed()->parse_video_id( 'https://myyoutube.com/watch?v=abcdefghijk' ) );
+	}
+
+	/**
+	 * A hyphen-prefixed lookalike host is likewise not recognized.
+	 */
+	public function test_parse_video_id_returns_null_for_a_hyphen_prefixed_lookalike_host(): void {
+		$this->assertNull( $this->embed()->parse_video_id( 'https://foo-youtube.com/embed/abcdefghijk' ) );
+	}
+
+	/**
+	 * The genuine host still resolves — the boundary anchor doesn't over-tighten.
+	 */
+	public function test_parse_video_id_still_resolves_the_genuine_host(): void {
+		$this->assertSame(
+			'abcdefghijk',
+			$this->embed()->parse_video_id( 'https://www.youtube.com/watch?v=abcdefghijk' )
+		);
+	}
+
+	/**
 	 * A non-URL string is not a recognized YouTube URL.
 	 */
 	public function test_parse_video_id_returns_null_for_garbage(): void {
@@ -171,6 +197,39 @@ final class YouTubeEmbedTest extends TestCase {
 		// `postMessage` command actually start playback), which is a
 		// different thing entirely.
 		$this->assertStringNotContainsString( 'autoplay=1', $html );
+	}
+
+	/**
+	 * A non-default-port site origin (e.g. the maintainer's own
+	 * `http://localhost:9400` dev server) carries its port through into the
+	 * `origin` param — YouTube's JS API validates `origin` against the real
+	 * parent origin including port, so dropping it would silently break every
+	 * `playVideo`/`pauseVideo` postMessage command on such a host.
+	 */
+	public function test_pre_oembed_result_includes_the_port_in_the_origin_param_when_present(): void {
+		Functions\when( 'home_url' )->justReturn( 'http://localhost:9400/' );
+		Functions\when( 'wp_parse_url' )->justReturn(
+			array(
+				'scheme' => 'http',
+				'host'   => 'localhost',
+				'port'   => 9400,
+			)
+		);
+
+		$html = $this->embed()->pre_oembed_result( null, 'https://www.youtube.com/watch?v=jNQXAC9IVRw' );
+
+		$this->assertStringContainsString( 'origin=http://localhost:9400', $html );
+	}
+
+	/**
+	 * A default-port origin (the class-level `setUp()` stub) carries no port
+	 * suffix — only a genuinely non-default port is appended.
+	 */
+	public function test_pre_oembed_result_omits_the_port_for_a_default_port_origin(): void {
+		$html = $this->embed()->pre_oembed_result( null, 'https://www.youtube.com/watch?v=jNQXAC9IVRw' );
+
+		$this->assertStringContainsString( 'origin=https://example.org', $html );
+		$this->assertStringNotContainsString( 'example.org:', $html );
 	}
 
 	/**

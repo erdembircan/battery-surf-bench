@@ -150,11 +150,18 @@ class YouTubeEmbed {
 	 * URL form: `youtube.com/watch?v=`, `youtu.be/`, or
 	 * `youtube(-nocookie).com/embed/` — each tolerant of extra query params.
 	 *
+	 * The `youtube(-nocookie).com` host is boundary-anchored (must be preceded
+	 * by the start of the string, `//` (a scheme boundary) or `.` (a
+	 * subdomain boundary)) so a host that merely CONTAINS that substring —
+	 * `myyoutube.com`, `foo-youtube.com` — is never mistaken for it. `youtu.be`
+	 * needs no such guard: the required trailing `/` before the id already
+	 * rules out a host like `youtu.be.evil.com`, which has no `/` there.
+	 *
 	 * @param string $url The URL to inspect.
 	 * @return string|null The video id, or null when the URL is not a recognized YouTube URL.
 	 */
 	public function parse_video_id( string $url ): ?string {
-		$pattern = '#(?:youtube(?:-nocookie)?\.com/(?:watch\?(?:.*&)?v=|embed/)|youtu\.be/)(' . self::VIDEO_ID_PATTERN . ')#i';
+		$pattern = '#(?:(?:^|//|\.)youtube(?:-nocookie)?\.com/(?:watch\?(?:.*&)?v=|embed/)|youtu\.be/)(' . self::VIDEO_ID_PATTERN . ')#i';
 
 		if ( 1 === preg_match( $pattern, $url, $matches ) ) {
 			return $matches[1];
@@ -181,11 +188,14 @@ class YouTubeEmbed {
 	}
 
 	/**
-	 * The served page's own scheme+host, so the embedded player accepts the
-	 * surf engine's postMessage commands (YouTube's JS API validates the
-	 * `origin` param against the frame that is actually controlling it).
+	 * The served page's own scheme+host(+port), so the embedded player
+	 * accepts the surf engine's postMessage commands — YouTube's JS API
+	 * validates the `origin` param against the frame that is actually
+	 * controlling it, port included, so a non-default-port dev host (e.g.
+	 * `http://localhost:9400`) must carry its port here or every command is
+	 * silently ignored as a mismatched origin.
 	 *
-	 * @return string The site's origin (`scheme://host`), or '' when it cannot be determined.
+	 * @return string The site's origin (`scheme://host` or `scheme://host:port`), or '' when it cannot be determined.
 	 */
 	private function origin(): string {
 		$parts = wp_parse_url( home_url( '/' ) );
@@ -194,6 +204,12 @@ class YouTubeEmbed {
 			return '';
 		}
 
-		return "{$parts['scheme']}://{$parts['host']}";
+		$origin = "{$parts['scheme']}://{$parts['host']}";
+
+		if ( isset( $parts['port'] ) ) {
+			$origin .= ":{$parts['port']}";
+		}
+
+		return $origin;
 	}
 }
