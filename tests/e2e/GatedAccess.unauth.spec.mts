@@ -35,58 +35,39 @@ async function expectNoPhpNotices( page: Page ): Promise< void > {
 
 test.describe( 'Admin screens require authentication', () => {
 	/**
-	 * Every gated admin URL, paired with an assertion proving that screen's own
-	 * markup never mounted. Most screens carry a distinctive top-level CSS
-	 * class (`SettingsScreenView`/`SessionsScreenView`/`SessionDetailView`);
-	 * `StartBenchmarkView`'s fallback markup carries no class of its own (it
-	 * relies on core's bare `.wrap` styling), so that one is proven absent by
-	 * its heading text instead.
+	 * Every gated admin URL, paired with the token that identifies it in the
+	 * `redirect_to` query param WordPress's own `auth_redirect()` echoes the
+	 * original request URI into (via `wp_login_url( $_SERVER['REQUEST_URI'] )`).
+	 * Confirmed against a real anonymous request to each URL: e.g. hitting
+	 * `/wp-admin/admin.php?page=battery-surf-bench` redirects to
+	 * `wp-login.php?redirect_to=http%3A%2F%2F...%2Fwp-admin%2Fadmin.php%3Fpage%3Dbattery-surf-bench&reauth=1`,
+	 * whose decoded `redirect_to` contains exactly `page=battery-surf-bench`.
 	 */
-	const gatedAdminScreens: {
-		name: string;
-		url: string;
-		assertNotRendered: ( page: Page ) => Promise< void >;
-	}[] = [
+	const gatedAdminScreens: { name: string; url: string; token: string }[] = [
 		{
 			name: 'Settings top-level menu page',
 			url: '/wp-admin/admin.php?page=battery-surf-bench',
-			assertNotRendered: async ( page ) => {
-				await expect( page.locator( '.bsb-settings' ) ).toHaveCount(
-					0
-				);
-			},
+			token: 'page=battery-surf-bench',
 		},
 		{
 			name: 'Start Benchmark submenu',
 			url: '/wp-admin/admin.php?page=bsb-start-benchmark',
-			assertNotRendered: async ( page ) => {
-				await expect(
-					page.getByRole( 'heading', { name: 'Start Benchmark' } )
-				).toHaveCount( 0 );
-			},
+			token: 'page=bsb-start-benchmark',
 		},
 		{
 			name: 'Sessions screen',
 			url: '/wp-admin/admin.php?page=bsb-sessions',
-			assertNotRendered: async ( page ) => {
-				await expect( page.locator( '.bsb-sessions' ) ).toHaveCount(
-					0
-				);
-			},
+			token: 'page=bsb-sessions',
 		},
 		{
 			name: 'bsb_session new-post edit screen',
 			url: '/wp-admin/post-new.php?post_type=bsb_session',
-			assertNotRendered: async ( page ) => {
-				await expect(
-					page.locator( '.bsb-session-detail' )
-				).toHaveCount( 0 );
-			},
+			token: 'post_type=bsb_session',
 		},
 	];
 
 	for ( const screen of gatedAdminScreens ) {
-		test( `${ screen.name } redirects an anonymous visitor to login`, async ( {
+		test( `${ screen.name } redirects an anonymous visitor to login, targeting that same screen`, async ( {
 			page,
 		} ) => {
 			await page.goto( screen.url );
@@ -98,8 +79,20 @@ test.describe( 'Admin screens require authentication', () => {
 			expect( page.url() ).toContain( 'wp-login.php' );
 			await expect( page.locator( '#user_login' ) ).toBeVisible();
 
-			// The plugin's own screen markup never rendered.
-			await screen.assertNotRendered( page );
+			// Non-vacuous: `auth_redirect()` echoes the original request URI into
+			// `redirect_to` (`wp_login_url( $_SERVER['REQUEST_URI'] )`), so this
+			// fails if the screen were NOT gated (no redirect at all, hence no
+			// `redirect_to`) or if WordPress redirected somewhere other than the
+			// screen actually requested.
+			const redirectTo = new URL( page.url() ).searchParams.get(
+				'redirect_to'
+			);
+			expect(
+				redirectTo,
+				'login redirect must target the gated screen'
+			).toBeTruthy();
+			const decoded = decodeURIComponent( redirectTo ?? '' );
+			expect( decoded ).toContain( screen.token );
 
 			await expectNoPhpNotices( page );
 		} );
