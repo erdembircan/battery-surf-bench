@@ -4,15 +4,20 @@
 # ecosystem's build tooling in turn. Neither ecosystem's own build script
 # reaches into the other — this orchestrator is the single caller that knows
 # both:
-#   1. pnpm run build            — compile the JS/CSS bundles (wp-scripts).
-#   2. composer build:container  — validate + flatten/plan the container definitions.
-#   3. composer zip              — package the plugin (composer archive ships the
-#                                  untracked build/ assets + production vendor/,
-#                                  per .gitattributes).
+#   1. pnpm run build              — compile the JS/CSS bundles (wp-scripts).
+#   2. composer build:container    — validate + flatten/plan the container definitions.
+#   3. composer install --no-dev   — reinstall vendor/ without dev-only packages
+#                                    (phpunit, phpcs, mockery, ...) so the zip
+#                                    doesn't leak them.
+#   4. composer zip                — package the plugin (composer archive ships the
+#                                    untracked build/ assets + production vendor/,
+#                                    per .gitattributes).
 #
-# Assumes dependencies are already installed. For a production zip, install
-# without dev packages first (`composer install --no-dev --optimize-autoloader`)
-# so vendor/ ships lean — that is the release runner's responsibility, not this
+# This script installs production dependencies itself before packaging, so the
+# resulting zip's vendor/ tree is always lean regardless of what was installed
+# beforehand. That leaves your working tree's vendor/ without dev packages
+# afterward — run a plain `composer install` again to restore them for
+# continued development. That follow-up is the release runner's call, not this
 # script's.
 #
 # Run from anywhere; it operates on the repo root.
@@ -25,6 +30,9 @@ pnpm run build
 
 echo "==> Compiling container definitions (composer)"
 composer build:container
+
+echo "==> Installing production dependencies (no dev)"
+composer install --no-dev --optimize-autoloader
 
 echo "==> Packaging plugin zip (composer)"
 composer zip

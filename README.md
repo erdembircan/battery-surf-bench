@@ -8,6 +8,6 @@ WordPress plugin that benchmarks battery drain by simulating real-world web surf
 
 [![Merge Checks](https://github.com/erdembircan/battery-surf-bench/actions/workflows/merge-checks.yml/badge.svg)](https://github.com/erdembircan/battery-surf-bench/actions/workflows/merge-checks.yml)
 [![PR Checks](https://github.com/erdembircan/battery-surf-bench/actions/workflows/pr-checks.yml/badge.svg)](https://github.com/erdembircan/battery-surf-bench/actions/workflows/pr-checks.yml)
-[![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+[![License: GPLv2 or later](https://img.shields.io/badge/license-GPLv2--or--later-blue.svg)](LICENSE)
 
 </div>
