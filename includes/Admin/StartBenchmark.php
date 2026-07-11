@@ -9,6 +9,7 @@ namespace ErdemBircan\BatterySurfBench\Admin;
 
 use ErdemBircan\BatterySurfBench\Admin\Views\StartBenchmarkView;
 use ErdemBircan\BatterySurfBench\Assets;
+use ErdemBircan\BatterySurfBench\Support\CapabilityInterface;
 use ErdemBircan\BatterySurfBench\Support\Manager;
 use WP_Admin_Bar;
 
@@ -16,7 +17,6 @@ use function __;
 use function add_action;
 use function add_query_arg;
 use function add_submenu_page;
-use function current_user_can;
 use function esc_html__;
 use function esc_url_raw;
 use function home_url;
@@ -52,22 +52,22 @@ class StartBenchmark implements Manager {
 	 * Stores the entry's placement, capability, cockpit destination, nav script
 	 * and asset service.
 	 *
-	 * @param string             $parent_slug   Slug of the menu the submenu lives under.
-	 * @param string             $page_slug     Slug that identifies the submenu's page.
-	 * @param string             $capability    Capability required to see the entry.
-	 * @param string             $cockpit_param Query parameter that opens the cockpit dashboard.
-	 * @param string             $cockpit_value Value of that parameter which serves the cockpit.
-	 * @param string             $nav_script    Built script, relative to the plugin root, that
+	 * @param string              $parent_slug   Slug of the menu the submenu lives under.
+	 * @param string              $page_slug     Slug that identifies the submenu's page.
+	 * @param CapabilityInterface $capability    Capability required to see the entry.
+	 * @param string              $cockpit_param Query parameter that opens the cockpit dashboard.
+	 * @param string              $cockpit_value Value of that parameter which serves the cockpit.
+	 * @param string              $nav_script    Built script, relative to the plugin root, that
 	 *                                          upgrades the rendered menu link to open in a new tab.
-	 * @param string             $menu_style    Admin stylesheet, relative to the plugin root, that
+	 * @param string              $menu_style    Admin stylesheet, relative to the plugin root, that
 	 *                                          carries the admin-bar node's icon rule.
-	 * @param StartBenchmarkView $view          Renders the no-redirect fallback page.
-	 * @param Assets             $assets        Service used to register, localize and enqueue the script.
+	 * @param StartBenchmarkView  $view          Renders the no-redirect fallback page.
+	 * @param Assets              $assets        Service used to register, localize and enqueue the script.
 	 */
 	public function __construct(
 		private string $parent_slug,
 		private string $page_slug,
-		private string $capability,
+		private CapabilityInterface $capability,
 		private string $cockpit_param,
 		private string $cockpit_value,
 		private string $nav_script,
@@ -103,7 +103,7 @@ class StartBenchmark implements Manager {
 			$this->parent_slug,
 			__( 'Start Benchmark', 'battery-surf-bench' ),
 			__( 'Start Benchmark', 'battery-surf-bench' ),
-			$this->capability,
+			$this->capability->slug(),
 			$this->page_slug,
 			array( $this, 'render' )
 		);
@@ -160,7 +160,7 @@ class StartBenchmark implements Manager {
 	 * @return void
 	 */
 	public function add_bar_node( WP_Admin_Bar $wp_admin_bar ): void {
-		if ( ! current_user_can( $this->capability ) ) {
+		if ( ! $this->capability->allows() ) {
 			return;
 		}
 

@@ -11,6 +11,7 @@ use ErdemBircan\BatterySurfBench\Admin\Views\SettingsScreenView;
 use ErdemBircan\BatterySurfBench\Assets;
 use ErdemBircan\BatterySurfBench\Course\CourseCatalog;
 use ErdemBircan\BatterySurfBench\Course\CourseOrderSanitizer;
+use ErdemBircan\BatterySurfBench\Support\CapabilityInterface;
 use ErdemBircan\BatterySurfBench\Support\Manager;
 use WP_REST_Request;
 
@@ -69,7 +70,7 @@ class SettingsScreen implements Manager {
 	 * describe and persist the surf-course order.
 	 *
 	 * @param string               $slug                  Slug that identifies the menu and its page.
-	 * @param string               $capability            Capability required to see the menu.
+	 * @param CapabilityInterface  $capability            Capability required to see the menu.
 	 * @param string               $icon_url              Menu icon: an image URL, Dashicon class, SVG data URI, or `none` to paint it via CSS.
 	 * @param string               $icon_style            Plugin-relative path to the menu icon's stylesheet.
 	 * @param string               $bundle                Built settings app script, relative to the plugin root.
@@ -84,7 +85,7 @@ class SettingsScreen implements Manager {
 	 */
 	public function __construct(
 		private string $slug,
-		private string $capability,
+		private CapabilityInterface $capability,
 		private string $icon_url,
 		private string $icon_style,
 		private string $bundle,
@@ -121,7 +122,7 @@ class SettingsScreen implements Manager {
 		$hook_suffix = add_menu_page(
 			__( 'Battery Surf Bench', 'battery-surf-bench' ),
 			__( 'Battery Surf Bench', 'battery-surf-bench' ),
-			$this->capability,
+			$this->capability->slug(),
 			$this->slug,
 			array( $this, 'render' ),
 			$this->icon_url

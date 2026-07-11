@@ -16,6 +16,7 @@ use ErdemBircan\BatterySurfBench\Course\CourseOrderSanitizer;
 use ErdemBircan\BatterySurfBench\Course\CourseRouter;
 use ErdemBircan\BatterySurfBench\Course\Views\UserPageView;
 use ErdemBircan\BatterySurfBench\Support\Manager;
+use ErdemBircan\BatterySurfBench\Tests\Support\FakeCapability;
 use ErdemBircan\BatterySurfBench\Tests\TestCase;
 use Mockery;
 use WP_Post;
@@ -41,7 +42,6 @@ final class CourseRouterTest extends TestCase {
 	private const INDEX_PARAM  = 'bsbSurfIndex';
 	private const NONCE_PARAM  = 'bsbNonce';
 	private const NONCE_ACTION = 'bsb_surf';
-	private const CAPABILITY   = 'manage_options';
 	private const BODY_CLASS   = 'bsb-course-page';
 	private const OPTION       = 'bsb_course_order';
 
@@ -50,11 +50,17 @@ final class CourseRouterTest extends TestCase {
 	 * pages and posts, unless a sanitizer is supplied (only needed to force
 	 * an otherwise-unreachable edge case, e.g. an empty saved order).
 	 *
+	 * The capability is a fake test double rather than a mock of
+	 * `current_user_can()`: injecting {@see FakeCapability} instead lets a
+	 * test control whether the gate passes without touching any WordPress
+	 * global.
+	 *
 	 * @param Assets|null               $assets    Asset service double, or a fresh mock when omitted.
 	 * @param CourseOrderSanitizer|null $sanitizer Sanitizer to inject, or a real one restricted to pages/posts when omitted.
+	 * @param bool                      $can       Whether the fake capability reports the requester authorized.
 	 * @return CourseRouter The router under test.
 	 */
-	private function router( ?Assets $assets = null, ?CourseOrderSanitizer $sanitizer = null ): CourseRouter {
+	private function router( ?Assets $assets = null, ?CourseOrderSanitizer $sanitizer = null, bool $can = true ): CourseRouter {
 		$catalog = new CourseCatalog( '/plugin/includes/Course/content' );
 
 		return new CourseRouter(
@@ -62,7 +68,7 @@ final class CourseRouterTest extends TestCase {
 			self::INDEX_PARAM,
 			self::NONCE_PARAM,
 			self::NONCE_ACTION,
-			self::CAPABILITY,
+			new FakeCapability( $can ),
 			$assets ?? Mockery::mock( Assets::class ),
 			'build/style-course.css',
 			'build/surfer.js',
@@ -74,16 +80,15 @@ final class CourseRouterTest extends TestCase {
 	}
 
 	/**
-	 * Stages the index/nonce query vars and the capability + nonce-verification
-	 * gate the router checks before resolving anything against the saved
-	 * order — the authoritative check every entry, bundled or user, must
-	 * clear.
+	 * Stages the index/nonce query vars and the nonce-verification outcome the
+	 * router checks before resolving anything against the saved order. The
+	 * capability half of the gate is controlled separately, by the fake
+	 * injected through {@see router()}.
 	 *
 	 * @param string $index       The index value `get_query_var` reports, or '' to simulate the parameter being absent.
-	 * @param bool   $can         Whether `current_user_can` reports the requester holds the capability.
 	 * @param bool   $nonce_valid Whether `wp_verify_nonce` reports the nonce valid.
 	 */
-	private function stage_request( string $index, bool $can = true, bool $nonce_valid = true ): void {
+	private function stage_request( string $index, bool $nonce_valid = true ): void {
 		Functions\when( 'get_query_var' )->alias(
 			static function ( string $query_var, $fallback = '' ) use ( $index ) {
 				if ( self::INDEX_PARAM === $query_var ) {
@@ -95,7 +100,6 @@ final class CourseRouterTest extends TestCase {
 				return $fallback;
 			}
 		);
-		Functions\when( 'current_user_can' )->justReturn( $can );
 		Functions\when( 'wp_verify_nonce' )->justReturn( $nonce_valid ? 1 : false );
 	}
 
@@ -284,7 +288,7 @@ final class CourseRouterTest extends TestCase {
 	 * user entry would be.
 	 */
 	public function test_leaves_a_bundled_index_untouched_with_a_missing_or_invalid_nonce(): void {
-		$this->stage_request( '0', true, false );
+		$this->stage_request( '0', false );
 		$this->stage_order( array() );
 		$original = array( 'untouched' );
 
@@ -297,11 +301,11 @@ final class CourseRouterTest extends TestCase {
 	 * gate is checked before any entry, bundled or user, is even resolved.
 	 */
 	public function test_leaves_a_bundled_index_untouched_without_the_capability(): void {
-		$this->stage_request( '0', false, true );
+		$this->stage_request( '0' );
 		$this->stage_order( array() );
 		$original = array( 'untouched' );
 
-		$this->assertSame( $original, $this->router()->maybe_render( $original, new WP_Query() ) );
+		$this->assertSame( $original, $this->router( null, null, false )->maybe_render( $original, new WP_Query() ) );
 	}
 
 	/**
@@ -311,7 +315,7 @@ final class CourseRouterTest extends TestCase {
 	 * served.
 	 */
 	public function test_leaves_a_user_index_untouched_with_an_invalid_nonce(): void {
-		$this->stage_request( '0', true, false );
+		$this->stage_request( '0', false );
 		$this->stage_order(
 			array(
 				array(
@@ -330,7 +334,7 @@ final class CourseRouterTest extends TestCase {
 	 * mirroring the bundled case.
 	 */
 	public function test_leaves_a_user_index_untouched_without_the_capability(): void {
-		$this->stage_request( '0', false, true );
+		$this->stage_request( '0' );
 		$this->stage_order(
 			array(
 				array(
@@ -341,7 +345,7 @@ final class CourseRouterTest extends TestCase {
 		);
 		$original = array( 'untouched' );
 
-		$this->assertSame( $original, $this->router()->maybe_render( $original, new WP_Query() ) );
+		$this->assertSame( $original, $this->router( null, null, false )->maybe_render( $original, new WP_Query() ) );
 	}
 
 	/**

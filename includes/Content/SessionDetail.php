@@ -10,6 +10,7 @@ namespace ErdemBircan\BatterySurfBench\Content;
 use ErdemBircan\BatterySurfBench\Assets;
 use ErdemBircan\BatterySurfBench\Cockpit\SummaryReasons;
 use ErdemBircan\BatterySurfBench\Cockpit\Views\SessionDetailView;
+use ErdemBircan\BatterySurfBench\Support\CapabilityInterface;
 use ErdemBircan\BatterySurfBench\Support\Manager;
 use WP_Post;
 
@@ -17,7 +18,6 @@ use function __;
 use function add_action;
 use function add_filter;
 use function admin_url;
-use function current_user_can;
 use function did_action;
 use function generate_block_asset_handle;
 use function get_current_screen;
@@ -48,19 +48,19 @@ class SessionDetail implements Manager {
 	/**
 	 * Stores everything needed to gate, style and render a session detail screen.
 	 *
-	 * @param string            $post_type   Post type sessions are stored as.
-	 * @param string            $meta_prefix Prefix every session meta key carries.
-	 * @param string            $capability  Capability required to view a session.
-	 * @param string            $block_name  Cockpit block name, for its view-module handle.
-	 * @param string            $screen_slug Listing screen slug the back link points at.
-	 * @param string            $style       Stylesheet carrying the postcard styles (the cockpit stylesheet), relative to the plugin root.
-	 * @param SessionDetailView $view        View that renders the summary postcard body.
-	 * @param Assets            $assets      Service used to enqueue the detail stylesheet.
+	 * @param string              $post_type   Post type sessions are stored as.
+	 * @param string              $meta_prefix Prefix every session meta key carries.
+	 * @param CapabilityInterface $capability  Capability required to view a session.
+	 * @param string              $block_name  Cockpit block name, for its view-module handle.
+	 * @param string              $screen_slug Listing screen slug the back link points at.
+	 * @param string              $style       Stylesheet carrying the postcard styles (the cockpit stylesheet), relative to the plugin root.
+	 * @param SessionDetailView   $view        View that renders the summary postcard body.
+	 * @param Assets              $assets      Service used to enqueue the detail stylesheet.
 	 */
 	public function __construct(
 		private string $post_type,
 		private string $meta_prefix,
-		private string $capability,
+		private CapabilityInterface $capability,
 		private string $block_name,
 		private string $screen_slug,
 		private string $style,
@@ -92,7 +92,7 @@ class SessionDetail implements Manager {
 	 * @return bool Whether the editor was replaced.
 	 */
 	public function maybe_render( bool $replace, WP_Post $post ): bool {
-		if ( $post->post_type !== $this->post_type || ! current_user_can( $this->capability ) ) {
+		if ( $post->post_type !== $this->post_type || ! $this->capability->allows() ) {
 			return $replace;
 		}
 

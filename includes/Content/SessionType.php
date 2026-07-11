@@ -7,11 +7,11 @@
 
 namespace ErdemBircan\BatterySurfBench\Content;
 
+use ErdemBircan\BatterySurfBench\Support\CapabilityInterface;
 use ErdemBircan\BatterySurfBench\Support\Manager;
 
 use function __;
 use function add_action;
-use function current_user_can;
 use function register_post_meta;
 use function register_post_type;
 
@@ -39,12 +39,12 @@ class SessionType implements Manager {
 	/**
 	 * Stores the session schema and the capability that guards the post type.
 	 *
-	 * @param SessionSchema $schema     Source of the post type slug and its meta definitions.
-	 * @param string        $capability Capability required to read and write sessions.
+	 * @param SessionSchema       $schema     Source of the post type slug and its meta definitions.
+	 * @param CapabilityInterface $capability Capability required to read and write sessions.
 	 */
 	public function __construct(
 		private SessionSchema $schema,
-		private string $capability
+		private CapabilityInterface $capability
 	) {
 	}
 
@@ -90,7 +90,7 @@ class SessionType implements Manager {
 	 * @return bool Whether the current user may write the meta.
 	 */
 	public function can_edit(): bool {
-		return current_user_can( $this->capability );
+		return $this->capability->allows();
 	}
 
 	/**
@@ -124,7 +124,7 @@ class SessionType implements Manager {
 			'supports'            => array( 'title', 'custom-fields' ),
 			// Map every capability — meta caps included — directly onto the
 			// plugin capability, with meta-cap mapping OFF. The meta caps then
-			// resolve to `manage_options` as plain primitives, so checks that
+			// resolve to that capability as a plain primitive, so checks that
 			// have no specific post (e.g. the REST controller deciding whether
 			// DELETE is allowed on the collection for the `Allow` header) never
 			// route through `map_meta_cap`, which would demand a post and warn.
@@ -163,7 +163,7 @@ class SessionType implements Manager {
 		);
 
 		foreach ( $caps as $cap ) {
-			$capabilities[ $cap ] = $this->capability;
+			$capabilities[ $cap ] = $this->capability->slug();
 		}
 
 		return $capabilities;

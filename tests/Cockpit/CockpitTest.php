@@ -15,6 +15,7 @@ use ErdemBircan\BatterySurfBench\Cockpit\Cockpit;
 use ErdemBircan\BatterySurfBench\Cockpit\Views\CockpitDashboard;
 use ErdemBircan\BatterySurfBench\Support\Manager;
 use ErdemBircan\BatterySurfBench\Support\StandaloneChrome;
+use ErdemBircan\BatterySurfBench\Tests\Support\FakeCapability;
 use ErdemBircan\BatterySurfBench\Tests\TestCase;
 use Mockery;
 
@@ -39,18 +40,21 @@ final class CockpitTest extends TestCase {
 	private const BLOCK_NAME   = 'bsb/cockpit';
 	private const PARAM        = 'bsbSession';
 	private const VALUE        = 'cockpit';
-	private const CAPABILITY   = 'manage_options';
 	private const STYLE        = 'build/style-cockpit-dashboard.css';
 	private const POST_TYPE    = 'bsb_session';
 	private const NONCE_ACTION = 'bsb_surf';
 
 	/**
-	 * Builds the cockpit manager under test.
+	 * Builds the cockpit manager under test. The capability is a fake test
+	 * double rather than a mock of `current_user_can()`: injecting
+	 * {@see FakeCapability} instead lets a test control whether the dashboard
+	 * gate passes without touching any WordPress global.
 	 *
 	 * @param Assets|null $assets Asset service to inject; a dummy mock by default.
+	 * @param bool        $can    Whether the fake capability reports the requester authorized.
 	 * @return Cockpit The manager.
 	 */
-	private function cockpit( ?Assets $assets = null ): Cockpit {
+	private function cockpit( ?Assets $assets = null, bool $can = true ): Cockpit {
 		$resolved = $assets ?? Mockery::mock( Assets::class );
 
 		return new Cockpit(
@@ -58,7 +62,7 @@ final class CockpitTest extends TestCase {
 			self::BLOCK_NAME,
 			self::PARAM,
 			self::VALUE,
-			self::CAPABILITY,
+			new FakeCapability( $can ),
 			new CockpitDashboard(),
 			$resolved,
 			self::POST_TYPE,

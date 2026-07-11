@@ -10,6 +10,7 @@ namespace ErdemBircan\BatterySurfBench\Admin;
 use ErdemBircan\BatterySurfBench\Admin\Views\SessionsScreenView;
 use ErdemBircan\BatterySurfBench\Assets;
 use ErdemBircan\BatterySurfBench\Content\SessionSchema;
+use ErdemBircan\BatterySurfBench\Support\CapabilityInterface;
 use ErdemBircan\BatterySurfBench\Support\Manager;
 
 use function __;
@@ -49,20 +50,20 @@ class SessionsScreen implements Manager {
 	 * Stores the screen's placement, capability, data source, built assets and
 	 * asset service.
 	 *
-	 * @param string        $parent_slug Slug of the menu the screen lives under.
-	 * @param string        $page_slug   Slug that identifies the screen's page.
-	 * @param string        $capability  Capability required to view the screen.
-	 * @param string        $bundle         Built listing script, relative to the plugin root.
-	 * @param string        $style          Bundle's stylesheet, relative to the plugin root.
-	 * @param SessionSchema $schema         Source of the post type and field descriptors.
-	 * @param Assets        $assets         Service used to register, localize and enqueue the bundle.
-	 * @param string        $cockpit_param  Query parameter that opens the cockpit dashboard.
-	 * @param string        $cockpit_value  Value of that parameter which serves the cockpit.
+	 * @param string              $parent_slug   Slug of the menu the screen lives under.
+	 * @param string              $page_slug     Slug that identifies the screen's page.
+	 * @param CapabilityInterface $capability    Capability required to view the screen.
+	 * @param string              $bundle        Built listing script, relative to the plugin root.
+	 * @param string              $style         Bundle's stylesheet, relative to the plugin root.
+	 * @param SessionSchema       $schema        Source of the post type and field descriptors.
+	 * @param Assets              $assets        Service used to register, localize and enqueue the bundle.
+	 * @param string              $cockpit_param Query parameter that opens the cockpit dashboard.
+	 * @param string              $cockpit_value Value of that parameter which serves the cockpit.
 	 */
 	public function __construct(
 		private string $parent_slug,
 		private string $page_slug,
-		private string $capability,
+		private CapabilityInterface $capability,
 		private string $bundle,
 		private string $style,
 		private SessionSchema $schema,
@@ -93,7 +94,7 @@ class SessionsScreen implements Manager {
 			$this->parent_slug,
 			__( 'Benchmark Sessions', 'battery-surf-bench' ),
 			__( 'Sessions', 'battery-surf-bench' ),
-			$this->capability,
+			$this->capability->slug(),
 			$this->page_slug,
 			array( $this, 'render' )
 		);

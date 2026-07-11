@@ -14,6 +14,7 @@ use ErdemBircan\BatterySurfBench\Admin\StartBenchmark;
 use ErdemBircan\BatterySurfBench\Admin\Views\StartBenchmarkView;
 use ErdemBircan\BatterySurfBench\Assets;
 use ErdemBircan\BatterySurfBench\Support\Manager;
+use ErdemBircan\BatterySurfBench\Tests\Support\FakeCapability;
 use ErdemBircan\BatterySurfBench\Tests\TestCase;
 use Exception;
 use Mockery;
@@ -37,16 +38,20 @@ final class StartBenchmarkTest extends TestCase {
 	private const HOOK          = 'battery-surf-bench_page_bsb-start-benchmark';
 
 	/**
-	 * Builds an entry with representative configuration.
+	 * Builds an entry with representative configuration. The capability is a
+	 * fake test double rather than a mock of `current_user_can()`: injecting
+	 * {@see FakeCapability} instead lets a test control whether the admin bar
+	 * node gate passes without touching any WordPress global.
 	 *
 	 * @param Assets|null $assets Asset service to inject, mocked when omitted.
+	 * @param bool        $can    Whether the fake capability reports the requester authorized.
 	 * @return StartBenchmark The manager under test.
 	 */
-	private function entry( ?Assets $assets = null ): StartBenchmark {
+	private function entry( ?Assets $assets = null, bool $can = true ): StartBenchmark {
 		return new StartBenchmark(
 			self::PARENT,
 			self::PAGE_SLUG,
-			self::CAPABILITY,
+			new FakeCapability( $can, self::CAPABILITY ),
 			self::COCKPIT_PARAM,
 			self::COCKPIT_VALUE,
 			self::NAV_SCRIPT,
@@ -148,7 +153,6 @@ final class StartBenchmarkTest extends TestCase {
 	 */
 	public function test_add_bar_node_adds_a_node_pointing_at_the_cockpit(): void {
 		$this->stub_cockpit_url();
-		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'esc_html__' )->returnArg();
 
 		$wp_admin_bar = Mockery::mock( 'WP_Admin_Bar' );
@@ -175,12 +179,10 @@ final class StartBenchmarkTest extends TestCase {
 	 * invisible to anyone who cannot reach the cockpit.
 	 */
 	public function test_add_bar_node_skips_users_without_the_capability(): void {
-		Functions\when( 'current_user_can' )->justReturn( false );
-
 		$wp_admin_bar = Mockery::mock( 'WP_Admin_Bar' );
 		$wp_admin_bar->shouldReceive( 'add_node' )->never();
 
-		$this->entry()->add_bar_node( $wp_admin_bar );
+		$this->entry( null, false )->add_bar_node( $wp_admin_bar );
 
 		$this->addToAssertionCount( 1 );
 	}

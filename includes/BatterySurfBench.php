@@ -26,6 +26,7 @@ use ErdemBircan\BatterySurfBench\Course\Views\UserPageView;
 use ErdemBircan\BatterySurfBench\DevTools\DevTools;
 use ErdemBircan\BatterySurfBench\DevTools\Views\DevToolsPanelView;
 use ErdemBircan\BatterySurfBench\Settings\OptionRegistry;
+use ErdemBircan\BatterySurfBench\Support\Capability;
 use ErdemBircan\BatterySurfBench\Support\Manager;
 use ErdemBircan\BatterySurfBench\Support\StandaloneChrome;
 
@@ -92,6 +93,11 @@ class BatterySurfBench {
 	 * @return Manager[] The plugin's managers.
 	 */
 	private function managers(): array {
+		// Built once and injected everywhere a capability check or its raw
+		// string was previously threaded through by hand, so every gate
+		// across the plugin shares the same abstraction — see {@see Capability}.
+		$capability = new Capability( $this->registry->get( 'capability' ) );
+
 		$schema = new SessionSchema(
 			$this->registry->get( 'session.post_type' ),
 			$this->registry->get( 'session.meta_prefix' )
@@ -148,7 +154,7 @@ class BatterySurfBench {
 			),
 			new SettingsScreen(
 				$this->registry->get( 'admin_menu.slug' ),
-				$this->registry->get( 'capability' ),
+				$capability,
 				$this->registry->get( 'admin_menu.icon' ),
 				$this->registry->get( 'admin_menu.icon_style' ),
 				$this->registry->get( 'settings.bundle' ),
@@ -163,13 +169,13 @@ class BatterySurfBench {
 			),
 			new SessionType(
 				$schema,
-				$this->registry->get( 'capability' )
+				$capability
 			),
 			new SessionRestQuery( $schema ),
 			new SessionsScreen(
 				$this->registry->get( 'admin_menu.slug' ),
 				$this->registry->get( 'session.screen_slug' ),
-				$this->registry->get( 'capability' ),
+				$capability,
 				$this->registry->get( 'session.bundle' ),
 				$this->registry->get( 'session.style' ),
 				$schema,
@@ -183,7 +189,7 @@ class BatterySurfBench {
 			new StartBenchmark(
 				$this->registry->get( 'admin_menu.slug' ),
 				$this->registry->get( 'admin_menu.start_slug' ),
-				$this->registry->get( 'capability' ),
+				$capability,
 				$this->registry->get( 'cockpit.param' ),
 				$this->registry->get( 'cockpit.value' ),
 				$this->registry->get( 'admin_menu.nav_script' ),
@@ -196,7 +202,7 @@ class BatterySurfBench {
 				$this->registry->get( 'course.index_param' ),
 				$this->registry->get( 'course.nonce_param' ),
 				$this->registry->get( 'course.nonce_action' ),
-				$this->registry->get( 'capability' ),
+				$capability,
 				$this->assets,
 				$this->registry->get( 'course.style' ),
 				$this->registry->get( 'course.script' ),
@@ -210,7 +216,7 @@ class BatterySurfBench {
 				$this->registry->get( 'cockpit.block_name' ),
 				$this->registry->get( 'cockpit.param' ),
 				$this->registry->get( 'cockpit.value' ),
-				$this->registry->get( 'capability' ),
+				$capability,
 				new CockpitDashboard(),
 				$this->assets,
 				$this->registry->get( 'session.post_type' ),
@@ -228,7 +234,7 @@ class BatterySurfBench {
 			new SessionDetail(
 				$this->registry->get( 'session.post_type' ),
 				$this->registry->get( 'session.meta_prefix' ),
-				$this->registry->get( 'capability' ),
+				$capability,
 				$this->registry->get( 'cockpit.block_name' ),
 				$this->registry->get( 'session.screen_slug' ),
 				$this->registry->get( 'cockpit.style' ),

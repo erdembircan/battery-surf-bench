@@ -15,6 +15,7 @@ use ErdemBircan\BatterySurfBench\Assets;
 use ErdemBircan\BatterySurfBench\Course\CourseCatalog;
 use ErdemBircan\BatterySurfBench\Course\CourseOrderSanitizer;
 use ErdemBircan\BatterySurfBench\Support\Manager;
+use ErdemBircan\BatterySurfBench\Tests\Support\FakeCapability;
 use ErdemBircan\BatterySurfBench\Tests\TestCase;
 use Mockery;
 use WP_REST_Request;
@@ -55,7 +56,7 @@ final class SettingsScreenTest extends TestCase {
 
 		return new SettingsScreen(
 			self::SLUG,
-			self::CAPABILITY,
+			new FakeCapability( true, self::CAPABILITY ),
 			self::ICON_URL,
 			self::ICON_STYLE,
 			self::BUNDLE,

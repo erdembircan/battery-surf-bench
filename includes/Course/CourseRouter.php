@@ -9,6 +9,7 @@ namespace ErdemBircan\BatterySurfBench\Course;
 
 use ErdemBircan\BatterySurfBench\Assets;
 use ErdemBircan\BatterySurfBench\Course\Views\UserPageView;
+use ErdemBircan\BatterySurfBench\Support\CapabilityInterface;
 use ErdemBircan\BatterySurfBench\Support\Manager;
 use WP_Post;
 use WP_Query;
@@ -18,7 +19,6 @@ use function absint;
 use function add_action;
 use function add_filter;
 use function count;
-use function current_user_can;
 use function get_option;
 use function get_post;
 use function get_query_var;
@@ -44,8 +44,9 @@ defined( 'ABSPATH' ) || exit;
  * titles, order, or count ever reach it — so there is nothing in the request
  * for an attacker to read off or manipulate into targeting a specific page.
  * The route itself is gated, for EVERY entry it could resolve to (bundled or
- * user alike, decided only after the gate passes): `current_user_can()` for
- * the plugin's capability AND a valid `bsb_surf` nonce are both required
+ * user alike, decided only after the gate passes): holding the plugin's
+ * capability (via {@see \ErdemBircan\BatterySurfBench\Support\Capability})
+ * AND a valid `bsb_surf` nonce are both required
  * before any index is even resolved against the saved order. Neither
  * condition being met falls through untouched, ordinarily to a 404 — no
  * render path, bundled or user, is ever reached without both. The old
@@ -70,7 +71,7 @@ class CourseRouter implements Manager {
 	 * @param string               $index_param     Query parameter carrying the opaque, client-incrementing page index.
 	 * @param string               $nonce_param     Query parameter carrying the `bsb_surf` nonce authorizing the request.
 	 * @param string               $nonce_action    Nonce action the surf nonce is verified against.
-	 * @param string               $capability      Capability required to have an index request served.
+	 * @param CapabilityInterface  $capability      Capability required to have an index request served.
 	 * @param Assets               $assets          Service used to enqueue the course stylesheet and surf engine.
 	 * @param string               $stylesheet      Course stylesheet, relative to the plugin root.
 	 * @param string               $script          Surf engine script, relative to the plugin root.
@@ -84,7 +85,7 @@ class CourseRouter implements Manager {
 		private string $index_param,
 		private string $nonce_param,
 		private string $nonce_action,
-		private string $capability,
+		private CapabilityInterface $capability,
 		private Assets $assets,
 		private string $stylesheet,
 		private string $script,
@@ -165,7 +166,7 @@ class CourseRouter implements Manager {
 	 * @return bool Whether the request is authorized to have an index served.
 	 */
 	private function request_authorized(): bool {
-		if ( ! current_user_can( $this->capability ) ) {
+		if ( ! $this->capability->allows() ) {
 			return false;
 		}
 

@@ -63,8 +63,14 @@ classDiagram
         +render(array data) string
     }
 
+    class Capability {
+        +__construct(string capability)
+        +allows() bool
+        +slug() string
+    }
+
     class SettingsScreen {
-        +__construct(string slug, string capability, string icon_url, string icon_style, string bundle, string style, string option_name, array selectable_post_types, CourseOrderSanitizer sanitizer, CourseCatalog catalog, Assets assets, string cockpit_param, string cockpit_value)
+        +__construct(string slug, Capability capability, string icon_url, string icon_style, string bundle, string style, string option_name, array selectable_post_types, CourseOrderSanitizer sanitizer, CourseCatalog catalog, Assets assets, string cockpit_param, string cockpit_value)
         +register() void
         +add_page() void
         +enqueue_icon_style() void
@@ -123,7 +129,7 @@ classDiagram
     }
 
     class SessionType {
-        +__construct(SessionSchema schema, string capability)
+        +__construct(SessionSchema schema, Capability capability)
         +register() void
         +register_post_type() void
         +register_meta() void
@@ -131,7 +137,7 @@ classDiagram
     }
 
     class SessionDetail {
-        +__construct(string post_type, string meta_prefix, string capability, string block_name, string screen_slug, string style, SessionDetailView view, Assets assets)
+        +__construct(string post_type, string meta_prefix, Capability capability, string block_name, string screen_slug, string style, SessionDetailView view, Assets assets)
         +register() void
         +maybe_render(bool replace, WP_Post post) bool
         +enqueue(string hook_suffix) void
@@ -162,7 +168,7 @@ classDiagram
     }
 
     class SessionsScreen {
-        +__construct(string parent_slug, string page_slug, string capability, string bundle, string style, SessionSchema schema, Assets assets, string cockpit_param, string cockpit_value)
+        +__construct(string parent_slug, string page_slug, Capability capability, string bundle, string style, SessionSchema schema, Assets assets, string cockpit_param, string cockpit_value)
         +register() void
         +add_page() void
         +enqueue(string hook_suffix) void
@@ -174,7 +180,7 @@ classDiagram
     }
 
     class StartBenchmark {
-        +__construct(string parent_slug, string page_slug, string capability, string cockpit_param, string cockpit_value, string nav_script, string menu_style, StartBenchmarkView view, Assets assets)
+        +__construct(string parent_slug, string page_slug, Capability capability, string cockpit_param, string cockpit_value, string nav_script, string menu_style, StartBenchmarkView view, Assets assets)
         +register() void
         +add_page() void
         +redirect() void
@@ -202,7 +208,7 @@ classDiagram
     }
 
     class CourseRouter {
-        +__construct(CourseCatalog catalog, string index_param, string nonce_param, string nonce_action, string capability, Assets assets, string stylesheet, string script, string body_class, string option_name, CourseOrderSanitizer order_sanitizer, UserPageView user_page_view)
+        +__construct(CourseCatalog catalog, string index_param, string nonce_param, string nonce_action, Capability capability, Assets assets, string stylesheet, string script, string body_class, string option_name, CourseOrderSanitizer order_sanitizer, UserPageView user_page_view)
         +register() void
         +add_query_vars(array vars) array
         +maybe_render(array posts, WP_Query query) array
@@ -216,7 +222,7 @@ classDiagram
     }
 
     class Cockpit {
-        +__construct(string block_dir, string block_name, string param, string value, string capability, CockpitDashboard dashboard, Assets assets, string session_post_type, string surf_nonce_action, StandaloneChrome chrome)
+        +__construct(string block_dir, string block_name, string param, string value, Capability capability, CockpitDashboard dashboard, Assets assets, string session_post_type, string surf_nonce_action, StandaloneChrome chrome)
         +register() void
         +register_block() void
         +add_query_var(array vars) array
@@ -255,6 +261,7 @@ classDiagram
     BatterySurfBench --> Registry : creates & owns (composition)
     BatterySurfBench --> Paths : creates & owns (composition)
     BatterySurfBench --> Assets : creates & owns (composition)
+    BatterySurfBench --> Capability : creates & owns (composition)
     BatterySurfBench --> SettingsScreen : creates & owns (composition)
     BatterySurfBench --> CourseOrderOption : creates & owns (composition)
     BatterySurfBench --> OptionRegistry : creates & owns (composition)
@@ -274,6 +281,7 @@ classDiagram
     I18n ..|> Manager : implements
     SettingsScreen ..|> Manager : implements
     SettingsScreen --> Assets : uses
+    SettingsScreen --> Capability : gates via
     SettingsScreen --> CourseCatalog : uses
     SettingsScreen --> CourseOrderSanitizer : heals the saved order on every read
     SettingsScreen ..> SettingsScreenView : renders via
@@ -289,9 +297,11 @@ classDiagram
     CourseOrderSanitizer --> CourseCatalog : validates bundled slugs against
     SessionType ..|> Manager : implements
     SessionType --> SessionSchema : uses
+    SessionType --> Capability : gates via
     SessionDetail ..|> Manager : implements
     SessionDetail --> SessionDetailView : renders via
     SessionDetail --> Assets : uses
+    SessionDetail --> Capability : gates via
     SessionDetail ..> SummaryReasons : seeds verdict wording
     StandaloneChrome --> Assets : uses
     DevTools ..|> Manager : implements
@@ -310,17 +320,20 @@ classDiagram
     SessionsScreen ..|> Manager : implements
     SessionsScreen --> SessionSchema : uses
     SessionsScreen --> Assets : uses
+    SessionsScreen --> Capability : gates via
     SessionsScreen ..> SessionsScreenView : renders via
     SessionsScreenView ..|> View : implements
     SessionsScreenView ..> AdminHeaderView : composes (shared header)
     SessionsScreenView ..> AdminPillView : composes (New Benchmark outline pill)
     StartBenchmark ..|> Manager : implements
     StartBenchmark --> Assets : uses
+    StartBenchmark --> Capability : gates via
     StartBenchmark ..> StartBenchmarkView : renders via
     StartBenchmarkView ..|> View : implements
     CourseRouter ..|> Manager : implements
     CourseRouter --> CourseCatalog : uses
     CourseRouter --> Assets : uses
+    CourseRouter --> Capability : gates via
     CourseRouter --> CourseOrderSanitizer : reads & heals the saved order to resolve an authorized index request (gated on capability + bsb_surf nonce, checked before any entry is resolved)
     CourseRouter ..> UserPageView : renders via (user pages only)
     UserPageView ..|> View : implements
@@ -328,6 +341,7 @@ classDiagram
     Cockpit ..|> Manager : implements
     Cockpit --> CockpitDashboard : uses
     Cockpit --> Assets : uses
+    Cockpit --> Capability : gates via
     Cockpit --> StandaloneChrome : strips via
     Cockpit ..> CockpitView : renders via (block template)
     CockpitDashboard ..|> View : implements

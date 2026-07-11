@@ -13,6 +13,7 @@ use Brain\Monkey\Functions;
 use ErdemBircan\BatterySurfBench\Content\SessionSchema;
 use ErdemBircan\BatterySurfBench\Content\SessionType;
 use ErdemBircan\BatterySurfBench\Support\Manager;
+use ErdemBircan\BatterySurfBench\Tests\Support\FakeCapability;
 use ErdemBircan\BatterySurfBench\Tests\TestCase;
 use Mockery;
 
@@ -29,14 +30,18 @@ final class SessionTypeTest extends TestCase {
 	private const CAPABILITY = 'manage_options';
 
 	/**
-	 * Builds a post type manager backed by a real schema.
+	 * Builds a post type manager backed by a real schema. The capability is a
+	 * fake test double rather than a mock of `current_user_can()`: injecting
+	 * {@see FakeCapability} instead lets a test control the access policy
+	 * directly, without touching any WordPress global.
 	 *
+	 * @param FakeCapability|null $capability Capability double to inject, or a fixed-allow one by default.
 	 * @return SessionType The manager under test.
 	 */
-	private function type(): SessionType {
+	private function type( ?FakeCapability $capability = null ): SessionType {
 		return new SessionType(
 			new SessionSchema( self::POST_TYPE, self::PREFIX ),
-			self::CAPABILITY
+			$capability ?? new FakeCapability( true, self::CAPABILITY )
 		);
 	}
 
@@ -159,15 +164,13 @@ final class SessionTypeTest extends TestCase {
 	}
 
 	/**
-	 * The access policy is uniform: a meta write is authorized only for holders
-	 * of the plugin's capability.
+	 * The access policy delegates entirely to the injected capability: a meta
+	 * write is authorized exactly when the capability says so, and refused
+	 * exactly when it doesn't — proven here with a fake instead of mocking
+	 * `current_user_can()`.
 	 */
-	public function test_can_edit_requires_the_plugin_capability(): void {
-		Functions\expect( 'current_user_can' )
-			->once()
-			->with( self::CAPABILITY )
-			->andReturn( true );
-
-		$this->assertTrue( $this->type()->can_edit() );
+	public function test_can_edit_delegates_to_the_injected_capability(): void {
+		$this->assertTrue( $this->type( new FakeCapability( true ) )->can_edit() );
+		$this->assertFalse( $this->type( new FakeCapability( false ) )->can_edit() );
 	}
 }

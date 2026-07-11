@@ -9,6 +9,7 @@ namespace ErdemBircan\BatterySurfBench\Cockpit;
 
 use ErdemBircan\BatterySurfBench\Assets;
 use ErdemBircan\BatterySurfBench\Cockpit\Views\CockpitDashboard;
+use ErdemBircan\BatterySurfBench\Support\CapabilityInterface;
 use ErdemBircan\BatterySurfBench\Support\Manager;
 use ErdemBircan\BatterySurfBench\Support\StandaloneChrome;
 
@@ -17,7 +18,6 @@ use function add_action;
 use function add_filter;
 use function add_query_arg;
 use function apply_filters;
-use function current_user_can;
 use function do_blocks;
 use function esc_html__;
 use function esc_url;
@@ -59,23 +59,23 @@ class Cockpit implements Manager {
 	/**
 	 * Stores everything needed to register the block and serve its dashboard.
 	 *
-	 * @param string           $block_dir   Absolute path to the built block directory holding its `block.json`.
-	 * @param string           $block_name  The block's registered name (e.g. `bsb/cockpit`).
-	 * @param string           $param       Query parameter that selects the cockpit dashboard.
-	 * @param string           $value       Value of the parameter that serves the cockpit.
-	 * @param string           $capability  Capability required to open the cockpit.
-	 * @param CockpitDashboard $dashboard  View that renders the standalone dashboard document.
-	 * @param Assets           $assets      Service used to register the view module's translations.
-	 * @param string           $session_post_type Post type sessions are stored as, exposed to the cockpit so it can POST a finished run to that REST collection.
-	 * @param string           $surf_nonce_action Nonce action the surf nonce seeded to the client is minted under; {@see \ErdemBircan\BatterySurfBench\Course\CourseRouter} verifies index requests against the same action.
-	 * @param StandaloneChrome $chrome      Strips the front end so the dashboard renders as a clean standalone document.
+	 * @param string              $block_dir         Absolute path to the built block directory holding its `block.json`.
+	 * @param string              $block_name        The block's registered name (e.g. `bsb/cockpit`).
+	 * @param string              $param             Query parameter that selects the cockpit dashboard.
+	 * @param string              $value             Value of the parameter that serves the cockpit.
+	 * @param CapabilityInterface $capability        Capability required to open the cockpit.
+	 * @param CockpitDashboard    $dashboard         View that renders the standalone dashboard document.
+	 * @param Assets              $assets            Service used to register the view module's translations.
+	 * @param string              $session_post_type Post type sessions are stored as, exposed to the cockpit so it can POST a finished run to that REST collection.
+	 * @param string              $surf_nonce_action Nonce action the surf nonce seeded to the client is minted under; {@see \ErdemBircan\BatterySurfBench\Course\CourseRouter} verifies index requests against the same action.
+	 * @param StandaloneChrome    $chrome            Strips the front end so the dashboard renders as a clean standalone document.
 	 */
 	public function __construct(
 		private string $block_dir,
 		private string $block_name,
 		private string $param,
 		private string $value,
-		private string $capability,
+		private CapabilityInterface $capability,
 		private CockpitDashboard $dashboard,
 		private Assets $assets,
 		private string $session_post_type,
@@ -137,7 +137,7 @@ class Cockpit implements Manager {
 			return;
 		}
 
-		if ( ! current_user_can( $this->capability ) ) {
+		if ( ! $this->capability->allows() ) {
 			$this->deny();
 		}
 
