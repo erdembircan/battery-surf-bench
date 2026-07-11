@@ -19,6 +19,23 @@ classDiagram
         +has(string id) bool
     }
 
+    class Definitions {
+        +__construct(array definitions)
+        +get(string id) mixed
+        +has(string id) bool
+    }
+
+    class InstanceStore {
+        +get(string id) mixed
+        +has(string id) bool
+        +set(string id, object instance) void
+    }
+
+    class Instantiator {
+        +__construct(Registry registry, Definitions definitions, InstanceStore instances, array runtime)
+        +make(string class) object
+    }
+
     class NotFoundExceptionInterface {
         <<interface>>
     }
@@ -257,27 +274,35 @@ classDiagram
         +render(array data) string
     }
 
-    BatterySurfBench --> I18n : creates & owns (composition)
     BatterySurfBench --> Registry : creates & owns (composition)
-    BatterySurfBench --> Paths : creates & owns (composition)
-    BatterySurfBench --> Assets : creates & owns (composition)
-    BatterySurfBench --> Capability : creates & owns (composition)
-    BatterySurfBench --> SettingsScreen : creates & owns (composition)
-    BatterySurfBench --> CourseOrderOption : creates & owns (composition)
-    BatterySurfBench --> OptionRegistry : creates & owns (composition)
-    BatterySurfBench --> CourseOrderSanitizer : creates & owns (composition)
-    BatterySurfBench --> SessionSchema : creates & owns (composition)
-    BatterySurfBench --> SessionType : creates & owns (composition)
-    BatterySurfBench --> SessionsScreen : creates & owns (composition)
-    BatterySurfBench --> StartBenchmark : creates & owns (composition)
-    BatterySurfBench --> CourseCatalog : creates & owns (composition)
-    BatterySurfBench --> CourseRouter : creates & owns (composition)
-    BatterySurfBench --> Cockpit : creates & owns (composition)
-    BatterySurfBench --> SessionDetail : creates & owns (composition)
-    BatterySurfBench --> CockpitDashboard : creates & owns (composition)
-    BatterySurfBench --> StandaloneChrome : creates & owns (composition)
-    BatterySurfBench --> DevTools : creates & owns (composition)
+    BatterySurfBench --> Definitions : creates & owns (composition)
+    BatterySurfBench --> InstanceStore : creates & owns (composition)
+    BatterySurfBench --> Instantiator : creates & owns (composition)
     BatterySurfBench ..> Manager : registers
+    Instantiator ..> I18n : instantiates
+    Instantiator ..> Paths : instantiates
+    Instantiator ..> Assets : instantiates
+    Instantiator ..> Capability : instantiates
+    Instantiator ..> SettingsScreen : instantiates
+    Instantiator ..> CourseOrderOption : instantiates
+    Instantiator ..> OptionRegistry : instantiates
+    Instantiator ..> CourseOrderSanitizer : instantiates
+    Instantiator ..> SessionSchema : instantiates
+    Instantiator ..> SessionType : instantiates
+    Instantiator ..> SessionsScreen : instantiates
+    Instantiator ..> StartBenchmark : instantiates
+    Instantiator ..> CourseCatalog : instantiates
+    Instantiator ..> CourseRouter : instantiates
+    Instantiator ..> Cockpit : instantiates
+    Instantiator ..> SessionDetail : instantiates
+    Instantiator ..> CockpitDashboard : instantiates
+    Instantiator ..> StandaloneChrome : instantiates
+    Instantiator ..> DevTools : instantiates
+    Instantiator --> Registry : reads config tokens
+    Instantiator --> Definitions : reads recipes
+    Instantiator --> InstanceStore : caches singletons
+    Definitions ..|> ContainerInterface : implements
+    InstanceStore ..|> ContainerInterface : implements
     I18n ..|> Manager : implements
     SettingsScreen ..|> Manager : implements
     SettingsScreen --> Assets : uses
