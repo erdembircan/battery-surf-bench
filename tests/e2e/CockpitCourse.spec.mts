@@ -116,14 +116,24 @@ test.describe( 'Video course page (native YouTube embed)', () => {
 	// order: article-1, gallery, article-2, video, links.
 	const VIDEO_INDEX = 3;
 
-	test( 'renders the native core/embed YouTube block, deterministic and controllable, no PHP notices', async ( {
+	test( 'renders the native core/embed YouTube block, amended and controllable, no PHP notices', async ( {
 		page,
 	} ) => {
 		// Mint the `bsb_surf` nonce the same way a real run does, then request
-		// the video page's index through the authorized index route. The
-		// iframe renders with no network request to YouTube's oEmbed endpoint
-		// — `YouTubeEmbed::pre_oembed_result` builds it locally — so this is
-		// deterministic and works offline in CI.
+		// the video page's index through the authorized index route.
+		//
+		// WordPress's OWN real oEmbed handling resolves the embed here — this
+		// plugin never short-circuits it. wp-playground has no reliable
+		// outbound network, so a dev/e2e-only mu-plugin
+		// (`youtubeOembedStubMuPlugin`, wired into `e2eBlueprint`) stubs just
+		// the one HTTP fetch `pre_oembed_result` would otherwise make,
+		// returning a canned `youtube.com/embed/...` iframe shaped like
+		// YouTube's real oEmbed response. From there the REAL, unmodified
+		// production `YouTubeEmbed::embed_oembed_html()` — running through
+		// the real `WP_HTML_Tag_Processor` — amends that iframe's `src`, which
+		// is the actual behavior under test: no PHP unit test exercises this
+		// amend (see `tests/Course/YouTubeEmbedTest.php`'s doc comment), so
+		// this e2e spec is its only coverage.
 		await page.goto( '/?bsbSession=cockpit' );
 		const nonce = await surfNonce( page );
 
@@ -137,14 +147,18 @@ test.describe( 'Video course page (native YouTube embed)', () => {
 		const iframe = embed.locator( 'iframe' );
 		await expect( iframe ).toBeAttached();
 
-		// The control params `YouTubeEmbed` normalizes onto the iframe: JS-API
-		// enabled (required for the surf engine's postMessage commands — see
-		// `VideoControl.ts` — covered at the unit level, not here, since
+		// The control params the amend merges onto whatever oEmbed produced:
+		// JS-API enabled and muted (required for the surf engine's
+		// postMessage commands — see `VideoControl.ts` — the commands
+		// themselves are covered at the unit level, not here, since
 		// cross-origin playback state can't be asserted deterministically in
-		// e2e), and no `autoplay=1` — the simulation starts playback itself,
-		// the embed no longer autoplays on load.
+		// e2e), the served page's own origin, and no `autoplay=1` — the
+		// simulation starts playback itself, the embed no longer autoplays on
+		// load.
 		const src = await iframe.getAttribute( 'src' );
 		expect( src ).toMatch( /enablejsapi=1/ );
+		expect( src ).toMatch( /mute=1/ );
+		expect( src ).toMatch( /origin=/ );
 		expect( src ).not.toMatch( /autoplay=1/ );
 
 		await expectNoPhpNotices( page );

@@ -30,6 +30,7 @@ import {
 	e2eBlueprint,
 	e2eUnauthenticatedBlueprint,
 	autoLoginMuPlugin,
+	youtubeOembedStubMuPlugin,
 } from './blueprint.mts';
 
 /**
@@ -47,6 +48,8 @@ function asV1( declaration: BlueprintDeclaration ): BlueprintV1Declaration {
 const AUTO_LOGIN_PATH =
 	'/wordpress/wp-content/mu-plugins/bsb-dev-auto-login.php';
 const LIVE_RELOAD_PATH = '/wordpress/wp-content/mu-plugins/bsb-live-reload.php';
+const YOUTUBE_OEMBED_STUB_PATH =
+	'/wordpress/wp-content/mu-plugins/bsb-youtube-oembed-stub.php';
 
 /**
  * Find a `writeFile` step by its target path within a blueprint's steps.
@@ -96,6 +99,17 @@ describe( 'devBlueprint', () => {
 
 		expect( step ).toBeDefined();
 	} );
+
+	it( 'installs the YouTube oEmbed stub mu-plugin', () => {
+		const step = findWriteFileStep(
+			blueprint.steps as Record< string, unknown >[],
+			YOUTUBE_OEMBED_STUB_PATH
+		);
+
+		expect( step ).toBeDefined();
+		expect( step?.data ).toContain( 'bsb_youtube_oembed_stub' );
+		expect( step?.data ).toContain( 'pre_oembed_result' );
+	} );
 } );
 
 describe( 'devResumeBlueprint', () => {
@@ -126,6 +140,15 @@ describe( 'devResumeBlueprint', () => {
 		const step = findWriteFileStep(
 			blueprint.steps as Record< string, unknown >[],
 			LIVE_RELOAD_PATH
+		);
+
+		expect( step ).toBeDefined();
+	} );
+
+	it( 'installs the YouTube oEmbed stub mu-plugin', () => {
+		const step = findWriteFileStep(
+			blueprint.steps as Record< string, unknown >[],
+			YOUTUBE_OEMBED_STUB_PATH
 		);
 
 		expect( step ).toBeDefined();
@@ -169,6 +192,15 @@ describe( 'e2eBlueprint', () => {
 
 		expect( step ).toBeUndefined();
 	} );
+
+	it( 'installs the YouTube oEmbed stub mu-plugin', () => {
+		const step = findWriteFileStep(
+			blueprint.steps as Record< string, unknown >[],
+			YOUTUBE_OEMBED_STUB_PATH
+		);
+
+		expect( step ).toBeDefined();
+	} );
 } );
 
 describe( 'e2eUnauthenticatedBlueprint', () => {
@@ -208,6 +240,15 @@ describe( 'e2eUnauthenticatedBlueprint', () => {
 
 		expect( step ).toBeUndefined();
 	} );
+
+	it( 'does not install the YouTube oEmbed stub mu-plugin -- no unauthenticated spec touches video content', () => {
+		const step = findWriteFileStep(
+			blueprint.steps as Record< string, unknown >[],
+			YOUTUBE_OEMBED_STUB_PATH
+		);
+
+		expect( step ).toBeUndefined();
+	} );
 } );
 
 describe( 'autoLoginMuPlugin', () => {
@@ -220,5 +261,25 @@ describe( 'autoLoginMuPlugin', () => {
 	it( 'never redirects', () => {
 		expect( autoLoginMuPlugin ).not.toContain( 'wp_redirect' );
 		expect( autoLoginMuPlugin ).not.toContain( 'wp_safe_redirect' );
+	} );
+} );
+
+describe( 'youtubeOembedStubMuPlugin', () => {
+	it( 'hooks pre_oembed_result', () => {
+		expect( youtubeOembedStubMuPlugin ).toContain(
+			"add_filter( 'pre_oembed_result', 'bsb_youtube_oembed_stub', 10, 2 );"
+		);
+	} );
+
+	it( 'returns a youtube.com/embed iframe carrying the requested video id', () => {
+		expect( youtubeOembedStubMuPlugin ).toContain(
+			'https://www.youtube.com/embed/'
+		);
+		expect( youtubeOembedStubMuPlugin ).toContain( '$matches[1]' );
+	} );
+
+	it( 'never makes a network request of its own', () => {
+		expect( youtubeOembedStubMuPlugin ).not.toContain( 'wp_remote_get' );
+		expect( youtubeOembedStubMuPlugin ).not.toContain( 'curl' );
 	} );
 } );

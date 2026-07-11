@@ -183,11 +183,71 @@ export const autoLoginStep = (): NonNullable<
 ];
 
 /**
+ * Source for a dev/e2e-only must-use plugin that stubs YouTube's oEmbed
+ * response for a `youtube.com/watch?v=` URL, returning a canned
+ * `youtube.com/embed/...` iframe shaped exactly like YouTube's real oEmbed
+ * `html` field.
+ *
+ * wp-playground (both the persistent dev server and the non-persistent e2e
+ * instances) has no reliable outbound network, so WordPress's REAL
+ * `pre_oembed_result`/oEmbed HTTP fetch for a YouTube URL returns nothing —
+ * no iframe is produced, and there is nothing for the plugin's own,
+ * production `YouTubeEmbed::embed_oembed_html()` amend
+ * (`includes/Course/YouTubeEmbed.php`) to act on. This mu-plugin exists
+ * solely to make that upstream fetch succeed deterministically inside
+ * Playground, so the real, unmodified production amend still runs against
+ * something to amend. It is never shipped: the production plugin carries no
+ * such stub, and `YouTubeEmbed` never short-circuits WordPress's own oEmbed
+ * handling.
+ */
+export const youtubeOembedStubMuPlugin = `<?php
+/**
+ * Battery Surf Bench dev/e2e YouTube oEmbed stub. Injected by the Playground
+ * blueprints so a YouTube embed resolves deterministically without a real
+ * network request — wp-playground has no reliable outbound network. Never
+ * present outside Playground: the shipped plugin carries no such stub and
+ * relies entirely on WordPress's own real oEmbed handling.
+ */
+add_filter( 'pre_oembed_result', 'bsb_youtube_oembed_stub', 10, 2 );
+function bsb_youtube_oembed_stub( $result, $url ) {
+	if ( ! preg_match( '#youtube\\.com/watch\\?(?:.*&)?v=([A-Za-z0-9_-]{11})#', $url, $matches ) ) {
+		return $result;
+	}
+
+	$id = $matches[1];
+
+	return '<iframe width="200" height="113" src="https://www.youtube.com/embed/' . $id . '?feature=oembed" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>';
+}
+`;
+
+/**
+ * Build the dev/e2e-only YouTube oEmbed stub mu-plugin install step.
+ *
+ * @return The mkdir + writeFile steps that install the mu-plugin.
+ */
+export const youtubeOembedStubStep = (): NonNullable<
+	BlueprintV1Declaration[ 'steps' ]
+> => [
+	{
+		step: 'mkdir',
+		path: '/wordpress/wp-content/mu-plugins',
+	},
+	{
+		step: 'writeFile',
+		path: '/wordpress/wp-content/mu-plugins/bsb-youtube-oembed-stub.php',
+		data: youtubeOembedStubMuPlugin,
+	},
+];
+
+/**
  * Build the development blueprint for a first-run or non-persistent instance.
  * Enables debug constants, activates the plugin, installs the dev auto-login
- * mu-plugin, and installs the LiveReload mu-plugin pointed at the resolved
- * port. Does not use the shared `login` step — see {@link autoLoginMuPlugin}
- * for why the dev server needs its own auto-login path instead.
+ * mu-plugin, installs the YouTube oEmbed stub (so the video course page
+ * renders a real, controllable embed without needing outbound network — see
+ * {@link youtubeOembedStubMuPlugin}), and installs the LiveReload mu-plugin
+ * pointed at the resolved port. Does not use the shared `login` step — see
+ * {@link autoLoginMuPlugin} for why the dev server needs its own auto-login
+ * path instead.
  *
  * @param liveReloadPort - The port the LiveReload server bound this run.
  * @return The blueprint declaration.
@@ -200,17 +260,18 @@ export const devBlueprint = (
 		...debugStep,
 		...activatePluginStep,
 		...autoLoginStep(),
+		...youtubeOembedStubStep(),
 		...liveReloadStep( liveReloadPort ),
 	],
 } );
 
 /**
  * Build the resume blueprint for an existing persistent installation.
- * Re-enables debug constants and reinstalls the dev auto-login and LiveReload
- * mu-plugins pointed at the resolved port; the plugin is already active in the
- * persisted database, so activation is skipped. Does not use the shared
- * `login` step — see {@link autoLoginMuPlugin} for why the dev server needs
- * its own auto-login path instead.
+ * Re-enables debug constants and reinstalls the dev auto-login, YouTube
+ * oEmbed stub and LiveReload mu-plugins pointed at the resolved port; the
+ * plugin is already active in the persisted database, so activation is
+ * skipped. Does not use the shared `login` step — see {@link autoLoginMuPlugin}
+ * for why the dev server needs its own auto-login path instead.
  *
  * @param liveReloadPort - The port the LiveReload server bound this run.
  * @return The blueprint declaration.
@@ -222,6 +283,7 @@ export const devResumeBlueprint = (
 	steps: [
 		...debugStep,
 		...autoLoginStep(),
+		...youtubeOembedStubStep(),
 		...liveReloadStep( liveReloadPort ),
 	],
 } );
@@ -229,8 +291,12 @@ export const devResumeBlueprint = (
 /**
  * End-to-end blueprint for a deterministic, non-persistent test instance.
  * Enables debug constants and activates the plugin so specs start from a
- * known, plugin-active state. Carries no login step: the pinned
- * `@wp-playground/cli` (3.1.39) races that step's bundled auto-login
+ * known, plugin-active state. Also installs the YouTube oEmbed stub (see
+ * {@link youtubeOembedStubMuPlugin}), so `CockpitCourse.spec.mts`'s video
+ * course page coverage exercises the real, unmodified production
+ * `YouTubeEmbed::embed_oembed_html()` amend against a real (stubbed) oEmbed
+ * response instead of needing outbound network. Carries no login step: the
+ * pinned `@wp-playground/cli` (3.1.39) races that step's bundled auto-login
  * mu-plugin against the server's own ready flag (see {@link autoLoginMuPlugin}),
  * which made a cookie-less request to `wp-login.php` nondeterministic — the
  * only place that happens is `auth.setup.mts`, which drives a real form login
@@ -240,7 +306,7 @@ export const devResumeBlueprint = (
  */
 export const e2eBlueprint: BlueprintDeclaration = {
 	...base,
-	steps: [ ...debugStep, ...activatePluginStep ],
+	steps: [ ...debugStep, ...activatePluginStep, ...youtubeOembedStubStep() ],
 };
 
 /**
