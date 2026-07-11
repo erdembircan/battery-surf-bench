@@ -72,6 +72,7 @@ classDiagram
         +pointerDrift(ms) Promise
         +selectSnippet() Promise
         +playVideo() Promise
+        +stopVideo() Promise
         +lingerImage(ms) Promise
         +readTrace(ms) Promise
         +idle(ms) Promise
@@ -83,6 +84,7 @@ classDiagram
         +pointerDrift(ms) Promise
         +selectSnippet() Promise
         +playVideo() Promise
+        +stopVideo() Promise
         +lingerImage(ms) Promise
         +readTrace(ms) Promise
         +idle(ms) Promise
@@ -95,6 +97,17 @@ classDiagram
         +moveTo(Point) void
         +travelTo(Point, Rng, frames?) Promise
         +framesForDistance(distance) number$
+    }
+
+    %% Starts/stops whatever element playVideo attended: a real <video> via
+    %% its element API, or a YouTube/youtube-nocookie embed iframe via the
+    %% IFrame API's raw postMessage command protocol (no external script
+    %% load). Anything else is a safe no-op in both directions.
+    class VideoControl {
+        <<interface>>
+        +play() Promise
+        +pause() Promise
+        +createVideoControl(Element) VideoControl$
     }
 
     class Clock {
@@ -220,6 +233,7 @@ classDiagram
     EngineBoot --> Rng : seeds the one PRNG instance
     EngineBoot --> Affordances : provides senseAffordances
     DomMotor --> Affordances : shares contentRoot & VIDEO_EMBED_SELECTOR (lingerImage, playVideo)
+    DomMotor --> VideoControl : builds via createVideoControl, keeps the active one for stopVideo
     EngineBoot --> SurferStats : normalizeTraits
     EngineBoot --> RunConfig : normalizeSpeed
     EngineBoot ..> RunStore : postMessage 'bsb:pageDone'
