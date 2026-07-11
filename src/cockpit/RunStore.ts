@@ -6,7 +6,7 @@
  * single `running` signal so they start and stop with the run whatever its cause.
  */
 
-import { getContext, getElement } from '@wordpress/interactivity';
+import { getConfig, getContext, getElement } from '@wordpress/interactivity';
 import { type CockpitContext } from './CockpitContext';
 import { type StorePart } from './StoreParts';
 import { instanceFor, now, wallNow } from './RunInstance';
@@ -16,9 +16,24 @@ import { clampTarget, targetCap } from './TargetControl';
 import { ScreenWakeLock, type WakeLockSentinelLike } from './WakeLock';
 import { formatClock, formatTimeToEmpty, formatRate } from './Format';
 import { withSurferParams } from './SurferUrl';
+import { buildSurfIndexUrl } from './SurfIndexUrl';
 import { isPageDoneMessage, nextPageIndex } from './PageAdvance';
 import { isBlankFrame, viewportFailed } from './PageGuard';
 import { runBlocksExit, confirmExit } from './ExitGuard';
+
+/**
+ * The surf-route configuration the cockpit's PHP route seeds via
+ * `getConfig()` — the site's home URL and a `bsb_surf` nonce, the only
+ * material `currentSrc` needs to build an index request. Read from the same
+ * `bsb/cockpit` config object {@link ./SessionUpload} reads its REST access
+ * from.
+ */
+interface SurfConfig {
+	/** The site's home URL, seeded server-side. */
+	surfBase: string;
+	/** A `bsb_surf` nonce proving the request came from the authorized cockpit. */
+	surfNonce: string;
+}
 
 /**
  * How long the viewport is given to fire a `load` after a run points it at a
@@ -36,18 +51,29 @@ export const runStore: StorePart = {
 		 * URL of the active course page, bound onto the viewport iframe. Empty
 		 * until a run starts, so the benchmarked pages are not fetched while the
 		 * idle screen is showing — the iframe loads only once surfing begins.
-		 * Carries the surfer's trait vector and demo speed as query params, the
-		 * only channel the engine running inside the iframe reads them from.
+		 *
+		 * Built entirely from the opaque `activeIndex` counter and the surf-route
+		 * configuration the cockpit's PHP route seeds (the home URL + a
+		 * `bsb_surf` nonce) — the client never knows which page an index names,
+		 * how many pages exist, or anything else about them; `CourseRouter`
+		 * resolves that server-side. Also carries the surfer's trait vector and
+		 * demo speed as query params, the only channel the engine running inside
+		 * the iframe reads them from.
 		 */
 		get currentSrc(): string {
-			const { pages, activeIndex, running, traits, speed } =
+			const { activeIndex, running, traits, speed } =
 				getContext< CockpitContext >();
 
 			if ( ! running ) {
 				return '';
 			}
 
-			const url = pages[ activeIndex ]?.url;
+			const config = getConfig( 'bsb/cockpit' ) as Partial< SurfConfig >;
+			const url = buildSurfIndexUrl(
+				config.surfBase ?? '',
+				activeIndex,
+				config.surfNonce ?? ''
+			);
 
 			return url ? withSurferParams( url, traits, speed ) : '';
 		},
@@ -372,10 +398,7 @@ export const runStore: StorePart = {
 					return;
 				}
 
-				context.activeIndex = nextPageIndex(
-					context.activeIndex,
-					context.pages.length
-				);
+				context.activeIndex = nextPageIndex( context.activeIndex );
 			};
 
 			window.addEventListener( 'message', onMessage );
@@ -417,8 +440,8 @@ export const runStore: StorePart = {
 		 * never responds), which the event-bound {@see guardViewport} cannot see.
 		 *
 		 * Driven by `data-wp-watch`, so it re-runs whenever one of the values it
-		 * reads changes — `running`, `pages` and `activeIndex` — which arms a
-		 * fresh watchdog at run start and on every page advance, and clears it (by
+		 * reads changes — `running` and `activeIndex` — which arms a fresh
+		 * watchdog at run start and on every page advance, and clears it (by
 		 * re-running the "supersede" clear below with nothing to re-arm) once
 		 * `running` flips false at run end. A `load`/`error` arriving in time
 		 * clears it from {@see guardViewport} instead, since that is the event
@@ -435,12 +458,15 @@ export const runStore: StorePart = {
 				instance.loadWatchdog = null;
 			}
 
-			// Reading running, pages and activeIndex registers them as this
-			// watch's dependencies, so it re-runs — and re-arms — at run
-			// start/stop and on every page advance. Nothing to guard while idle
-			// or with no page to load.
-			const { running, pages, activeIndex } = context;
-			if ( ! running || ! pages[ activeIndex ] ) {
+			// Reading running and activeIndex registers them as this watch's
+			// dependencies, so it re-runs — and re-arms — at run start/stop and on
+			// every page advance (activeIndex is not otherwise used here: every
+			// index the counter can reach resolves to a page server-side, the
+			// router wraps, so there is no "no page to load" case to check for
+			// once a run is live).
+			const { running } = context;
+			void context.activeIndex;
+			if ( ! running ) {
 				return;
 			}
 

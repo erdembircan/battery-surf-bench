@@ -14,61 +14,77 @@ use WP_Post;
 use WP_Query;
 
 use function __return_empty_string;
+use function absint;
 use function add_action;
 use function add_filter;
+use function count;
+use function current_user_can;
 use function get_option;
 use function get_post;
 use function get_query_var;
 use function get_the_title;
-use function in_array;
-use function preg_match;
-use function sanitize_key;
+use function wp_verify_nonce;
 
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Serves the course pages off a URL parameter instead of seeding real pages.
- * When the request carries the course query parameter (e.g.
- * `?bsbSessionPage=article-1`) and the slug names a catalog page, the router
- * injects that page's block markup as a virtual post and lets WordPress render
- * it through the active theme — full header, footer, scripts and styles, with
- * `the_content` running `do_blocks()` on the markup. Nothing is seeded and no
- * theme output is stripped, so a course page reflects the theme exactly as any
- * real page would.
+ * Serves the surfer's whole page sequence off a single opaque index instead
+ * of seeding real pages or exposing per-page identity: a request carrying
+ * `?bsbSurfIndex=<n>&bsbNonce=<nonce>` resolves, entirely server-side, to the
+ * saved surf-course order's `n`-th entry (wrapping via modulo, so the client
+ * never needs to know how many pages exist), and the router injects that
+ * entry's markup as a virtual post and lets WordPress render it through the
+ * active theme — full header, footer, scripts and styles, with `the_content`
+ * running `do_blocks()` on the markup. Nothing is seeded and no theme output
+ * is stripped, so a course page reflects the theme exactly as any real page
+ * would.
  *
- * A slug of the form `user-<id>` is served the same way, but its content comes
- * from a real, user-selected post rather than the bundled catalog — see
- * {@see resolve_user_page()}. This is a deliberate security boundary: the surf
- * engine (`surfer.js` + the shared course-page body class) is enqueued only
- * for a request the router itself serves through this synthetic-render path.
- * It is never enqueued on a user page's own real permalink, and a `user-<id>`
- * slug is only ever served when that id is currently selected and eligible in
- * the saved surf-course order — checked here, server-side, against the saved
- * option. Nothing in the URL (in particular, never the `bsbTraits` behavior
- * parameter) is allowed to decide whether a page is a surf target.
+ * This is a deliberate security boundary. The client (the cockpit's
+ * `RunStore`) holds nothing but an incrementing counter — no page ids, URLs,
+ * titles, order, or count ever reach it — so there is nothing in the request
+ * for an attacker to read off or manipulate into targeting a specific page.
+ * The route itself is gated, for EVERY entry it could resolve to (bundled or
+ * user alike, decided only after the gate passes): `current_user_can()` for
+ * the plugin's capability AND a valid `bsb_surf` nonce are both required
+ * before any index is even resolved against the saved order. Neither
+ * condition being met falls through untouched, ordinarily to a 404 — no
+ * render path, bundled or user, is ever reached without both. The old
+ * `?bsbSessionPage=<slug>` (and `user-<id>`) public routes are retired
+ * entirely; a bundled slug is still resolved internally, against the
+ * catalog, once an authorized request's index has picked it.
  *
- * The virtual post never touches the database: it exists only for the duration
- * of the request that asked for it.
+ * Nothing in the URL besides the index and the nonce is allowed to decide
+ * what gets served — in particular, never the `bsbTraits` behavior
+ * parameter, which is the surf engine's behavior input, not a gate.
+ *
+ * The virtual post never touches the database: it exists only for the
+ * duration of the request that asked for it.
  */
 class CourseRouter implements Manager {
 
 	/**
-	 * Stores the catalog the pages come from and the query parameter that
-	 * selects one.
+	 * Stores the catalog the pages come from and everything needed to gate
+	 * and resolve an index request.
 	 *
 	 * @param CourseCatalog        $catalog         Source of the bundled course pages and their markup.
-	 * @param string               $param           Query parameter the page slug is read from.
+	 * @param string               $index_param     Query parameter carrying the opaque, client-incrementing page index.
+	 * @param string               $nonce_param     Query parameter carrying the `bsb_surf` nonce authorizing the request.
+	 * @param string               $nonce_action    Nonce action the surf nonce is verified against.
+	 * @param string               $capability      Capability required to have an index request served.
 	 * @param Assets               $assets          Service used to enqueue the course stylesheet and surf engine.
 	 * @param string               $stylesheet      Course stylesheet, relative to the plugin root.
 	 * @param string               $script          Surf engine script, relative to the plugin root.
 	 * @param string               $body_class      Body-class marker stamped on every served course page.
-	 * @param string               $option_name     Name of the option the surf-course order is saved under — the authoritative, server-side source of which `user-<id>` slugs are eligible to be served.
-	 * @param CourseOrderSanitizer $order_sanitizer Heals the saved order on every read and exposes the currently-selected user ids to gate a `user-<id>` request against.
-	 * @param UserPageView         $user_page_view  Renders a real user page's own title as a heading above its content, so a served `user-<id>` page stays faithful to the real page.
+	 * @param string               $option_name     Name of the option the surf-course order is saved under — the authoritative, server-side source of the sequence an index resolves against.
+	 * @param CourseOrderSanitizer $order_sanitizer Heals the saved order on every read.
+	 * @param UserPageView         $user_page_view  Renders a real user page's own title as a heading above its content, so a served user entry stays faithful to the real page.
 	 */
 	public function __construct(
 		private CourseCatalog $catalog,
-		private string $param,
+		private string $index_param,
+		private string $nonce_param,
+		private string $nonce_action,
+		private string $capability,
 		private Assets $assets,
 		private string $stylesheet,
 		private string $script,
@@ -80,47 +96,58 @@ class CourseRouter implements Manager {
 	}
 
 	/**
-	 * Registers the course query parameter and the main-query interceptor.
+	 * Registers the course query parameters and the main-query interceptor.
 	 *
 	 * @return void
 	 */
 	public function register(): void {
-		add_filter( 'query_vars', array( $this, 'add_query_var' ) );
+		add_filter( 'query_vars', array( $this, 'add_query_vars' ) );
 		add_filter( 'the_posts', array( $this, 'maybe_render' ), 10, 2 );
 	}
 
 	/**
-	 * Declares the course query parameter so WordPress parses it off the URL.
+	 * Declares the course query parameters so WordPress parses them off the
+	 * URL.
 	 *
 	 * @param array<int, string> $vars Registered public query vars.
-	 * @return array<int, string> The query vars with the course parameter added.
+	 * @return array<int, string> The query vars with the index and nonce parameters added.
 	 */
-	public function add_query_var( array $vars ): array {
-		$vars[] = $this->param;
+	public function add_query_vars( array $vars ): array {
+		$vars[] = $this->index_param;
+		$vars[] = $this->nonce_param;
 
 		return $vars;
 	}
 
 	/**
-	 * Turns the main query into the requested course page when the course
-	 * parameter names either a bundled catalog page or a currently-selected,
-	 * eligible user page, so the theme renders it as a singular page. Runs on
-	 * the main query only and leaves every other query untouched — including a
-	 * `user-<id>` slug that does not (or no longer) name a selected page, which
-	 * falls through to whatever the site would otherwise resolve (ordinarily a
-	 * 404).
+	 * Turns the main query into the course page named by the requested,
+	 * authorized index, so the theme renders it as a singular page. Runs on
+	 * the main query only and leaves every other query untouched.
+	 *
+	 * The gate — capability AND a valid `bsb_surf` nonce — is checked before
+	 * anything about the saved order is even read, so it guards EVERY entry
+	 * the index could resolve to, bundled or user alike; a request that
+	 * fails either check never reaches the order at all and falls through to
+	 * whatever the site would otherwise resolve (ordinarily a 404).
 	 *
 	 * @param array<int, WP_Post> $posts The posts the query found.
 	 * @param WP_Query            $query The query being run.
-	 * @return array<int, WP_Post> The course page's virtual post, or the posts unchanged.
+	 * @return array<int, WP_Post> The resolved course page's virtual post, or the posts unchanged.
 	 */
 	public function maybe_render( array $posts, WP_Query $query ): array {
 		if ( ! $query->is_main_query() ) {
 			return $posts;
 		}
 
-		$slug = $this->requested_slug();
-		$page = $this->catalog->find( $slug ) ?? $this->resolve_user_page( $slug );
+		if ( '' === (string) get_query_var( $this->index_param, '' ) ) {
+			return $posts;
+		}
+
+		if ( ! $this->request_authorized() ) {
+			return $posts;
+		}
+
+		$page = $this->resolve_indexed_page();
 
 		if ( null === $page ) {
 			return $posts;
@@ -130,48 +157,65 @@ class CourseRouter implements Manager {
 	}
 
 	/**
-	 * Resolves the requested course slug from the registered query parameter.
-	 * The parameter is a public query var ({@see CourseRouter::add_query_var()}),
-	 * so WordPress parses it off the URL and exposes it through `get_query_var()`
-	 * — no need to read the superglobal.
+	 * The authoritative, server-side gate every index request must clear
+	 * before any entry — bundled or user — is resolved or rendered: the
+	 * requester must hold the plugin capability AND carry a nonce valid for
+	 * the `bsb_surf` action. Nothing else about the request has any say.
 	 *
-	 * @return string The sanitized slug, or '' when the parameter is absent.
+	 * @return bool Whether the request is authorized to have an index served.
 	 */
-	private function requested_slug(): string {
-		return sanitize_key( (string) get_query_var( $this->param ) );
+	private function request_authorized(): bool {
+		if ( ! current_user_can( $this->capability ) ) {
+			return false;
+		}
+
+		$nonce = (string) get_query_var( $this->nonce_param, '' );
+
+		return false !== wp_verify_nonce( $nonce, $this->nonce_action );
 	}
 
 	/**
-	 * Resolves a `user-<id>` slug to the real post it names, but only when
-	 * that id is currently selected and eligible in the saved surf-course
-	 * order — the authoritative, server-side gate. This is the ONLY check that
-	 * decides whether a user page is served: nothing about the request itself
-	 * (in particular, never the `bsbTraits` behavior parameter) has any say.
-	 * A slug that does not match the pattern, an id absent from the saved
-	 * order, or an id that no longer resolves to a post all fail identically.
+	 * Resolves the requested index against the saved, healed surf-course
+	 * order: the index wraps via modulo, so the client's ever-incrementing
+	 * counter never needs to know how many pages exist. An empty order (which
+	 * should not happen — bundled pages can never be dropped) resolves to
+	 * nothing rather than dividing by zero.
 	 *
-	 * The returned page's content is the real post's own raw block markup with
-	 * its title prefixed as a heading (see {@see UserPageView}) — a real page's
-	 * title is a field separate from its content, so without the prefix a
-	 * surfed user page would render without it. Prefixed or not, the content
-	 * renders — and enqueues its blocks' own view assets — through the exact
-	 * same `the_content` / `do_blocks()` path {@see serve()} already runs
-	 * bundled pages through.
-	 *
-	 * @param string $slug The requested slug.
-	 * @return CoursePage|null The resolved user page, or null when the slug does not name a currently-selected, eligible user page.
+	 * @return CoursePage|null The resolved course page, or null when the saved order is empty or the entry no longer resolves.
 	 */
-	private function resolve_user_page( string $slug ): ?CoursePage {
-		if ( 1 !== preg_match( '/^user-(\d+)$/', $slug, $matches ) ) {
+	private function resolve_indexed_page(): ?CoursePage {
+		$order = $this->order_sanitizer->sanitize( get_option( $this->option_name, $this->order_sanitizer->default_order() ) );
+		$count = count( $order );
+
+		if ( 0 === $count ) {
 			return null;
 		}
 
-		$id = (int) $matches[1];
+		$index = absint( get_query_var( $this->index_param ) ) % $count;
+		$entry = $order[ $index ];
 
-		if ( ! in_array( $id, $this->eligible_user_ids(), true ) ) {
-			return null;
-		}
+		return 'bundled' === $entry['kind']
+			? $this->catalog->find( $entry['slug'] )
+			: $this->resolve_user_entry( $entry['id'] );
+	}
 
+	/**
+	 * Resolves a user entry's post id to its real content. The sanitizer
+	 * already validated the id when healing the saved order, so this only
+	 * guards the rare case the post vanished between that read and this one.
+	 *
+	 * The returned page's content is the real post's own raw block markup
+	 * with its title prefixed as a heading (see {@see UserPageView}) — a real
+	 * page's title is a field separate from its content, so without the
+	 * prefix a surfed user page would render without it. Prefixed or not,
+	 * the content renders — and enqueues its blocks' own view assets —
+	 * through the exact same `the_content` / `do_blocks()` path {@see serve()}
+	 * already runs bundled pages through.
+	 *
+	 * @param int $id The user page's post id.
+	 * @return CoursePage|null The resolved user page, or null when the post no longer resolves.
+	 */
+	private function resolve_user_entry( int $id ): ?CoursePage {
 		$post = get_post( $id );
 
 		if ( null === $post ) {
@@ -186,28 +230,7 @@ class CourseRouter implements Manager {
 			)
 		);
 
-		return new CoursePage( $slug, $title, $content );
-	}
-
-	/**
-	 * Reads and heals the saved surf-course order, then extracts the set of
-	 * user post ids it names — the same set {@see CourseLibrary} emits router
-	 * links for. The saved option is the single source of truth for which
-	 * `user-<id>` slugs this router will serve.
-	 *
-	 * @return array<int, int> The saved order's user post ids.
-	 */
-	private function eligible_user_ids(): array {
-		$order = $this->order_sanitizer->sanitize( get_option( $this->option_name, $this->order_sanitizer->default_order() ) );
-		$ids   = array();
-
-		foreach ( $order as $entry ) {
-			if ( 'user' === $entry['kind'] ) {
-				$ids[] = $entry['id'];
-			}
-		}
-
-		return $ids;
+		return new CoursePage( 'user-' . $id, $title, $content );
 	}
 
 	/**

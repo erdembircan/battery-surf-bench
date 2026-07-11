@@ -14,13 +14,11 @@ use ErdemBircan\BatterySurfBench\Admin\Views\StartBenchmarkView;
 use ErdemBircan\BatterySurfBench\Cockpit\Cockpit;
 use ErdemBircan\BatterySurfBench\Cockpit\Views\CockpitDashboard;
 use ErdemBircan\BatterySurfBench\Cockpit\Views\SessionDetailView;
-use ErdemBircan\BatterySurfBench\Cockpit\CoursePagesSource;
 use ErdemBircan\BatterySurfBench\Content\SessionDetail;
 use ErdemBircan\BatterySurfBench\Content\SessionRestQuery;
 use ErdemBircan\BatterySurfBench\Content\SessionSchema;
 use ErdemBircan\BatterySurfBench\Content\SessionType;
 use ErdemBircan\BatterySurfBench\Course\CourseCatalog;
-use ErdemBircan\BatterySurfBench\Course\CourseLibrary;
 use ErdemBircan\BatterySurfBench\Course\CourseOrderOption;
 use ErdemBircan\BatterySurfBench\Course\CourseOrderSanitizer;
 use ErdemBircan\BatterySurfBench\Course\CourseRouter;
@@ -101,11 +99,11 @@ class BatterySurfBench {
 
 		// Course domain: the catalog describes the surf course and loads each
 		// page's block markup; the router serves the WHOLE saved sequence —
-		// bundled virtual pages and real user pages alike — through its own
-		// controlled synthetic-render route (never a user page's real
-		// permalink, which is the security boundary the surf engine relies
-		// on), and the library lists the whole saved sequence's surf URLs
-		// for the cockpit.
+		// bundled virtual pages and real user pages alike — off a single
+		// opaque client index, through its own controlled synthetic-render
+		// route (never a user page's real permalink, which is the security
+		// boundary the surf engine relies on). No page data (ids, URLs,
+		// titles, order, count) is ever emitted to the client.
 		$catalog = new CourseCatalog( $this->paths->path( 'includes/Course/content' ) );
 
 		// Post types the settings screen's browse pane may add a user page
@@ -115,18 +113,10 @@ class BatterySurfBench {
 
 		// Shared between the option's own definition (its sanitize + default
 		// callbacks), the settings screen (which heals the saved order with
-		// it on every read, since the sanitize callback only runs on write),
-		// the library (which emits the saved sequence's surf links) and the
-		// router (which reads the same order to authoritatively gate which
-		// `user-<id>` slugs it will serve).
+		// it on every read, since the sanitize callback only runs on write)
+		// and the router (which reads the same order to resolve an
+		// authorized index request).
 		$order_sanitizer = new CourseOrderSanitizer( $catalog, $settings_post_types );
-
-		$library = new CourseLibrary(
-			$catalog,
-			$this->registry->get( 'course.param' ),
-			$this->registry->get( 'settings.option' ),
-			$order_sanitizer
-		);
 
 		// Describes the surf-course order option; registering it with
 		// WordPress is OptionRegistry's job, not this provider's — see below.
@@ -203,7 +193,10 @@ class BatterySurfBench {
 			),
 			new CourseRouter(
 				$catalog,
-				$this->registry->get( 'course.param' ),
+				$this->registry->get( 'course.index_param' ),
+				$this->registry->get( 'course.nonce_param' ),
+				$this->registry->get( 'course.nonce_action' ),
+				$this->registry->get( 'capability' ),
 				$this->assets,
 				$this->registry->get( 'course.style' ),
 				$this->registry->get( 'course.script' ),
@@ -212,20 +205,16 @@ class BatterySurfBench {
 				$order_sanitizer,
 				new UserPageView()
 			),
-			new CoursePagesSource(
-				$this->registry->get( 'course.binding_source' ),
-				$library
-			),
 			new Cockpit(
 				$this->paths->path( $this->registry->get( 'cockpit.block_dir' ) ),
 				$this->registry->get( 'cockpit.block_name' ),
-				$this->registry->get( 'course.binding_source' ),
 				$this->registry->get( 'cockpit.param' ),
 				$this->registry->get( 'cockpit.value' ),
 				$this->registry->get( 'capability' ),
 				new CockpitDashboard(),
 				$this->assets,
 				$this->registry->get( 'session.post_type' ),
+				$this->registry->get( 'course.nonce_action' ),
 				new StandaloneChrome(
 					$this->assets,
 					$this->registry->get( 'cockpit.style' )

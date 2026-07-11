@@ -235,7 +235,7 @@ test.describe( 'Dev-tools battery-override panel', () => {
 		).toBeVisible();
 		await expect(
 			page.locator( 'iframe.bsb-cockpit__viewport' )
-		).toHaveAttribute( 'src', /bsbSessionPage/ );
+		).toHaveAttribute( 'src', /bsbSurfIndex/ );
 
 		// The run keeps surfing — it is not immediately undone by the host's own
 		// real charging state.

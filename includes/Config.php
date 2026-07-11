@@ -63,27 +63,34 @@ return array(
 		'style'       => 'build/style-sessions.css',
 	),
 	'course'     => array(
-		// Query parameter that selects a course page: `?bsbSessionPage=<slug>`.
-		// The router renders the named page through the active theme; nothing
-		// is seeded as a real page.
-		'param'          => 'bsbSessionPage',
-		// Block Bindings source the cockpit's `pages` attribute binds to.
-		'binding_source' => 'bsb/course-pages',
+		// Query parameter carrying the opaque, client-incrementing page index:
+		// `?bsbSurfIndex=<n>`. The client never learns which page an index
+		// names, how many pages exist, or anything else about them — the
+		// router resolves the index against the saved order server-side
+		// (wrapping with modulo) and is the sole authority on what gets
+		// served. Never exposed as a per-page slug/URL to the client.
+		'index_param'  => 'bsbSurfIndex',
+		// Query parameter carrying the `bsb_surf` nonce that authorizes an
+		// index request, minted only for the gated cockpit route.
+		'nonce_param'  => 'bsbNonce',
+		// The nonce action the cockpit mints the surf nonce under and the
+		// router verifies it against.
+		'nonce_action' => 'bsb_surf',
 		// Stylesheet that styles the course content, scoped to its
 		// `.bsb-course-content` wrapper, enqueued only on course pages. Built
 		// from `src/course/style.scss`.
-		'style'          => 'build/style-course.css',
+		'style'        => 'build/style-course.css',
 		// The headless surf engine, enqueued only on course pages alongside the
 		// stylesheet above. Boots itself only when the traits URL param is
 		// present, so a human opening a course URL directly sees a static page.
 		// Built from `src/surfer/index.ts`.
-		'script'         => 'build/surfer.js',
+		'script'       => 'build/surfer.js',
 		// Body-class marker stamped on every page the surf engine actually
 		// runs on — both the bundled and the real user pages `CourseRouter`
 		// serves through its own controlled synthetic-render route. The
 		// cockpit's viewport load guard (`PageGuard.COURSE_PAGE_SELECTOR`)
 		// looks for it from inside the iframe.
-		'body_class'     => 'bsb-course-page',
+		'body_class'   => 'bsb-course-page',
 	),
 	'cockpit'    => array(
 		// Query parameter + value that serve the cockpit dashboard:

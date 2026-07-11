@@ -2,17 +2,17 @@
 /**
  * Server render for the `bsb/cockpit` block.
  *
- * The `pages` attribute is resolved by the `bsb/course-pages` Block Bindings
- * source before this template runs: a list of `{ slug, title, url }` the
- * cockpit can surf. The cockpit decides which page to show — for now the first
- * in the list — and the Interactivity API keeps the iframe pointed at it, so
- * the choice can move client-side as configuration controls are added.
+ * The block carries no page data: which page is surfed at any point is an
+ * opaque, client-incrementing index (`activeIndex`) the store resolves
+ * against the seeded surf-route configuration (`RunStore.currentSrc`), and
+ * `CourseRouter` resolves entirely server-side against the saved order —
+ * never a bound page list.
  *
  * This template only prepares the dynamic, raw (translated) values; the markup
  * itself lives in {@see CockpitView}, which escapes each value and owns the HTML,
  * so nothing is escaped or written inline here.
  *
- * @var array    $attributes Block attributes; `pages` holds the bound course list.
+ * @var array    $attributes Block attributes (unused; the cockpit declares none).
  * @var string   $content    Inner block markup (unused; the cockpit has none yet).
  * @var WP_Block $block      The block instance.
  *
@@ -31,15 +31,13 @@ use function wp_interactivity_data_wp_context;
 
 defined( 'ABSPATH' ) || exit;
 
-$bsb_pages = isset( $attributes['pages'] ) && is_array( $attributes['pages'] ) ? $attributes['pages'] : array();
-
-// Per-instance Interactivity context: the surfable pages, which one is active,
-// and the run configuration the control deck edits. The active page's URL is
-// derived from these on the client (see view.ts) and bound onto the iframe, so
-// changing the index later re-points the viewport with no reload of the cockpit
-// itself; the deck reads and writes the run fields through the same store.
+// Per-instance Interactivity context: which opaque page index is active, and
+// the run configuration the control deck edits. The active index's URL is
+// built client-side (see RunStore.ts) from the seeded surf-route
+// configuration and bound onto the iframe, so advancing the index later
+// re-points the viewport with no reload of the cockpit itself; the deck reads
+// and writes the run fields through the same store.
 $bsb_context = array(
-	'pages'               => $bsb_pages,
 	'activeIndex'         => 0,
 	'mode'                => 'duration',
 	'durationMinutes'     => 30,

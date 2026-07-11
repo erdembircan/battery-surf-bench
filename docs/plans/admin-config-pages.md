@@ -152,3 +152,14 @@ Resolved:
 4. ~~Menu shape~~ → **Settings replaces the empty top-level landing** (evolve `Menu` into `SettingsScreen`; Sessions stays a submenu). Default taken; maintainer may veto.
 
 5. ~~M3 engine scope~~ → **Run the FULL engine on user pages.** Selected user pages behave exactly like bundled pages: enqueue `build/surfer.js` + stamp the `bsb-course-page` body class when the surfer trait param is present, so they scroll/interact and post `bsb:pageDone` to advance. Must verify the engine degrades gracefully on arbitrary themes/markup during M3.
+
+## M3 REDESIGN — index-based serving (no page data on the client; security)
+
+Supersedes §A/§B above. The client must know NOTHING about the pages (no IDs, URLs, titles, order, or count) — exposing post IDs / directly-reachable per-page URLs is the flaw. Navigation is by an opaque index the backend resolves.
+
+- **Client:** holds an incrementing `activeIndex` counter (start 0). `RunStore.currentSrc` = `home_url('/?bsbSurfIndex=' + activeIndex + '&bsbNonce=' + surfNonce)` then `withSurferParams` (traits/speed). `PageAdvance` on `bsb:pageDone` just does `activeIndex + 1` — no wrap, no `pageCount`. REMOVE the `bsb/course-pages` block binding, `context.pages`, and the client-facing URL output of `CourseLibrary::links()`. Seed `surfNonce` (+ the base is `home_url`) via `wp_interactivity_config` in the cockpit's post-gate REST setup (like `restNonce`).
+- **Backend (`CourseRouter`):** handle `?bsbSurfIndex=<n>` (registered query var, read via `get_query_var`): gate on `current_user_can($capability)` AND `wp_verify_nonce($nonce, 'bsb_surf')` → fail = fall through to 404. Read+heal the saved order; `count = len(order)`; resolve `order[ absint($n) % count ]` (**backend wraps** → client stays a pure counter, never learns the count). Render that entry through the existing `serve()` path — bundled slug → bundled content; `user` id → `get_post` content via `UserPageView` (title heading + content). `surfer.js` + `bsb-course-page` as today. Retire the public `?bsbSessionPage=<slug>` route.
+- **Gates:** capability + surf nonce + `absint` + modulo-bounds (count is always ≥5 since bundled always present; still guard count==0 → 404).
+- **Nonce edge:** minted at cockpit load (~12–24h life); a run started right after opening is fine. Accept; optional run-start refresh if wanted.
+- Client no longer has page titles (removed with the pages array) — accepted.
+- Tests: `CourseRouter` index route (valid nonce+cap+in-range → serves the right entry; bad/missing nonce → 404; non-admin → 404; wraps via modulo; user entry renders title). Front-end: `RunStore.currentSrc` builds the index URL + nonce; `PageAdvance` increments. Security e2e: `?bsbSurfIndex=0` without a nonce (or logged out) → not served. Update both contract charts (remove CoursePagesSource/pages binding edges; CourseRouter reads order+nonce).

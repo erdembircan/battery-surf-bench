@@ -24,21 +24,25 @@ use function has_filter;
 /**
  * The cockpit registers its block and serves the dashboard off a URL parameter
  * — never a seeded page. Its observable contract: register the block from its
- * built directory, declare the dashboard query parameter, opt the `pages`
- * attribute into Block Bindings, and hook the dashboard route. The standalone
- * strip it delegates to is covered by {@see StandaloneChromeTest}; the render-
- * and-exit path is exercised end-to-end in the Playground, not here.
+ * built directory, declare the dashboard query parameter, and hook the
+ * dashboard route. The block carries no page data of its own — the client
+ * builds each viewport request from index-route configuration the dashboard
+ * route seeds (see {@see Cockpit::configure_rest_access()}), so there is no
+ * Block Bindings wiring to test here. The standalone strip it delegates to is
+ * covered by {@see StandaloneChromeTest}; the render-and-exit path (including
+ * the seeded configuration) is exercised end-to-end in the Playground, not
+ * here.
  */
 final class CockpitTest extends TestCase {
 
-	private const BLOCK_DIR  = '/plugin/build/cockpit';
-	private const BLOCK_NAME = 'bsb/cockpit';
-	private const SOURCE     = 'bsb/course-pages';
-	private const PARAM      = 'bsbSession';
-	private const VALUE      = 'cockpit';
-	private const CAPABILITY = 'manage_options';
-	private const STYLE      = 'build/style-cockpit-dashboard.css';
-	private const POST_TYPE  = 'bsb_session';
+	private const BLOCK_DIR    = '/plugin/build/cockpit';
+	private const BLOCK_NAME   = 'bsb/cockpit';
+	private const PARAM        = 'bsbSession';
+	private const VALUE        = 'cockpit';
+	private const CAPABILITY   = 'manage_options';
+	private const STYLE        = 'build/style-cockpit-dashboard.css';
+	private const POST_TYPE    = 'bsb_session';
+	private const NONCE_ACTION = 'bsb_surf';
 
 	/**
 	 * Builds the cockpit manager under test.
@@ -52,13 +56,13 @@ final class CockpitTest extends TestCase {
 		return new Cockpit(
 			self::BLOCK_DIR,
 			self::BLOCK_NAME,
-			self::SOURCE,
 			self::PARAM,
 			self::VALUE,
 			self::CAPABILITY,
 			new CockpitDashboard(),
 			$resolved,
 			self::POST_TYPE,
+			self::NONCE_ACTION,
 			new StandaloneChrome( $resolved, self::STYLE )
 		);
 	}
@@ -71,27 +75,16 @@ final class CockpitTest extends TestCase {
 	}
 
 	/**
-	 * Registration opts `pages` into Block Bindings, declares the dashboard
-	 * query var, and defers block registration and the route to their hooks.
+	 * Registration declares the dashboard query var and defers block
+	 * registration and the route to their hooks.
 	 */
-	public function test_register_wires_bindings_query_var_block_and_route(): void {
+	public function test_register_wires_query_var_block_and_route(): void {
 		$cockpit = $this->cockpit();
 		$cockpit->register();
 
-		$this->assertNotFalse(
-			has_filter( 'block_bindings_supported_attributes_' . self::BLOCK_NAME, array( $cockpit, 'allow_pages_binding' ) )
-		);
 		$this->assertNotFalse( has_filter( 'query_vars', array( $cockpit, 'add_query_var' ) ) );
 		$this->assertNotFalse( has_action( 'init', array( $cockpit, 'register_block' ) ) );
 		$this->assertNotFalse( has_action( 'template_redirect', array( $cockpit, 'maybe_render' ) ) );
-	}
-
-	/**
-	 * The cockpit adds `pages` to the attributes WordPress may bind for the
-	 * block; without it, the bound page list would be ignored.
-	 */
-	public function test_allow_pages_binding_adds_the_pages_attribute(): void {
-		$this->assertSame( array( 'content', 'pages' ), $this->cockpit()->allow_pages_binding( array( 'content' ) ) );
 	}
 
 	/**
