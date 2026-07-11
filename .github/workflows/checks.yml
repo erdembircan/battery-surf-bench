@@ -24,6 +24,11 @@ jobs:
       - uses: actions/checkout@v6
       - uses: ./.github/actions/setup-php
       - run: composer test
+      # Validate the container definitions — reflect every class against its
+      # Services.php recipe — without building or writing the compiled
+      # artifact (it is gitignored and regenerated on real builds, so there is
+      # nothing to emit or diff here).
+      - run: composer validate:container
 
   js-lint:
     runs-on: ubuntu-latest

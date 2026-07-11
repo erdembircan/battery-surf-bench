@@ -73,4 +73,18 @@ final class BatterySurfBenchTest extends TestCase {
 		// PHPUnit does not flag the test as risky.
 		$this->addToAssertionCount( 1 );
 	}
+
+	/**
+	 * Booting in a `development` environment must still succeed — the
+	 * compiled artifact is skipped there ({@see DefinitionsSource}), so the
+	 * live `Services.php` wires every manager instead.
+	 */
+	public function test_init_boots_in_a_development_environment(): void {
+		Functions\when( 'wp_get_environment_type' )->justReturn( 'development' );
+
+		$plugin = new BatterySurfBench( '/path/to/plugin.php' );
+		$plugin->init();
+
+		$this->assertNotFalse( has_action( 'admin_menu' ) );
+	}
 }
