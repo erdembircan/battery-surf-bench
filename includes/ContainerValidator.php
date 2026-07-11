@@ -49,7 +49,7 @@ defined( 'ABSPATH' ) || exit;
  * with {@see ContainerCompiler} on purpose: validating a recipe against a
  * constructor and transforming a recipe into a plan are distinct
  * responsibilities. It performs no file I/O and builds no objects — it only
- * reflects and reports. `bin/CompileContainer.php` is the one place that
+ * reflects and reports. `bin/BuildContainer.php` is the one place that
  * decides what to do with the result: gate the build on an empty list.
  *
  * The runtime {@see Instantiator} keeps its own throws exactly as they are;

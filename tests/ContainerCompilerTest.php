@@ -23,7 +23,7 @@ use ErdemBircan\BatterySurfBench\Tests\Fixtures\FixtureNamed;
  * Behavioral tests for the compiler's public contract: `compile()` as a
  * pure function over a small hand-built service-recipe map, fixture
  * classes, and an in-memory {@see Registry} — no filesystem involved, since
- * writing the compiled output to disk is `bin/CompileContainer.php`'s job,
+ * writing the compiled output to disk is `bin/BuildContainer.php`'s job,
  * not this class's. Assertions target the plan instructions a compiled
  * class ends up with, not real managers.
  */

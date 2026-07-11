@@ -4,7 +4,7 @@
  * `build/Services.compiled.php`, pre-resolving every `%token%` against the
  * registry built from `includes/Config.php`.
  *
- * Run as: `php bin/CompileContainer.php`
+ * Run as: `php bin/BuildContainer.php`
  *
  * This script never bootstraps WordPress. It defines a dummy `ABSPATH` so
  * the plugin's `defined( 'ABSPATH' ) || exit;` guards let its classes and
@@ -64,7 +64,7 @@ $contents = "<?php\n"
 	. "/**\n"
 	. " * Generated container definitions — DO NOT EDIT.\n"
 	. " *\n"
-	. " * Produced by bin/CompileContainer.php from includes/Services.php with\n"
+	. " * Produced by bin/BuildContainer.php from includes/Services.php with\n"
 	. " * %token% specs flattened to their configuration values. Regenerated on\n"
 	. " * build.\n"
 	. " *\n"

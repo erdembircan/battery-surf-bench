@@ -36,7 +36,7 @@ defined( 'ABSPATH' ) || exit;
  *
  * This class performs no file I/O: it is a pure transform, exercised
  * directly by its own tests. Writing the compiled output to disk is
- * `bin/CompileContainer.php`'s job, not this class's.
+ * `bin/BuildContainer.php`'s job, not this class's.
  */
 class ContainerCompiler {
 

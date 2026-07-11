@@ -60,7 +60,7 @@ class BatterySurfBench {
 	 * manager through the instantiator.
 	 *
 	 * The service recipes load from the build-time compiled artifact when
-	 * present — {@see ContainerCompiler}, run by `bin/CompileContainer.php`,
+	 * present — {@see ContainerCompiler}, run by `bin/BuildContainer.php`,
 	 * pre-resolves every `%token%` recipe value against the registry so the
 	 * runtime never has to — falling back to the live, token-bearing
 	 * `Services.php` otherwise, the same `is_readable()`-guarded pattern
