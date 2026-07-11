@@ -5,6 +5,11 @@
 %% plugin's dependency closure, baking each %token% to its configuration
 %% value along the way) and falls back to the live, token-bearing
 %% Services.php otherwise, planning each class via reflection on demand.
+%% Before ContainerCompiler ever runs, the build validates the definitions
+%% via ContainerValidator, which reflects the same closure and collects
+%% every structural problem (unknown args, unknown tokens, type mismatches,
+%% unmapped interfaces) in one pass; the build aborts with the full error
+%% list rather than emitting a compiled artifact when any are found.
 classDiagram
     direction LR
 
@@ -45,6 +50,10 @@ classDiagram
 
     class ContainerCompiler {
         +compile(array services, Registry registry) array
+    }
+
+    class ContainerValidator {
+        +validate(array services, Registry registry, array runtime_keys) array
     }
 
     class NotFoundExceptionInterface {
@@ -314,6 +323,7 @@ classDiagram
     Instantiator --> InstanceStore : caches singletons
     ContainerCompiler ..> Instantiator : builds plans via
     ContainerCompiler ..> Registry : bakes %token% values via
+    ContainerValidator ..> Registry : checks config tokens against
     Definitions ..|> ContainerInterface : implements
     InstanceStore ..|> ContainerInterface : implements
     I18n ..|> Manager : implements

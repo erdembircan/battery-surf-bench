@@ -9,8 +9,11 @@
  * This script never bootstraps WordPress. It defines a dummy `ABSPATH` so
  * the plugin's `defined( 'ABSPATH' ) || exit;` guards let its classes and
  * the `Config.php`/`Services.php` sources load outside WordPress, then
- * flattens the container definitions and writes the result to a plain PHP
- * file the bootstrap `require`s when present.
+ * validates the container definitions and — only when that validation
+ * finds nothing wrong — flattens them and writes the result to a plain PHP
+ * file the bootstrap `require`s when present. When validation finds
+ * problems, the full list is printed and nothing is written: a broken
+ * recipe never reaches a compiled artifact.
  *
  * This file lives outside `includes/`, `src/` and `tests/` — the plugin's
  * shipped/tested source roots — so it is build tooling, not runtime code:
@@ -23,6 +26,7 @@
  */
 
 use ErdemBircan\BatterySurfBench\ContainerCompiler;
+use ErdemBircan\BatterySurfBench\ContainerValidator;
 use ErdemBircan\BatterySurfBench\Registry;
 
 define( 'ABSPATH', __DIR__ . '/' );
@@ -33,6 +37,18 @@ require $root . '/vendor/autoload.php';
 
 $registry = new Registry( require $root . '/includes/Config.php' );
 $services = require $root . '/includes/Services.php';
+
+$errors = ( new ContainerValidator() )->validate( $services, $registry );
+
+if ( $errors ) {
+	fwrite( STDERR, 'Container definition validation failed (' . count( $errors ) . " error(s)):\n" );
+
+	foreach ( $errors as $i => $error ) {
+		fwrite( STDERR, sprintf( "  %d. %s\n", $i + 1, $error ) );
+	}
+
+	exit( 1 );
+}
 
 $baked = ( new ContainerCompiler() )->compile( $services, $registry );
 
