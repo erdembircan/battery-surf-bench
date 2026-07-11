@@ -8,6 +8,7 @@
     "build": "WP_EXPERIMENTAL_MODULES=true wp-scripts build && pnpm run build:container",
     "start": "WP_EXPERIMENTAL_MODULES=true wp-scripts start",
     "build:container": "php bin/BuildContainer.php",
+    "validate:container": "php bin/BuildContainer.php --check",
     "typecheck": "tsc --noEmit",
     "lint:js": "wp-scripts lint-js",
     "license:verify": "license-wizard --verify --strict",
