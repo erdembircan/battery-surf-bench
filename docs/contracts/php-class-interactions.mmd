@@ -277,22 +277,21 @@ classDiagram
         +render(array data) string
     }
 
-    %% Makes a YouTube (or youtube-nocookie) embed on a served course page
-    %% offline/deterministic (pre_oembed_result) and controllable by the surf
-    %% engine's VideoControl (embed_oembed_html normalizes control params onto
-    %% ANY youtube iframe reaching WP_Embed::shortcode(), including a
-    %% pre-existing cache hit). Registered by CourseRouter per served page,
-    %% never globally.
+    %% Never replaces WordPress's own oEmbed handling -- real oEmbed still
+    %% resolves every YouTube URL, network fetch and all. embed_oembed_html
+    %% amends the src of a YouTube/youtube-nocookie iframe WordPress's own
+    %% handling already produced (via WP_HTML_Tag_Processor), merging the
+    %% control params VideoControl needs and stripping autoplay, for ANY
+    %% iframe reaching WP_Embed::shortcode() -- a fresh fetch or a
+    %% pre-existing cache hit. Registered by CourseRouter per served page,
+    %% never globally. is_youtube_src/amend_control_params are public pure
+    %% logic (no WP_HTML_Tag_Processor dependency), kept public specifically
+    %% so they are unit-testable on their own.
     class YouTubeEmbed {
-        +__construct(YouTubeEmbedView view)
         +register() void
-        +pre_oembed_result(mixed result, string url) mixed
         +embed_oembed_html(string html) string
-        +parse_video_id(string url) string
-    }
-
-    class YouTubeEmbedView {
-        +render(array data) string
+        +is_youtube_src(string src) bool
+        +amend_control_params(string src) string
     }
 
     class Cockpit {
@@ -428,8 +427,6 @@ classDiagram
     CourseRouter ..> UserPageView : renders via (user pages only)
     UserPageView ..|> View : implements
     CourseRouter --> YouTubeEmbed : registers per served course page
-    YouTubeEmbed ..> YouTubeEmbedView : renders the offline base iframe via
-    YouTubeEmbedView ..|> View : implements
     CourseCatalog ..> CoursePage : produces
     Cockpit ..|> Manager : implements
     Cockpit --> CockpitDashboard : uses
