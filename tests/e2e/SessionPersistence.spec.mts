@@ -69,7 +69,13 @@ test.describe( 'Benchmark session persistence', () => {
 		const id = record.id as number;
 		expect( id ).toBeGreaterThan( 0 );
 
-		const fetched = await page.request.get( `${ COLLECTION }/${ id }` );
+		// The read-back also needs the nonce: WordPress's cookie-auth layer
+		// (`rest_cookie_check_errors()`) treats a nonce-less REST request as
+		// anonymous even over a valid session, so SessionRestController's
+		// capability gate — correctly — would otherwise refuse this GET too.
+		const fetched = await page.request.get( `${ COLLECTION }/${ id }`, {
+			headers: { 'X-WP-Nonce': nonce },
+		} );
 		expect( fetched.ok() ).toBeTruthy();
 		const { meta } = await fetched.json();
 

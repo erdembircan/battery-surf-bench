@@ -21,14 +21,17 @@ interface StartTestServerOptions {
 }
 
 /**
- * Poll a playground URL until it returns a non-error response.
+ * Poll a playground URL until it serves the WordPress login page.
  *
  * runCLI() resolves after the worker pool is populated, but there is a brief
  * window during startup where the HTTP server is listening while the initial
- * PHP worker is still bootstrapping (it answers with 5xx). This probe ensures
- * the server can handle a real request before signalling readiness.
+ * PHP worker is still bootstrapping (it answers with 5xx, or a response that
+ * is not yet a real served page). Probing `/wp-login.php` for a genuine
+ * `< 400` response -- rather than the bare home URL for `< 500` -- proves
+ * WordPress itself is actually up and serving pages, not merely that the HTTP
+ * server has bound its port, before signalling readiness.
  *
- * @param url             - The URL to poll.
+ * @param url             - The `/wp-login.php` URL to poll.
  * @param options         - Polling options.
  * @param options.retries - Maximum number of attempts.
  * @param options.delayMs - Milliseconds between attempts.
@@ -40,7 +43,7 @@ async function waitForReady(
 	for ( let attempt = 1; attempt <= retries; attempt++ ) {
 		try {
 			const res = await fetch( url, { redirect: 'manual' } );
-			if ( res.status < 500 ) {
+			if ( res.status < 400 ) {
 				return;
 			}
 		} catch {
@@ -87,7 +90,7 @@ export async function startTestServer( {
 		mount: [ { hostPath: pluginDir, vfsPath: PLUGIN_VFS_PATH } ],
 	} );
 
-	await waitForReady( url );
+	await waitForReady( `${ url }/wp-login.php` );
 
 	logServerReady( {
 		url: String( server.serverUrl ),

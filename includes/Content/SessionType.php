@@ -103,7 +103,7 @@ class SessionType implements Manager {
 	 */
 	private function post_type_args(): array {
 		return array(
-			'labels'              => array(
+			'labels'                => array(
 				'name'          => __( 'Benchmark Sessions', 'battery-surf-bench' ),
 				'singular_name' => __( 'Benchmark Session', 'battery-surf-bench' ),
 			),
@@ -111,26 +111,27 @@ class SessionType implements Manager {
 			// from search) and no menu entry (the DataViews screen owns the
 			// listing), but `show_ui` keeps the native edit screen, so each session
 			// has its own admin URL where the detail route renders its postcard.
-			'public'              => false,
-			'show_ui'             => true,
-			'show_in_menu'        => false,
-			'show_in_rest'        => true,
-			'rest_base'           => $this->schema->post_type(),
-			'exclude_from_search' => true,
-			'publicly_queryable'  => false,
-			'has_archive'         => false,
-			'rewrite'             => false,
-			'hierarchical'        => false,
-			'supports'            => array( 'title', 'custom-fields' ),
+			'public'                => false,
+			'show_ui'               => true,
+			'show_in_menu'          => false,
+			'show_in_rest'          => true,
+			'rest_base'             => $this->schema->post_type(),
+			'rest_controller_class' => SessionRestController::class,
+			'exclude_from_search'   => true,
+			'publicly_queryable'    => false,
+			'has_archive'           => false,
+			'rewrite'               => false,
+			'hierarchical'          => false,
+			'supports'              => array( 'title', 'custom-fields' ),
 			// Map every capability — meta caps included — directly onto the
 			// plugin capability, with meta-cap mapping OFF. The meta caps then
 			// resolve to that capability as a plain primitive, so checks that
 			// have no specific post (e.g. the REST controller deciding whether
 			// DELETE is allowed on the collection for the `Allow` header) never
 			// route through `map_meta_cap`, which would demand a post and warn.
-			'map_meta_cap'        => false,
-			'capability_type'     => 'post',
-			'capabilities'        => $this->capabilities(),
+			'map_meta_cap'          => false,
+			'capability_type'       => 'post',
+			'capabilities'          => $this->capabilities(),
 		);
 	}
 

@@ -180,6 +180,18 @@ classDiagram
         +can_edit() bool
     }
 
+    class SessionRestController {
+        +get_items_permissions_check(request)
+        +get_item_permissions_check(request)
+    }
+    note for SessionRestController "extends WP_REST_Posts_Controller (WordPress core)"
+
+    class SessionRestQuery {
+        +register() void
+        +collection_params(params) array
+        +query(args, request) array
+    }
+
     class SessionDetail {
         +__construct(string post_type, string meta_prefix, Capability capability, string block_name, string screen_slug, string style, SessionDetailView view, Assets assets)
         +register() void
@@ -317,6 +329,7 @@ classDiagram
     Instantiator ..> CourseOrderSanitizer : instantiates
     Instantiator ..> SessionSchema : instantiates
     Instantiator ..> SessionType : instantiates
+    Instantiator ..> SessionRestQuery : instantiates
     Instantiator ..> SessionsScreen : instantiates
     Instantiator ..> StartBenchmark : instantiates
     Instantiator ..> CourseCatalog : instantiates
@@ -354,6 +367,9 @@ classDiagram
     SessionType ..|> Manager : implements
     SessionType --> SessionSchema : uses
     SessionType --> Capability : gates via
+    SessionType ..> SessionRestController : registers via rest_controller_class
+    SessionRestQuery ..|> Manager : implements
+    SessionRestQuery --> SessionSchema : uses
     SessionDetail ..|> Manager : implements
     SessionDetail --> SessionDetailView : renders via
     SessionDetail --> Assets : uses

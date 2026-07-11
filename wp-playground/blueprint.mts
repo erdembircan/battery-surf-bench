@@ -16,14 +16,6 @@ const base = {
 	},
 };
 
-/** Authenticate as the default admin user created by wp-playground. */
-const loginStep: BlueprintV1Declaration[ 'steps' ] = [
-	{
-		step: 'login',
-		username: 'admin',
-	},
-];
-
 /**
  * Enable WordPress debug constants. `WP_ENVIRONMENT_TYPE` also opens the
  * plugin's own dev-tools gate ({@see DevTools}): every blueprint below shares
@@ -236,21 +228,29 @@ export const devResumeBlueprint = (
 
 /**
  * End-to-end blueprint for a deterministic, non-persistent test instance.
- * Logs in as admin, enables debug constants, and activates the plugin so
- * specs start from a known, plugin-active state.
+ * Enables debug constants and activates the plugin so specs start from a
+ * known, plugin-active state. Carries no login step: the pinned
+ * `@wp-playground/cli` (3.1.39) races that step's bundled auto-login
+ * mu-plugin against the server's own ready flag (see {@link autoLoginMuPlugin}),
+ * which made a cookie-less request to `wp-login.php` nondeterministic — the
+ * only place that happens is `auth.setup.mts`, which drives a real form login
+ * itself. Authentication for the `authenticated` Playwright project comes
+ * entirely from the `storageState` that setup project saves after that login;
+ * nothing here needs to pre-authenticate the server.
  */
 export const e2eBlueprint: BlueprintDeclaration = {
 	...base,
-	steps: [ ...loginStep, ...debugStep, ...activatePluginStep ],
+	steps: [ ...debugStep, ...activatePluginStep ],
 };
 
 /**
  * End-to-end blueprint for a deterministic, non-persistent test instance that
- * is never authenticated. Identical to {@link e2eBlueprint} but omits the
- * `login` step, so the server never installs Playground's auto-login mu-plugin
- * and a fresh browser context stays logged out. Backs the `unauthenticated`
- * Playwright project, which drives gated surfaces as an anonymous visitor to
- * prove they are actually refused.
+ * is never authenticated. Its steps are the same as {@link e2eBlueprint} —
+ * neither carries a login step — so what actually keeps this server anonymous
+ * is that no Playwright project targeting it ever drives a form login or
+ * loads a `storageState`, unlike the `authenticated` project's `auth.setup.mts`.
+ * Backs the `unauthenticated` Playwright project, which drives gated surfaces
+ * as an anonymous visitor to prove they are actually refused.
  */
 export const e2eUnauthenticatedBlueprint: BlueprintDeclaration = {
 	...base,

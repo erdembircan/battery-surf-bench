@@ -12,13 +12,14 @@ import { startTestServer } from './start-test-server.mts';
  * for end-to-end testing.
  *
  * Mirrors `start-test.mts`, but boots {@link e2eUnauthenticatedBlueprint}
- * instead of `e2eBlueprint`: no `login` step runs, so the server never
- * installs Playground's auto-login mu-plugin and a fresh browser context
- * stays genuinely logged out. This backs the `unauthenticated` Playwright
+ * instead of `e2eBlueprint`. Neither blueprint carries a `login` step, so
+ * nothing here installs Playground's auto-login mu-plugin or ever
+ * pre-authenticates the server; what keeps a fresh browser context here
+ * genuinely logged out is that no Playwright project targeting this server
+ * drives a form login or loads a `storageState` (unlike the `authenticated`
+ * project's `auth.setup.mts`). This backs the `unauthenticated` Playwright
  * project, which drives gated admin screens, front-end routes and REST
- * endpoints as an anonymous visitor to prove they are actually refused —
- * something the single authenticated test server cannot exercise, since its
- * `e2eBlueprint` auto-promotes any cookie-less browser request to admin.
+ * endpoints as an anonymous visitor to prove they are actually refused.
  *
  * Nothing is written to disk, and the plugin directory is mounted the same
  * way the authenticated test server mounts it. The port is always resolved

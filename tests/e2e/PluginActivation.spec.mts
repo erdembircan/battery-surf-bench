@@ -2,9 +2,9 @@ import { test, expect } from '@playwright/test';
 
 /**
  * End-to-end smoke test verifying the plugin boots inside a real WordPress
- * instance. The e2e blueprint logs in as admin and activates the plugin before
- * this runs, so navigating to an admin page authenticates via the Playground
- * auto-login cookie.
+ * instance. The e2e blueprint activates the plugin; the `setup` project's
+ * real form login authenticates the browser context (its `storageState` is
+ * reused here), so navigating to an admin page loads it as admin.
  */
 test.describe( 'Plugin activation', () => {
 	test( 'is active on the plugins screen', async ( { page } ) => {

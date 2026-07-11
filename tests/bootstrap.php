@@ -198,6 +198,102 @@ if ( ! class_exists( 'WP_Scripts' ) ) {
 	}
 }
 
+if ( ! class_exists( 'WP_REST_Posts_Controller' ) ) {
+	/**
+	 * Minimal stub standing in for core's posts controller so a subclass can
+	 * be constructed and its parent read-permission methods invoked in the
+	 * test process; both grant access, matching core's default view-context
+	 * behaviour, so a subclass override is what the tests actually exercise.
+	 */
+	#[\AllowDynamicProperties]
+	class WP_REST_Posts_Controller {
+
+		/**
+		 * The post type slug this controller serves.
+		 *
+		 * @var string
+		 */
+		protected $post_type;
+
+		/**
+		 * Records the post type slug, as core's constructor does.
+		 *
+		 * @param string $post_type The post type slug.
+		 */
+		public function __construct( $post_type = '' ) {
+			$this->post_type = $post_type;
+		}
+
+		/**
+		 * Core's permissive default: a collection read is allowed.
+		 *
+		 * @param mixed $request The request.
+		 * @return bool Always true.
+		 */
+		public function get_items_permissions_check( $request ) {
+			return true;
+		}
+
+		/**
+		 * Core's permissive default: a single-item read is allowed.
+		 *
+		 * @param mixed $request The request.
+		 * @return bool Always true.
+		 */
+		public function get_item_permissions_check( $request ) {
+			return true;
+		}
+	}
+}
+
+if ( ! class_exists( 'WP_Error' ) ) {
+	/**
+	 * Minimal stand-in for core's WP_Error capturing the code, message and
+	 * data a returned REST error carries, so tests can assert the refusal
+	 * shape without loading WordPress.
+	 */
+	#[\AllowDynamicProperties]
+	class WP_Error {
+
+		/**
+		 * Stores the error code, message and data.
+		 *
+		 * @param string $code    Error code.
+		 * @param string $message Human-readable message.
+		 * @param mixed  $data    Associated data (e.g. an HTTP status array).
+		 */
+		public function __construct( private string $code = '', private string $message = '', private $data = '' ) {
+		}
+
+		/**
+		 * The error code.
+		 *
+		 * @return string The code.
+		 */
+		public function get_error_code(): string {
+			return $this->code;
+		}
+
+		/**
+		 * The error message.
+		 *
+		 * @return string The message.
+		 */
+		public function get_error_message(): string {
+			return $this->message;
+		}
+
+		/**
+		 * The error data.
+		 *
+		 * @return mixed The data.
+		 */
+		public function get_error_data() {
+			return $this->data;
+		}
+	}
+}
+
 // Install the in-memory filesystem double as the WordPress filesystem global so
 // code reading bundled files through the abstraction never reaches the disk.
 $GLOBALS['wp_filesystem'] = new WP_Filesystem_Base();

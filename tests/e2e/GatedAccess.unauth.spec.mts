@@ -5,20 +5,20 @@ import { test, expect, type Page } from '@playwright/test';
  * anonymous visitor.
  *
  * Every other e2e spec runs under the `authenticated` Playwright project,
- * whose server (`e2eBlueprint`) installs WordPress Playground's own `login`
- * step — which, on the pinned `@wp-playground/cli`, silently promotes ANY
- * cookie-less browser page request to admin (it only skips REST/AJAX
- * requests). That makes it impossible to prove anonymous *page* access is
- * refused against that server: a logged-out browser context there is not
- * actually logged out. This spec runs only under the `unauthenticated`
- * project, which targets a second, independent server booted from
- * `e2eUnauthenticatedBlueprint` (see `wp-playground/blueprint.mts`) — the same
- * blueprint minus the `login` step — so a fresh browser context here stays
- * genuinely anonymous. The `.unauth.spec.mts` suffix is what routes this file
- * to that project and excludes it from `authenticated` (see
- * `playwright.config.mts`). The unauth blueprint also enables
- * `WP_DEBUG_DISPLAY`, so a PHP warning or notice printed into any of these
- * responses fails the run too.
+ * whose server (`e2eBlueprint`) starts with no session at all; the `setup`
+ * project logs in with a real form submission and persists a `storageState`
+ * that every spec in that project reuses. That makes it impossible to prove
+ * anonymous *page* access is refused against that server through the
+ * `authenticated` project itself — there, a spec's browser context always
+ * carries the saved admin session. This spec runs only under the
+ * `unauthenticated` project, which targets a second, independent server
+ * booted from `e2eUnauthenticatedBlueprint` (see `wp-playground/blueprint.mts`)
+ * with no `storageState` and no `setup` dependency (see
+ * `playwright.config.mts`), so a fresh browser context here stays genuinely
+ * anonymous. The `.unauth.spec.mts` suffix is what routes this file to that
+ * project and excludes it from `authenticated`. The unauth blueprint also
+ * enables `WP_DEBUG_DISPLAY`, so a PHP warning or notice printed into any of
+ * these responses fails the run too.
  */
 
 /** PHP error/warning/notice text WordPress prints when WP_DEBUG_DISPLAY is on. */
@@ -123,6 +123,13 @@ test.describe( 'Front-end gated routes refuse anonymous access', () => {
 			page.getByRole( 'link', { name: /log in/i } )
 		).toBeVisible();
 
+		// The Interactivity config the cockpit seeds is only written AFTER its
+		// capability check passes, so the 403 response body must carry neither
+		// nonce it would otherwise embed.
+		const body = await page.content();
+		expect( body ).not.toContain( 'surfNonce' );
+		expect( body ).not.toContain( 'restNonce' );
+
 		await expectNoPhpNotices( page );
 	} );
 
@@ -165,30 +172,24 @@ test.describe( 'REST endpoints reject anonymous requests', () => {
 		},
 	};
 
-	// KNOWN GAP, not fixed by this change — flagged for the maintainer's
-	// decision, not silently normalized: this asserts the DESIRED behavior
-	// (401, matching every other endpoint in this describe block) and is
-	// marked `fixme` because that desired behavior does not hold today.
-	//
-	// Actual current behavior: an anonymous GET returns 200 with a (possibly
-	// non-empty) list of published sessions. `WP_REST_Posts_Controller::get_items_permissions_check()`
-	// only consults a capability when `context=edit` or a non-`publish`
-	// `status` is requested; a bare GET (the default `view` context and
-	// `publish` status) returns `true` unconditionally, regardless of
-	// `SessionType`'s `public`/`publicly_queryable`/`capabilities` settings,
-	// which map every OTHER post capability (create/edit/delete) to
-	// `manage_options`. So while create/update/delete are genuinely gated
-	// (proven below and by `SessionPersistence.spec.mts`), an anonymous
-	// visitor can currently LIST any bsb_session that has been published —
-	// contradicting `SessionType`'s own "admin-only" doc comment. This is
-	// pre-existing WordPress REST behavior, not something introduced here.
-	test.fixme(
-		'GET wp/v2/bsb_session is refused (currently is not — see comment above)',
-		async ( { request } ) => {
-			const response = await request.get( '/wp-json/wp/v2/bsb_session' );
-			expect( response.status() ).toBe( 401 );
-		}
-	);
+	// Collection-list gate closed by SessionRestController: the list no
+	// longer leaks published sessions to anonymous visitors.
+	test( 'GET wp/v2/bsb_session is refused', async ( { request } ) => {
+		const response = await request.get( '/wp-json/wp/v2/bsb_session' );
+		expect( response.status() ).toBe( 401 );
+	} );
+
+	test( 'GET wp/v2/bsb_session/:id is refused', async ( { request } ) => {
+		// SessionRestController::get_item_permissions_check() enforces the
+		// capability BEFORE core resolves the post, so an anonymous read is
+		// refused with 401 regardless of whether the id exists — core would
+		// otherwise return a published session's body under the default view
+		// context. A bogus id keeps the test deterministic on an empty database.
+		const response = await request.get(
+			'/wp-json/wp/v2/bsb_session/999999'
+		);
+		expect( response.status() ).toBe( 401 );
+	} );
 
 	test( 'POST wp/v2/bsb_session is refused', async ( { request } ) => {
 		const response = await request.post( '/wp-json/wp/v2/bsb_session', {
@@ -204,6 +205,14 @@ test.describe( 'REST endpoints reject anonymous requests', () => {
 
 	test( 'PATCH wp/v2/settings is refused', async ( { request } ) => {
 		const response = await request.patch( '/wp-json/wp/v2/settings', {
+			data: { bsb_course_order: null },
+		} );
+		expect( response.status() ).toBe( 401 );
+	} );
+
+	// Same core Settings-controller manage_options gate as PATCH.
+	test( 'POST wp/v2/settings is refused', async ( { request } ) => {
+		const response = await request.post( '/wp-json/wp/v2/settings', {
 			data: { bsb_course_order: null },
 		} );
 		expect( response.status() ).toBe( 401 );
