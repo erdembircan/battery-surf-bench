@@ -31,6 +31,11 @@ class DefinitionsSource {
 	 * Tells whether the compiled definitions should be preferred over the
 	 * live `Services.php`.
 	 *
+	 * Because this is an allowlist of dev environments rather than a
+	 * denylist of production-like ones, an environment not in
+	 * `$dev_environments` — including an unrecognized or misconfigured one —
+	 * fails safe to the compiled/production path instead of a stale live one.
+	 *
 	 * @param string             $environment       The current environment (from `wp_get_environment_type()`).
 	 * @param array<int, string> $dev_environments  Environments in which the live source is always used.
 	 * @param bool               $compiled_readable Whether the compiled artifact exists and is readable.

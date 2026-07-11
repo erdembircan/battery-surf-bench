@@ -96,4 +96,34 @@ final class DefinitionsSourceTest extends TestCase {
 
 		$this->assertTrue( $gate->prefers_compiled( 'development', array(), true ) );
 	}
+
+	// The two cases below pin the fail-safe: the gate is an allowlist of dev
+	// environments, not a denylist of production-like ones, so any
+	// environment string that is not in the list — including one WordPress
+	// would normalize to `production`, or a garbage/misconfigured value —
+	// resolves to the compiled/production path, never a surprise live one.
+
+	/**
+	 * An unrecognized environment string, with a readable compiled artifact,
+	 * fails safe to the compiled definitions — the same outcome as a real
+	 * `production` environment.
+	 */
+	public function test_prefers_compiled_for_an_unrecognized_environment_when_readable(): void {
+		$gate = new DefinitionsSource();
+
+		$this->assertTrue( $gate->prefers_compiled( 'staging-typo', self::DEV_ENVIRONMENTS, true ) );
+		$this->assertTrue( $gate->prefers_compiled( 'production ', self::DEV_ENVIRONMENTS, true ) );
+	}
+
+	/**
+	 * An unrecognized environment string with no readable compiled artifact
+	 * still falls back to the live source, as always — there is nothing
+	 * compiled to fail safe to.
+	 */
+	public function test_does_not_prefer_compiled_for_an_unrecognized_environment_when_not_readable(): void {
+		$gate = new DefinitionsSource();
+
+		$this->assertFalse( $gate->prefers_compiled( 'staging-typo', self::DEV_ENVIRONMENTS, false ) );
+		$this->assertFalse( $gate->prefers_compiled( 'production ', self::DEV_ENVIRONMENTS, false ) );
+	}
 }
