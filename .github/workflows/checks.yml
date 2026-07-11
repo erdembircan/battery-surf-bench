@@ -24,6 +24,13 @@ jobs:
       - uses: actions/checkout@v6
       - uses: ./.github/actions/setup-php
       - run: composer test
+      # Cheap smoke for the build-time container compiler: proves it runs
+      # standalone (no WordPress bootstrap) and emits valid PHP. The
+      # artifact itself is never committed — build/ is gitignored and
+      # regenerated on every build — so there is nothing to diff for
+      # freshness here.
+      - run: php bin/CompileContainer.php
+      - run: php -l build/Services.compiled.php
 
   js-lint:
     runs-on: ubuntu-latest

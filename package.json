@@ -5,8 +5,9 @@
   "private": true,
   "packageManager": "pnpm@11.7.0",
   "scripts": {
-    "build": "WP_EXPERIMENTAL_MODULES=true wp-scripts build",
+    "build": "WP_EXPERIMENTAL_MODULES=true wp-scripts build && pnpm run compile:container",
     "start": "WP_EXPERIMENTAL_MODULES=true wp-scripts start",
+    "compile:container": "php bin/CompileContainer.php",
     "typecheck": "tsc --noEmit",
     "lint:js": "wp-scripts lint-js",
     "license:verify": "license-wizard --verify --strict",

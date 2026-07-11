@@ -58,10 +58,20 @@ class BatterySurfBench {
 	 * Boots the plugin: builds the DI collaborators from the plugin's
 	 * configuration and service recipes, then builds and registers every
 	 * manager through the instantiator.
+	 *
+	 * The service recipes load from the build-time compiled artifact when
+	 * present — {@see ContainerCompiler}, run by `bin/CompileContainer.php`,
+	 * pre-resolves every `%token%` recipe value against the registry so the
+	 * runtime never has to — falling back to the live, token-bearing
+	 * `Services.php` otherwise, the same `is_readable()`-guarded pattern
+	 * {@see Assets::manifest()} uses for its own generated build artifact.
 	 */
 	public function init(): void {
 		$registry     = new Registry( require __DIR__ . '/Config.php' );
-		$definitions  = new Definitions( require __DIR__ . '/Services.php' );
+		$compiled     = __DIR__ . '/../build/Services.compiled.php';
+		$definitions  = new Definitions(
+			is_readable( $compiled ) ? require $compiled : require __DIR__ . '/Services.php'
+		);
 		$instances    = new InstanceStore();
 		$instantiator = new Instantiator(
 			$registry,
