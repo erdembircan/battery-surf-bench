@@ -1,15 +1,18 @@
 %% PHP class interactions — contract chart.
-%% At boot, BatterySurfBench loads build/Services.compiled.php when present
-%% (produced ahead of time by ContainerCompiler, run via bin/BuildContainer.php,
-%% which precomputes a reflection-free build plan for every class in the
-%% plugin's dependency closure, baking each %token% to its configuration
-%% value along the way) and falls back to the live, token-bearing
-%% Services.php otherwise, planning each class via reflection on demand.
-%% Before ContainerCompiler ever runs, the build validates the definitions
-%% via ContainerValidator, which reflects the same closure and collects
-%% every structural problem (unknown args, unknown tokens, type mismatches,
-%% unmapped interfaces) in one pass; the build aborts with the full error
-%% list rather than emitting a compiled artifact when any are found.
+%% At boot, BatterySurfBench loads build/Services.compiled.php (produced
+%% ahead of time by ContainerCompiler, run via bin/BuildContainer.php, which
+%% precomputes a reflection-free build plan for every class in the plugin's
+%% dependency closure, baking each %token% to its configuration value along
+%% the way) only outside a development environment — gated via
+%% DefinitionsSource against wp_get_environment_type(), so a stale compiled
+%% artifact never shadows live edits in local/development — falling back to
+%% the live, token-bearing Services.php otherwise, planning each class via
+%% reflection on demand. Before ContainerCompiler ever runs, the build
+%% validates the definitions via ContainerValidator, which reflects the same
+%% closure and collects every structural problem (unknown args, unknown
+%% tokens, type mismatches, unmapped interfaces) in one pass; the build
+%% aborts with the full error list rather than emitting a compiled artifact
+%% when any are found.
 classDiagram
     direction LR
 
@@ -40,6 +43,10 @@ classDiagram
         +get(string id) mixed
         +has(string id) bool
         +set(string id, object instance) void
+    }
+
+    class DefinitionsSource {
+        +prefers_compiled(string environment, array dev_environments, bool compiled_readable) bool
     }
 
     class Instantiator {
@@ -298,6 +305,7 @@ classDiagram
     BatterySurfBench --> Definitions : creates & owns (composition)
     BatterySurfBench --> InstanceStore : creates & owns (composition)
     BatterySurfBench --> Instantiator : creates & owns (composition)
+    BatterySurfBench ..> DefinitionsSource : selects definitions source via
     BatterySurfBench ..> Manager : registers
     Instantiator ..> I18n : instantiates
     Instantiator ..> Paths : instantiates

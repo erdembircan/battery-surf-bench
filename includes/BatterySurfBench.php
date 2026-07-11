@@ -18,6 +18,10 @@ use ErdemBircan\BatterySurfBench\Course\CourseRouter;
 use ErdemBircan\BatterySurfBench\DevTools\DevTools;
 use ErdemBircan\BatterySurfBench\Settings\OptionRegistry;
 
+use function explode;
+use function is_readable;
+use function wp_get_environment_type;
+
 defined( 'ABSPATH' ) || exit;
 
 /**
@@ -59,19 +63,31 @@ class BatterySurfBench {
 	 * configuration and service recipes, then builds and registers every
 	 * manager through the instantiator.
 	 *
-	 * The service recipes load from the build-time compiled artifact when
-	 * present — {@see ContainerCompiler}, run by `bin/BuildContainer.php`,
-	 * pre-resolves every `%token%` recipe value against the registry so the
-	 * runtime never has to — falling back to the live, token-bearing
-	 * `Services.php` otherwise, the same `is_readable()`-guarded pattern
-	 * {@see Assets::manifest()} uses for its own generated build artifact.
+	 * The service recipes load from the build-time compiled artifact —
+	 * {@see ContainerCompiler}, run by `bin/BuildContainer.php`, pre-resolves
+	 * every `%token%` recipe value against the registry so the runtime never
+	 * has to — only outside a development environment, gated via
+	 * {@see DefinitionsSource} against `wp_get_environment_type()` the same
+	 * way {@see \ErdemBircan\BatterySurfBench\DevTools\DevTools} gates
+	 * itself; a stale compiled artifact left on disk in `local`/`development`
+	 * would otherwise silently shadow live edits to `Services.php`. Anywhere
+	 * else the compiled artifact is used when readable, the same
+	 * `is_readable()`-guarded pattern {@see Assets::manifest()} uses for its
+	 * own generated build artifact — falling back to the live, token-bearing
+	 * `Services.php` otherwise.
 	 */
 	public function init(): void {
-		$registry     = new Registry( require __DIR__ . '/Config.php' );
-		$compiled     = __DIR__ . '/../build/Services.compiled.php';
-		$definitions  = new Definitions(
-			is_readable( $compiled ) ? require $compiled : require __DIR__ . '/Services.php'
+		$registry = new Registry( require __DIR__ . '/Config.php' );
+		$compiled = __DIR__ . '/../build/Services.compiled.php';
+		$live     = __DIR__ . '/Services.php';
+
+		$use_compiled = ( new DefinitionsSource() )->prefers_compiled(
+			wp_get_environment_type(),
+			explode( ',', $registry->get( 'container.dev_environments' ) ),
+			is_readable( $compiled )
 		);
+
+		$definitions  = new Definitions( require $use_compiled ? $compiled : $live );
 		$instances    = new InstanceStore();
 		$instantiator = new Instantiator(
 			$registry,

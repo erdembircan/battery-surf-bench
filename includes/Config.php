@@ -106,6 +106,13 @@ return array(
 		// that survives. Built from `src/cockpit/style.scss`.
 		'style'      => 'build/style-cockpit-dashboard.css',
 	),
+	'container'  => array(
+		// Environments in which the live Services.php is always used and any
+		// compiled artifact is ignored, so edits to the recipes take effect
+		// immediately. Matched against wp_get_environment_type(); comma-separated
+		// (the Registry resolves scalars only), same shape as devtools.environments.
+		'dev_environments' => 'local,development',
+	),
 	'devtools'   => array(
 		// Environments the dev-tools gate opens for, read against
 		// `wp_get_environment_type()`. Anything else (staging, production) keeps
