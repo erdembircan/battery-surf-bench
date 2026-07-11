@@ -18,7 +18,6 @@ use ErdemBircan\BatterySurfBench\Course\CourseRouter;
 use ErdemBircan\BatterySurfBench\DevTools\DevTools;
 use ErdemBircan\BatterySurfBench\Settings\OptionRegistry;
 
-use function explode;
 use function is_readable;
 use function wp_get_environment_type;
 
@@ -83,7 +82,7 @@ class BatterySurfBench {
 
 		$use_compiled = ( new DefinitionsSource() )->prefers_compiled(
 			wp_get_environment_type(),
-			explode( ',', $registry->get( 'container.dev_environments' ) ),
+			$registry->get( 'container.dev_environments' ),
 			is_readable( $compiled )
 		);
 

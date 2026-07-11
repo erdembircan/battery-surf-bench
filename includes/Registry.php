@@ -10,6 +10,7 @@ namespace ErdemBircan\BatterySurfBench;
 use ErdemBircan\BatterySurfBench\Exception\NotFoundException;
 use Psr\Container\ContainerInterface;
 
+use function array_is_list;
 use function esc_html;
 
 defined( 'ABSPATH' ) || exit;
@@ -19,8 +20,10 @@ defined( 'ABSPATH' ) || exit;
  *
  * The whole configuration is handed to the constructor once and never changes
  * afterwards; there is no setter. Identifiers use dot notation to reach nested
- * values (e.g. `admin_menu.slug`), and lookups only ever resolve to scalars —
- * an identifier that lands on a nested array is treated as not found.
+ * values (e.g. `admin_menu.slug`), and a lookup resolves to either a scalar or
+ * a sequential (list) array value; an identifier that lands on an associative
+ * array is treated as a namespace to traverse further, not a value, and is
+ * not found on its own.
  */
 class Registry implements ContainerInterface {
 
@@ -33,10 +36,10 @@ class Registry implements ContainerInterface {
 	}
 
 	/**
-	 * Returns the scalar entry stored under the given identifier.
+	 * Returns the scalar or list-array entry stored under the given identifier.
 	 *
 	 * @param string $id Dot-notated identifier of the entry to look for.
-	 * @throws NotFoundException When no scalar entry resolves for the identifier.
+	 * @throws NotFoundException When no scalar or list-array entry resolves for the identifier.
 	 * @return mixed The stored entry.
 	 */
 	public function get( string $id ): mixed {
@@ -50,10 +53,13 @@ class Registry implements ContainerInterface {
 	}
 
 	/**
-	 * Tells whether a scalar entry resolves for the given identifier.
+	 * Tells whether a scalar or list-array entry resolves for the given
+	 * identifier. An associative array is a namespace to traverse, not a
+	 * value, so it is not itself "found"; a sequential (list) array is a
+	 * value in its own right and is found.
 	 *
 	 * @param string $id Dot-notated identifier of the entry to look for.
-	 * @return bool Whether a scalar entry exists.
+	 * @return bool Whether a scalar or list-array entry exists.
 	 */
 	public function has( string $id ): bool {
 		$current = $this->entries;
@@ -66,7 +72,7 @@ class Registry implements ContainerInterface {
 			$current = $current[ $segment ];
 		}
 
-		return ! is_array( $current );
+		return ! is_array( $current ) || array_is_list( $current );
 	}
 
 	/**

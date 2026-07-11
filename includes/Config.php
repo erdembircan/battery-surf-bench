@@ -109,9 +109,10 @@ return array(
 	'container'  => array(
 		// Environments in which the live Services.php is always used and any
 		// compiled artifact is ignored, so edits to the recipes take effect
-		// immediately. Matched against wp_get_environment_type(); comma-separated
-		// (the Registry resolves scalars only), same shape as devtools.environments.
-		'dev_environments' => 'local,development',
+		// immediately. Matched against wp_get_environment_type(). A list array —
+		// the Registry returns a sequential array leaf as-is, unlike
+		// devtools.environments below, which is still comma-separated.
+		'dev_environments' => array( 'local', 'development' ),
 	),
 	'devtools'   => array(
 		// Environments the dev-tools gate opens for, read against
