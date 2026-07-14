@@ -9,7 +9,11 @@ import type { Rng } from './Rng';
 import { FakeCursor, framesForDistance, type Point } from './FakeCursor';
 import { easeInOutQuad } from './Ease';
 import { contentRoot, VIDEO_EMBED_SELECTOR } from './Affordances';
-import { createVideoControl, type VideoControl } from './VideoControl';
+import {
+	createVideoControl,
+	type VideoControl,
+	type VideoPlaybackState,
+} from './VideoControl';
 
 /** A motion primitive the surfer can perform. */
 export interface Motor {
@@ -20,13 +24,27 @@ export interface Motor {
 	/** Briefly selects a snippet of page text, then clears the selection. */
 	selectSnippet: () => Promise< void >;
 	/**
-	 * Attends (scrolls into view, approaches with the cursor) and starts the
-	 * page's video or video-host embed, if one is present.
+	 * Attends (scrolls into view, approaches with the cursor, once) and
+	 * starts the page's video or video-host embed, if one is present.
+	 * Disposes any previously active control first, so replaying this on a
+	 * new watch cycle never leaks a stale listener.
 	 */
 	playVideo: () => Promise< void >;
 	/**
-	 * Stops whatever `playVideo` last started, if anything. A safe no-op
-	 * when nothing was started (never called, or the page had no video).
+	 * Restarts (or resumes) whatever `playVideo` last started, WITHOUT
+	 * re-attending — `play()` itself replays from the start when the player
+	 * has ended. A safe no-op when nothing is active.
+	 */
+	replayVideo: () => Promise< void >;
+	/**
+	 * The active video/embed's own reported playback state, or
+	 * `'unavailable'` when nothing is active.
+	 */
+	videoState: () => VideoPlaybackState;
+	/**
+	 * Fully stops (and disposes) whatever `playVideo` last started, if
+	 * anything. A safe no-op when nothing was started (never called, or the
+	 * page had no video).
 	 */
 	stopVideo: () => Promise< void >;
 	/**
@@ -352,9 +370,20 @@ export class DomMotor implements Motor {
 			this.rng
 		);
 
+		// Dispose any control from a prior watch cycle before replacing it —
+		// otherwise its message listener (for a YouTube embed) would leak.
+		this.activeVideo?.dispose();
 		const control = createVideoControl( target );
 		this.activeVideo = control;
 		await control.play();
+	}
+
+	async replayVideo(): Promise< void > {
+		await this.activeVideo?.play();
+	}
+
+	videoState(): VideoPlaybackState {
+		return this.activeVideo?.getState() ?? 'unavailable';
 	}
 
 	async stopVideo(): Promise< void > {
@@ -362,7 +391,8 @@ export class DomMotor implements Motor {
 		this.activeVideo = null;
 
 		if ( null !== control ) {
-			await control.pause();
+			await control.stop();
+			control.dispose();
 		}
 	}
 
