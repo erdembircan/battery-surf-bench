@@ -228,16 +228,8 @@ describe( 'DomMotor.playVideo — repeated calls', () => {
 
 		removeListenerSpy.mockRestore();
 	} );
-} );
 
-describe( 'DomMotor.videoState', () => {
-	it( 'reports unavailable when nothing is active', () => {
-		expect( new DomMotor( () => 0.5, instantFrames ).videoState() ).toBe(
-			'unavailable'
-		);
-	} );
-
-	it( 'delegates to the active control and reflects its reported state', async () => {
+	it( 'unsubscribes the previous control auto-replay before creating a new one', async () => {
 		document.body.innerHTML =
 			'<iframe src="https://www.youtube-nocookie.com/embed/xyz"></iframe>';
 		const iframe = document.querySelector( 'iframe' ) as HTMLIFrameElement;
@@ -252,49 +244,15 @@ describe( 'DomMotor.videoState', () => {
 			} ) as DOMRect;
 		const motor = new DomMotor( () => 0.5, instantFrames );
 
+		// The second call disposes and unsubscribes the first control before
+		// building and subscribing a second one on the same underlying
+		// iframe — an ended message afterwards must trigger exactly one
+		// replay (from the current control), never two (one per control).
 		await motor.playVideo();
-		expect( motor.videoState() ).toBe( 'unstarted' );
-
-		window.dispatchEvent(
-			new MessageEvent( 'message', {
-				data: JSON.stringify( {
-					event: 'infoDelivery',
-					info: { playerState: 1 },
-				} ),
-				source: iframe.contentWindow,
-				origin: 'https://www.youtube-nocookie.com',
-			} )
-		);
-
-		expect( motor.videoState() ).toBe( 'playing' );
-	} );
-} );
-
-describe( 'DomMotor.replayVideo', () => {
-	it( 'is a safe no-op when nothing is active', async () => {
-		await expect(
-			new DomMotor( () => 0.5, instantFrames ).replayVideo()
-		).resolves.toBeUndefined();
-	} );
-
-	it( 'replays the active control without re-attending (no new cursor travel)', async () => {
-		document.body.innerHTML =
-			'<iframe src="https://www.youtube-nocookie.com/embed/xyz"></iframe>';
-		const iframe = document.querySelector( 'iframe' ) as HTMLIFrameElement;
-		iframe.getBoundingClientRect = () =>
-			( {
-				top: 100,
-				bottom: 300,
-				left: 50,
-				right: 450,
-				width: 400,
-				height: 200,
-			} ) as DOMRect;
-		const motor = new DomMotor( () => 0.5, instantFrames );
 		await motor.playVideo();
 
-		// Simulate the video having ended, so replaying it takes the
-		// seekTo-then-playVideo restart path.
+		const postMessageSpy = vi.spyOn( iframe.contentWindow!, 'postMessage' );
+
 		window.dispatchEvent(
 			new MessageEvent( 'message', {
 				data: JSON.stringify( {
@@ -306,12 +264,47 @@ describe( 'DomMotor.replayVideo', () => {
 			} )
 		);
 
-		const travelToSpy = vi.spyOn( FakeCursor.prototype, 'travelTo' );
+		const playCommandCalls = postMessageSpy.mock.calls.filter(
+			( call ) =>
+				'string' === typeof call[ 0 ] &&
+				call[ 0 ].includes( '"playVideo"' )
+		);
+		expect( playCommandCalls ).toHaveLength( 1 );
+
+		postMessageSpy.mockRestore();
+	} );
+} );
+
+describe( 'DomMotor.playVideo — auto-replay on ended', () => {
+	it( 'replays the started control the instant the player reports ended (seekTo then playVideo)', async () => {
+		document.body.innerHTML =
+			'<iframe src="https://www.youtube-nocookie.com/embed/xyz"></iframe>';
+		const iframe = document.querySelector( 'iframe' ) as HTMLIFrameElement;
+		iframe.getBoundingClientRect = () =>
+			( {
+				top: 100,
+				bottom: 300,
+				left: 50,
+				right: 450,
+				width: 400,
+				height: 200,
+			} ) as DOMRect;
+		const motor = new DomMotor( () => 0.5, instantFrames );
+		await motor.playVideo();
+
 		const postMessageSpy = vi.spyOn( iframe.contentWindow!, 'postMessage' );
 
-		await motor.replayVideo();
+		window.dispatchEvent(
+			new MessageEvent( 'message', {
+				data: JSON.stringify( {
+					event: 'infoDelivery',
+					info: { playerState: 0 },
+				} ),
+				source: iframe.contentWindow,
+				origin: 'https://www.youtube-nocookie.com',
+			} )
+		);
 
-		expect( travelToSpy ).not.toHaveBeenCalled();
 		expect( postMessageSpy ).toHaveBeenCalledWith(
 			JSON.stringify( {
 				event: 'command',
@@ -320,8 +313,48 @@ describe( 'DomMotor.replayVideo', () => {
 			} ),
 			'https://www.youtube-nocookie.com'
 		);
+		expect( postMessageSpy ).toHaveBeenCalledWith(
+			JSON.stringify( { event: 'command', func: 'playVideo', args: [] } ),
+			'https://www.youtube-nocookie.com'
+		);
 
-		travelToSpy.mockRestore();
+		postMessageSpy.mockRestore();
+	} );
+} );
+
+describe( 'DomMotor.stopVideo — unsubscribes the auto-replay', () => {
+	it( 'stops replaying after stopVideo — a later ended message triggers nothing', async () => {
+		document.body.innerHTML =
+			'<iframe src="https://www.youtube-nocookie.com/embed/xyz"></iframe>';
+		const iframe = document.querySelector( 'iframe' ) as HTMLIFrameElement;
+		iframe.getBoundingClientRect = () =>
+			( {
+				top: 100,
+				bottom: 300,
+				left: 50,
+				right: 450,
+				width: 400,
+				height: 200,
+			} ) as DOMRect;
+		const motor = new DomMotor( () => 0.5, instantFrames );
+		await motor.playVideo();
+		await motor.stopVideo();
+
+		const postMessageSpy = vi.spyOn( iframe.contentWindow!, 'postMessage' );
+
+		window.dispatchEvent(
+			new MessageEvent( 'message', {
+				data: JSON.stringify( {
+					event: 'infoDelivery',
+					info: { playerState: 0 },
+				} ),
+				source: iframe.contentWindow,
+				origin: 'https://www.youtube-nocookie.com',
+			} )
+		);
+
+		expect( postMessageSpy ).not.toHaveBeenCalled();
+
 		postMessageSpy.mockRestore();
 	} );
 } );

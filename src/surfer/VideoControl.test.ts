@@ -148,31 +148,19 @@ describe( 'createVideoControl — <video> element', () => {
 		expect( video.currentTime ).toBe( 0 );
 	} );
 
-	it( 'getState() reports unstarted, playing, paused and ended', () => {
+	it( 'onEnded fires when the native ended event fires, and the returned unsubscribe stops it', () => {
 		document.body.innerHTML = '<video></video>';
 		const video = document.querySelector( 'video' ) as HTMLVideoElement;
 		const control = createVideoControl( video );
+		const callback = vi.fn();
 
-		expect( control.getState() ).toBe( 'unstarted' );
+		const unsubscribe = control.onEnded( callback );
+		video.dispatchEvent( new Event( 'ended' ) );
+		expect( callback ).toHaveBeenCalledTimes( 1 );
 
-		Object.defineProperty( video, 'paused', {
-			value: false,
-			configurable: true,
-		} );
-		expect( control.getState() ).toBe( 'playing' );
-
-		Object.defineProperty( video, 'paused', {
-			value: true,
-			configurable: true,
-		} );
-		video.currentTime = 5;
-		expect( control.getState() ).toBe( 'paused' );
-
-		Object.defineProperty( video, 'ended', {
-			value: true,
-			configurable: true,
-		} );
-		expect( control.getState() ).toBe( 'ended' );
+		unsubscribe();
+		video.dispatchEvent( new Event( 'ended' ) );
+		expect( callback ).toHaveBeenCalledTimes( 1 );
 	} );
 } );
 
@@ -292,66 +280,122 @@ describe( 'createVideoControl — youtube iframe', () => {
 		await expect( control.stop() ).resolves.toBeUndefined();
 	} );
 
-	describe( 'getState()', () => {
-		it( 'defaults to unstarted before any message', () => {
+	describe( 'onEnded()', () => {
+		it( 'fires when the player transitions into ended via infoDelivery — the shape the live embed actually sends', () => {
 			document.body.innerHTML = `<iframe src="${ SRC }"></iframe>`;
 			const iframe = document.querySelector(
 				'iframe'
 			) as HTMLIFrameElement;
-			expect( createVideoControl( iframe ).getState() ).toBe(
-				'unstarted'
-			);
+			const control = createVideoControl( iframe );
+			const callback = vi.fn();
+			control.onEnded( callback );
+
+			dispatchYoutubeMessage( iframe.contentWindow, ORIGIN, {
+				event: 'infoDelivery',
+				info: { playerState: 0 },
+			} );
+
+			expect( callback ).toHaveBeenCalledTimes( 1 );
 		} );
 
-		it.each( [
-			[ -1, 'unstarted' ],
-			[ 0, 'ended' ],
-			[ 1, 'playing' ],
-			[ 2, 'paused' ],
-			[ 3, 'buffering' ],
-			[ 5, 'cued' ],
-		] as const )(
-			'reflects onStateChange info=%d as %s',
-			( code, expected ) => {
-				document.body.innerHTML = `<iframe src="${ SRC }"></iframe>`;
-				const iframe = document.querySelector(
-					'iframe'
-				) as HTMLIFrameElement;
-				const control = createVideoControl( iframe );
+		it( 'fires when the player transitions into ended via the documented onStateChange shape', () => {
+			document.body.innerHTML = `<iframe src="${ SRC }"></iframe>`;
+			const iframe = document.querySelector(
+				'iframe'
+			) as HTMLIFrameElement;
+			const control = createVideoControl( iframe );
+			const callback = vi.fn();
+			control.onEnded( callback );
 
-				dispatchYoutubeMessage( iframe.contentWindow, ORIGIN, {
-					event: 'onStateChange',
-					info: code,
-				} );
+			dispatchYoutubeMessage( iframe.contentWindow, ORIGIN, {
+				event: 'onStateChange',
+				info: 0,
+			} );
 
-				expect( control.getState() ).toBe( expected );
-			}
-		);
+			expect( callback ).toHaveBeenCalledTimes( 1 );
+		} );
 
-		it.each( [
-			[ -1, 'unstarted' ],
-			[ 0, 'ended' ],
-			[ 1, 'playing' ],
-			[ 2, 'paused' ],
-			[ 3, 'buffering' ],
-			[ 5, 'cued' ],
-		] as const )(
-			'reflects infoDelivery info.playerState=%d as %s — the shape the live embed actually sends',
-			( code, expected ) => {
-				document.body.innerHTML = `<iframe src="${ SRC }"></iframe>`;
-				const iframe = document.querySelector(
-					'iframe'
-				) as HTMLIFrameElement;
-				const control = createVideoControl( iframe );
+		it( 'fires once per transition — a repeated ended message does not double-fire', () => {
+			document.body.innerHTML = `<iframe src="${ SRC }"></iframe>`;
+			const iframe = document.querySelector(
+				'iframe'
+			) as HTMLIFrameElement;
+			const control = createVideoControl( iframe );
+			const callback = vi.fn();
+			control.onEnded( callback );
 
-				dispatchYoutubeMessage( iframe.contentWindow, ORIGIN, {
-					event: 'infoDelivery',
-					info: { playerState: code },
-				} );
+			dispatchYoutubeMessage( iframe.contentWindow, ORIGIN, {
+				event: 'infoDelivery',
+				info: { playerState: 0 },
+			} );
+			dispatchYoutubeMessage( iframe.contentWindow, ORIGIN, {
+				event: 'infoDelivery',
+				info: { playerState: 0 },
+			} );
 
-				expect( control.getState() ).toBe( expected );
-			}
-		);
+			expect( callback ).toHaveBeenCalledTimes( 1 );
+		} );
+
+		it( 'fires again on a genuinely new ended transition after an intervening non-ended state', () => {
+			document.body.innerHTML = `<iframe src="${ SRC }"></iframe>`;
+			const iframe = document.querySelector(
+				'iframe'
+			) as HTMLIFrameElement;
+			const control = createVideoControl( iframe );
+			const callback = vi.fn();
+			control.onEnded( callback );
+
+			dispatchYoutubeMessage( iframe.contentWindow, ORIGIN, {
+				event: 'infoDelivery',
+				info: { playerState: 0 },
+			} );
+			dispatchYoutubeMessage( iframe.contentWindow, ORIGIN, {
+				event: 'infoDelivery',
+				info: { playerState: 1 },
+			} );
+			dispatchYoutubeMessage( iframe.contentWindow, ORIGIN, {
+				event: 'infoDelivery',
+				info: { playerState: 0 },
+			} );
+
+			expect( callback ).toHaveBeenCalledTimes( 2 );
+		} );
+
+		it( 'never fires for a non-ended state', () => {
+			document.body.innerHTML = `<iframe src="${ SRC }"></iframe>`;
+			const iframe = document.querySelector(
+				'iframe'
+			) as HTMLIFrameElement;
+			const control = createVideoControl( iframe );
+			const callback = vi.fn();
+			control.onEnded( callback );
+
+			dispatchYoutubeMessage( iframe.contentWindow, ORIGIN, {
+				event: 'infoDelivery',
+				info: { playerState: 1 },
+			} );
+
+			expect( callback ).not.toHaveBeenCalled();
+		} );
+
+		it( 'the returned unsubscribe stops further callbacks', () => {
+			document.body.innerHTML = `<iframe src="${ SRC }"></iframe>`;
+			const iframe = document.querySelector(
+				'iframe'
+			) as HTMLIFrameElement;
+			const control = createVideoControl( iframe );
+			const callback = vi.fn();
+			const unsubscribe = control.onEnded( callback );
+
+			unsubscribe();
+
+			dispatchYoutubeMessage( iframe.contentWindow, ORIGIN, {
+				event: 'infoDelivery',
+				info: { playerState: 0 },
+			} );
+
+			expect( callback ).not.toHaveBeenCalled();
+		} );
 
 		it( 'ignores a message from a different source', () => {
 			document.body.innerHTML = `<iframe src="${ SRC }"></iframe><iframe id="other" src="${ SRC }"></iframe>`;
@@ -362,13 +406,15 @@ describe( 'createVideoControl — youtube iframe', () => {
 				'#other'
 			) as HTMLIFrameElement;
 			const control = createVideoControl( iframe );
+			const callback = vi.fn();
+			control.onEnded( callback );
 
 			dispatchYoutubeMessage( other.contentWindow, ORIGIN, {
 				event: 'infoDelivery',
-				info: { playerState: 1 },
+				info: { playerState: 0 },
 			} );
 
-			expect( control.getState() ).toBe( 'unstarted' );
+			expect( callback ).not.toHaveBeenCalled();
 		} );
 
 		it( 'ignores a message from a different origin', () => {
@@ -377,17 +423,19 @@ describe( 'createVideoControl — youtube iframe', () => {
 				'iframe'
 			) as HTMLIFrameElement;
 			const control = createVideoControl( iframe );
+			const callback = vi.fn();
+			control.onEnded( callback );
 
 			dispatchYoutubeMessage(
 				iframe.contentWindow,
 				'https://evil.example',
 				{
 					event: 'infoDelivery',
-					info: { playerState: 1 },
+					info: { playerState: 0 },
 				}
 			);
 
-			expect( control.getState() ).toBe( 'unstarted' );
+			expect( callback ).not.toHaveBeenCalled();
 		} );
 
 		it( 'ignores a message whose data is not valid JSON', () => {
@@ -396,6 +444,8 @@ describe( 'createVideoControl — youtube iframe', () => {
 				'iframe'
 			) as HTMLIFrameElement;
 			const control = createVideoControl( iframe );
+			const callback = vi.fn();
+			control.onEnded( callback );
 
 			window.dispatchEvent(
 				new MessageEvent( 'message', {
@@ -405,26 +455,28 @@ describe( 'createVideoControl — youtube iframe', () => {
 				} )
 			);
 
-			expect( control.getState() ).toBe( 'unstarted' );
+			expect( callback ).not.toHaveBeenCalled();
 		} );
 	} );
 
 	describe( 'dispose()', () => {
-		it( 'removes the message listener — a later message no longer updates state', () => {
+		it( 'removes the message listener — a later ended message no longer fires onEnded', () => {
 			document.body.innerHTML = `<iframe src="${ SRC }"></iframe>`;
 			const iframe = document.querySelector(
 				'iframe'
 			) as HTMLIFrameElement;
 			const control = createVideoControl( iframe );
+			const callback = vi.fn();
+			control.onEnded( callback );
 
 			control.dispose();
 
 			dispatchYoutubeMessage( iframe.contentWindow, ORIGIN, {
 				event: 'infoDelivery',
-				info: { playerState: 1 },
+				info: { playerState: 0 },
 			} );
 
-			expect( control.getState() ).toBe( 'unstarted' );
+			expect( callback ).not.toHaveBeenCalled();
 		} );
 
 		it( 'is safe to call more than once', () => {
@@ -443,40 +495,47 @@ describe( 'createVideoControl — youtube iframe', () => {
 } );
 
 describe( 'createVideoControl — anything else', () => {
-	it( 'is a safe no-op reporting unavailable for a vimeo iframe', async () => {
+	it( 'is a safe no-op for a vimeo iframe and never fires onEnded', async () => {
 		document.body.innerHTML =
 			'<iframe src="https://player.vimeo.com/video/123"></iframe>';
 		const iframe = document.querySelector( 'iframe' ) as HTMLIFrameElement;
 		const postMessage = vi.spyOn( iframe.contentWindow!, 'postMessage' );
 		const control = createVideoControl( iframe );
+		const callback = vi.fn();
 
-		expect( control.getState() ).toBe( 'unavailable' );
+		const unsubscribe = control.onEnded( callback );
 		await expect( control.play() ).resolves.toBeUndefined();
 		await expect( control.stop() ).resolves.toBeUndefined();
 		expect( () => control.dispose() ).not.toThrow();
+		expect( () => unsubscribe() ).not.toThrow();
+		expect( callback ).not.toHaveBeenCalled();
 
 		expect( postMessage ).not.toHaveBeenCalled();
 
 		postMessage.mockRestore();
 	} );
 
-	it( 'is a safe no-op reporting unavailable for a youtube iframe with an unparseable src', async () => {
+	it( 'is a safe no-op for a youtube iframe with an unparseable src and never fires onEnded', async () => {
 		document.body.innerHTML = '<iframe src="not a url"></iframe>';
 		const iframe = document.querySelector( 'iframe' ) as HTMLIFrameElement;
 		const control = createVideoControl( iframe );
+		const callback = vi.fn();
 
-		expect( control.getState() ).toBe( 'unavailable' );
+		control.onEnded( callback );
 		await expect( control.play() ).resolves.toBeUndefined();
 		await expect( control.stop() ).resolves.toBeUndefined();
+		expect( callback ).not.toHaveBeenCalled();
 	} );
 
-	it( 'is a safe no-op reporting unavailable for an element with no video control at all', async () => {
+	it( 'is a safe no-op for an element with no video control at all and never fires onEnded', async () => {
 		document.body.innerHTML = '<div></div>';
 		const div = document.querySelector( 'div' )!;
 		const control = createVideoControl( div );
+		const callback = vi.fn();
 
-		expect( control.getState() ).toBe( 'unavailable' );
+		control.onEnded( callback );
 		await expect( control.play() ).resolves.toBeUndefined();
 		await expect( control.stop() ).resolves.toBeUndefined();
+		expect( callback ).not.toHaveBeenCalled();
 	} );
 } );
