@@ -20,12 +20,13 @@ export interface Motor {
 	/** Briefly selects a snippet of page text, then clears the selection. */
 	selectSnippet: () => Promise< void >;
 	/**
-	 * Attends (scrolls into view, approaches with the cursor, once) and
-	 * starts the page's video or video-host embed, if one is present.
-	 * Disposes any previously active control first, so replaying this on a
-	 * new watch cycle never leaks a stale listener. Subscribes the started
-	 * control's `onEnded` to replay itself for as long as it stays active —
-	 * a video that ends mid-watch rewatches itself with no polling involved.
+	 * Picks one video or video-host embed at random from ALL of them on the
+	 * page (not just the first), attends it (scrolls into view, approaches
+	 * with the cursor, once) and starts it. Disposes any previously active
+	 * control first, so replaying this on a new watch cycle never leaks a
+	 * stale listener. Subscribes the started control's `onEnded` to replay
+	 * itself for as long as it stays active — a video that ends mid-watch
+	 * rewatches itself with no polling involved.
 	 */
 	playVideo: () => Promise< void >;
 	/**
@@ -343,13 +344,21 @@ export class DomMotor implements Motor {
 
 	async playVideo(): Promise< void > {
 		const root = contentRoot( document );
-		const target: Element | null =
-			root.querySelector( 'video' ) ??
-			root.querySelector( VIDEO_EMBED_SELECTOR );
+		// One combined query preserves DOM order across both real <video>
+		// elements and recognized embed iframes — the same pool-then-pick
+		// pattern lingerImage/readTrace/selectSnippet already use, so other
+		// videos on a multi-video page genuinely get watched across wins
+		// instead of the first one forever.
+		const candidates = Array.from(
+			root.querySelectorAll( `video, ${ VIDEO_EMBED_SELECTOR }` )
+		);
 
-		if ( ! target ) {
+		if ( candidates.length === 0 ) {
 			return;
 		}
+
+		const target =
+			candidates[ Math.floor( this.rng() * candidates.length ) ];
 
 		if ( ! isInViewport( target ) ) {
 			await this.scrollToMiddle( target.getBoundingClientRect() );
