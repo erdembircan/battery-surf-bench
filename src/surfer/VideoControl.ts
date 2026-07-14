@@ -15,10 +15,12 @@
  * `{event:'listening'}` listener and consumes the player's own event
  * messages. This was verified against a real, live embed (see
  * `docs/plans/native-youtube-embed-playback-plan.md`): posting
- * `{event:'listening', id}` immediately triggers an `initialDelivery` (plus
- * `onReady`) carrying the current `info.playerState`, and every subsequent
- * state change arrives as `infoDelivery` with `info.playerState` (the
- * documented `onStateChange` shape — `{event:'onStateChange', info:<code>}`
+ * `{event:'listening'}` (no `id` field — a real embed echoes back any `id`
+ * it's given but never requires or validates one) immediately triggers an
+ * `initialDelivery` (plus `onReady`) carrying the current `info.playerState`,
+ * and every subsequent state change arrives as `infoDelivery` with
+ * `info.playerState` (the documented `onStateChange` shape —
+ * `{event:'onStateChange', info:<code>}`
  * — is handled too, for parity with the published API, even though the live
  * embed observed here reports exclusively via `infoDelivery`). A real watch
  * cycle was also confirmed end to end against a short (19s) real video:
