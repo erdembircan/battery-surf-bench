@@ -166,13 +166,40 @@ with a real, live YouTube embed — not a mock), confirmed:
   reached the end.
 
 These raw-protocol facts are what `VideoControl`'s `onEnded`/`play()`/
-`stop()` are built on, and are exercised through the real `WP_HTML_Tag_Processor`-amended,
-real-oEmbed-resolved iframe by the unit tests above. A further
-integration-level pass — driving the actual shipped `DomMotor`/`VideoControl`
-wiring (not raw `postMessage` probing) against the real embed to confirm the
-`onEnded` subscription fires an immediate replay and that `stopVideo`
-genuinely suppresses a later one — is recorded separately once run; see the
-PR description for that session's result.
+`stop()` are built on, and are exercised through the real
+`WP_HTML_Tag_Processor`-amended, real-oEmbed-resolved iframe by the unit
+tests above.
+
+A further integration pass drove the actual shipped `DomMotor`/
+`VideoControl` wiring (not raw `postMessage` probing) — the full engine,
+built via `pnpm build`, running for real against the bundled video page with
+`bsbTraits` weighted so `watchVideo` wins immediately — and captured every
+inbound player-state message plus the engine's own `bsb:behaviorStart`/
+`bsb:pageDone` lifecycle messages. Observed on that real, live embed:
+
+- The moment `watchVideo` started (and `DomMotor.playVideo()` therefore
+  built the control and subscribed `onEnded`), the very first state message
+  the freshly-created control received reported `ended(0)` (this browser
+  profile had already played this exact video to completion earlier in the
+  same session — YouTube persists per-video watch state locally). Because
+  `VideoControl`'s internal "last known code" starts at `null`, this correctly
+  registered as a transition INTO `ended`, and `onEnded` fired within the same
+  handful of milliseconds — `seekTo(0, true)` + `playVideo` were issued
+  immediately, with no polling delay, exactly the auto-replay
+  `Motor.playVideo()` wires up.
+- The player responded to that replay for real: `buffering(3)` then
+  `playing(1)` at `currentTime` climbing from `0`.
+- Later, `Motor.stopVideo()` fired (the watch window elapsed) and the player
+  genuinely left the playing state, transitioning `unstarted(-1)` then
+  `cued(5)` — the exact same real `stopVideo`-driven transition confirmed by
+  raw-protocol probing above. No further state messages arrived afterward in
+  the same session; the engine's own lifecycle messages confirmed
+  `watchVideo`'s run had ended and the next behavior (`moveOn`) had begun.
+
+This is a genuine, unscripted confirmation of the shipped code: the
+auto-replay subscription reacted to a real `ended` transition (here, one
+already latent from a prior watch) the instant it arrived, and the
+subsequent stop genuinely left the player unable to keep looping.
 
 ## Why the amend runs on `embed_oembed_html`, not `pre_oembed_result`
 
