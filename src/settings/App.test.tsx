@@ -33,10 +33,12 @@ vi.mock( './BrowsePane', () => ( {
 	BrowsePane: ( {
 		saving,
 		onAdd,
+		onAddBundled,
 		onFetchError,
 	}: {
 		saving: boolean;
 		onAdd: ( id: number, type: string, title: string ) => void;
+		onAddBundled: ( slug: string, title: string ) => void;
 		onFetchError?: ( isError: boolean ) => void;
 	} ) => (
 		<>
@@ -46,6 +48,16 @@ vi.mock( './BrowsePane', () => ( {
 			</button>
 			<button onClick={ () => onAdd( 6, 'page', 'Other' ) }>
 				stub-add-other
+			</button>
+			<button
+				onClick={ () =>
+					onAddBundled(
+						'article-1',
+						'The Hidden Cost of a Browser Tab'
+					)
+				}
+			>
+				stub-add-bundled
 			</button>
 			<button onClick={ () => onFetchError?.( true ) }>
 				stub-fetch-error
@@ -148,7 +160,7 @@ beforeEach( () => {
 } );
 
 describe( 'SettingsApp sequence state', () => {
-	it( 'seeds the sequence from the localized order, healed against the bundled catalog', () => {
+	it( 'seeds the sequence straight from the localized order — the server already sanitized it', () => {
 		renderWithSaveSlot();
 
 		expect( screen.getByTestId( 'row-count' ) ).toHaveTextContent( '1' );
@@ -174,6 +186,30 @@ describe( 'SettingsApp sequence state', () => {
 
 		expect( screen.getByTestId( 'row-count' ) ).toHaveTextContent( '1' );
 		expect( screen.queryByText( 'Pricing' ) ).not.toBeInTheDocument();
+	} );
+
+	it( 'a bundled row is removable, and dropping it does not re-add it — bundled pages are no longer force-healed back in', () => {
+		renderWithSaveSlot();
+
+		fireEvent.click( screen.getByText( 'remove-bundled:article-1' ) );
+
+		expect( screen.getByTestId( 'row-count' ) ).toHaveTextContent( '0' );
+		expect(
+			screen.queryByText( 'The Hidden Cost of a Browser Tab' )
+		).not.toBeInTheDocument();
+	} );
+
+	it( 'removing a bundled entry then adding it back via the bundled-add path restores it to the sequence', () => {
+		renderWithSaveSlot();
+		fireEvent.click( screen.getByText( 'remove-bundled:article-1' ) );
+		expect( screen.getByTestId( 'row-count' ) ).toHaveTextContent( '0' );
+
+		fireEvent.click( screen.getByText( 'stub-add-bundled' ) );
+
+		expect( screen.getByTestId( 'row-count' ) ).toHaveTextContent( '1' );
+		expect(
+			screen.getByText( 'The Hidden Cost of a Browser Tab' )
+		).toBeInTheDocument();
 	} );
 } );
 

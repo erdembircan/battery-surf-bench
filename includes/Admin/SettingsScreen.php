@@ -42,10 +42,15 @@ defined( 'ABSPATH' ) || exit;
  * surf-course order option is described by
  * {@see \ErdemBircan\BatterySurfBench\Course\CourseOrderOption} and actually
  * registered by {@see \ErdemBircan\BatterySurfBench\Settings\OptionRegistry},
- * the plugin's general options manager; this screen reads the option (healing
- * it through the same sanitizer on every read, since `register_setting`'s
- * sanitize callback only fires on write) and writes it through the core-data
- * site-settings entity (`/wp/v2/settings`) — no custom REST controller.
+ * the plugin's general options manager; this screen reads the option
+ * (sanitizing it through the same sanitizer on every read, since
+ * `register_setting`'s sanitize callback only fires on write) and writes it
+ * through the core-data site-settings entity (`/wp/v2/settings`) — no custom
+ * REST controller. A fresh install (the option absent) falls back to the
+ * sanitizer's default order — the bundled catalog, in catalog order — but a
+ * saved order is authoritative from then on: a bundled page a site owner
+ * removed stays removed, re-addable from the settings screen's "Built-in"
+ * browse filter.
  */
 class SettingsScreen implements Manager {
 
@@ -77,7 +82,7 @@ class SettingsScreen implements Manager {
 	 * @param string               $style                 Bundle's stylesheet, relative to the plugin root.
 	 * @param string               $option_name           Name of the option the surf-course order is saved under.
 	 * @param array<string>        $selectable_post_types Post types the picker's browse pane may add from.
-	 * @param CourseOrderSanitizer $sanitizer             Heals the saved order on every read — `register_setting`'s sanitize callback (the same sanitizer, wired into {@see \ErdemBircan\BatterySurfBench\Course\CourseOrderOption}'s definition and registered by {@see \ErdemBircan\BatterySurfBench\Settings\OptionRegistry}) only runs on write, so a stale saved order needs re-healing here too.
+	 * @param CourseOrderSanitizer $sanitizer             Sanitizes the saved order on every read — `register_setting`'s sanitize callback (the same sanitizer, wired into {@see \ErdemBircan\BatterySurfBench\Course\CourseOrderOption}'s definition and registered by {@see \ErdemBircan\BatterySurfBench\Settings\OptionRegistry}) only runs on write, so a stale saved order needs re-sanitizing here too.
 	 * @param CourseCatalog        $catalog               Source of the bundled page definitions.
 	 * @param Assets               $assets                Service used to register, localize and enqueue the bundle.
 	 * @param string               $cockpit_param         Query parameter that opens the cockpit dashboard.
@@ -193,20 +198,23 @@ class SettingsScreen implements Manager {
 	/**
 	 * Builds the configuration the settings app is localized with: the
 	 * selectable post types, the saved order, the bundled catalog the app
-	 * folds into the sequence as locked rows, and each saved user page's
-	 * title and type resolved server-side so the app paints titles on first
-	 * render instead of a raw post id.
+	 * offers under the Browse pane's "Built-in" filter (and resolves titles
+	 * from for any bundled entry already in the sequence), and each saved
+	 * user page's title and type resolved server-side so the app paints
+	 * titles on first render instead of a raw post id.
 	 *
 	 * The saved order is run through the sanitizer on every read, not only on
 	 * write: `register_setting`'s `sanitize_callback` (the same sanitizer,
 	 * wired into {@see \ErdemBircan\BatterySurfBench\Course\CourseOrderOption}'s
 	 * definition and registered by
 	 * {@see \ErdemBircan\BatterySurfBench\Settings\OptionRegistry}) only fires
-	 * when the option is saved, so a stale order that predates a newly added
-	 * bundled page — or still names a user id that has since become
-	 * ineligible — would otherwise render unhealed until the next save.
-	 * Healing on read here keeps every render consistent with what a save
-	 * would produce.
+	 * when the option is saved, so an order that still names a user id that
+	 * has since become ineligible would otherwise render with a stale entry
+	 * until the next save. Sanitizing on read here keeps every render
+	 * consistent with what a save would produce; a bundled page absent from
+	 * the saved order is left absent, not re-added — {@see get_option}'s
+	 * default (the sanitizer's `default_order()`) only ever applies when no
+	 * order has been saved at all.
 	 *
 	 * @return array<string, mixed> The screen configuration.
 	 */
@@ -236,9 +244,9 @@ class SettingsScreen implements Manager {
 	 * Resolves each saved user entry's title and post type server-side, so the
 	 * settings app can paint a title on first render instead of a raw post id
 	 * while the client-side resolver only has to catch up on whatever this
-	 * could not seed. `$order` has already been healed by the sanitizer, so
-	 * every `user` entry here is already known-eligible — no eligibility
-	 * check is repeated here, only the title/type lookup.
+	 * could not seed. `$order` has already been sanitized, so every `user`
+	 * entry here is already known-eligible — no eligibility check is repeated
+	 * here, only the title/type lookup.
 	 *
 	 * @param array<int, array{kind: string, slug?: string, id?: int}> $order The sanitized surf-course order.
 	 * @return array<int, array{title: string, type: string}> Resolved title/type, keyed by post id.

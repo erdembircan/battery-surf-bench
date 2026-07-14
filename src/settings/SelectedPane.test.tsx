@@ -49,7 +49,6 @@ const bundledRow: SequenceRow = {
 	key: 'bundled:article-1',
 	title: 'The Hidden Cost of a Browser Tab',
 	badge: 'bundled',
-	removable: false,
 	entry: { kind: 'bundled', slug: 'article-1' },
 };
 
@@ -57,7 +56,6 @@ const userRow: SequenceRow = {
 	key: 'user:5',
 	title: 'Pricing',
 	badge: 'page',
-	removable: true,
 	entry: { kind: 'user', id: 5 },
 };
 
@@ -74,8 +72,7 @@ function findRow( title: string ): HTMLElement {
 }
 
 /**
- * Finds the DOM row carrying the given title text — unlike {@link findRow},
- * this also works for a locked bundled row, which has no remove button.
+ * Finds the DOM row carrying the given title text.
  *
  * @param title The row's title.
  * @return The row element.
@@ -224,21 +221,31 @@ describe( 'SelectedPane remove', () => {
 		expect( onRemove ).toHaveBeenCalledTimes( 1 );
 	} );
 
-	it( 'never offers a remove control for a locked bundled row', () => {
+	it( 'offers a remove control for a bundled row too — every row is removable now', () => {
+		const onRemove = vi.fn();
 		render(
 			<SelectedPane
 				rows={ [ bundledRow ] }
 				saving={ false }
-				onRemove={ vi.fn() }
+				onRemove={ onRemove }
 				onReorder={ vi.fn() }
 			/>
 		);
 
-		expect(
-			screen.queryByRole( 'button', {
-				name: /Remove The Hidden Cost of a Browser Tab/,
+		fireEvent.click(
+			screen.getByRole( 'button', {
+				name: 'Remove The Hidden Cost of a Browser Tab',
 			} )
-		).not.toBeInTheDocument();
+		);
+		fireTransitionEnd(
+			findRow( 'The Hidden Cost of a Browser Tab' ),
+			'max-height'
+		);
+
+		expect( onRemove ).toHaveBeenCalledWith( {
+			kind: 'bundled',
+			slug: 'article-1',
+		} );
 	} );
 
 	it( 'ignores a second remove click on the same row while it is still animating', () => {
@@ -421,5 +428,46 @@ describe( 'SelectedPane save-in-progress guard', () => {
 		expect( dndSortable.useSortable ).toHaveBeenCalledWith(
 			expect.objectContaining( { id: userRow.key, disabled: true } )
 		);
+	} );
+} );
+
+describe( 'SelectedPane empty state', () => {
+	it( 'renders a muted empty-state message instead of the list when every page has been removed', () => {
+		const { container } = render(
+			<SelectedPane
+				rows={ [] }
+				saving={ false }
+				onRemove={ vi.fn() }
+				onReorder={ vi.fn() }
+			/>
+		);
+
+		expect(
+			screen.getByText( /No pages selected yet\./ )
+		).toBeInTheDocument();
+		expect(
+			container.querySelector( '.bsb-selected__empty' )
+		).toBeInTheDocument();
+		expect(
+			container.querySelector( '.bsb-pages-list--custom' )
+		).not.toBeInTheDocument();
+	} );
+
+	it( 'renders the list, not the empty state, once at least one page is selected', () => {
+		const { container } = render(
+			<SelectedPane
+				rows={ [ userRow ] }
+				saving={ false }
+				onRemove={ vi.fn() }
+				onReorder={ vi.fn() }
+			/>
+		);
+
+		expect(
+			container.querySelector( '.bsb-selected__empty' )
+		).not.toBeInTheDocument();
+		expect(
+			container.querySelector( '.bsb-pages-list--custom' )
+		).toBeInTheDocument();
 	} );
 } );

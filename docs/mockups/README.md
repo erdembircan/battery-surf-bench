@@ -15,4 +15,4 @@ description of what it explores.
 
 | Mock | Artifact URL | Description |
 | ---- | ------------ | ----------- |
-| _(none recorded yet)_ | | |
+| config-included-pages | https://claude.ai/code/artifact/78d403b7-efca-4207-9a15-58cf84734402 | Settings screen with removable built-in pages + a 4th "Built-in" browse filter. |

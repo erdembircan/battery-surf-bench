@@ -95,15 +95,14 @@ export type RowBadge = 'bundled' | 'page' | 'post';
 
 /**
  * A single row in the Selected pane: an order entry resolved to a title and
- * badge, ready to render.
+ * badge, ready to render. Every row — bundled or user — is removable and
+ * reorderable; there is no locked kind any more.
  */
 export interface SequenceRow {
 	/** Stable identifier for dnd-kit and React keys (`bundled:<slug>` / `user:<id>`). */
 	key: string;
 	title: string;
 	badge: RowBadge;
-	/** Bundled rows are locked against removal, never against reordering. */
-	removable: boolean;
 	entry: OrderEntry;
 }
 

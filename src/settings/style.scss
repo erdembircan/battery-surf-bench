@@ -120,16 +120,6 @@
 	border-radius: 9px;
 }
 
-.bsb-pages-row__lock {
-	flex: 0 0 auto;
-	width: 0.95rem;
-	height: 0.95rem;
-	color: theme.$coastal-ink-soft;
-	background: currentColor;
-	mask: theme.$icon-lock center / contain no-repeat;
-	-webkit-mask: theme.$icon-lock center / contain no-repeat;
-}
-
 .bsb-pages-row__title {
 	min-width: 0;
 	font-size: 0.88rem;
@@ -492,6 +482,20 @@
 	color: theme.$coastal-ink-soft;
 }
 
+// Shown in place of the sequence when every page has been removed — mirrors
+// `.bsb-browse__empty`'s centered, muted treatment. A benchmark needs at
+// least one page, so this steers the site owner straight back to adding one.
+.bsb-selected__empty {
+	flex: 1 1 auto;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 1.6rem 0.5rem;
+	text-align: center;
+	font-size: 0.84rem;
+	color: theme.$coastal-ink-soft;
+}
+
 // The pane's one scrollable region — see `.bsb-browse__list` for why
 // `min-height: 0` (not just `flex: 1 1 auto`) is what makes that work.
 .bsb-selected .bsb-pages-list--custom {
@@ -504,11 +508,10 @@
 }
 
 // Ordered sequence rows (numbered, drag-reorderable via @dnd-kit). Every row —
-// bundled or user — is draggable by its handle. Bundled rows are locked
-// against removal only: no `×`, but they're reorderable like any other row.
-// Fixed-width grid columns (only the title track is flexible) keep the
-// handle/index/lock/badge/remove lined up across every row regardless of
-// title length.
+// bundled or user — is draggable by its handle AND carries a `×` remove
+// control; there is no locked kind any more. Fixed-width grid columns (only
+// the title track is flexible) keep the handle/index/badge/remove lined up
+// across every row regardless of title length.
 .bsb-pages-row--custom {
 	cursor: default;
 	display: grid;
@@ -521,7 +524,7 @@
 	// grid only governs this element's own children/columns, not how this
 	// element itself is sized as a flex item of its list parent.
 	flex: 0 0 auto;
-	grid-template-columns: 0.85rem 1.6rem 0.95rem 1fr 4.5rem 1.9rem;
+	grid-template-columns: 0.85rem 1.6rem 1fr 4.5rem 1.9rem;
 	// Own margin (not a container `gap`) so a removed row's spacing can
 	// collapse away along with its height — see `.is-removing` below.
 	margin-bottom: 0.5rem;
@@ -664,14 +667,6 @@
 	&:hover {
 		background: #{rgba(theme.$coastal-coral, 0.12)};
 	}
-}
-
-// Reserves the remove button's width on locked (bundled) rows so every row —
-// locked or not — lines up on the same right edge.
-.bsb-pages-row__remove-spacer {
-	flex: 0 0 auto;
-	width: 1.9rem;
-	height: 1.9rem;
 }
 
 // The tilted, lifted clone `@dnd-kit`'s `DragOverlay` renders while a row is

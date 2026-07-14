@@ -176,11 +176,12 @@ class CourseRouter implements Manager {
 	}
 
 	/**
-	 * Resolves the requested index against the saved, healed surf-course
+	 * Resolves the requested index against the saved, sanitized surf-course
 	 * order: the index wraps via modulo, so the client's ever-incrementing
-	 * counter never needs to know how many pages exist. An empty order (which
-	 * should not happen — bundled pages can never be dropped) resolves to
-	 * nothing rather than dividing by zero.
+	 * counter never needs to know how many pages exist regardless of whether
+	 * the saved sequence is the full bundled set, a shorter one a site owner
+	 * pared down, or anything in between. An empty order (a site owner
+	 * removed every page) resolves to nothing rather than dividing by zero.
 	 *
 	 * @return CoursePage|null The resolved course page, or null when the saved order is empty or the entry no longer resolves.
 	 */
@@ -202,7 +203,7 @@ class CourseRouter implements Manager {
 
 	/**
 	 * Resolves a user entry's post id to its real content. The sanitizer
-	 * already validated the id when healing the saved order, so this only
+	 * already validated the id when sanitizing the saved order, so this only
 	 * guards the rare case the post vanished between that read and this one.
 	 *
 	 * The returned page's content is the real post's own raw block markup
