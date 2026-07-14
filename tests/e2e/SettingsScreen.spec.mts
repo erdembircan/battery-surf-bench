@@ -3,11 +3,12 @@ import { test, expect, type Page } from '@playwright/test';
 /**
  * End-to-end coverage for the settings screen's surf-course order picker.
  *
- * Covers the M2 acceptance bar: the top-level menu renders the settings app
- * (replacing the old empty landing page), the bundled pages show as locked
- * rows, adding a browsed page appends it to the sequence, and saving persists
- * the sequence across a reload. The e2e blueprint enables WP_DEBUG_DISPLAY, so
- * a PHP warning or notice printed into the page fails the run.
+ * Covers the acceptance bar: the top-level menu renders the settings app
+ * (replacing the old empty landing page), the bundled ("Built-in") pages seed
+ * a fresh install and are fully removable/re-addable, adding a browsed page
+ * appends it to the sequence, and saving persists the sequence across a
+ * reload. The e2e blueprint enables WP_DEBUG_DISPLAY, so a PHP warning or
+ * notice printed into the page fails the run.
  *
  * A second describe block below drives more of the persistence contract
  * directly through the core `/wp/v2/settings` REST endpoint
@@ -18,11 +19,11 @@ import { test, expect, type Page } from '@playwright/test';
  * the option round-trips the full ordered sequence, not just what the DOM
  * shows. Note that `register_setting`'s own sanitize callback already runs on
  * every write — including these tests' own arrange step — so a value posted
- * through this endpoint can never land in storage genuinely unhealed; the
- * precise regression test for `SettingsScreen` re-healing a value on *read*
- * (one that predates a catalog change and was never re-saved since) lives in
- * `SettingsScreenTest::test_screen_config_heals_a_stale_saved_order_missing_a_bundled_page`,
- * which mocks `get_option()` directly to bypass the write path entirely.
+ * through this endpoint can never land in storage malformed; the precise
+ * regression test for `SettingsScreen` re-sanitizing a value on *read* (one
+ * whose `get_option()` return is mocked directly, bypassing the write path
+ * entirely) lives in
+ * `SettingsScreenTest::test_screen_config_renders_a_saved_order_missing_a_bundled_page_as_saved`.
  */
 
 /** PHP error/warning/notice text WordPress prints when WP_DEBUG_DISPLAY is on. */
@@ -78,7 +79,7 @@ test.describe( 'Settings screen', () => {
 		expect( consoleErrors ).toEqual( [] );
 	} );
 
-	test( 'shows every bundled page locked, with no remove control', async ( {
+	test( 'shows every bundled page badged "Built-in" and removable, seeding a fresh install with all 5', async ( {
 		page,
 	} ) => {
 		await page.goto( '/wp-admin/admin.php?page=battery-surf-bench' );
@@ -88,17 +89,77 @@ test.describe( 'Settings screen', () => {
 		);
 
 		await expect( bundledRows ).toHaveCount( 5 );
+		await expect( bundledRows.first() ).toContainText( 'Built-in' );
 		await expect(
 			bundledRows.first().locator( '.bsb-pages-row__remove' )
-		).toHaveCount( 0 );
-		// `exact: true` so this matches only the row's own title span, not the
-		// row's "Move … up"/"Move … down" screen-reader-only buttons, whose
-		// accessible names also contain this title as a substring.
-		await expect(
-			page.getByText( 'The Hidden Cost of a Browser Tab', {
-				exact: true,
-			} )
 		).toBeVisible();
+		// Scoped to the Selected pane and `exact: true`: the same title also
+		// appears in the Browse pane (pinned atop the "All" filter's first
+		// page — see the "All" filter pin coverage below), and unscoped would
+		// also match the row's "Move … up"/"Move … down" screen-reader-only
+		// buttons, whose accessible names contain this title as a substring.
+		await expect(
+			page
+				.locator( '.bsb-selected' )
+				.getByText( 'The Hidden Cost of a Browser Tab', {
+					exact: true,
+				} )
+		).toBeVisible();
+	} );
+
+	test( 'the "All" browse filter pins the built-in pages atop the site\'s own content on page 1', async ( {
+		page,
+	} ) => {
+		await page.goto( '/wp-admin/admin.php?page=battery-surf-bench' );
+
+		const browseRows = page.locator( '.bsb-browse__row' );
+		await expect( browseRows.first() ).toContainText( 'Built-in' );
+		await expect(
+			browseRows.first().getByText( 'The Hidden Cost of a Browser Tab' )
+		).toBeVisible();
+	} );
+
+	test( 'removing a bundled page drops it from the sequence, and it can be re-added from the "Built-in" browse filter', async ( {
+		page,
+	} ) => {
+		await resetCourseOrder( page );
+
+		try {
+			await page.goto( '/wp-admin/admin.php?page=battery-surf-bench' );
+
+			const bundledRow = page
+				.locator( '.bsb-selected .bsb-pages-row--custom', {
+					hasText: 'The Hidden Cost of a Browser Tab',
+				} )
+				.first();
+			await expect( bundledRow ).toBeVisible();
+			await bundledRow
+				.getByRole( 'button', {
+					name: 'Remove The Hidden Cost of a Browser Tab',
+				} )
+				.click();
+
+			await expect(
+				page.locator( '.bsb-selected .bsb-pages-row--custom' )
+			).toHaveCount( 4 );
+
+			// The removed built-in page is still discoverable and re-addable
+			// from the Browse pane's "Built-in" filter.
+			await page.getByRole( 'button', { name: 'Built-in' } ).click();
+			const builtinRow = page
+				.locator( '.bsb-browse__row', {
+					hasText: 'The Hidden Cost of a Browser Tab',
+				} )
+				.first();
+			await expect( builtinRow ).toBeVisible();
+			await builtinRow.getByRole( 'button', { name: 'Add' } ).click();
+
+			await expect(
+				page.locator( '.bsb-selected .bsb-pages-row--custom' )
+			).toHaveCount( 5 );
+		} finally {
+			await resetCourseOrder( page );
+		}
 	} );
 
 	test( 'adding a browsed page appends it to the sequence, and saving persists it across a reload', async ( {
@@ -454,7 +515,7 @@ async function deletePage( page: Page, pageId: number ): Promise< void > {
 	} );
 }
 
-test.describe( 'Settings screen order persistence and heal-on-read (REST)', () => {
+test.describe( 'Settings screen order persistence and read-time sanitizing (REST)', () => {
 	test.beforeEach( async ( { page } ) => {
 		// Every test arranges its own starting state — this guards against a
 		// leftover save from an earlier test (e.g. the picker-driven save test
@@ -466,7 +527,7 @@ test.describe( 'Settings screen order persistence and heal-on-read (REST)', () =
 		await resetCourseOrder( page );
 	} );
 
-	test( 'shows exactly the 5 bundled rows, in catalog order, when no order has been saved', async ( {
+	test( 'shows exactly the 5 bundled rows, in catalog order and all removable, when no order has been saved', async ( {
 		page,
 	} ) => {
 		await page.goto( '/wp-admin/admin.php?page=battery-surf-bench' );
@@ -474,7 +535,7 @@ test.describe( 'Settings screen order persistence and heal-on-read (REST)', () =
 		const rows = page.locator( '.bsb-selected .bsb-pages-row--custom' );
 		await expect( rows ).toHaveCount( 5 );
 		await expect( rows.locator( '.bsb-pages-row__remove' ) ).toHaveCount(
-			0
+			5
 		);
 
 		const order = await getCourseOrder( page );
@@ -522,24 +583,19 @@ test.describe( 'Settings screen order persistence and heal-on-read (REST)', () =
 		}
 	} );
 
-	test( 'renders a saved order missing a bundled page as the full, healed 6-row sequence, with the saved user page showing by its title, not its raw id', async ( {
+	test( 'renders a saved order missing a bundled page exactly as saved, still missing it, with the saved user page showing by its title, not its raw id', async ( {
 		page,
 	} ) => {
-		// NOTE: `register_setting`'s own sanitize callback (wired by
-		// `CourseOrderOption`, unchanged by this fix) already runs on every
-		// write to the option — including this REST arrange step — so what
-		// lands in the database here is already healed, not genuinely stale.
-		// That write-time healing was already true before this fix and is
-		// covered by `CourseOrderSanitizerTest`. What is new, and what this
-		// test actually exercises end to end, is `SettingsScreen` running the
-		// saved value through the sanitizer *again* on every read (so a value
-		// that really did predate a catalog change — impossible to arrange
-		// through the public REST API within a single test run — renders
-		// healed too) and seeding the user page's title server-side. The
-		// precise regression test for the read-time heal itself, where
-		// `get_option()` is mocked to return a genuinely raw, unsanitized
-		// value, is `SettingsScreenTest::test_screen_config_heals_a_stale_saved_order_missing_a_bundled_page`.
-		const pageId = await createPage( page, 'REST E2E Heal Target' );
+		// A saved order missing a bundled page is no longer re-healed on read
+		// (or on write) — bundled pages are removable now, and a saved order
+		// is authoritative from the moment it's first saved. The precise
+		// regression test for this at the unit level, where `get_option()` is
+		// mocked to return the raw saved value directly, is
+		// `SettingsScreenTest::test_screen_config_renders_a_saved_order_missing_a_bundled_page_as_saved`.
+		const pageId = await createPage(
+			page,
+			'REST E2E Missing-Bundled Target'
+		);
 
 		try {
 			await setCourseOrder( page, [
@@ -547,29 +603,28 @@ test.describe( 'Settings screen order persistence and heal-on-read (REST)', () =
 				{ kind: 'bundled', slug: 'gallery' },
 				{ kind: 'bundled', slug: 'article-2' },
 				{ kind: 'bundled', slug: 'video' },
-				// 'links' omitted on arrange — re-inserted by sanitization
-				// either way, but exercises the same healing path a genuinely
-				// stale value would take on render.
+				// 'links' deliberately omitted — must stay absent, not be
+				// re-inserted.
 				{ kind: 'user', id: pageId },
 			] );
 
 			await page.goto( '/wp-admin/admin.php?page=battery-surf-bench' );
 
 			const rows = page.locator( '.bsb-selected .bsb-pages-row--custom' );
-			// The 4 saved bundled rows + the re-inserted 'links' page + the user row.
-			await expect( rows ).toHaveCount( 6 );
+			// The 4 saved bundled rows + the user row — 'links' stays missing.
+			await expect( rows ).toHaveCount( 5 );
 			await expect(
 				rows.filter( { hasText: 'News Hub: Energy & Computing' } )
-			).toHaveCount( 1 );
+			).toHaveCount( 0 );
 
 			const userRow = rows.filter( {
-				hasText: 'REST E2E Heal Target',
+				hasText: 'REST E2E Missing-Bundled Target',
 			} );
 			await expect( userRow ).toHaveCount( 1 );
 			// The title itself renders — never the raw post id or a placeholder.
 			await expect(
 				userRow.locator( '.bsb-pages-row__title' )
-			).toHaveText( 'REST E2E Heal Target' );
+			).toHaveText( 'REST E2E Missing-Bundled Target' );
 
 			expect( await page.content() ).not.toMatch( PHP_NOTICE );
 		} finally {

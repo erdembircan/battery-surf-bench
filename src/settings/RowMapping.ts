@@ -46,7 +46,6 @@ export function mapOrderToRows(
 				key: entryKey( entry ),
 				title: catalogBySlug.get( entry.slug ) ?? entry.slug,
 				badge: 'bundled',
-				removable: false,
 				entry,
 			};
 		}
@@ -57,7 +56,6 @@ export function mapOrderToRows(
 			key: entryKey( entry ),
 			title: resolved?.title ?? UNRESOLVED_TITLE_PLACEHOLDER,
 			badge: resolved?.type === 'post' ? 'post' : 'page',
-			removable: true,
 			entry,
 		};
 	} );

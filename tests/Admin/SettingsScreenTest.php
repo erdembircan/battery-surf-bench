@@ -25,9 +25,10 @@ use function in_array;
 
 /**
  * Behavioral tests for the settings screen: where it places itself, that it
- * loads its bundle only on its own page, that it heals a stale saved order
- * through the sanitizer on every read (not only on save), and what it renders.
- * The surf-course order option's own registration is covered by
+ * loads its bundle only on its own page, that it re-sanitizes the saved order
+ * on every read (not only on save) without re-inserting a bundled page a site
+ * owner removed, and what it renders. The surf-course order option's own
+ * registration is covered by
  * {@see \ErdemBircan\BatterySurfBench\Tests\Settings\OptionRegistryTest}; its
  * definition (the schema and defaults `screen_config()` relies on) is covered
  * by {@see \ErdemBircan\BatterySurfBench\Tests\Course\CourseOrderOptionTest}.
@@ -45,8 +46,8 @@ final class SettingsScreenTest extends TestCase {
 
 	/**
 	 * Builds a screen with representative configuration, backed by a real
-	 * sanitizer over the real catalog so `screen_config()`'s heal-on-read
-	 * behaviour can be exercised end to end.
+	 * sanitizer over the real catalog so `screen_config()`'s read-time
+	 * re-sanitizing can be exercised end to end.
 	 *
 	 * @param Assets|null $assets Asset service to inject, mocked when omitted.
 	 * @return SettingsScreen The screen under test.
@@ -275,21 +276,21 @@ final class SettingsScreenTest extends TestCase {
 
 	/**
 	 * `register_setting`'s sanitize callback only runs when the option is
-	 * saved, so a saved order that predates a newly added bundled page would
-	 * render unhealed until the next save if `screen_config()` read it raw.
-	 * It doesn't: the saved value is run back through the sanitizer on every
-	 * read, so a missing bundled page is re-inserted on the very next render.
+	 * saved, so `screen_config()` still runs the saved value back through the
+	 * sanitizer on every read — but the sanitizer no longer re-inserts a
+	 * missing bundled page. A saved order missing a bundled page (whether a
+	 * site owner deliberately removed it, or it predates a catalog change)
+	 * renders exactly as saved, still missing that page.
 	 */
-	public function test_screen_config_heals_a_stale_saved_order_missing_a_bundled_page(): void {
+	public function test_screen_config_renders_a_saved_order_missing_a_bundled_page_as_saved(): void {
 		Functions\when( 'get_option' )->justReturn(
 			array(
 				array(
 					'kind' => 'bundled',
 					'slug' => 'article-1',
 				),
-				// 'gallery', 'article-2', 'video' and 'links' are missing from
-				// this stale saved order — as if they were added to the
-				// catalog after this order was last saved.
+				// 'gallery', 'article-2', 'video' and 'links' are absent from
+				// this saved order and must stay absent.
 			)
 		);
 		$this->stub_initial_browse_dispatch();
@@ -306,8 +307,8 @@ final class SettingsScreenTest extends TestCase {
 					static function ( $config ): bool {
 						$slugs = array_column( $config['courseOrder'], 'slug' );
 
-						return 5 === count( $config['courseOrder'] )
-							&& in_array( 'links', $slugs, true );
+						return 1 === count( $config['courseOrder'] )
+							&& ! in_array( 'links', $slugs, true );
 					}
 				)
 			);

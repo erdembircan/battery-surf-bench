@@ -32,10 +32,10 @@ defined( 'ABSPATH' ) || exit;
 class CourseOrderOption implements OptionProvider {
 
 	/**
-	 * Stores the option name and the sanitizer that validates and heals it.
+	 * Stores the option name and the sanitizer that validates it.
 	 *
 	 * @param string               $option_name Name of the option the surf-course order is saved under.
-	 * @param CourseOrderSanitizer $sanitizer   Validates and heals the saved order.
+	 * @param CourseOrderSanitizer $sanitizer   Validates the saved order.
 	 */
 	public function __construct(
 		private string $option_name,
@@ -44,10 +44,10 @@ class CourseOrderOption implements OptionProvider {
 	}
 
 	/**
-	 * Builds this option's `register_setting()` definition: a healing schema
-	 * wide enough to express the ordered, heterogeneous entries, plus the
-	 * sanitizer's default and sanitize callback — so a stale or malformed
-	 * saved order self-heals.
+	 * Builds this option's `register_setting()` definition: a schema wide
+	 * enough to express the ordered, heterogeneous entries, plus the
+	 * sanitizer's default (the bundled catalog, for a fresh install) and
+	 * sanitize callback — so a malformed saved order is cleaned on every save.
 	 *
 	 * @return array{name: string, args: array<string, mixed>} The option name and its `register_setting()` args.
 	 */

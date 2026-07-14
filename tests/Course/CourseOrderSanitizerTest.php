@@ -16,9 +16,11 @@ use ErdemBircan\BatterySurfBench\Tests\TestCase;
 
 /**
  * The sanitizer is the option's only gate between whatever gets POSTed and
- * what is actually saved: it must validate every entry, drop what no longer
- * resolves, and — because bundled pages can never be dropped from the surf
- * sequence — heal a saved order that is missing one.
+ * what is actually saved: it must validate every entry and drop what no
+ * longer resolves — including a bundled slug the catalog no longer has — but
+ * a bundled page a site owner deliberately removed stays removed; only
+ * `default_order()` (a fresh install's starting point) has every bundled page
+ * present by construction.
  */
 final class CourseOrderSanitizerTest extends TestCase {
 
@@ -138,11 +140,14 @@ final class CourseOrderSanitizerTest extends TestCase {
 	}
 
 	/**
-	 * A saved order missing a bundled page (e.g. the catalog gained a page
-	 * since it was last saved) is healed by appending the missing entry —
-	 * bundled pages can never be dropped from the sequence.
+	 * A saved order missing a bundled page — because a site owner removed it
+	 * from the settings screen, or it predates a catalog change — is returned
+	 * exactly as saved: the missing page stays missing. Bundled pages are no
+	 * longer force-reinserted on every read; a site owner can permanently
+	 * shrink the sequence, and re-add a removed bundled page from the
+	 * settings screen's "Built-in" browse filter whenever they choose to.
 	 */
-	public function test_sanitize_reinserts_a_missing_bundled_page(): void {
+	public function test_sanitize_leaves_a_missing_bundled_page_missing(): void {
 		$order = array(
 			array(
 				'kind' => 'bundled',
@@ -152,41 +157,26 @@ final class CourseOrderSanitizerTest extends TestCase {
 				'kind' => 'bundled',
 				'slug' => 'gallery',
 			),
-			// 'article-2', 'video' and 'links' are missing from this saved order.
+			// 'article-2', 'video' and 'links' are absent — deliberately removed,
+			// not merely stale — and must stay absent.
 		);
 
-		$healed = $this->sanitizer()->sanitize( $order );
+		$this->assertSame( $order, $this->sanitizer()->sanitize( $order ) );
+	}
 
-		$this->assertSame(
-			array(
-				array(
-					'kind' => 'bundled',
-					'slug' => 'article-1',
-				),
-				array(
-					'kind' => 'bundled',
-					'slug' => 'gallery',
-				),
-				array(
-					'kind' => 'bundled',
-					'slug' => 'article-2',
-				),
-				array(
-					'kind' => 'bundled',
-					'slug' => 'video',
-				),
-				array(
-					'kind' => 'bundled',
-					'slug' => 'links',
-				),
-			),
-			$healed
-		);
+	/**
+	 * An order with every bundled page removed sanitizes down to an empty
+	 * array rather than being backfilled — the sequence can be shrunk all the
+	 * way to nothing.
+	 */
+	public function test_sanitize_allows_every_bundled_page_to_be_removed(): void {
+		$this->assertSame( array(), $this->sanitizer()->sanitize( array() ) );
 	}
 
 	/**
 	 * A bundled entry naming a slug the catalog no longer has is dropped —
-	 * it never becomes a "user" entry or otherwise survives.
+	 * it never becomes a "user" entry, is never mistaken for a deliberate
+	 * removal of a real page, and otherwise never survives.
 	 */
 	public function test_sanitize_drops_an_unknown_bundled_slug(): void {
 		$order = array(
@@ -196,17 +186,9 @@ final class CourseOrderSanitizerTest extends TestCase {
 			),
 		);
 
-		$healed = $this->sanitizer()->sanitize( $order );
+		$sanitized = $this->sanitizer()->sanitize( $order );
 
-		$this->assertNotContains(
-			array(
-				'kind' => 'bundled',
-				'slug' => 'not-a-real-page',
-			),
-			$healed
-		);
-		// Every bundled page is still present via the healing pass.
-		$this->assertCount( 5, $healed );
+		$this->assertSame( array(), $sanitized );
 	}
 
 	/**
@@ -263,8 +245,8 @@ final class CourseOrderSanitizerTest extends TestCase {
 			),
 		);
 
-		$healed   = $this->sanitizer()->sanitize( $order );
-		$user_ids = array_column( array_filter( $healed, static fn ( $e ) => 'user' === $e['kind'] ), 'id' );
+		$sanitized = $this->sanitizer()->sanitize( $order );
+		$user_ids  = array_column( array_filter( $sanitized, static fn ( $e ) => 'user' === $e['kind'] ), 'id' );
 
 		$this->assertSame( array( 5 ), $user_ids );
 	}
@@ -303,21 +285,23 @@ final class CourseOrderSanitizerTest extends TestCase {
 			),
 		);
 
-		$healed = $this->sanitizer()->sanitize( $order );
+		$sanitized = $this->sanitizer()->sanitize( $order );
 
 		$this->assertSame(
 			1,
-			count( array_filter( $healed, static fn ( $e ) => 'bundled' === $e['kind'] && 'article-1' === $e['slug'] ) )
+			count( array_filter( $sanitized, static fn ( $e ) => 'bundled' === $e['kind'] && 'article-1' === $e['slug'] ) )
 		);
 		$this->assertSame(
 			1,
-			count( array_filter( $healed, static fn ( $e ) => 'user' === $e['kind'] && 7 === $e['id'] ) )
+			count( array_filter( $sanitized, static fn ( $e ) => 'user' === $e['kind'] && 7 === $e['id'] ) )
 		);
 	}
 
 	/**
 	 * Malformed entries (missing keys, an unrecognized `kind`, or not even an
-	 * array) are dropped rather than causing a fatal error.
+	 * array) are dropped rather than causing a fatal error, yielding an empty
+	 * array — there is no backfill to fall back on any more, only
+	 * {@see default_order()} starts with every bundled page present.
 	 */
 	public function test_sanitize_drops_malformed_entries(): void {
 		$order = array(
@@ -328,13 +312,6 @@ final class CourseOrderSanitizerTest extends TestCase {
 			array(),
 		);
 
-		$healed = $this->sanitizer()->sanitize( $order );
-
-		// Nothing survives from the malformed input, but the healing pass still
-		// backfills every bundled page.
-		$this->assertCount( 5, $healed );
-		foreach ( $healed as $entry ) {
-			$this->assertSame( 'bundled', $entry['kind'] );
-		}
+		$this->assertSame( array(), $this->sanitizer()->sanitize( $order ) );
 	}
 }

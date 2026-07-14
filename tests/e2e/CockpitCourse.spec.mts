@@ -905,6 +905,15 @@ test.describe( 'User-selected page in the surf rotation', () => {
 		expect( response.ok() ).toBeTruthy();
 	}
 
+	/** The bundled catalog's slugs, in course order — mirrors `CourseCatalog::PAGES`. */
+	const BUNDLED_SLUGS_IN_ORDER = [
+		'article-1',
+		'gallery',
+		'article-2',
+		'video',
+		'links',
+	] as const;
+
 	/**
 	 * Reorders the saved surf-course order so the given user page leads the
 	 * sequence, ahead of every bundled page. The settings screen's own picker
@@ -913,7 +922,9 @@ test.describe( 'User-selected page in the surf rotation', () => {
 	 * `SettingsScreen.spec.mts` — so this exists purely to make the user page
 	 * the very first one surfed, through the same persistence endpoint
 	 * (`/wp/v2/settings`) the settings screen itself saves through, rather than
-	 * this test waiting through all 5 bundled pages first.
+	 * this test waiting through all 5 bundled pages first. Bundled pages are
+	 * no longer force-reinserted by the sanitizer, so every bundled slug the
+	 * sequence should still contain is spelled out explicitly here.
 	 *
 	 * @param page   - The authenticated page to write through.
 	 * @param pageId - The user page's post id to move to the front.
@@ -925,7 +936,13 @@ test.describe( 'User-selected page in the surf rotation', () => {
 		const response = await page.request.post( SETTINGS_ENDPOINT, {
 			headers: { 'X-WP-Nonce': await nonce( page ) },
 			data: {
-				[ OPTION_KEY ]: [ { kind: 'user', id: pageId } ],
+				[ OPTION_KEY ]: [
+					{ kind: 'user', id: pageId },
+					...BUNDLED_SLUGS_IN_ORDER.map( ( slug ) => ( {
+						kind: 'bundled',
+						slug,
+					} ) ),
+				],
 			},
 		} );
 		expect( response.ok() ).toBeTruthy();

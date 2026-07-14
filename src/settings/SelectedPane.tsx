@@ -1,6 +1,8 @@
 /**
- * The Selected pane: the single surf-course sequence, seeded with the locked
- * bundled pages and the site owner's own picks, all freely drag-reorderable.
+ * The Selected pane: the single surf-course sequence, seeded with the bundled
+ * pages and the site owner's own picks, every row freely drag-reorderable and
+ * removable — a bundled page removed here can always be re-added from the
+ * Browse pane's "Built-in" filter.
  *
  * Drag-reorder is built on `@dnd-kit` — headless, so the coastal row styling
  * carries over untouched, and its `DragOverlay` reproduces the mock's tilted,
@@ -70,7 +72,7 @@ const COLLAPSE_TRANSITION = [
  */
 function badgeLabel( badge: RowBadge ): string {
 	if ( badge === 'bundled' ) {
-		return __( 'Bundled', 'battery-surf-bench' );
+		return __( 'Built-in', 'battery-surf-bench' );
 	}
 	if ( badge === 'post' ) {
 		return __( 'Post', 'battery-surf-bench' );
@@ -79,9 +81,9 @@ function badgeLabel( badge: RowBadge ): string {
 }
 
 /**
- * Renders one sequence row: handle, index, lock or spacer, title, badge, and
- * remove or a reserved spacer — every row emits the same six slots so the
- * columns line up regardless of a row's kind.
+ * Renders one sequence row: handle, index, title, badge, and remove — every
+ * row, bundled or user, emits the same five slots and is equally removable,
+ * so the columns line up regardless of a row's kind.
  *
  * @param props                 Component props.
  * @param props.row             The row to render.
@@ -175,38 +177,23 @@ function SequenceRowItem( {
 				<span aria-hidden="true"></span>
 			</span>
 			<span className="bsb-pages-row__index">{ index }</span>
-			{ row.badge === 'bundled' ? (
-				<span
-					className="bsb-pages-row__lock"
-					aria-label={ __( 'Locked', 'battery-surf-bench' ) }
-				></span>
-			) : (
-				<span className="bsb-pages-row__lock" aria-hidden="true"></span>
-			) }
 			<span className="bsb-pages-row__title">{ row.title }</span>
 			<span className={ `bsb-badge bsb-badge--${ row.badge }` }>
 				{ badgeLabel( row.badge ) }
 			</span>
-			{ row.removable ? (
-				<button
-					type="button"
-					className="bsb-pages-row__remove"
-					aria-label={ sprintf(
-						/* translators: %s: page title. */
-						__( 'Remove %s', 'battery-surf-bench' ),
-						row.title
-					) }
-					disabled={ saving }
-					onClick={ onRemove }
-				>
-					×
-				</button>
-			) : (
-				<span
-					className="bsb-pages-row__remove-spacer"
-					aria-hidden="true"
-				></span>
-			) }
+			<button
+				type="button"
+				className="bsb-pages-row__remove"
+				aria-label={ sprintf(
+					/* translators: %s: page title. */
+					__( 'Remove %s', 'battery-surf-bench' ),
+					row.title
+				) }
+				disabled={ saving }
+				onClick={ onRemove }
+			>
+				×
+			</button>
 			<button
 				type="button"
 				className="screen-reader-text"
@@ -241,7 +228,7 @@ function SequenceRowItem( {
  * @param props           Component props.
  * @param props.rows      The sequence rows, in visit order.
  * @param props.saving    Whether a save is in flight — shields the pane and disables every row's remove/move controls and drag.
- * @param props.onRemove  Called with a row's key when its remove button is activated (only fires for removable rows).
+ * @param props.onRemove  Called with a row's order entry when its remove button is activated — every row, bundled or user, carries one.
  * @param props.onReorder Called with the moved row's key and the key of the row it was dropped onto.
  */
 export function SelectedPane( {
@@ -378,100 +365,113 @@ export function SelectedPane( {
 			</div>
 			<p className="bsb-selected__note">
 				{ __(
-					"Order matters — the surfer visits these in sequence. Bundled pages can't be removed, but drag them anywhere.",
+					'Order matters — the surfer visits these top to bottom. Drag any row to reorder; remove any page, built-in ones included.',
 					'battery-surf-bench'
 				) }
 			</p>
 
-			<DndContext
-				sensors={ sensors }
-				collisionDetection={ closestCenter }
-				onDragStart={ handleDragStart }
-				onDragEnd={ handleDragEnd }
-				onDragCancel={ () => setActiveKey( null ) }
-			>
-				<SortableContext
-					items={ rows.map( ( row ) => row.key ) }
-					strategy={ verticalListSortingStrategy }
+			{ rows.length === 0 ? (
+				<div className="bsb-selected__empty">
+					{ __(
+						'No pages selected yet. Add pages from Browse, or press Reset to restore the built-in set. A benchmark needs at least one page.',
+						'battery-surf-bench'
+					) }
+				</div>
+			) : (
+				<DndContext
+					sensors={ sensors }
+					collisionDetection={ closestCenter }
+					onDragStart={ handleDragStart }
+					onDragEnd={ handleDragEnd }
+					onDragCancel={ () => setActiveKey( null ) }
 				>
-					<div className="bsb-pages-list bsb-pages-list--custom">
-						{ rows.map( ( row, index ) => (
-							<SequenceRowItem
-								key={ row.key }
-								row={ row }
-								index={ index + 1 }
-								isFirst={ index === 0 }
-								isLast={ index === rows.length - 1 }
-								isRemoving={ removingKey === row.key }
-								saving={ saving }
-								onRemove={ () => handleRemove( row ) }
-								onMoveUp={ () =>
-									index > 0 &&
-									onReorder( row.key, rows[ index - 1 ].key )
-								}
-								onMoveDown={ () =>
-									index < rows.length - 1 &&
-									onReorder( row.key, rows[ index + 1 ].key )
-								}
-								onTransitionEnd={ ( propertyName ) =>
-									handleRowTransitionEnd(
-										row.key,
-										propertyName
-									)
-								}
-							/>
-						) ) }
-					</div>
-				</SortableContext>
-				{ /* dnd-kit's own cursor-following `transform` (translate) lands on
-				its OWN internal wrapper element around whatever `DragOverlay`
-				is given as children — never merged onto this row div itself —
-				so `.bsb-pages-row--dragging`'s `transform: rotate(2.5deg)
-				scale(1.02)` below resolves as a clean, standalone value with
-				nothing else composed into it, byte-identical to the mock's
-				`.bsb-drag-fallback`. Do not attach any inline `style` (or a
-				`transform`-setting class) to this element, or the two would
-				collide the same way the collapse animation's `transition` did
-				in `SequenceRowItem` above. */ }
-				<DragOverlay>
-					{ activeRow ? (
-						<div className="bsb-pages-row bsb-pages-row--custom bsb-pages-row--dragging">
-							<span
-								className="bsb-pages-row__handle"
-								aria-hidden="true"
-							>
-								<span></span>
-								<span></span>
-								<span></span>
-								<span></span>
-								<span></span>
-								<span></span>
-							</span>
-							<span className="bsb-pages-row__index">
-								{ rows.findIndex(
-									( row ) => row.key === activeRow.key
-								) + 1 }
-							</span>
-							<span
-								className="bsb-pages-row__lock"
-								aria-hidden="true"
-							></span>
-							<span className="bsb-pages-row__title">
-								{ activeRow.title }
-							</span>
-							<span
-								className={ `bsb-badge bsb-badge--${ activeRow.badge }` }
-							>
-								{ badgeLabel( activeRow.badge ) }
-							</span>
-							<span
-								className="bsb-pages-row__remove-spacer"
-								aria-hidden="true"
-							></span>
+					<SortableContext
+						items={ rows.map( ( row ) => row.key ) }
+						strategy={ verticalListSortingStrategy }
+					>
+						<div className="bsb-pages-list bsb-pages-list--custom">
+							{ rows.map( ( row, index ) => (
+								<SequenceRowItem
+									key={ row.key }
+									row={ row }
+									index={ index + 1 }
+									isFirst={ index === 0 }
+									isLast={ index === rows.length - 1 }
+									isRemoving={ removingKey === row.key }
+									saving={ saving }
+									onRemove={ () => handleRemove( row ) }
+									onMoveUp={ () =>
+										index > 0 &&
+										onReorder(
+											row.key,
+											rows[ index - 1 ].key
+										)
+									}
+									onMoveDown={ () =>
+										index < rows.length - 1 &&
+										onReorder(
+											row.key,
+											rows[ index + 1 ].key
+										)
+									}
+									onTransitionEnd={ ( propertyName ) =>
+										handleRowTransitionEnd(
+											row.key,
+											propertyName
+										)
+									}
+								/>
+							) ) }
 						</div>
-					) : null }
-				</DragOverlay>
-			</DndContext>
+					</SortableContext>
+					{ /* dnd-kit's own cursor-following `transform` (translate) lands on
+					its OWN internal wrapper element around whatever `DragOverlay`
+					is given as children — never merged onto this row div itself —
+					so `.bsb-pages-row--dragging`'s `transform: rotate(2.5deg)
+					scale(1.02)` below resolves as a clean, standalone value with
+					nothing else composed into it, byte-identical to the mock's
+					`.bsb-drag-fallback`. Do not attach any inline `style` (or a
+					`transform`-setting class) to this element, or the two would
+					collide the same way the collapse animation's `transition` did
+					in `SequenceRowItem` above. */ }
+					<DragOverlay>
+						{ activeRow ? (
+							<div className="bsb-pages-row bsb-pages-row--custom bsb-pages-row--dragging">
+								<span
+									className="bsb-pages-row__handle"
+									aria-hidden="true"
+								>
+									<span></span>
+									<span></span>
+									<span></span>
+									<span></span>
+									<span></span>
+									<span></span>
+								</span>
+								<span className="bsb-pages-row__index">
+									{ rows.findIndex(
+										( row ) => row.key === activeRow.key
+									) + 1 }
+								</span>
+								<span className="bsb-pages-row__title">
+									{ activeRow.title }
+								</span>
+								<span
+									className={ `bsb-badge bsb-badge--${ activeRow.badge }` }
+								>
+									{ badgeLabel( activeRow.badge ) }
+								</span>
+								<span
+									className="bsb-pages-row__remove"
+									aria-hidden="true"
+								>
+									×
+								</span>
+							</div>
+						) : null }
+					</DragOverlay>
+				</DndContext>
+			) }
 
 			{ /* Shields the whole pane while a save is in flight — see the same
 			overlay on `BrowsePane`. The per-row remove/move buttons and drag
