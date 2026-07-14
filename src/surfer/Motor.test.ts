@@ -114,6 +114,135 @@ describe( 'DomMotor.playVideo', () => {
 	} );
 } );
 
+describe( 'DomMotor.playVideo — selection among multiple videos', () => {
+	/** An in-viewport rect, so a candidate never triggers the off-screen scroll path unless deliberately overridden. */
+	const IN_VIEW_RECT = {
+		top: 100,
+		bottom: 300,
+		left: 50,
+		right: 450,
+		width: 400,
+		height: 200,
+	} as DOMRect;
+
+	it( 'can select a video other than the first when the rng points elsewhere', async () => {
+		document.body.innerHTML =
+			'<video id="v0"></video><video id="v1"></video><video id="v2"></video>';
+		const videos = Array.from(
+			document.querySelectorAll( 'video' )
+		) as HTMLVideoElement[];
+		const plays = videos.map( ( v ) => {
+			v.getBoundingClientRect = () => IN_VIEW_RECT;
+			const play = vi.fn().mockResolvedValue( undefined );
+			v.play = play;
+			return play;
+		} );
+
+		// 3 candidates; rng() = 0.5 -> floor(0.5 * 3) = index 1, not the first.
+		await new DomMotor( () => 0.5, instantFrames ).playVideo();
+
+		expect( plays[ 0 ] ).not.toHaveBeenCalled();
+		expect( plays[ 1 ] ).toHaveBeenCalledTimes( 1 );
+		expect( plays[ 2 ] ).not.toHaveBeenCalled();
+	} );
+
+	it( 'selects a different video with a different rng draw — variety across wins', async () => {
+		document.body.innerHTML =
+			'<video id="v0"></video><video id="v1"></video><video id="v2"></video>';
+		const videos = Array.from(
+			document.querySelectorAll( 'video' )
+		) as HTMLVideoElement[];
+		const plays = videos.map( ( v ) => {
+			v.getBoundingClientRect = () => IN_VIEW_RECT;
+			const play = vi.fn().mockResolvedValue( undefined );
+			v.play = play;
+			return play;
+		} );
+
+		// 3 candidates; rng() = 0.99 -> floor(0.99 * 3) = index 2, the last one.
+		await new DomMotor( () => 0.99, instantFrames ).playVideo();
+
+		expect( plays[ 0 ] ).not.toHaveBeenCalled();
+		expect( plays[ 1 ] ).not.toHaveBeenCalled();
+		expect( plays[ 2 ] ).toHaveBeenCalledTimes( 1 );
+	} );
+
+	it( 'scrolls the selected video into view when it is off-screen, even though an earlier candidate is on-screen', async () => {
+		document.body.innerHTML =
+			'<video id="v0"></video><video id="v1"></video>';
+		const videos = Array.from(
+			document.querySelectorAll( 'video' )
+		) as HTMLVideoElement[];
+		videos[ 0 ].getBoundingClientRect = () => IN_VIEW_RECT;
+		videos[ 1 ].getBoundingClientRect = () =>
+			( {
+				top: 3000,
+				bottom: 3300,
+				left: 50,
+				right: 450,
+				width: 400,
+				height: 300,
+			} ) as DOMRect;
+		videos.forEach( ( v ) => {
+			v.play = vi.fn().mockResolvedValue( undefined );
+		} );
+		const scrollBySpy = vi
+			.spyOn( window, 'scrollBy' )
+			.mockImplementation( () => undefined );
+
+		// 2 candidates; rng() = 0.5 -> floor(0.5 * 2) = index 1, the off-screen one.
+		await new DomMotor( () => 0.5, instantFrames ).playVideo();
+
+		expect( scrollBySpy ).toHaveBeenCalled();
+		expect( videos[ 1 ].play ).toHaveBeenCalledTimes( 1 );
+		expect( videos[ 0 ].play ).not.toHaveBeenCalled();
+
+		scrollBySpy.mockRestore();
+	} );
+
+	it( 'pools a <video> and an embed iframe together and can select the iframe (DOM order preserved)', async () => {
+		document.body.innerHTML =
+			'<video id="v0"></video><iframe id="f1" src="https://www.youtube-nocookie.com/embed/xyz"></iframe>';
+		const video = document.querySelector( '#v0' ) as HTMLVideoElement;
+		const iframe = document.querySelector( '#f1' ) as HTMLIFrameElement;
+		video.getBoundingClientRect = () => IN_VIEW_RECT;
+		iframe.getBoundingClientRect = () => IN_VIEW_RECT;
+		video.play = vi.fn().mockResolvedValue( undefined );
+		const postMessageSpy = vi.spyOn( iframe.contentWindow!, 'postMessage' );
+
+		// 2 candidates; rng() = 0.99 -> floor(0.99 * 2) = index 1, the iframe.
+		await new DomMotor( () => 0.99, instantFrames ).playVideo();
+
+		expect( video.play ).not.toHaveBeenCalled();
+		expect( postMessageSpy ).toHaveBeenCalledWith(
+			JSON.stringify( { event: 'command', func: 'playVideo', args: [] } ),
+			'https://www.youtube-nocookie.com'
+		);
+
+		postMessageSpy.mockRestore();
+	} );
+
+	it( 'pools a <video> and an embed iframe together and can select the <video>', async () => {
+		document.body.innerHTML =
+			'<video id="v0"></video><iframe id="f1" src="https://www.youtube-nocookie.com/embed/xyz"></iframe>';
+		const video = document.querySelector( '#v0' ) as HTMLVideoElement;
+		const iframe = document.querySelector( '#f1' ) as HTMLIFrameElement;
+		video.getBoundingClientRect = () => IN_VIEW_RECT;
+		iframe.getBoundingClientRect = () => IN_VIEW_RECT;
+		const play = vi.fn().mockResolvedValue( undefined );
+		video.play = play;
+		const postMessageSpy = vi.spyOn( iframe.contentWindow!, 'postMessage' );
+
+		// 2 candidates; rng() = 0 -> floor(0 * 2) = index 0, the <video>.
+		await new DomMotor( () => 0, instantFrames ).playVideo();
+
+		expect( play ).toHaveBeenCalledTimes( 1 );
+		expect( postMessageSpy ).not.toHaveBeenCalled();
+
+		postMessageSpy.mockRestore();
+	} );
+} );
+
 describe( 'DomMotor.stopVideo', () => {
 	it( 'fully stops the target playVideo last started (stopVideo command, not a pause)', async () => {
 		document.body.innerHTML =
