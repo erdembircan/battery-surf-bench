@@ -57,10 +57,10 @@ describe( 'DomMotor.playVideo', () => {
 		expect( video.muted ).toBe( true );
 	} );
 
-	it( 'attends a youtube-nocookie embed — approaches with the cursor — without calling play', async () => {
+	it( 'attends a youtube-nocookie embed — approaches with the cursor — and issues a play command', async () => {
 		document.body.innerHTML =
 			'<iframe src="https://www.youtube-nocookie.com/embed/xyz"></iframe>';
-		const iframe = document.querySelector( 'iframe' )!;
+		const iframe = document.querySelector( 'iframe' ) as HTMLIFrameElement;
 		iframe.getBoundingClientRect = () =>
 			( {
 				top: 100,
@@ -71,14 +71,20 @@ describe( 'DomMotor.playVideo', () => {
 				height: 200,
 			} ) as DOMRect;
 		const travelToSpy = vi.spyOn( FakeCursor.prototype, 'travelTo' );
+		const postMessageSpy = vi.spyOn( iframe.contentWindow!, 'postMessage' );
 
 		await expect(
 			new DomMotor( () => 0.5, instantFrames ).playVideo()
 		).resolves.toBeUndefined();
 
 		expect( travelToSpy ).toHaveBeenCalled();
+		expect( postMessageSpy ).toHaveBeenCalledWith(
+			JSON.stringify( { event: 'command', func: 'playVideo', args: [] } ),
+			'https://www.youtube-nocookie.com'
+		);
 
 		travelToSpy.mockRestore();
+		postMessageSpy.mockRestore();
 	} );
 
 	it( 'scrolls an off-screen video into view before approaching it', async () => {
@@ -105,6 +111,380 @@ describe( 'DomMotor.playVideo', () => {
 		expect( scrollBySpy ).toHaveBeenCalled();
 
 		scrollBySpy.mockRestore();
+	} );
+} );
+
+describe( 'DomMotor.playVideo — selection among multiple videos', () => {
+	/** An in-viewport rect, so a candidate never triggers the off-screen scroll path unless deliberately overridden. */
+	const IN_VIEW_RECT = {
+		top: 100,
+		bottom: 300,
+		left: 50,
+		right: 450,
+		width: 400,
+		height: 200,
+	} as DOMRect;
+
+	it( 'can select a video other than the first when the rng points elsewhere', async () => {
+		document.body.innerHTML =
+			'<video id="v0"></video><video id="v1"></video><video id="v2"></video>';
+		const videos = Array.from(
+			document.querySelectorAll( 'video' )
+		) as HTMLVideoElement[];
+		const plays = videos.map( ( v ) => {
+			v.getBoundingClientRect = () => IN_VIEW_RECT;
+			const play = vi.fn().mockResolvedValue( undefined );
+			v.play = play;
+			return play;
+		} );
+
+		// 3 candidates; rng() = 0.5 -> floor(0.5 * 3) = index 1, not the first.
+		await new DomMotor( () => 0.5, instantFrames ).playVideo();
+
+		expect( plays[ 0 ] ).not.toHaveBeenCalled();
+		expect( plays[ 1 ] ).toHaveBeenCalledTimes( 1 );
+		expect( plays[ 2 ] ).not.toHaveBeenCalled();
+	} );
+
+	it( 'selects a different video with a different rng draw — variety across wins', async () => {
+		document.body.innerHTML =
+			'<video id="v0"></video><video id="v1"></video><video id="v2"></video>';
+		const videos = Array.from(
+			document.querySelectorAll( 'video' )
+		) as HTMLVideoElement[];
+		const plays = videos.map( ( v ) => {
+			v.getBoundingClientRect = () => IN_VIEW_RECT;
+			const play = vi.fn().mockResolvedValue( undefined );
+			v.play = play;
+			return play;
+		} );
+
+		// 3 candidates; rng() = 0.99 -> floor(0.99 * 3) = index 2, the last one.
+		await new DomMotor( () => 0.99, instantFrames ).playVideo();
+
+		expect( plays[ 0 ] ).not.toHaveBeenCalled();
+		expect( plays[ 1 ] ).not.toHaveBeenCalled();
+		expect( plays[ 2 ] ).toHaveBeenCalledTimes( 1 );
+	} );
+
+	it( 'scrolls the selected video into view when it is off-screen, even though an earlier candidate is on-screen', async () => {
+		document.body.innerHTML =
+			'<video id="v0"></video><video id="v1"></video>';
+		const videos = Array.from(
+			document.querySelectorAll( 'video' )
+		) as HTMLVideoElement[];
+		videos[ 0 ].getBoundingClientRect = () => IN_VIEW_RECT;
+		videos[ 1 ].getBoundingClientRect = () =>
+			( {
+				top: 3000,
+				bottom: 3300,
+				left: 50,
+				right: 450,
+				width: 400,
+				height: 300,
+			} ) as DOMRect;
+		videos.forEach( ( v ) => {
+			v.play = vi.fn().mockResolvedValue( undefined );
+		} );
+		const scrollBySpy = vi
+			.spyOn( window, 'scrollBy' )
+			.mockImplementation( () => undefined );
+
+		// 2 candidates; rng() = 0.5 -> floor(0.5 * 2) = index 1, the off-screen one.
+		await new DomMotor( () => 0.5, instantFrames ).playVideo();
+
+		expect( scrollBySpy ).toHaveBeenCalled();
+		expect( videos[ 1 ].play ).toHaveBeenCalledTimes( 1 );
+		expect( videos[ 0 ].play ).not.toHaveBeenCalled();
+
+		scrollBySpy.mockRestore();
+	} );
+
+	it( 'pools a <video> and an embed iframe together and can select the iframe (DOM order preserved)', async () => {
+		document.body.innerHTML =
+			'<video id="v0"></video><iframe id="f1" src="https://www.youtube-nocookie.com/embed/xyz"></iframe>';
+		const video = document.querySelector( '#v0' ) as HTMLVideoElement;
+		const iframe = document.querySelector( '#f1' ) as HTMLIFrameElement;
+		video.getBoundingClientRect = () => IN_VIEW_RECT;
+		iframe.getBoundingClientRect = () => IN_VIEW_RECT;
+		video.play = vi.fn().mockResolvedValue( undefined );
+		const postMessageSpy = vi.spyOn( iframe.contentWindow!, 'postMessage' );
+
+		// 2 candidates; rng() = 0.99 -> floor(0.99 * 2) = index 1, the iframe.
+		await new DomMotor( () => 0.99, instantFrames ).playVideo();
+
+		expect( video.play ).not.toHaveBeenCalled();
+		expect( postMessageSpy ).toHaveBeenCalledWith(
+			JSON.stringify( { event: 'command', func: 'playVideo', args: [] } ),
+			'https://www.youtube-nocookie.com'
+		);
+
+		postMessageSpy.mockRestore();
+	} );
+
+	it( 'pools a <video> and an embed iframe together and can select the <video>', async () => {
+		document.body.innerHTML =
+			'<video id="v0"></video><iframe id="f1" src="https://www.youtube-nocookie.com/embed/xyz"></iframe>';
+		const video = document.querySelector( '#v0' ) as HTMLVideoElement;
+		const iframe = document.querySelector( '#f1' ) as HTMLIFrameElement;
+		video.getBoundingClientRect = () => IN_VIEW_RECT;
+		iframe.getBoundingClientRect = () => IN_VIEW_RECT;
+		const play = vi.fn().mockResolvedValue( undefined );
+		video.play = play;
+		const postMessageSpy = vi.spyOn( iframe.contentWindow!, 'postMessage' );
+
+		// 2 candidates; rng() = 0 -> floor(0 * 2) = index 0, the <video>.
+		await new DomMotor( () => 0, instantFrames ).playVideo();
+
+		expect( play ).toHaveBeenCalledTimes( 1 );
+		expect( postMessageSpy ).not.toHaveBeenCalled();
+
+		postMessageSpy.mockRestore();
+	} );
+} );
+
+describe( 'DomMotor.stopVideo', () => {
+	it( 'fully stops the target playVideo last started (stopVideo command, not a pause)', async () => {
+		document.body.innerHTML =
+			'<iframe src="https://www.youtube-nocookie.com/embed/xyz"></iframe>';
+		const iframe = document.querySelector( 'iframe' ) as HTMLIFrameElement;
+		iframe.getBoundingClientRect = () =>
+			( {
+				top: 100,
+				bottom: 300,
+				left: 50,
+				right: 450,
+				width: 400,
+				height: 200,
+			} ) as DOMRect;
+		const postMessageSpy = vi.spyOn( iframe.contentWindow!, 'postMessage' );
+		const motor = new DomMotor( () => 0.5, instantFrames );
+
+		await motor.playVideo();
+		postMessageSpy.mockClear();
+		await motor.stopVideo();
+
+		expect( postMessageSpy ).toHaveBeenCalledWith(
+			JSON.stringify( {
+				event: 'command',
+				func: 'stopVideo',
+				args: [],
+			} ),
+			'https://www.youtube-nocookie.com'
+		);
+
+		postMessageSpy.mockRestore();
+	} );
+
+	it( 'disposes the message listener of the target playVideo last started', async () => {
+		document.body.innerHTML =
+			'<iframe src="https://www.youtube-nocookie.com/embed/xyz"></iframe>';
+		const iframe = document.querySelector( 'iframe' ) as HTMLIFrameElement;
+		iframe.getBoundingClientRect = () =>
+			( {
+				top: 100,
+				bottom: 300,
+				left: 50,
+				right: 450,
+				width: 400,
+				height: 200,
+			} ) as DOMRect;
+		const removeListenerSpy = vi.spyOn( window, 'removeEventListener' );
+		const motor = new DomMotor( () => 0.5, instantFrames );
+
+		await motor.playVideo();
+		await motor.stopVideo();
+
+		expect( removeListenerSpy ).toHaveBeenCalledWith(
+			'message',
+			expect.any( Function )
+		);
+
+		removeListenerSpy.mockRestore();
+	} );
+
+	it( 'fully stops (pause + reset to start) a real <video> element playVideo last started', async () => {
+		document.body.innerHTML = '<video></video>';
+		const video = document.querySelector( 'video' ) as HTMLVideoElement;
+		video.currentTime = 6;
+		video.play = vi.fn().mockResolvedValue( undefined );
+		const pause = vi.fn();
+		video.pause = pause;
+		const motor = new DomMotor( () => 0.5, instantFrames );
+
+		await motor.playVideo();
+		await motor.stopVideo();
+
+		expect( pause ).toHaveBeenCalledTimes( 1 );
+		expect( video.currentTime ).toBe( 0 );
+	} );
+
+	it( 'is a safe no-op when nothing was started', async () => {
+		await expect(
+			new DomMotor( () => 0.5, instantFrames ).stopVideo()
+		).resolves.toBeUndefined();
+	} );
+} );
+
+describe( 'DomMotor.playVideo — repeated calls', () => {
+	it( 'disposes the previous control before creating a new one', async () => {
+		document.body.innerHTML =
+			'<iframe src="https://www.youtube-nocookie.com/embed/xyz"></iframe>';
+		const iframe = document.querySelector( 'iframe' ) as HTMLIFrameElement;
+		iframe.getBoundingClientRect = () =>
+			( {
+				top: 100,
+				bottom: 300,
+				left: 50,
+				right: 450,
+				width: 400,
+				height: 200,
+			} ) as DOMRect;
+		const removeListenerSpy = vi.spyOn( window, 'removeEventListener' );
+		const motor = new DomMotor( () => 0.5, instantFrames );
+
+		await motor.playVideo();
+		expect( removeListenerSpy ).not.toHaveBeenCalledWith(
+			'message',
+			expect.any( Function )
+		);
+
+		await motor.playVideo();
+		expect( removeListenerSpy ).toHaveBeenCalledWith(
+			'message',
+			expect.any( Function )
+		);
+
+		removeListenerSpy.mockRestore();
+	} );
+
+	it( 'unsubscribes the previous control auto-replay before creating a new one', async () => {
+		document.body.innerHTML =
+			'<iframe src="https://www.youtube-nocookie.com/embed/xyz"></iframe>';
+		const iframe = document.querySelector( 'iframe' ) as HTMLIFrameElement;
+		iframe.getBoundingClientRect = () =>
+			( {
+				top: 100,
+				bottom: 300,
+				left: 50,
+				right: 450,
+				width: 400,
+				height: 200,
+			} ) as DOMRect;
+		const motor = new DomMotor( () => 0.5, instantFrames );
+
+		// The second call disposes and unsubscribes the first control before
+		// building and subscribing a second one on the same underlying
+		// iframe — an ended message afterwards must trigger exactly one
+		// replay (from the current control), never two (one per control).
+		await motor.playVideo();
+		await motor.playVideo();
+
+		const postMessageSpy = vi.spyOn( iframe.contentWindow!, 'postMessage' );
+
+		window.dispatchEvent(
+			new MessageEvent( 'message', {
+				data: JSON.stringify( {
+					event: 'infoDelivery',
+					info: { playerState: 0 },
+				} ),
+				source: iframe.contentWindow,
+				origin: 'https://www.youtube-nocookie.com',
+			} )
+		);
+
+		const playCommandCalls = postMessageSpy.mock.calls.filter(
+			( call ) =>
+				'string' === typeof call[ 0 ] &&
+				call[ 0 ].includes( '"playVideo"' )
+		);
+		expect( playCommandCalls ).toHaveLength( 1 );
+
+		postMessageSpy.mockRestore();
+	} );
+} );
+
+describe( 'DomMotor.playVideo — auto-replay on ended', () => {
+	it( 'replays the started control the instant the player reports ended (seekTo then playVideo)', async () => {
+		document.body.innerHTML =
+			'<iframe src="https://www.youtube-nocookie.com/embed/xyz"></iframe>';
+		const iframe = document.querySelector( 'iframe' ) as HTMLIFrameElement;
+		iframe.getBoundingClientRect = () =>
+			( {
+				top: 100,
+				bottom: 300,
+				left: 50,
+				right: 450,
+				width: 400,
+				height: 200,
+			} ) as DOMRect;
+		const motor = new DomMotor( () => 0.5, instantFrames );
+		await motor.playVideo();
+
+		const postMessageSpy = vi.spyOn( iframe.contentWindow!, 'postMessage' );
+
+		window.dispatchEvent(
+			new MessageEvent( 'message', {
+				data: JSON.stringify( {
+					event: 'infoDelivery',
+					info: { playerState: 0 },
+				} ),
+				source: iframe.contentWindow,
+				origin: 'https://www.youtube-nocookie.com',
+			} )
+		);
+
+		expect( postMessageSpy ).toHaveBeenCalledWith(
+			JSON.stringify( {
+				event: 'command',
+				func: 'seekTo',
+				args: [ 0, true ],
+			} ),
+			'https://www.youtube-nocookie.com'
+		);
+		expect( postMessageSpy ).toHaveBeenCalledWith(
+			JSON.stringify( { event: 'command', func: 'playVideo', args: [] } ),
+			'https://www.youtube-nocookie.com'
+		);
+
+		postMessageSpy.mockRestore();
+	} );
+} );
+
+describe( 'DomMotor.stopVideo — unsubscribes the auto-replay', () => {
+	it( 'stops replaying after stopVideo — a later ended message triggers nothing', async () => {
+		document.body.innerHTML =
+			'<iframe src="https://www.youtube-nocookie.com/embed/xyz"></iframe>';
+		const iframe = document.querySelector( 'iframe' ) as HTMLIFrameElement;
+		iframe.getBoundingClientRect = () =>
+			( {
+				top: 100,
+				bottom: 300,
+				left: 50,
+				right: 450,
+				width: 400,
+				height: 200,
+			} ) as DOMRect;
+		const motor = new DomMotor( () => 0.5, instantFrames );
+		await motor.playVideo();
+		await motor.stopVideo();
+
+		const postMessageSpy = vi.spyOn( iframe.contentWindow!, 'postMessage' );
+
+		window.dispatchEvent(
+			new MessageEvent( 'message', {
+				data: JSON.stringify( {
+					event: 'infoDelivery',
+					info: { playerState: 0 },
+				} ),
+				source: iframe.contentWindow,
+				origin: 'https://www.youtube-nocookie.com',
+			} )
+		);
+
+		expect( postMessageSpy ).not.toHaveBeenCalled();
+
+		postMessageSpy.mockRestore();
 	} );
 } );
 

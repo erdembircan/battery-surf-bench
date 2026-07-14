@@ -48,6 +48,16 @@ describe( 'senseAffordances', () => {
 		expect( senseAffordances( doc ).hasVideo ).toBe( true );
 	} );
 
+	it( 'detects a native core/embed YouTube block as video', () => {
+		const doc = docFrom(
+			'<figure class="wp-block-embed is-type-video is-provider-youtube wp-block-embed-youtube wp-embed-aspect-16-9 wp-has-aspect-ratio">' +
+				'<div class="wp-block-embed__wrapper">' +
+				'<iframe src="https://www.youtube-nocookie.com/embed/xyz?enablejsapi=1&amp;playsinline=1&amp;mute=1&amp;rel=0" title="YouTube video player" allowfullscreen></iframe>' +
+				'</div></figure>'
+		);
+		expect( senseAffordances( doc ).hasVideo ).toBe( true );
+	} );
+
 	it( 'detects a vimeo player embed as video', () => {
 		const doc = docFrom(
 			'<iframe src="https://player.vimeo.com/video/123"></iframe>'

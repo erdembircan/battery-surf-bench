@@ -294,6 +294,17 @@ if ( ! class_exists( 'WP_Error' ) ) {
 	}
 }
 
+// `WP_HTML_Tag_Processor` deliberately has NO stub here. YouTubeEmbed's use
+// of it (`includes/Course/YouTubeEmbed.php`) is covered exclusively by e2e
+// against real WordPress (`tests/e2e/CockpitCourse.spec.mts`) — no test may
+// assert against a fake of the very class it is verifying. This process has
+// no real WordPress to load the genuine class from (`wp-playground/wordpress/`
+// is gitignored and only present after a local Playground run — never in a
+// fresh checkout or CI — so requiring it here would make `composer test`
+// depend on developer machine state and break on every clean checkout).
+// `YouTubeEmbedTest` unit-tests only the pure logic that never touches this
+// class at all.
+
 // Install the in-memory filesystem double as the WordPress filesystem global so
 // code reading bundled files through the abstraction never reaches the disk.
 $GLOBALS['wp_filesystem'] = new WP_Filesystem_Base();

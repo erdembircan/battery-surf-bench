@@ -111,6 +111,73 @@ test.describe( 'Course page route', () => {
 	} );
 } );
 
+test.describe( 'Video course page (native YouTube embed)', () => {
+	// The bundled video page ("video") leads at index 3 in the default
+	// order: article-1, gallery, article-2, video, links.
+	const VIDEO_INDEX = 3;
+
+	test( 'renders the native core/embed YouTube block, amended and controllable, no PHP notices', async ( {
+		page,
+	} ) => {
+		// Mint the `bsb_surf` nonce the same way a real run does, then request
+		// the video page's index through the authorized index route.
+		//
+		// WordPress's OWN real oEmbed handling resolves the embed here — this
+		// plugin never short-circuits it. wp-playground has no reliable
+		// outbound network, so a dev/e2e-only mu-plugin
+		// (`youtubeOembedStubMuPlugin`, wired into `e2eBlueprint`) stubs just
+		// the one HTTP fetch `pre_oembed_result` would otherwise make,
+		// returning a canned `youtube.com/embed/...` iframe shaped like
+		// YouTube's real oEmbed response. From there the REAL, unmodified
+		// production `YouTubeEmbed::embed_oembed_html()` — running through
+		// the real `WP_HTML_Tag_Processor` — amends that iframe's `src`, which
+		// is the actual behavior under test: no PHP unit test exercises this
+		// amend (see `tests/Course/YouTubeEmbedTest.php`'s doc comment), so
+		// this e2e spec is its only coverage.
+		await page.goto( '/?bsbSession=cockpit' );
+		const nonce = await surfNonce( page );
+
+		await page.goto( indexUrl( nonce, VIDEO_INDEX ) );
+
+		// The native block's own markup: a `figure.wp-block-embed` wrapping
+		// the iframe, produced by WordPress's own embed handling
+		// (`WP_Embed::autoembed()` + `do_blocks()`), not hand-authored markup.
+		const embed = page.locator( 'figure.wp-block-embed' );
+		await expect( embed ).toBeAttached();
+		const iframe = embed.locator( 'iframe' );
+		await expect( iframe ).toBeAttached();
+
+		// The control params the amend merges onto whatever oEmbed produced:
+		// JS-API enabled and muted (required for the surf engine's
+		// postMessage commands — see `VideoControl.ts`), the served page's
+		// own origin, and no `autoplay=1` — the simulation starts playback
+		// itself, the embed no longer autoplays on load.
+		//
+		// This markup contract is as far as e2e coverage goes for playback:
+		// the dev/e2e oEmbed stub returns a canned iframe pointed at a real
+		// youtube.com URL, but it never actually loads YouTube's real player
+		// (no reliable outbound network in wp-playground), so it never emits
+		// genuine player-state event messages to listen for. Faking that
+		// emission here would mean asserting against a fake of the very
+		// protocol under test — deliberately not done. The event-driven
+		// watch/auto-replay/full-stop logic (`WatchVideo.run`,
+		// `Motor.playVideo`/`stopVideo`, and the message-listening
+		// `VideoControl` built for a YouTube iframe — its `onEnded`
+		// subscription is what drives the auto-replay) is covered entirely by
+		// unit tests (`VideoControl.test.ts`, `Motor.test.ts`,
+		// `WatchVideo.test.ts`), verified in turn against a real, live
+		// YouTube embed while implementing it (see
+		// `docs/plans/native-youtube-embed-playback-plan.md`).
+		const src = await iframe.getAttribute( 'src' );
+		expect( src ).toMatch( /enablejsapi=1/ );
+		expect( src ).toMatch( /mute=1/ );
+		expect( src ).toMatch( /origin=/ );
+		expect( src ).not.toMatch( /autoplay=1/ );
+
+		await expectNoPhpNotices( page );
+	} );
+} );
+
 test.describe( 'Surf engine', () => {
 	test( 'boots and surfs when the traits URL param is present', async ( {
 		page,
@@ -783,17 +850,25 @@ test.describe( 'User-selected page in the surf rotation', () => {
 	/**
 	 * Creates a throwaway published page to use as a "user" order entry.
 	 *
-	 * @param page  - The authenticated page to create through.
-	 * @param title - The page's title.
+	 * @param page    - The authenticated page to create through.
+	 * @param title   - The page's title.
+	 * @param content - Serialized block markup for the page's body, as a
+	 *                site owner's own editor would have saved it. Omitted for the usual
+	 *                empty-body throwaway page.
 	 * @return The created page's id and its real permalink.
 	 */
 	async function createUserPage(
 		page: Page,
-		title: string
+		title: string,
+		content?: string
 	): Promise< UserPage > {
 		const response = await page.request.post( PAGES_ENDPOINT, {
 			headers: { 'X-WP-Nonce': await nonce( page ) },
-			data: { title, status: 'publish' },
+			data: {
+				title,
+				status: 'publish',
+				...( undefined === content ? {} : { content } ),
+			},
 		} );
 		expect( response.status() ).toBe( 201 );
 		const record = await response.json();
@@ -872,6 +947,126 @@ test.describe( 'User-selected page in the surf rotation', () => {
 		} );
 		expect( response.ok() ).toBeTruthy();
 	}
+
+	/**
+	 * Builds a native `core/embed` YouTube block's serialized markup for a
+	 * video id — the same shape the block editor itself would save for a
+	 * pasted YouTube URL (a bare URL inside `.wp-block-embed__wrapper`,
+	 * which WordPress's own `autoembed()` converts to an iframe).
+	 *
+	 * @param id - An 11-character YouTube video id.
+	 * @return The block's serialized markup.
+	 */
+	function youtubeEmbedBlock( id: string ): string {
+		const url = `https://www.youtube.com/watch?v=${ id }`;
+
+		return `<!-- wp:embed {"url":"${ url }","type":"video","providerNameSlug":"youtube","responsive":true,"className":"wp-embed-aspect-16-9 wp-has-aspect-ratio"} -->
+<figure class="wp-block-embed is-type-video is-provider-youtube wp-block-embed-youtube wp-embed-aspect-16-9 wp-has-aspect-ratio"><div class="wp-block-embed__wrapper">
+${ url }
+</div></figure>
+<!-- /wp:embed -->`;
+	}
+
+	// Regression coverage for the bug the maintainer flagged: DomMotor.playVideo
+	// used to attend only the FIRST video/embed on a page, so a real,
+	// multi-video user page would have every video after the first silently
+	// go unwatched forever. That selection logic is unit-tested
+	// deterministically (Motor.test.ts, seeded rng); what genuinely has no
+	// coverage anywhere else is whether the PHP amend (embed_oembed_html)
+	// correctly walks and fixes EVERY YouTube iframe on one real, user-authored
+	// page, not just the first -- every other e2e video assertion in this file
+	// (and the bundled video page) only ever exercises a single embed.
+	test( 'a user page with multiple YouTube embeds renders and amends every one of them', async ( {
+		page,
+	} ) => {
+		const videoIds = [ 'jNQXAC9IVRw', 'dQw4w9WgXcQ', '9bZkp7q19f0' ];
+		const title = 'Multi-Video User Page';
+		const userPage = await createUserPage(
+			page,
+			title,
+			videoIds.map( youtubeEmbedBlock ).join( '\n\n' )
+		);
+
+		try {
+			// Select it in the saved surf-course order directly through the
+			// persistence endpoint -- equivalent to a site owner adding it via
+			// the settings screen and saving (that UI flow is already covered
+			// end to end by the test above) -- so this test reaches the served
+			// page without re-driving it.
+			const response = await page.request.post( SETTINGS_ENDPOINT, {
+				headers: { 'X-WP-Nonce': await nonce( page ) },
+				data: { [ OPTION_KEY ]: [ { kind: 'user', id: userPage.id } ] },
+			} );
+			expect( response.ok() ).toBeTruthy();
+
+			const consoleErrors: string[] = [];
+			page.on( 'console', ( message ) => {
+				if ( 'error' === message.type() ) {
+					consoleErrors.push( message.text() );
+				}
+			} );
+			page.on( 'pageerror', ( error ) => {
+				consoleErrors.push( error.message );
+			} );
+
+			// Mint the bsb_surf nonce the same way a real run does, then
+			// request this user page's index (0, the sole saved entry)
+			// through the authorized index route -- with bsbTraits present so
+			// the surf engine actually boots on it, fidget-heavy so the fake
+			// cursor appears promptly regardless of which behavior the
+			// auction happens to pick first.
+			await page.goto( '/?bsbSession=cockpit' );
+			const surfingNonce = await surfNonce( page );
+
+			await page.goto(
+				indexUrl( surfingNonce, 0, { bsbTraits: '0,0,0,0,10' } )
+			);
+
+			await expect(
+				page.locator( 'body.bsb-course-page' )
+			).toBeAttached();
+			await expect( page.locator( 'h1.wp-block-heading' ) ).toHaveText(
+				title
+			);
+
+			// Every one of the 3 embeds rendered AND was amended -- not just
+			// the first -- proving embed_oembed_html walks and fixes every
+			// iframe reaching it on a single real page.
+			const embeds = page.locator( 'figure.wp-block-embed' );
+			await expect( embeds ).toHaveCount( videoIds.length );
+			const iframes = page.locator( 'figure.wp-block-embed iframe' );
+			await expect( iframes ).toHaveCount( videoIds.length );
+
+			const srcs = await iframes.evaluateAll( ( elements ) =>
+				elements.map( ( el ) => el.getAttribute( 'src' ) ?? '' )
+			);
+			expect( srcs ).toHaveLength( videoIds.length );
+			for ( const src of srcs ) {
+				expect( src ).toMatch( /enablejsapi=1/ );
+				expect( src ).toMatch( /mute=1/ );
+				expect( src ).toMatch( /origin=/ );
+				expect( src ).not.toMatch( /autoplay=1/ );
+			}
+
+			// The surf engine boots on this page and senses it (the hasVideo
+			// affordance, scanning all 3 embeds) without erroring -- the fake
+			// cursor appearing is the same boot signal the top-level "Surf
+			// engine" describe block uses. WHICH of the 3 embeds the engine
+			// actually attends/watches on any given win is decided by
+			// DomMotor.playVideo's seeded rng pick; that selection is already
+			// covered deterministically at the unit level (Motor.test.ts) and
+			// is deliberately NOT asserted here, to avoid a flaky live
+			// assertion about which specific video the engine happens to
+			// choose.
+			await expect( page.locator( '.bsb-surf-cursor' ) ).toBeAttached();
+
+			expect( await page.content() ).not.toMatch( PHP_NOTICE );
+			expect( consoleErrors ).toEqual( [] );
+		} finally {
+			await resetCourseOrder( page );
+			await deleteUserPage( page, userPage.id );
+		}
+	} );
 
 	// Regression coverage for M3's front-end wiring: a real post or page the
 	// site owner picked from the settings screen must surf exactly like a

@@ -264,7 +264,7 @@ classDiagram
     }
 
     class CourseRouter {
-        +__construct(CourseCatalog catalog, string index_param, string nonce_param, string nonce_action, Capability capability, Assets assets, string stylesheet, string script, string body_class, string option_name, CourseOrderSanitizer order_sanitizer, UserPageView user_page_view)
+        +__construct(CourseCatalog catalog, string index_param, string nonce_param, string nonce_action, Capability capability, Assets assets, string stylesheet, string script, string body_class, string option_name, CourseOrderSanitizer order_sanitizer, UserPageView user_page_view, YouTubeEmbed youtube_embed)
         +register() void
         +add_query_vars(array vars) array
         +maybe_render(array posts, WP_Query query) array
@@ -275,6 +275,23 @@ classDiagram
 
     class UserPageView {
         +render(array data) string
+    }
+
+    %% Never replaces WordPress's own oEmbed handling -- real oEmbed still
+    %% resolves every YouTube URL, network fetch and all. embed_oembed_html
+    %% amends the src of a YouTube/youtube-nocookie iframe WordPress's own
+    %% handling already produced (via WP_HTML_Tag_Processor), merging the
+    %% control params VideoControl needs and stripping autoplay, for ANY
+    %% iframe reaching WP_Embed::shortcode() -- a fresh fetch or a
+    %% pre-existing cache hit. Registered by CourseRouter per served page,
+    %% never globally. is_youtube_src/amend_control_params are public pure
+    %% logic (no WP_HTML_Tag_Processor dependency), kept public specifically
+    %% so they are unit-testable on their own.
+    class YouTubeEmbed {
+        +register() void
+        +embed_oembed_html(string html) string
+        +is_youtube_src(string src) bool
+        +amend_control_params(string src) string
     }
 
     class Cockpit {
@@ -409,6 +426,7 @@ classDiagram
     CourseRouter --> CourseOrderSanitizer : reads & sanitizes the saved order to resolve an authorized index request (gated on capability + bsb_surf nonce, checked before any entry is resolved; bundled pages are no longer force-re-added — a saved order missing one stays missing)
     CourseRouter ..> UserPageView : renders via (user pages only)
     UserPageView ..|> View : implements
+    CourseRouter --> YouTubeEmbed : registers per served course page
     CourseCatalog ..> CoursePage : produces
     Cockpit ..|> Manager : implements
     Cockpit --> CockpitDashboard : uses

@@ -15,6 +15,7 @@ use ErdemBircan\BatterySurfBench\Course\CourseCatalog;
 use ErdemBircan\BatterySurfBench\Course\CourseOrderSanitizer;
 use ErdemBircan\BatterySurfBench\Course\CourseRouter;
 use ErdemBircan\BatterySurfBench\Course\Views\UserPageView;
+use ErdemBircan\BatterySurfBench\Course\YouTubeEmbed;
 use ErdemBircan\BatterySurfBench\Support\Manager;
 use ErdemBircan\BatterySurfBench\Tests\Support\FakeCapability;
 use ErdemBircan\BatterySurfBench\Tests\TestCase;
@@ -75,7 +76,8 @@ final class CourseRouterTest extends TestCase {
 			self::BODY_CLASS,
 			self::OPTION,
 			$sanitizer ?? new CourseOrderSanitizer( $catalog, array( 'page', 'post' ) ),
-			new UserPageView()
+			new UserPageView(),
+			new YouTubeEmbed()
 		);
 	}
 
@@ -496,6 +498,22 @@ final class CourseRouterTest extends TestCase {
 		$classes = $this->router()->mark_course_body( array( 'existing-class' ) );
 
 		$this->assertSame( array( 'existing-class', self::BODY_CLASS ), $classes );
+	}
+
+	/**
+	 * Serving a page registers the YouTube embed control filter, scoped to
+	 * that request: any YouTube embed WordPress's own real oEmbed handling
+	 * renders while this course page's `the_content`/`do_blocks()` pass
+	 * runs — whether the bundled video page or a bare YouTube URL on a
+	 * user-selected page — comes out controllable by the surf engine.
+	 */
+	public function test_serving_a_page_registers_the_youtube_embed_filter(): void {
+		$this->stage_request( '0' );
+		$this->stage_order( $this->default_order() );
+
+		$this->router()->maybe_render( array(), new WP_Query() );
+
+		$this->assertNotFalse( has_filter( 'embed_oembed_html' ) );
 	}
 
 	/**

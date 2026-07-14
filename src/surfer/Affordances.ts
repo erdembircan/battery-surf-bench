@@ -30,8 +30,15 @@ const TEXT_DENSITY_SATURATION_CHARS = 1200;
 /**
  * Matches a recognized video-host embed iframe (YouTube or Vimeo). Exported
  * as the single source of this rule — {@link ./Motor}'s `DomMotor` reads it
- * too, when targeting the same embed to attend and (for a real `<video>`)
- * play, so a new host is added in one place, never two.
+ * too, when targeting the same embed to attend and play, so a new host is
+ * added in one place, never two.
+ *
+ * Detection is unchanged by the move to genuinely controllable playback: a
+ * native `core/embed` YouTube block still renders as a `youtube.com/embed`
+ * or `youtube-nocookie.com/embed` iframe on the front end (see
+ * `YouTubeEmbed.php`), so this selector matches it exactly as it always has.
+ * What changed is what `DomMotor.playVideo`/`stopVideo` now do with the
+ * match — see `./VideoControl`.
  */
 export const VIDEO_EMBED_SELECTOR =
 	'iframe[src*="youtube.com/embed"], iframe[src*="youtube-nocookie.com/embed"], iframe[src*="player.vimeo.com"]';

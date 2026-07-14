@@ -72,6 +72,7 @@ classDiagram
         +pointerDrift(ms) Promise
         +selectSnippet() Promise
         +playVideo() Promise
+        +stopVideo() Promise
         +lingerImage(ms) Promise
         +readTrace(ms) Promise
         +idle(ms) Promise
@@ -83,6 +84,7 @@ classDiagram
         +pointerDrift(ms) Promise
         +selectSnippet() Promise
         +playVideo() Promise
+        +stopVideo() Promise
         +lingerImage(ms) Promise
         +readTrace(ms) Promise
         +idle(ms) Promise
@@ -95,6 +97,26 @@ classDiagram
         +moveTo(Point) void
         +travelTo(Point, Rng, frames?) Promise
         +framesForDistance(distance) number$
+    }
+
+    %% Starts, stops and replays whatever element playVideo attended -- a
+    %% real <video> via its element API and native 'ended' event, or a
+    %% YouTube/youtube-nocookie embed iframe via the IFrame API's raw
+    %% postMessage command protocol (no external script load), subscribing
+    %% to the player's own event messages -- and lets a caller subscribe to
+    %% the moment it ends via onEnded, event-driven (no polling): the
+    %% subscriber fires the instant the player transitions into 'ended', not
+    %% on a repeated "still ended" message. Confirmed against a real embed.
+    %% play() replays from the start when the player has ended and no-ops
+    %% when already playing; stop() is a genuine full stop. Anything else
+    %% (Vimeo, unparseable src) is a safe no-op whose onEnded never fires.
+    class VideoControl {
+        <<interface>>
+        +play() Promise
+        +stop() Promise
+        +onEnded(callback) unsubscribe
+        +dispose() void
+        +createVideoControl(Element) VideoControl$
     }
 
     class Clock {
@@ -220,6 +242,7 @@ classDiagram
     EngineBoot --> Rng : seeds the one PRNG instance
     EngineBoot --> Affordances : provides senseAffordances
     DomMotor --> Affordances : shares contentRoot & VIDEO_EMBED_SELECTOR (lingerImage, playVideo)
+    DomMotor --> VideoControl : builds via createVideoControl, subscribes onEnded to auto-replay, keeps the active one (+ unsubscribe) for stopVideo
     EngineBoot --> SurferStats : normalizeTraits
     EngineBoot --> RunConfig : normalizeSpeed
     EngineBoot ..> RunStore : postMessage 'bsb:pageDone'

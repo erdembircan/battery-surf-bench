@@ -33,12 +33,15 @@ describe( 'WatchVideo.bid', () => {
 } );
 
 describe( 'WatchVideo.run', () => {
-	it( 'plays then watches for the knowledge-base range', async () => {
+	it( "is a plain start -> dwell -> stop sequence — any mid-window replay is the motor/control seam's job, not this behavior's", async () => {
 		const motor = new FakeMotor();
 		await new WatchVideo().run( motor, makeContext( [ 0, 0, 0, 5, 0 ] ) );
 
-		expect( motor.commands[ 0 ].kind ).toBe( 'playVideo' );
-		expect( motor.commands[ 1 ].kind ).toBe( 'idle' );
+		expect( motor.commands.map( ( c ) => c.kind ) ).toEqual( [
+			'playVideo',
+			'idle',
+			'stopVideo',
+		] );
 		const [ ms ] = motor.commands[ 1 ].args;
 		expect( ms ).toBeGreaterThanOrEqual( 30000 );
 		expect( ms ).toBeLessThanOrEqual( 45000 );
