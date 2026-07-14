@@ -78,7 +78,11 @@ const instance = ( session: RunSession ): InstanceState =>
 		toasts: new ToastQueue(),
 		toastTimer: null,
 		noticeShownThisRun: false,
+		pendingBark: null,
+		pendingDurationMs: null,
+		barkShownAt: null,
 		barkDurationTimer: null,
+		barkReplaceTimer: null,
 		barkLeaveTimer: null,
 	} ) as InstanceState;
 
@@ -151,13 +155,15 @@ describe( 'stopRun persistence', () => {
 		expect( ctx.toastPhase ).toBe( 'entering' );
 	} );
 
-	it( 'clears an active bark when the run stops', () => {
+	it( 'clears an active bark (and any queued one) when the run stops', () => {
 		const ctx = context();
 		ctx.barkBehavior = 'readPause';
 		ctx.barkText = 'Deep in the good words…';
 		ctx.barkDurationMs = 8000;
 		ctx.barkPhase = 'entering';
 		const inst = instance( new RunSession() );
+		inst.pendingBark = 'lingerImage';
+		inst.pendingDurationMs = 2000;
 		inst.barkDurationTimer = setTimeout(
 			() => undefined,
 			8000
@@ -169,6 +175,8 @@ describe( 'stopRun persistence', () => {
 		expect( ctx.barkText ).toBe( '' );
 		expect( ctx.barkDurationMs ).toBe( 0 );
 		expect( ctx.barkPhase ).toBe( '' );
+		expect( inst.pendingBark ).toBeNull();
+		expect( inst.pendingDurationMs ).toBeNull();
 		expect( inst.barkDurationTimer ).toBeNull();
 		expect( inst.barkLeaveTimer ).toBeNull();
 	} );

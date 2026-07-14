@@ -25,41 +25,53 @@ feel, or timing changes.
    not the viewport top — it must read as "inside" the simulated page.
 5. **Styling**: same pill language as the bottom toast — text + a unique icon
    per behavior.
-6. **Lifecycle**: non-persistent and duration-tied. A bark holds for the full
-   wall-clock duration of the behavior it announces, then auto-dismisses. A
-   newer bark **always replaces the showing one immediately, at any phase**
-   (including mid-leave) — there is no safe period and no pending/replace
-   slot. The store is the sole authority: two store-owned timers drive every
+6. **Lifecycle**: non-persistent, duration-tied, and queued. A bark holds for
+   the full wall-clock duration of the behavior it announces, then
+   auto-dismisses. A newer bark replaces it early — but never during the
+   bark's **safe period** (minimum on-screen time); a bark arriving during the
+   safe period *waits* in a depth-1 pending slot and replaces once the safe
+   period ends — only the newest of several arrivals survives. Barks are
+   shown in order; none are dropped, and none are ever instantly swapped
+   mid-life. The store is the sole authority: store-owned timers drive every
    transition, never an animation event.
 7. **Bottom toast queue untouched**: errors and the view-only notice keep their
    current placement, timing, and behavior exactly.
 
 ## Design decisions (settled)
 
-- **Timing**: no fixed hold and no safe period. The pill holds for the
-  behavior's own announced wall-clock `durationMs` — the surfer's `run()`
-  reports its dwell once, via an `announce` callback, at the moment it knows
-  it (same rng draw as it already uses; never sampled twice). `BARK_LEAVE_MS
-  = 320` is the one fixed constant left — it matches the CSS exit keyframe's
-  duration, so the store clears the bark exactly as it finishes animating
-  out. Own constant in the bark module — `TOAST_HOLD_MS` and everything else
-  in `Toasts.ts` stays untouched.
+- **Timing**: `BARK_SAFE_MS = 2500` is the minimum on-screen time (unchanged
+  from the original model) — a bark arriving inside it queues instead of
+  cutting the showing one short. What's new: the showing bark's own hold is
+  no longer a fixed `BARK_HOLD_MS`; it holds for the behavior's own announced
+  wall-clock `durationMs` — the surfer's `run()` reports its dwell once, via
+  an `announce` callback, at the moment it knows it (same rng draw it already
+  makes; never sampled twice). `BARK_LEAVE_MS = 320` is the fixed leave
+  duration — it matches the CSS exit keyframe's duration, so the store clears
+  the bark exactly as it finishes animating out. Own constants in the bark
+  module — `TOAST_HOLD_MS` and everything else in `Toasts.ts` stays
+  untouched.
 - **Same-key suppression**: a bark arriving for the behavior key currently
-  *entering* (still on screen, not yet leaving) is ignored — replacing text
-  with identical text reads as a glitch. A same-key arrival while the current
-  bark is already *leaving* is treated as fresh and replaces immediately
-  (a long-dwelling behavior may legitimately re-win and re-bark).
-- **Store-authoritative, replace-at-any-phase**: a bark arriving for a
-  *different* key always replaces the showing one immediately, whatever phase
-  it's in (entering or leaving) — no pending slot, no waiting. Two
-  store-owned timers (armed on the per-instance state, never the reactive
-  context) drive every transition: a **duration timer**, armed for
-  `durationMs`, moves `entering` → `leaving`; a **leave timer**, armed for
-  `BARK_LEAVE_MS`, moves `leaving` → cleared. No animation ever drives a
-  state transition — the pill's CSS (including the ebbing-tide countdown
-  fill) is a pure reactive projection of `barkDurationMs`/`barkPhase`.
+  showing or currently pending is ignored — replacing text with identical
+  text reads as a glitch.
+- **Store-driven queue, duration-tied**: a bark arriving for a *different* key
+  while one is showing never swaps in immediately — it queues in a depth-1
+  pending slot (newest arrival wins the slot; older queued arrivals are
+  discarded, never shown) and waits out the remainder of the showing bark's
+  safe period. Once the safe period has elapsed — whether by that wait or
+  because the queued arrival showed up after it already had — the showing
+  bark begins its leave; once the leave finishes, the queued bark (if any) is
+  pumped in fresh. Store-owned timers (armed on the per-instance state, never
+  the reactive context) drive every transition, never an animation event: a
+  **duration timer**, armed for the showing bark's own `durationMs`, moves
+  `entering` → `leaving` on its own once the dwell elapses; a **replace
+  timer**, armed for the remainder of the safe period, moves `entering` →
+  `leaving` early when a queued arrival is waiting; a **leave timer**, armed
+  for `BARK_LEAVE_MS`, moves `leaving` → cleared (and pumps the pending bark).
+  No animation ever drives a state transition — the pill's CSS (including the
+  ebbing-tide countdown fill) is a pure reactive projection of
+  `barkDurationMs`/`barkPhase`.
 - **Run-gated**: barks only raise while `context.running`; on run stop the
-  showing bark and its timers are cleared immediately.
+  showing bark, the pending slot, and every timer are cleared immediately.
 - **Accessibility**: the bark layer is `aria-hidden="true"` and
   `pointer-events: none`. Barks are decorative eye-candy; announcing every one
   would spam screen readers. Real information keeps flowing through the
@@ -94,18 +106,22 @@ SurfLoop (iframe)                      Cockpit (parent frame)
                       │                  same-origin check, running gate
                       ▼
         Barks.raiseBark(ctx, instance, key, durationMs)
-                      │  store-authoritative: replaces the showing bark
-                      ▼  immediately, at any phase — no pending slot
+                      │  store-driven queue: shows immediately when free;
+                      │  inside the showing bark's safe period, queues
+                      ▼  (depth-1, newest wins) instead of cutting it short
         reactive context (barkBehavior, barkText, barkDurationMs, barkPhase)
                       │
                       ├─► duration timer (armed for durationMs):
-                      │     entering → leaving
+                      │     entering → leaving (own dwell elapsed)
+                      ├─► replace timer (armed for the safe-period remainder):
+                      │     entering → leaving (a queued arrival is waiting)
                       └─► leave timer (armed for BARK_LEAVE_MS):
-                            leaving → cleared
+                            leaving → cleared, pumps the pending bark fresh
 
-        pill in .bsb-cockpit__bark-layer: phase classes + the
-        ebbing-tide fill (animation-duration bound to barkDurationMs via
-        --bark-dur) are a PURE PROJECTION of the state above — no
+        pill in .bsb-cockpit__bark-layer: phase classes + the layered
+        ebbing-tide fill (drain animation-duration bound to barkDurationMs
+        via --bark-dur; the ripple is a separate, constant, --bsb-wave-speed
+        -linked loop) are a PURE PROJECTION of the state above — no
         animationend, no callback, feeds nothing back into the model.
 ```
 
@@ -138,12 +154,13 @@ off this value, so a malformed or missing duration must never reach it.
 ### `src/cockpit/Barks.ts`
 
 The bark model — pure over an injected context + instance, unit-testable
-without the Interactivity runtime (same philosophy as `Toasts.ts`).
-Store-authoritative and duration-tied: the pill stays for the full wall-clock
-duration the behavior announces, and a newer bark always replaces the one
-showing immediately, at any phase. Owns:
+without the Interactivity runtime (same philosophy as `Toasts.ts`). A
+store-driven queue, duration-tied: the showing bark holds for the full
+wall-clock duration the behavior announces (not a fixed hold), and — as in
+the original model — a bark has at most one pending replacement. Owns:
 
 ```ts
+export const BARK_SAFE_MS = 2500;
 export const BARK_LEAVE_MS = 320;
 
 /** Picks one of the behavior's flavor variants; '' when the key has none. */
@@ -153,48 +170,60 @@ export const pickBarkText = (
 
 /** Raises a bark for a behavior start. Implements the full lifecycle:
  *  - key with no strings entry → no-op (non-barking behavior);
- *  - same key as showing, still entering → no-op (dedupe a repeat while
- *    still on screen — a same key while already leaving is NOT deduped,
- *    since a long-dwelling behavior may legitimately re-win and re-bark);
- *  - otherwise: replace immediately, at any phase — clear any armed
- *    timers, write the new key/text/duration, set phase 'entering', arm a
- *    duration timer for durationMs (fires beginLeave). */
+ *  - same key as showing or pending → no-op;
+ *  - no bark showing → show immediately (phase 'entering'), arming a
+ *    duration timer for durationMs;
+ *  - showing, safe period elapsed → store as pending, begin the leave now;
+ *  - showing, inside safe period → store the key + duration as pending and
+ *    arm a replace timer for the remainder of the safe period (fires
+ *    beginLeave). */
 export const raiseBark = (
-    context: CockpitContext, instance: InstanceState, key: string, durationMs: number
+    context: CockpitContext, instance: InstanceState, key: string,
+    durationMs: number, now?: number
 ): void;
 
-/** Clears the bark that just finished leaving. Called by the leave timer
- *  once BARK_LEAVE_MS elapses. */
+/** Clears the bark that just finished leaving and pumps the pending one (if
+ *  any), showing it fresh. Called by the leave timer once BARK_LEAVE_MS
+ *  elapses. */
 export const finishBark = (context: CockpitContext, instance: InstanceState): void;
 
-/** Immediately clears everything — the showing bark and every timer.
- *  Called when a run stops. */
+/** Immediately clears everything — the showing bark, the pending slot, and
+ *  every timer. Called when a run stops. */
 export const clearBark = (context: CockpitContext, instance: InstanceState): void;
 ```
 
 Internal state machine details:
 
 - Showing a bark writes `barkBehavior = key`, `barkText = pickBarkText(...)`,
-  `barkDurationMs = durationMs`, `barkPhase = 'entering'`, and arms
-  `instance.barkDurationTimer` for `durationMs` — when it fires, a
-  module-private `beginLeave` sets phase `'leaving'` and arms
+  `barkDurationMs = durationMs`, `barkPhase = 'entering'`, records
+  `instance.barkShownAt` (from `performance.now()` via the injectable `now`
+  param), and arms `instance.barkDurationTimer` for `durationMs` — when it
+  fires, a module-private `beginLeave` sets phase `'leaving'` and arms
   `instance.barkLeaveTimer` for `BARK_LEAVE_MS`, which in turn calls
   `finishBark`.
-- There is no pending slot: `raiseBark` for a different key clears whichever
-  timers are currently armed and starts the new bark's own duration timer
-  fresh, so a stale timer from the replaced bark can never fire later and
-  disturb the new one.
+- The pending slot is `instance.pendingBark: string | null` +
+  `instance.pendingDurationMs: number | null`. Overwriting them is the "only
+  newest kept" rule.
+- `beginLeave` (module-private) clears both the duration timer and any armed
+  replace timer, so neither can fire after the leave has already started —
+  and no-ops if already `leaving`, so a stale timer racing in after the leave
+  began cannot restart the leave countdown. This matters because the showing
+  bark's own duration timer and a queued arrival's replace timer race against
+  each other: whichever fires first begins the leave and must disarm the
+  other, or the loser would fire later and cut the *next* (pumped) bark's own
+  safe period short.
 - `finishBark` resets `barkBehavior`/`barkText`/`barkDurationMs`/`barkPhase`
-  to `''`/`0`. There is nothing to pump — the newest arrival already won by
-  replacing immediately, whenever it arrived.
-- Timer ids live on the instance (`barkDurationTimer`, `barkLeaveTimer`),
-  never on the reactive context.
+  to `''`/`0`, then if `pendingBark` is set, immediately shows it (fresh
+  `barkShownAt`, fresh duration timer for its own `pendingDurationMs`).
+- Timer ids live on the instance (`barkDurationTimer`, `barkReplaceTimer`,
+  `barkLeaveTimer`), never on the reactive context.
 
 ### `src/cockpit/BarkStore.ts`
 
 The bark slice of the `bsb/cockpit` store (a `StorePart`, composed in
 `view.ts`). Reads off the reactive context and drives the pill purely from
-store-owned timers — no `animationend` binding, unlike the toast:
+`Barks.ts`'s store-owned queue/timers — no `animationend` binding, unlike the
+toast:
 
 - `state` getters: `hasBark` (`barkBehavior !== ''`), `barkKey` (the raw
   behavior key, bound onto the `data-bark` attribute), `barkMessage`,
@@ -315,19 +344,19 @@ itself must stay untouched (the toast keeps its own `holding` phase and
 `InstanceState` additions + seeding + `__resetInstance` coverage:
 
 ```ts
-barkDurationTimer: number | null; // armed for the full announced dwell; fires entering -> leaving
-barkLeaveTimer: number | null;    // armed for BARK_LEAVE_MS; fires leaving -> cleared
+pendingBark: string | null;        // depth-1 slot, newest wins
+pendingDurationMs: number | null;  // the queued bark's announced duration
+barkShownAt: number | null;        // performance.now() the showing bark appeared
+barkDurationTimer: number | null;  // armed for the full announced dwell; fires entering -> leaving
+barkReplaceTimer: number | null;   // armed for the safe-period remainder when queuing
+barkLeaveTimer: number | null;     // armed for BARK_LEAVE_MS; fires leaving -> cleared
 ```
-
-Replaces the old `pendingBark` / `barkTimer` / `barkReplaceTimer` /
-`barkShownAt` fields entirely — there is no pending slot and no safe-period
-bookkeeping left to track.
 
 ### `src/cockpit/RunLifecycle.ts`
 
-`stopRun` calls `clearBark(context, instance)` — clearing the showing bark
-and its two timers — so a stopped run never leaves a bark hanging over the
-idle card.
+`stopRun` calls `clearBark(context, instance)` — clearing the showing bark,
+the pending slot, and every timer — so a stopped run never leaves a bark
+hanging over the idle card.
 
 ### `src/cockpit/view.ts`
 
@@ -386,7 +415,12 @@ Two edits:
 ```html
 <div class="bsb-cockpit__bark-layer" aria-hidden="true">
     <div class="bsb-cockpit__bark" hidden data-wp-bind--hidden="!state.hasBark" data-wp-bind--data-bark="state.barkKey" data-wp-class--is-entering="state.isBarkEntering" data-wp-class--is-leaving="state.isBarkLeaving">
-        <span class="bsb-cockpit__bark-tide" aria-hidden="true" data-wp-style----bark-dur="state.barkDurationCss"></span>
+        <span class="bsb-cockpit__bark-tide" aria-hidden="true" data-wp-style----bark-dur="state.barkDurationCss" data-wp-style----bsb-wave-speed="context.speed">
+            <span class="bsb-cockpit__bark-tide-fill" aria-hidden="true"></span>
+            <span class="bsb-cockpit__bark-tide-wave bsb-cockpit__bark-tide-wave--back" aria-hidden="true"></span>
+            <span class="bsb-cockpit__bark-tide-wave bsb-cockpit__bark-tide-wave--mid" aria-hidden="true"></span>
+            <span class="bsb-cockpit__bark-tide-wave bsb-cockpit__bark-tide-wave--front" aria-hidden="true"></span>
+        </span>
         <span class="bsb-cockpit__bark-icon" aria-hidden="true"></span>
         <span class="bsb-cockpit__bark-msg" data-wp-text="state.barkMessage"></span>
     </div>
@@ -395,10 +429,15 @@ Two edits:
 
 No `data-wp-class--is-holding` and no `data-wp-on--animationend` — the pill's
 lifecycle is driven entirely by the store's own timers, never by an animation
-event. The tide element is the first child (behind the icon/message, via
-z-index) and carries no text of its own — `data-wp-style----bark-dur` sets its
-`--bark-dur` custom property from the store's `barkDurationCss` getter, which
-the stylesheet's ebb keyframe reads as its `animation-duration`.
+event. The outer tide element carries two custom properties and no text of
+its own: `data-wp-style----bark-dur` sets `--bark-dur` from the store's
+`barkDurationCss` getter (the drain's `animation-duration`), and
+`data-wp-style----bsb-wave-speed` sets `--bsb-wave-speed` from `context.speed`
+— the same binding pattern `.bsb-deck__waves` uses — so the ripple layers'
+speed tracks the run's demo-speed multiplier. Inside it: a solid fill span
+(the water body) plus three layered, rippling wave spans (`--back`/`--mid`/
+`--front`), mirroring the deck's own `.bsb-deck__wave--back/--mid/--front`
+layering.
 
 All markup stays in the view heredoc per the repo's markup rules. No new
 dynamic PHP values are needed beyond the store-bound custom property (no close
@@ -451,52 +490,86 @@ a terminal text-cursor caret, and a stylized wave curl, each legible at
   its end state (`opacity: 1`) applied for the whole visible life, since the
   store's duration timer (not this animation) owns when the pill actually
   leaves.
-- **The ebbing-tide countdown** (`.bsb-cockpit__bark-tide`): an absolutely
-  positioned fill (`inset: 0`), sitting behind the icon/message at
-  `z-index: 1`, clipped to the pill's rounded shape by the parent's
-  `overflow: hidden`. A wavy top edge reuses the same tileable wave motif and
-  sizing convention as the deck's parallax waves (`theme.wave($fill,
-  $opacity)`, `background-size: 200px 100%`, anchored to the bottom), tinted
-  with the bark's own teal accent at low alpha so text stays legible.
-  `transform-origin: bottom; transform: scaleY(1);` at rest; while
-  `.bsb-cockpit__bark.is-entering`, it runs
-  `animation: bsb-bark-ebb var(--bark-dur, 6000ms) linear forwards;` — a
-  plain `scaleY(1) → scaleY(0)` keyframe, so it visually recedes from full to
-  empty over exactly the store-set `--bark-dur` duration. This is a **pure
-  visual projection**: it does not drive any JS, and the store's
-  `barkDurationTimer` independently owns the actual dismiss timing — both are
-  fed the same duration so they finish together.
+- **The ebbing-tide countdown** — two independent animations, layered, never
+  coupled to each other:
+  - **The drain** (`.bsb-cockpit__bark-tide`, `@keyframes bsb-bark-ebb`): the
+    water level dropping top → bottom over the behavior's wall-clock
+    `--bark-dur`. This is the one-shot countdown. An absolutely positioned
+    box (`inset: 0`), sitting behind the icon/message at `z-index: 1`,
+    clipped to the pill's rounded shape by the parent's `overflow: hidden`.
+    `transform-origin: bottom;` — its **resting** value is `scaleY(0)`
+    (empty), not `scaleY(1)`; while `.bsb-cockpit__bark.is-entering`, it runs
+    `animation: bsb-bark-ebb var(--bark-dur, 6000ms) linear forwards;`, whose
+    keyframes go `scaleY(1)` (full — top edge flush with the pill's own top)
+    → `scaleY(0)` (empty). Resting at `scaleY(0)` rather than `scaleY(1)` is
+    what keeps the fill from snapping back to full when `.is-entering` drops
+    at the entering → leaving transition: the drain animation is the *only*
+    thing that ever shows `scaleY(1)`, and once it's removed, the element
+    falls back to the same `scaleY(0)` the drain already left it at — no
+    jump, water stays exactly where it was throughout the leave. Purely
+    visual: it does not drive any JS, and the store's `barkDurationTimer`
+    independently owns the actual dismiss timing — both are fed the same
+    duration so they finish together.
+  - **The solid water body** (`.bsb-cockpit__bark-tide-fill`): `inset: 0`
+    inside the tide box, a flat translucent teal wash covering 100% of the
+    (possibly scaled-down) box at all times — this is what makes the fill
+    read as continuous water down to the pill's bottom rather than a thin
+    wavy strip, and what makes `scaleY(1)` cover the *entire* pill.
+  - **The ripple** (`.bsb-cockpit__bark-tide-wave--back/--mid/--front`,
+    reusing `@keyframes bsb-wave`): the wavy surface texture scrolling
+    horizontally — constant, looping, **never tied to the drain duration**.
+    Three layers, each anchored to the tide box's own `top` (so they track
+    the current water surface as the drain scales the box), at different
+    heights/opacities via `theme.wave($fill, $opacity)`, mirroring the deck's
+    own `--back/--mid/--front` layering (just top-anchored here, since the
+    "shoreline" is the top of whatever water remains, not a fixed bottom
+    baseline). Speed is bound to the run's demo-speed multiplier exactly like
+    the header waves: `data-wp-style----bsb-wave-speed="context.speed"` on
+    the tide element, and each layer's `animation-duration:
+    calc(<base>s / var(--bsb-wave-speed, 1));`.
 - `@media (prefers-reduced-motion: reduce)`: collapses the enter/leave
-  animation durations to `1ms` as before, and additionally disables the
-  tide's ebb animation (`animation: none`) — no smooth countdown glide under
-  reduced motion, but the store timer still runs the full duration
-  underneath, so dismiss timing is unaffected.
+  animation durations to `1ms` as before. The tide additionally goes static:
+  `animation: none; transform: scaleY(1);` (a still, full fill rather than a
+  countdown — overriding the resting `scaleY(0)` back to `scaleY(1)` is what
+  keeps it full rather than empty), and the ripple layers get `animation:
+  none` too (no horizontal motion). The store's duration timer still runs the
+  full time underneath either way, so dismiss timing is unaffected — only the
+  visual glide is dropped.
 
 ## Testing
 
 ### Vitest (unit)
 
 `Barks.test.ts` — pure-model coverage through the public functions, injected
-fake timers (`vi.useFakeTimers`), asserted through context/getters:
+fake timers (`vi.useFakeTimers`) and explicit `now` values, asserted through
+context/getters:
 
 1. `raiseBark` on a free pill shows immediately with the announced duration
-   (`entering`, text from the key's variants, `barkDurationMs` set).
+   (`entering`, text from the key's variants, `barkDurationMs` set,
+   `barkShownAt` recorded).
 2. Variant pick: rng at 0 → first variant, rng near 1 → second.
 3. Unknown key (e.g. `scrollBurst`) → no-op.
-4. A repeat arrival for the key already showing, still `entering` → no-op.
-5. A different key replaces the showing bark **immediately**, whatever phase
-   it's in — including mid-`leaving`.
-6. A repeat arrival for the same key while it is already `leaving` is *not*
-   deduped — it replaces (fresh text/duration), since same-key suppression
-   only applies while entering.
-7. The duration timer arms a leave after exactly `durationMs` elapses.
-8. The leave timer finishes (clears) after exactly `BARK_LEAVE_MS` following
-   the duration timer.
-9. A replacement cancels the old bark's duration timer — advancing past what
-   would have been its original fire time must not touch the new bark.
-10. `finishBark` resets the context to its idle shape.
-11. `clearBark` mid-anything (entering or leaving) clears both timers; the
-    cleared timers must not fire later and resurrect a phase.
+4. Same key as showing → no-op; same key as pending → no-op.
+5. A new key inside the showing bark's safe period → pending set (key +
+   duration), nothing visible changes yet; the replace timer fires at the
+   safe period's end → phase `leaving`.
+6. Two arrivals inside the safe period → only the newest survives as pending.
+7. A new key after the safe period has already elapsed → pending set +
+   immediate `leaving`.
+8. A natural duration-timer leave (the showing bark's own dwell is shorter
+   than the safe period) still queues and pumps a pending arrival — and the
+   stale replace timer (armed off the *old* bark's safe period) must not
+   later fire and cut the *newly pumped* bark's own fresh safe period short
+   (regression: `beginLeave` clears both the duration and replace timer on
+   every entry, whichever fires first).
+9. `finishBark` clears the context and shows the pending bark fresh (new
+   `barkShownAt`, fresh duration timer for the pending's own duration).
+10. `finishBark` leaves the pill idle when nothing is pending.
+11. The same key can bark again once it has fully finished (idle) — same-key
+    suppression only applies while showing or pending.
+12. `clearBark` mid-anything (entering or leaving, with or without something
+    pending) clears the pending slot and all three timers; the cleared
+    timers must not fire later and resurrect a phase.
 
 `BehaviorStart.test.ts` — origin mismatch, wrong type, missing/blank key,
 missing/invalid `durationMs` (zero, negative, `NaN`, `Infinity`, a string),
@@ -513,13 +586,20 @@ safe.
 `view.test.ts` (extend) — bark slice merged; state getters read the context,
 including `barkDurationCss`; the pill holds for the announced `durationMs`
 then leaves and finishes after `BARK_LEAVE_MS`, driven entirely by the store's
-own timers (no `animationend` callback exists to walk); a fresh message
-replaces the showing bark immediately, at any phase; `initBark` raises on a
-legitimate message (with a valid duration) only while running, and its
-cleanup detaches.
+own timers (no `animationend` callback exists to walk); a message arriving
+inside the safe period queues rather than replacing, and shows once the
+current bark leaves; only the newest of several queued arrivals is shown
+next; `initBark` raises on a legitimate message (with a valid duration) only
+while running, and its cleanup detaches. Every test that calls `initBark()`
+tracks and detaches its own listener in `afterEach` — jsdom's `window`
+persists across tests in this file, so a listener left dangling from one test
+would otherwise keep firing in every later test, racing a stale `raiseBark`
+call against the same shared `instanceFor()` singleton a later test's fresh
+listener also writes to (this bit a real cross-test contamination bug during
+development: a leaked listener silently duplicated every dispatched message).
 
-`RunLifecycle.test.ts` (extend) — `stopRun` clears an active bark and its two
-timers.
+`RunLifecycle.test.ts` (extend) — `stopRun` clears an active bark, its
+pending slot, and its timers.
 
 Barking-behavior tests (`ReadPause`/`WatchVideo`/`LingerImage`/`GlanceBack`/
 `SelectSnippet.test.ts`, extend) — each behavior's `run()` calls its `announce`
@@ -534,10 +614,12 @@ Extend the existing cockpit view/render coverage (find the existing test files
 for `CockpitView`/render context and follow their pattern): the rendered
 markup contains the bark layer with its directives (`data-wp-bind--data-bark`,
 `data-wp-class--is-entering`/`is-leaving`, the `bsb-cockpit__bark-tide`
-element with `data-wp-style----bark-dur="state.barkDurationCss"`, `aria-hidden`),
-does **not** contain `is-holding` or `onBarkAnimationEnd`, and the seeded
-context carries `barkStrings` with exactly two variants for each of the six
-behavior keys.
+element with both `data-wp-style----bark-dur="state.barkDurationCss"` and
+`data-wp-style----bsb-wave-speed="context.speed"`, plus the layered
+`bsb-cockpit__bark-tide-fill` and `bsb-cockpit__bark-tide-wave--back/--mid/
+--front` children, `aria-hidden`), does **not** contain `is-holding` or
+`onBarkAnimationEnd`, and the seeded context carries `barkStrings` with
+exactly two variants for each of the six behavior keys.
 
 ### E2E (`tests/e2e/CockpitCourse.spec.mts`, extend)
 
@@ -561,12 +643,12 @@ kept in sync with the markup in the same change, forever.
 - `docs/contracts/cockpit-frontend-modules.mmd`: add `BarkStore` (composed by
   `CockpitView`; state includes `barkDurationCss`, no `isBarkHolding`;
   callbacks: `initBark` only, no `onBarkAnimationEnd`), `Barks` (module:
-  `raiseBark(ctx, instance, key, durationMs)`/`finishBark`/`clearBark`/
-  `pickBarkText`/`BARK_LEAVE_MS`), `BehaviorStart` (module:
+  `raiseBark(ctx, instance, key, durationMs, now?)`/`finishBark`/`clearBark`/
+  `pickBarkText`/`BARK_SAFE_MS`/`BARK_LEAVE_MS`), `BehaviorStart` (module:
   `isBehaviorStartMessage`/`behaviorKeyOf`/`durationOf`); relations — BarkStore
   → Barks/BehaviorStart/RunInstance/CockpitContext, RunLifecycle → Barks
-  (clears the showing bark + timers on stop), RunInstance owns the duration +
-  leave timers (no pending slot).
+  (clears the showing bark, the pending slot, and the timers on stop),
+  RunInstance owns the pending slot and the duration/replace/leave timers.
 - `docs/contracts/surf-engine-modules.mmd`: `SurfLoop` notes the
   `onBehaviorRun` dep now carries `(key, durationMs)` and that the 20s
   heartbeat re-notify is gone; the `Behavior` interface gains the optional

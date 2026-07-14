@@ -7,8 +7,10 @@
  * engine's behavior-start handshake and raises a bark while a run is live.
  *
  * Store-authoritative: every phase transition is driven by the store's own
- * duration/leave timers (owned by {@link ./Barks}) or by a fresh incoming
- * message — never by the pill's own CSS animation finishing. The per-instance
+ * duration/replace/leave timers (owned by {@link ./Barks}) — never by the
+ * pill's own CSS animation finishing. A bark arriving before the showing
+ * one's safe period elapses queues in the pending slot rather than cutting it
+ * short, so barks are shown in order, none dropped. The pending slot and
  * timers live in the per-instance state; the lifecycle itself is in
  * {@link ./Barks}.
  *
