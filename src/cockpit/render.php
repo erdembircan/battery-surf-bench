@@ -109,11 +109,13 @@ $bsb_context = array(
 		'notice' => __( 'View only while the run is surfing.', 'battery-surf-bench' ),
 	),
 	// The behavior-start bark shown over the top of the running viewport: the
-	// behavior key showing (empty when none), its resolved flavor text, and its
-	// animation phase. Empty until the surf engine's behaviorStart handshake
-	// raises one.
+	// behavior key showing (empty when none), its resolved flavor text, its
+	// full announced wall-clock duration in ms (drives the ebbing-tide fill's
+	// animation-duration), and its animation phase. Empty/zero until the surf
+	// engine's behaviorStart handshake raises one.
 	'barkBehavior'        => '',
 	'barkText'            => '',
+	'barkDurationMs'      => 0,
 	'barkPhase'           => '',
 	// Translated bark quips by behavior key, two variants each, picked at
 	// random when the behavior starts; see {@see BarkStrings} for the keys
