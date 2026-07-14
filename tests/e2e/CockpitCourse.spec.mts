@@ -159,10 +159,11 @@ test.describe( 'Video course page (native YouTube embed)', () => {
 		// (no reliable outbound network in wp-playground), so it never emits
 		// genuine player-state event messages to listen for. Faking that
 		// emission here would mean asserting against a fake of the very
-		// protocol under test — deliberately not done. The player-state-aware
-		// watch/replay/full-stop logic (`WatchVideo.run`, `Motor.playVideo`/
-		// `replayVideo`/`stopVideo`/`videoState`, and the message-listening
-		// `VideoControl` built for a YouTube iframe) is covered entirely by
+		// protocol under test — deliberately not done. The event-driven
+		// watch/auto-replay/full-stop logic (`WatchVideo.run`,
+		// `Motor.playVideo`/`stopVideo`, and the message-listening
+		// `VideoControl` built for a YouTube iframe — its `onEnded`
+		// subscription is what drives the auto-replay) is covered entirely by
 		// unit tests (`VideoControl.test.ts`, `Motor.test.ts`,
 		// `WatchVideo.test.ts`), verified in turn against a real, live
 		// YouTube embed while implementing it (see
