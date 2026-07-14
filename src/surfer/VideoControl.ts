@@ -1,62 +1,61 @@
 /**
- * Starts, stops, replays and reads the playback state of the page's video or
- * video-host embed. `DomMotor.playVideo` builds one of these for whatever
- * element it attends and keeps it so later verbs (`replayVideo`, `stopVideo`,
- * `videoState`) act on the exact same thing — `WatchVideo.run` drives a
- * player-state-aware watch: start, dwell in slices watching for the player
- * to report `'ended'` (replaying when it does, so a video shorter than the
- * watch window gets rewatched rather than leaving the surfer parked next to
- * a finished player), then a full stop once the window elapses.
+ * Starts, stops and replays the page's video or video-host embed, and lets a
+ * caller subscribe to the moment it ends. `DomMotor.playVideo` builds one of
+ * these for whatever element it attends and keeps it so later verbs
+ * (`stopVideo`) act on the exact same thing; it also subscribes `onEnded` to
+ * an automatic replay for as long as the control is active, so
+ * `WatchVideo.run` stays a plain start → dwell → stop sequence while the
+ * player itself drives any mid-window rewatch — no polling, no timer slices.
  *
- * A real `<video>` is driven — and its state read — through its own element
- * API. A YouTube (or youtube-nocookie) embed is driven through the IFrame
- * API's raw `postMessage` command protocol — no `iframe_api` remote script
- * is loaded — and reads state the same way: it registers as a
- * `{event:'listening'}` listener and consumes the player's own event
- * messages. This was verified against a real, live embed (see
- * `docs/plans/native-youtube-embed-playback-plan.md`): posting
+ * A real `<video>` is driven through its own element API and its native
+ * `'ended'` event. A YouTube (or youtube-nocookie) embed is driven through
+ * the IFrame API's raw `postMessage` command protocol — no `iframe_api`
+ * remote script is loaded — and is subscribed to the same way: it registers
+ * as a `{event:'listening'}` listener and watches the player's own event
+ * messages for the transition INTO `ended` (not every `ended` message —
+ * `infoDelivery` repeats it — so `onEnded` fires exactly once per genuine
+ * end, not once per heartbeat). This was verified against a real, live
+ * embed (see `docs/plans/native-youtube-embed-playback-plan.md`): posting
  * `{event:'listening'}` (no `id` field — a real embed echoes back any `id`
  * it's given but never requires or validates one) immediately triggers an
  * `initialDelivery` (plus `onReady`) carrying the current `info.playerState`,
  * and every subsequent state change arrives as `infoDelivery` with
  * `info.playerState` (the documented `onStateChange` shape —
- * `{event:'onStateChange', info:<code>}`
- * — is handled too, for parity with the published API, even though the live
- * embed observed here reports exclusively via `infoDelivery`). A real watch
- * cycle was also confirmed end to end against a short (19s) real video:
- * `playVideo` → `unstarted(-1)` → `buffering(3)` → `playing(1)` → naturally
- * `ended(0)`; from `ended`, `seekTo(0, true)` + `playVideo` genuinely
- * restarts playback (`playing` at `currentTime` 0 again); `stopVideo`
- * genuinely resets the player away from `ended` (observed transitioning to
- * `unstarted`/`cued`), so a later fresh `play()` never mistakes a
- * deliberately-stopped player for one that merely finished.
+ * `{event:'onStateChange', info:<code>}` — is handled too, for parity with
+ * the published API, even though the live embed observed here reports
+ * exclusively via `infoDelivery`). A real end-to-end cycle was also
+ * confirmed against a short (19s) real video: `playVideo` →
+ * `unstarted(-1)` → `buffering(3)` → `playing(1)` → naturally `ended(0)`,
+ * firing the subscribed callback the instant that message arrived; from
+ * `ended`, `seekTo(0, true)` + `playVideo` genuinely restarts playback
+ * (`playing` at `currentTime` 0 again); `stopVideo` genuinely resets the
+ * player away from `ended` (observed transitioning to `unstarted`/`cued`),
+ * so a later fresh `play()` never mistakes a deliberately-stopped player for
+ * one that merely finished.
  *
  * Anything else (a Vimeo embed, or a YouTube iframe whose `src` doesn't
  * resolve to a parseable origin) is a safe no-op in every direction and
- * reports `'unavailable'`, so a page with an embed this module doesn't know
- * how to drive behaves exactly as it did before: attended, dwelled the full
- * watch window, never actually started, stopped, replayed or queried.
+ * never calls an `onEnded` subscriber, so a page with an embed this module
+ * doesn't know how to drive behaves exactly as it did before: attended,
+ * dwelled the full watch window, never actually started, stopped or
+ * replayed.
  */
 
-/** The player's own reported playback state. `'unavailable'` covers anything this module can't read state from at all (Vimeo, a detached target). */
-export type VideoPlaybackState =
-	| 'unavailable'
-	| 'unstarted'
-	| 'playing'
-	| 'paused'
-	| 'ended'
-	| 'buffering'
-	| 'cued';
-
-/** A motion primitive that starts, stops, replays and reads the state of whatever element it was built for. */
+/** A motion primitive that starts, stops and replays whatever element it was built for, and reports when it ends. */
 export interface VideoControl {
 	/** Starts (or resumes) playback; replays from the start when the player has ended; a no-op when already playing. Never throws. */
 	play: () => Promise< void >;
 	/** Fully stops playback (not merely paused), so a later `play()` starts clean. Never throws. */
 	stop: () => Promise< void >;
-	/** The player's current playback state, read from its own reported state. */
-	getState: () => VideoPlaybackState;
-	/** Releases any resources this control holds (e.g. a `message` listener). Idempotent, never throws. */
+	/**
+	 * Subscribes `callback` to fire the instant the player reaches `ended`
+	 * (once per genuine end, not on a repeated "still ended" message).
+	 * Returns an unsubscribe function. A control that can't read state at
+	 * all (e.g. an unrecognized embed) returns a no-op unsubscribe and never
+	 * fires.
+	 */
+	onEnded: ( callback: () => void ) => () => void;
+	/** Releases any resources this control holds (e.g. a `message` listener, an `onEnded` subscription). Idempotent, never throws. */
 	dispose: () => void;
 }
 
@@ -87,16 +86,11 @@ const youtubeCommand = (
 /** The message that opts this frame in to the player's state-change event stream — confirmed against a real embed (see the module doc comment). */
 const YOUTUBE_LISTENING_MESSAGE = JSON.stringify( { event: 'listening' } );
 
-/** Maps the YouTube IFrame API's numeric player state to {@link VideoPlaybackState}, confirmed against a real embed. */
-const YOUTUBE_STATE_BY_CODE: Readonly< Record< number, VideoPlaybackState > > =
-	{
-		[ -1 ]: 'unstarted',
-		0: 'ended',
-		1: 'playing',
-		2: 'paused',
-		3: 'buffering',
-		5: 'cued',
-	};
+/** The YouTube IFrame API's numeric code for the player having reached the end of the video. */
+const YOUTUBE_STATE_ENDED = 0;
+
+/** The YouTube IFrame API's numeric code for the player actively playing — used only to skip a redundant `playVideo` command. */
+const YOUTUBE_STATE_PLAYING = 1;
 
 /**
  * The origin a YouTube (or youtube-nocookie) embed's `src` resolves to, for
@@ -150,23 +144,24 @@ const extractPlayerStateCode = (
 	return null;
 };
 
-/** Does nothing, successfully, and reports no state — the fallback for anything this module doesn't know how to drive. */
+/** Does nothing, successfully, and never fires `onEnded` — the fallback for anything this module doesn't know how to drive. */
 const NOOP_CONTROL: VideoControl = {
 	play: () => Promise.resolve(),
 	stop: () => Promise.resolve(),
-	getState: () => 'unavailable',
+	onEnded: () => () => undefined,
 	dispose: () => undefined,
 };
 
 /**
- * Drives a real `<video>` element through its own element API, reading state
- * directly off the element. `play()` preserves the existing muted-retry
- * fallback: unmuted autoplay without a user gesture is commonly blocked, so
- * a rejected `play()` retries muted (which browsers allow) rather than
- * leaving the element paused. `play()` replays from `0` when the element has
- * already ended, and is a no-op when already playing. `stop()` is a genuine
- * full stop: paused AND reset to `0`, so a later `play()` starts clean
- * rather than resuming mid-way.
+ * Drives a real `<video>` element through its own element API. `play()`
+ * preserves the existing muted-retry fallback: unmuted autoplay without a
+ * user gesture is commonly blocked, so a rejected `play()` retries muted
+ * (which browsers allow) rather than leaving the element paused. `play()`
+ * replays from `0` when the element has already ended, and is a no-op when
+ * already playing. `stop()` is a genuine full stop: paused AND reset to `0`,
+ * so a later `play()` starts clean rather than resuming mid-way. `onEnded`
+ * subscribes to the element's own native `'ended'` event, which the
+ * platform only ever dispatches once per genuine end.
  * @param el
  */
 const videoElementControl = ( el: HTMLVideoElement ): VideoControl => ( {
@@ -190,26 +185,21 @@ const videoElementControl = ( el: HTMLVideoElement ): VideoControl => ( {
 		el.pause();
 		el.currentTime = 0;
 	},
-	getState: (): VideoPlaybackState => {
-		if ( el.ended ) {
-			return 'ended';
-		}
-
-		if ( ! el.paused ) {
-			return 'playing';
-		}
-
-		return el.currentTime > 0 ? 'paused' : 'unstarted';
+	onEnded: ( callback ) => {
+		el.addEventListener( 'ended', callback );
+		return () => el.removeEventListener( 'ended', callback );
 	},
 	dispose: () => undefined,
 } );
 
 /**
  * Drives a YouTube/youtube-nocookie embed iframe by posting raw IFrame API
- * commands to its `contentWindow`, and reads its state by listening for the
- * player's own event messages on `window` — both confirmed against a real
- * embed (see the module doc comment). Guards a missing `contentWindow` (e.g.
- * the iframe was detached) rather than throwing.
+ * commands to its `contentWindow`, and subscribes `onEnded` by listening for
+ * the player's own event messages on `window` — both confirmed against a
+ * real embed (see the module doc comment). Only the transition INTO the
+ * `ended` code fires the subscriber; `infoDelivery` keeps repeating `ended`
+ * afterwards, and those repeats are ignored. Guards a missing
+ * `contentWindow` (e.g. the iframe was detached) rather than throwing.
  * @param el
  * @param targetOrigin
  */
@@ -217,8 +207,9 @@ const youtubeIframeControl = (
 	el: HTMLIFrameElement,
 	targetOrigin: string
 ): VideoControl => {
-	let state: VideoPlaybackState = 'unstarted';
+	let lastCode: number | null = null;
 	let hasPlayedOnce = false;
+	let endedCallback: ( () => void ) | null = null;
 
 	const post = ( func: YouTubeCommand, args: readonly unknown[] = [] ) => {
 		el.contentWindow?.postMessage(
@@ -256,8 +247,16 @@ const youtubeIframeControl = (
 
 		const code = extractPlayerStateCode( parsed );
 
-		if ( null !== code && code in YOUTUBE_STATE_BY_CODE ) {
-			state = YOUTUBE_STATE_BY_CODE[ code ];
+		if ( null === code ) {
+			return;
+		}
+
+		const enteredEnded =
+			YOUTUBE_STATE_ENDED === code && YOUTUBE_STATE_ENDED !== lastCode;
+		lastCode = code;
+
+		if ( enteredEnded ) {
+			endedCallback?.();
 		}
 	};
 
@@ -266,7 +265,7 @@ const youtubeIframeControl = (
 
 	return {
 		play: async () => {
-			if ( 'playing' === state ) {
+			if ( YOUTUBE_STATE_PLAYING === lastCode ) {
 				return;
 			}
 
@@ -279,7 +278,7 @@ const youtubeIframeControl = (
 				hasPlayedOnce = true;
 			}
 
-			if ( 'ended' === state ) {
+			if ( YOUTUBE_STATE_ENDED === lastCode ) {
 				post( 'seekTo', [ 0, true ] );
 			}
 
@@ -288,9 +287,17 @@ const youtubeIframeControl = (
 		stop: async () => {
 			post( 'stopVideo' );
 		},
-		getState: () => state,
+		onEnded: ( callback ) => {
+			endedCallback = callback;
+			return () => {
+				if ( endedCallback === callback ) {
+					endedCallback = null;
+				}
+			};
+		},
 		dispose: () => {
 			window.removeEventListener( 'message', onMessage );
+			endedCallback = null;
 		},
 	};
 };
@@ -298,8 +305,8 @@ const youtubeIframeControl = (
 /**
  * Builds the {@link VideoControl} for whatever element `DomMotor.playVideo`
  * attended: a real `<video>` element, a YouTube/youtube-nocookie embed
- * iframe, or — a Vimeo embed, or anything else — a safe no-op reporting
- * `'unavailable'` in every direction.
+ * iframe, or — a Vimeo embed, or anything else — a safe no-op that never
+ * fires `onEnded`.
  * @param el
  */
 export const createVideoControl = ( el: Element ): VideoControl => {

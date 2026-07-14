@@ -9,11 +9,7 @@ import type { Rng } from './Rng';
 import { FakeCursor, framesForDistance, type Point } from './FakeCursor';
 import { easeInOutQuad } from './Ease';
 import { contentRoot, VIDEO_EMBED_SELECTOR } from './Affordances';
-import {
-	createVideoControl,
-	type VideoControl,
-	type VideoPlaybackState,
-} from './VideoControl';
+import { createVideoControl, type VideoControl } from './VideoControl';
 
 /** A motion primitive the surfer can perform. */
 export interface Motor {
@@ -27,24 +23,16 @@ export interface Motor {
 	 * Attends (scrolls into view, approaches with the cursor, once) and
 	 * starts the page's video or video-host embed, if one is present.
 	 * Disposes any previously active control first, so replaying this on a
-	 * new watch cycle never leaks a stale listener.
+	 * new watch cycle never leaks a stale listener. Subscribes the started
+	 * control's `onEnded` to replay itself for as long as it stays active —
+	 * a video that ends mid-watch rewatches itself with no polling involved.
 	 */
 	playVideo: () => Promise< void >;
 	/**
-	 * Restarts (or resumes) whatever `playVideo` last started, WITHOUT
-	 * re-attending — `play()` itself replays from the start when the player
-	 * has ended. A safe no-op when nothing is active.
-	 */
-	replayVideo: () => Promise< void >;
-	/**
-	 * The active video/embed's own reported playback state, or
-	 * `'unavailable'` when nothing is active.
-	 */
-	videoState: () => VideoPlaybackState;
-	/**
-	 * Fully stops (and disposes) whatever `playVideo` last started, if
-	 * anything. A safe no-op when nothing was started (never called, or the
-	 * page had no video).
+	 * Fully stops (unsubscribes the `onEnded` auto-replay, stops, then
+	 * disposes) whatever `playVideo` last started, if anything. A safe
+	 * no-op when nothing was started (never called, or the page had no
+	 * video).
 	 */
 	stopVideo: () => Promise< void >;
 	/**
@@ -219,8 +207,10 @@ export class DomMotor implements Motor {
 	private readonly rng: Rng;
 	private readonly nextFrameFn: () => Promise< void >;
 	private readonly cursor: FakeCursor;
-	/** The control `playVideo` last started, so `stopVideo` pauses the same element. */
+	/** The control `playVideo` last started, so `stopVideo` stops the same element. */
 	private activeVideo: VideoControl | null = null;
+	/** Unsubscribes `activeVideo`'s `onEnded` auto-replay; cleared alongside it. */
+	private activeVideoEndedUnsubscribe: ( () => void ) | null = null;
 
 	/**
 	 * @param rng
@@ -370,25 +360,31 @@ export class DomMotor implements Motor {
 			this.rng
 		);
 
-		// Dispose any control from a prior watch cycle before replacing it —
-		// otherwise its message listener (for a YouTube embed) would leak.
+		// Unsubscribe and dispose any control from a prior watch cycle before
+		// replacing it — otherwise its message listener (for a YouTube embed)
+		// and its auto-replay subscription would both leak.
+		this.activeVideoEndedUnsubscribe?.();
 		this.activeVideo?.dispose();
+
 		const control = createVideoControl( target );
 		this.activeVideo = control;
+		// Subscribed for as long as this control stays active: the player's
+		// own 'ended' event replays it, so a video shorter than the watch
+		// window rewatches itself with no polling from this Motor at all.
+		this.activeVideoEndedUnsubscribe = control.onEnded( () => {
+			void control.play();
+		} );
 		await control.play();
-	}
-
-	async replayVideo(): Promise< void > {
-		await this.activeVideo?.play();
-	}
-
-	videoState(): VideoPlaybackState {
-		return this.activeVideo?.getState() ?? 'unavailable';
 	}
 
 	async stopVideo(): Promise< void > {
 		const control = this.activeVideo;
+		const unsubscribe = this.activeVideoEndedUnsubscribe;
 		this.activeVideo = null;
+		this.activeVideoEndedUnsubscribe = null;
+
+		// Unsubscribe FIRST so a replay can never race the stop.
+		unsubscribe?.();
 
 		if ( null !== control ) {
 			await control.stop();

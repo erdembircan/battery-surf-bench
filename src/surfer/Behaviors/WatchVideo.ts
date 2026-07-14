@@ -7,25 +7,22 @@
  * parked on a video reads as too long in the cockpit, per maintainer
  * preference.
  *
- * `run()` is genuinely player-state-aware rather than blindly dwelling a
- * fixed duration next to whatever the embed happens to be doing: it starts
- * playback (`motor.playVideo()`), then dwells the watch window in small
- * slices, checking `motor.videoState()` after each one. The single signal
- * that matters is `'ended'` — reacting to it (not to duration/currentTime
- * numbers, which `Motor`/`VideoControl` deliberately never expose) covers
- * both length-mismatch directions in one rule:
- * - the video is SHORTER than the watch window → it reports `'ended'` before
- *   the window elapses, and `motor.replayVideo()` restarts it so the surfer
- *   keeps watching (rather than sitting next to a finished player) until the
- *   window really is up;
- * - the video is LONGER than the window (or the target has no readable state
- *   at all, e.g. Vimeo, or there was no video to attend in the first place)
- *   → it never reports `'ended'`, so the loop just dwells the full window
- *   with no replay.
+ * `run()` itself is a plain start → dwell → stop — it is `motor.playVideo()`
+ * that makes the dwell genuinely player-state-aware, not a loop in here:
+ * while the started control stays active, it auto-replays itself the
+ * instant the player's own event stream reports `ended` (see `VideoControl`
+ * and `DomMotor.playVideo`'s `onEnded` subscription) — no polling, no timer
+ * slices, just reacting to the real event. A video SHORTER than the watch
+ * window therefore ends and is seamlessly rewatched, keeping the surfer
+ * watching until the window really is up; a video LONGER than the window
+ * (or a target with no readable end event at all, e.g. Vimeo) simply never
+ * ends before the dwell is over and is cut off by the closing
+ * `motor.stopVideo()`.
  *
  * A full `motor.stopVideo()` always closes out the window (never a mere
- * pause), so the next `watchVideo` win starts clean rather than resuming a
- * paused player.
+ * pause) and unsubscribes the auto-replay first, so no replay can fire after
+ * the window ends and the next `watchVideo` win starts clean rather than
+ * resuming a paused player.
  */
 
 import type { Behavior, BehaviorContext } from '../Behavior';
@@ -35,14 +32,6 @@ import { drive, noise } from '../Bid';
 
 const WATCH_MS_MIN = 30000;
 const WATCH_MS_MAX = 45000;
-
-/**
- * How often the dwell loop re-checks the player's state for `'ended'`, in
- * ms. Small enough that a video ending mid-window is noticed and replayed
- * promptly (no long dead gap staring at a finished player), large enough
- * not to turn the dwell into a busy-poll.
- */
-const STATE_CHECK_SLICE_MS = 750;
 
 export const WATCH_VIDEO_KEY = 'watchVideo';
 
@@ -60,21 +49,8 @@ export class WatchVideo implements Behavior {
 
 	async run( motor: Motor, ctx: BehaviorContext ): Promise< void > {
 		await motor.playVideo();
-
-		let remaining =
-			( WATCH_MS_MIN + ctx.rng() * ( WATCH_MS_MAX - WATCH_MS_MIN ) ) /
-			ctx.speed;
-
-		while ( remaining > 0 ) {
-			const slice = Math.min( STATE_CHECK_SLICE_MS, remaining );
-			await motor.idle( slice );
-			remaining -= slice;
-
-			if ( remaining > 0 && 'ended' === motor.videoState() ) {
-				await motor.replayVideo();
-			}
-		}
-
+		const ms = WATCH_MS_MIN + ctx.rng() * ( WATCH_MS_MAX - WATCH_MS_MIN );
+		await motor.idle( ms / ctx.speed );
 		await motor.stopVideo();
 	}
 }
