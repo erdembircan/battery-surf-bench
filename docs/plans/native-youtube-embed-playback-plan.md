@@ -116,11 +116,23 @@ containing a YouTube embed.
     every verb is a safe no-op and `onEnded` never fires, preserving
     today's behavior exactly (attended, dwelled the full window, never
     actually started/stopped/replayed).
+- **`Motor.playVideo()` selects at random among ALL of the page's videos,
+  not just the first.** It pools every real `<video>` and every recognized
+  embed iframe on the page in one combined query (`video,
+  ${VIDEO_EMBED_SELECTOR}`, which preserves DOM order across both types),
+  then picks one uniformly at random with `this.rng` — the same
+  pool-then-pick pattern `lingerImage`/`readTrace`/`selectSnippet` already
+  use for images/text, so a multi-video page gets genuine variety across
+  `watchVideo` wins instead of always rewatching the first video forever.
+  Whichever element is picked — including one currently off-screen — is
+  scrolled into view exactly as before; only the target-selection step
+  changed, not the attend/play sequence that follows it.
 - **`Motor.playVideo()` subscribes the started control's `onEnded` to
   replay itself, for as long as it stays active.** It attends (scroll +
   cursor, once), unsubscribes and disposes any control left over from a
   prior watch cycle (no listener/subscription leaks across cycles or
-  pages), builds a new `VideoControl`, subscribes `onEnded(() =>
+  pages — including when a later win selects a DIFFERENT video), builds a
+  new `VideoControl` for the selected element, subscribes `onEnded(() =>
   control.play())` and stores the returned unsubscribe function, then
   calls `play()`. `Motor.stopVideo()` unsubscribes that auto-replay FIRST
   — so a replay can never race the stop — then calls `stop()` and
@@ -238,9 +250,15 @@ existing cache hit, or (in dev/e2e) the stub mu-plugin's canned response.
   replay, not two); the started control auto-replaying (seekTo then
   playVideo) the instant a real `ended` message arrives, with no polling
   involved; `stopVideo` unsubscribing the auto-replay before stopping and
-  disposing, so an `ended` message afterwards triggers nothing. Its
-  `Motor`/`FakeMotor` surface no longer includes `replayVideo`/
-  `videoState` — nothing consumes them anymore. `WatchVideo.test.ts` covers
+  disposing, so an `ended` message afterwards triggers nothing. It also
+  covers selection among multiple videos: a seeded rng can pick a video
+  other than the first, and a different seed picks a different one
+  (variety across wins); the selected video is scrolled into view when
+  off-screen even though an earlier candidate is on-screen; a `<video>`
+  and an embed iframe pooled together are both individually selectable, in
+  DOM order. Its `Motor`/`FakeMotor` surface no longer includes
+  `replayVideo`/`videoState` — nothing consumes them anymore.
+  `WatchVideo.test.ts` covers
   the plain `playVideo → idle(window) → stopVideo` command sequence, with
   no slice/replay/state assertions left — the dwell window (30–45 s /
   speed) is the only thing it still checks. `Affordances.test.ts` covers
