@@ -2283,7 +2283,7 @@ describe( 'bsb/cockpit view store', () => {
 			vi.useRealTimers();
 		} );
 
-		it( 'a message arriving inside the safe period queues rather than replacing, and shows once the current bark leaves', () => {
+		it( 'a message arriving while one bark is showing queues rather than replacing, and begins the showing bark’s leave immediately — no minimum on-screen time', () => {
 			vi.useFakeTimers();
 			mocks.context.running = true;
 
@@ -2296,18 +2296,14 @@ describe( 'bsb/cockpit view store', () => {
 			expect( mocks.context.barkPhase ).toBe( 'entering' );
 			const ebbNameBeforeQueue = mocks.config!.state.barkEbbName;
 
-			// Arrives well inside the safe period — must NOT replace the
-			// showing bark yet.
+			// Arrives almost immediately — still readPause showing, but its
+			// leave begins right away (synchronously), with no wait of any
+			// kind before that.
 			dispatchMessage( window.location.origin, {
 				type: 'bsb:behaviorStart',
 				key: 'lingerImage',
 				durationMs: 3000,
 			} );
-			expect( mocks.context.barkBehavior ).toBe( 'readPause' );
-			expect( mocks.context.barkPhase ).toBe( 'entering' );
-
-			// The safe period elapses: the showing bark begins its leave.
-			vi.advanceTimersByTime( 2550 );
 			expect( mocks.context.barkBehavior ).toBe( 'readPause' );
 			expect( mocks.context.barkPhase ).toBe( 'leaving' );
 
@@ -2348,10 +2344,12 @@ describe( 'bsb/cockpit view store', () => {
 				key: 'moveOn',
 				durationMs: 2500,
 			} );
-			// Still readPause showing — none of the queued arrivals swapped in.
+			// Still readPause showing (now leaving) — none of the queued
+			// arrivals swapped in directly.
 			expect( mocks.context.barkBehavior ).toBe( 'readPause' );
+			expect( mocks.context.barkPhase ).toBe( 'leaving' );
 
-			vi.advanceTimersByTime( 2550 + 320 );
+			vi.advanceTimersByTime( 320 );
 
 			// Only the newest of the queued arrivals (moveOn) is shown next —
 			// lingerImage was superseded in the pending slot before it ever aired.

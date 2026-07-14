@@ -80,9 +80,7 @@ const instance = ( session: RunSession ): InstanceState =>
 		noticeShownThisRun: false,
 		pendingBark: null,
 		pendingDurationMs: null,
-		barkShownAt: null,
 		barkDurationTimer: null,
-		barkReplaceTimer: null,
 		barkLeaveTimer: null,
 	} ) as InstanceState;
 

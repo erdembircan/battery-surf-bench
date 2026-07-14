@@ -125,10 +125,9 @@ classDiagram
     class Barks {
         <<module>>
         +pickBarkText(strings, key, rng?) string
-        +raiseBark(ctx, instance, key, durationMs, now?) void
+        +raiseBark(ctx, instance, key, durationMs) void
         +finishBark(ctx, instance) void
         +clearBark(ctx, instance) void
-        +BARK_SAFE_MS
         +BARK_LEAVE_MS
     }
 
@@ -362,17 +361,18 @@ classDiagram
     Toasts ..> CockpitContext : writes current toast
     RunInstance --> ToastQueue : creates & owns (composition)
 
-    %% Bark lifecycle: a store-driven queue, duration-tied. BarkStore
-    %% recognizes the engine's behaviorStart message (key + durationMs, only
-    %% while running) and hands both to Barks, which owns the show /
-    %% safe-period-wait / pending-replace state machine (depth-1 pending —
-    %% only the newest arrival survives): a bark arriving inside the showing
-    %% one's safe period (BARK_SAFE_MS) queues rather than cutting it short;
-    %% once the safe period elapses, a queued arrival begins the showing
-    %% bark's leave early. Three store-owned timers (held off-context in
-    %% RunInstance) drive every transition — none of it animationend-driven:
-    %% a duration timer for the announced dwell (entering -> leaving), a
-    %% replace timer for the remainder of the safe period when queuing, and a
+    %% Bark lifecycle: a store-driven queue, duration-tied, no minimum
+    %% on-screen time. BarkStore recognizes the engine's behaviorStart
+    %% message (key + durationMs, only while running) and hands both to
+    %% Barks, which owns the show / queue / leave-then-show state machine
+    %% (depth-1 pending — only the newest arrival survives): a bark arriving
+    %% while one is already showing (or leaving) queues rather than
+    %% replacing it, and immediately begins the showing bark's leave — the
+    %% outgoing bark always plays its full leave animation before the queued
+    %% one enters. Two store-owned timers (held off-context in RunInstance)
+    %% drive every transition — none of it animationend-driven: a duration
+    %% timer for the announced dwell (entering -> leaving, cancelled early
+    %% when a different key's arrival begins the leave itself instead), and a
     %% leave timer for the fixed leave duration (leaving -> cleared, pumping
     %% any pending bark fresh). The DOM's ebbing-tide fill is a pure reactive
     %% projection of barkDurationMs/barkPhase and never feeds back.
