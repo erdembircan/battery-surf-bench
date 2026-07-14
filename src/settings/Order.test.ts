@@ -2,17 +2,17 @@
  * Behavioral tests for the pure surf-course order operations.
  *
  * These are the operations every mutation in the settings app funnels
- * through — add, remove, reorder and heal — so they are tested here as plain
- * data transforms, independent of any component.
+ * through — add, remove and reorder — so they are tested here as plain data
+ * transforms, independent of any component.
  */
 
 import { describe, it, expect } from 'vitest';
 import {
+	addBundledPage,
 	addUserPage,
 	entryKey,
 	hasUserPage,
-	healBundled,
-	removeUserPage,
+	removeEntry,
 	reorderByKey,
 } from './Order';
 import type { OrderEntry } from './Types';
@@ -56,20 +56,36 @@ describe( 'addUserPage', () => {
 	} );
 } );
 
-describe( 'removeUserPage', () => {
-	it( 'removes the matching user entry', () => {
-		expect( removeUserPage( [ bundledA, userA, userB ], 12 ) ).toEqual( [
+describe( 'addBundledPage', () => {
+	it( 'appends a bundled catalog page to the end of the order', () => {
+		expect( addBundledPage( [ userA ], 'article-1' ) ).toEqual( [
+			userA,
+			bundledA,
+		] );
+	} );
+
+	it( 'is a no-op when the page is already in the order', () => {
+		const order = [ bundledA, userA ];
+		expect( addBundledPage( order, 'article-1' ) ).toBe( order );
+	} );
+} );
+
+describe( 'removeEntry', () => {
+	it( 'removes a matching user entry', () => {
+		expect( removeEntry( [ bundledA, userA, userB ], userA ) ).toEqual( [
 			bundledA,
 			userB,
 		] );
 	} );
 
-	it( 'never removes a bundled entry, even one that shares no id concept', () => {
-		expect( removeUserPage( [ bundledA ], 12 ) ).toEqual( [ bundledA ] );
+	it( 'removes a matching bundled entry — every row is removable now', () => {
+		expect(
+			removeEntry( [ bundledA, bundledB, userA ], bundledA )
+		).toEqual( [ bundledB, userA ] );
 	} );
 
-	it( 'is a no-op when the id is not present', () => {
-		expect( removeUserPage( [ bundledA, userA ], 999 ) ).toEqual( [
+	it( 'is a no-op when the entry is not present', () => {
+		expect( removeEntry( [ bundledA, userA ], userB ) ).toEqual( [
 			bundledA,
 			userA,
 		] );
@@ -103,39 +119,5 @@ describe( 'reorderByKey', () => {
 		expect( reorderByKey( order, 'user:999', entryKey( userA ) ) ).toBe(
 			order
 		);
-	} );
-} );
-
-describe( 'healBundled', () => {
-	const catalog = [
-		{ slug: 'article-1', title: 'A' },
-		{ slug: 'gallery', title: 'B' },
-		{ slug: 'article-2', title: 'C' },
-	];
-
-	it( 'appends bundled catalog pages missing from the order', () => {
-		expect( healBundled( [ bundledA ], catalog ) ).toEqual( [
-			bundledA,
-			{ kind: 'bundled', slug: 'gallery' },
-			{ kind: 'bundled', slug: 'article-2' },
-		] );
-	} );
-
-	it( 'returns the same order (no new array) when nothing is missing', () => {
-		const order = [
-			bundledA,
-			bundledB,
-			{ kind: 'bundled', slug: 'article-2' } as OrderEntry,
-		];
-		expect( healBundled( order, catalog ) ).toBe( order );
-	} );
-
-	it( 'leaves user entries untouched while healing', () => {
-		expect( healBundled( [ userA ], catalog ) ).toEqual( [
-			userA,
-			{ kind: 'bundled', slug: 'article-1' },
-			{ kind: 'bundled', slug: 'gallery' },
-			{ kind: 'bundled', slug: 'article-2' },
-		] );
 	} );
 } );

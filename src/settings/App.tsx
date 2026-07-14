@@ -2,12 +2,13 @@
  * The settings screen's surf-course order picker.
  *
  * Ties the Browse pane (the source: the site's own posts and pages, paged and
- * searched server-side) to the Selected pane (the single surf sequence,
- * seeded with the locked bundled pages) and saves the result with a direct
- * `/wp/v2/settings` POST — no custom REST controller, since
- * `register_setting`'s `show_in_rest` schema already expresses the ordered,
- * heterogeneous entries the PHP side validates and heals. The core-data
- * site-settings entity is unsuited here: it is a singleton keyed by
+ * searched server-side, plus the bundled catalog under its "Built-in" filter)
+ * to the Selected pane (the single, fully removable and reorderable surf
+ * sequence, seeded on load from the server-sanitized saved order) and saves
+ * the result with a direct `/wp/v2/settings` POST — no custom REST
+ * controller, since `register_setting`'s `show_in_rest` schema already
+ * expresses the ordered, heterogeneous entries the PHP side validates. The
+ * core-data site-settings entity is unsuited here: it is a singleton keyed by
  * `undefined`, not an empty string id, so there is no base record to `edit()`
  * against.
  */
@@ -24,9 +25,9 @@ import {
 import { __ } from '@wordpress/i18n';
 import { Notice, type NoticeKind } from '../shared/Notice';
 import {
+	addBundledPage,
 	addUserPage,
-	healBundled,
-	removeUserPage,
+	removeEntry,
 	reorderByKey,
 } from './Order';
 import { mapOrderToRows } from './RowMapping';
@@ -87,15 +88,15 @@ function sameToast( a: ActiveToast | null, b: ActiveToast | null ): boolean {
  * @param props.config The localized screen configuration.
  */
 export function SettingsApp( { config }: { config: SettingsConfig } ) {
-	const [ order, setOrder ] = useState< OrderEntry[] >( () =>
-		healBundled( config.courseOrder, config.bundledCatalog )
+	const [ order, setOrder ] = useState< OrderEntry[] >(
+		() => config.courseOrder
 	);
 	// The last-persisted order — what Reset reverts to, and what a successful
 	// save updates to describe the sequence now on the server. Seeded from the
-	// same healed value as `order` itself, since a freshly loaded sequence is
-	// (by definition) already what the server last saved.
-	const [ savedOrder, setSavedOrder ] = useState< OrderEntry[] >( () =>
-		healBundled( config.courseOrder, config.bundledCatalog )
+	// same server-sanitized value as `order` itself, since a freshly loaded
+	// sequence is (by definition) already what the server last saved.
+	const [ savedOrder, setSavedOrder ] = useState< OrderEntry[] >(
+		() => config.courseOrder
 	);
 	// Seeded from the server-resolved titles so every eligible saved user page
 	// paints its real title on first render instead of a raw post id — the
@@ -274,6 +275,23 @@ export function SettingsApp( { config }: { config: SettingsConfig } ) {
 
 	const selectedIds = useMemo( () => new Set( userIds ), [ userIds ] );
 
+	const selectedBundledSlugs = useMemo(
+		() =>
+			new Set(
+				order
+					.filter(
+						(
+							entry
+						): entry is Extract<
+							OrderEntry,
+							{ kind: 'bundled' }
+						> => entry.kind === 'bundled'
+					)
+					.map( ( entry ) => entry.slug )
+			),
+		[ order ]
+	);
+
 	// Only ids the seed and any prior resolution haven't already covered need
 	// fetching — on a normal load every eligible saved id was already seeded
 	// server-side, so this is empty and the resolver mounts no queries at all.
@@ -325,17 +343,33 @@ export function SettingsApp( { config }: { config: SettingsConfig } ) {
 	}
 
 	/**
-	 * Removes a user page from the sequence. Bundled entries never reach here —
-	 * the Selected pane renders no remove control for them. Guarded against a
-	 * save in flight for the same reason {@link handleAdd} is.
+	 * Adds a bundled catalog page back into the sequence — how a page removed
+	 * from the sequence is re-added from the Browse pane's "Built-in" filter.
+	 * Its title is already known from `config.bundledCatalog`, so no
+	 * `userPages` entry is needed the way {@link handleAdd} needs one.
+	 *
+	 * @param slug The bundled page's catalog slug to add.
+	 */
+	function handleAddBundled( slug: string ): void {
+		if ( saving ) {
+			return;
+		}
+		setOrder( ( previous ) => addBundledPage( previous, slug ) );
+		markDirty();
+	}
+
+	/**
+	 * Removes an entry — bundled or user alike, since every row is now
+	 * removable — from the sequence. Guarded against a save in flight for the
+	 * same reason {@link handleAdd} is.
 	 *
 	 * @param entry The order entry to remove.
 	 */
 	function handleRemove( entry: OrderEntry ): void {
-		if ( saving || entry.kind !== 'user' ) {
+		if ( saving ) {
 			return;
 		}
-		setOrder( ( previous ) => removeUserPage( previous, entry.id ) );
+		setOrder( ( previous ) => removeEntry( previous, entry ) );
 		markDirty();
 	}
 
@@ -426,7 +460,7 @@ export function SettingsApp( { config }: { config: SettingsConfig } ) {
 					</h2>
 					<p className="bsb-settings__section-desc">
 						{ __(
-							'Choose which pages the simulated surfer visits during a benchmark. Add your own posts and pages alongside the bundled set.',
+							"Choose which pages the simulated surfer visits during a benchmark. The five built-in pages that ship with the plugin are added by default — reorder them, or remove any you don't want and add your own posts and pages instead. Find the built-in pages again anytime under the Built-in filter in Browse.",
 							'battery-surf-bench'
 						) }
 					</p>
@@ -443,8 +477,11 @@ export function SettingsApp( { config }: { config: SettingsConfig } ) {
 						<BrowsePane
 							postTypes={ config.postTypes }
 							selectedIds={ selectedIds }
+							bundledCatalog={ config.bundledCatalog }
+							selectedSlugs={ selectedBundledSlugs }
 							saving={ saving }
 							onAdd={ handleAdd }
+							onAddBundled={ handleAddBundled }
 							onFetchError={ handleFetchError }
 							initialBrowse={ config.initialBrowse }
 						/>

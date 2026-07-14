@@ -8,7 +8,7 @@
  * only ever deal in plain data.
  */
 
-import type { BundledCatalogEntry, OrderEntry } from './Types';
+import type { OrderEntry } from './Types';
 
 /**
  * Builds the stable identifier an order entry is tracked by — for React keys
@@ -51,20 +51,46 @@ export function addUserPage( order: OrderEntry[], id: number ): OrderEntry[] {
 }
 
 /**
- * Removes a user page from the order. Bundled entries are never matched, so
- * this can never remove a locked row.
+ * Removes an entry from the order — bundled or user alike, since every row is
+ * now removable. Matched by its stable key, so a bundled entry and a user
+ * entry can never be confused with one another.
  *
  * @param order The current order.
- * @param id    The post id to remove.
+ * @param entry The entry to remove.
  * @return The resulting order.
  */
-export function removeUserPage(
+export function removeEntry(
 	order: OrderEntry[],
-	id: number
+	entry: OrderEntry
 ): OrderEntry[] {
-	return order.filter(
-		( entry ) => ! ( entry.kind === 'user' && entry.id === id )
+	const key = entryKey( entry );
+
+	return order.filter( ( candidate ) => entryKey( candidate ) !== key );
+}
+
+/**
+ * Appends a bundled catalog page to the end of the order — how a page removed
+ * from the sequence is re-added from the Browse pane's "Built-in" filter. A
+ * no-op when the page is already present, so a duplicate Add click never
+ * creates a second row.
+ *
+ * @param order The current order.
+ * @param slug  The bundled page's catalog slug.
+ * @return The resulting order.
+ */
+export function addBundledPage(
+	order: OrderEntry[],
+	slug: string
+): OrderEntry[] {
+	const alreadyPresent = order.some(
+		( entry ) => entry.kind === 'bundled' && entry.slug === slug
 	);
+
+	if ( alreadyPresent ) {
+		return order;
+	}
+
+	return [ ...order, { kind: 'bundled', slug } ];
 }
 
 /**
@@ -101,38 +127,4 @@ export function reorderByKey(
 	next.splice( toIndex, 0, moved );
 
 	return next;
-}
-
-/**
- * Re-inserts any bundled catalog page missing from the order, appended in
- * catalog order — the client-side mirror of the PHP sanitizer's healing pass,
- * so the Selected pane never renders without every bundled page even before a
- * round trip to the server.
- *
- * @param order   The current order.
- * @param bundled The bundled catalog, in catalog order.
- * @return The healed order.
- */
-export function healBundled(
-	order: OrderEntry[],
-	bundled: BundledCatalogEntry[]
-): OrderEntry[] {
-	const present = new Set(
-		order
-			.filter(
-				(
-					entry
-				): entry is Extract< OrderEntry, { kind: 'bundled' } > =>
-					entry.kind === 'bundled'
-			)
-			.map( ( entry ) => entry.slug )
-	);
-
-	const missing = bundled
-		.filter( ( page ) => ! present.has( page.slug ) )
-		.map(
-			( page ): OrderEntry => ( { kind: 'bundled', slug: page.slug } )
-		);
-
-	return missing.length === 0 ? order : [ ...order, ...missing ];
 }

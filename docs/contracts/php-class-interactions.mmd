@@ -352,7 +352,7 @@ classDiagram
     SettingsScreen --> Assets : uses
     SettingsScreen --> Capability : gates via
     SettingsScreen --> CourseCatalog : uses
-    SettingsScreen --> CourseOrderSanitizer : heals the saved order on every read
+    SettingsScreen --> CourseOrderSanitizer : sanitizes the saved order on every read
     SettingsScreen ..> SettingsScreenView : renders via
     SettingsScreenView ..|> View : implements
     SettingsScreenView ..> AdminHeaderView : composes (shared header)
@@ -406,7 +406,7 @@ classDiagram
     CourseRouter --> CourseCatalog : uses
     CourseRouter --> Assets : uses
     CourseRouter --> Capability : gates via
-    CourseRouter --> CourseOrderSanitizer : reads & heals the saved order to resolve an authorized index request (gated on capability + bsb_surf nonce, checked before any entry is resolved)
+    CourseRouter --> CourseOrderSanitizer : reads & sanitizes the saved order to resolve an authorized index request (gated on capability + bsb_surf nonce, checked before any entry is resolved; bundled pages are no longer force-re-added — a saved order missing one stays missing)
     CourseRouter ..> UserPageView : renders via (user pages only)
     UserPageView ..|> View : implements
     CourseCatalog ..> CoursePage : produces

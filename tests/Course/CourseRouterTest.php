@@ -47,8 +47,8 @@ final class CourseRouterTest extends TestCase {
 
 	/**
 	 * Builds a router over the real catalog and a real sanitizer restricted to
-	 * pages and posts, unless a sanitizer is supplied (only needed to force
-	 * an otherwise-unreachable edge case, e.g. an empty saved order).
+	 * pages and posts, unless a sanitizer double is supplied for a scenario
+	 * the real sanitizer can't otherwise be driven into.
 	 *
 	 * The capability is a fake test double rather than a mock of
 	 * `current_user_can()`: injecting {@see FakeCapability} instead lets a
@@ -113,8 +113,19 @@ final class CourseRouterTest extends TestCase {
 	}
 
 	/**
+	 * The default order — every bundled page, in catalog order — for tests
+	 * that exercise a request resolving against a fresh install's starting
+	 * sequence rather than a genuinely short or partial one.
+	 *
+	 * @return array<int, array{kind: string, slug: string}> The default order.
+	 */
+	private function default_order(): array {
+		return ( new CourseOrderSanitizer( new CourseCatalog( '/plugin/includes/Course/content' ), array( 'page', 'post' ) ) )->default_order();
+	}
+
+	/**
 	 * Stages the post lookups a `user` entry's resolution reads: both the
-	 * sanitizer's eligibility check (when healing the saved order on read)
+	 * sanitizer's eligibility check (when sanitizing the saved order on read)
 	 * and the router's own content fetch.
 	 *
 	 * @param array<int, array{status?: string, type?: string, viewable?: bool, title?: string, content?: string}> $posts Post id => attributes.
@@ -175,12 +186,12 @@ final class CourseRouterTest extends TestCase {
 
 	/**
 	 * A valid, authorized index request resolves to the saved order's entry
-	 * at that position: index 0 with no saved order (falling back to the
-	 * default) resolves to the first bundled catalog page.
+	 * at that position: index 0 against the default order (a fresh install's
+	 * starting sequence) resolves to the first bundled catalog page.
 	 */
 	public function test_serves_the_bundled_entry_named_by_a_valid_authorized_index(): void {
 		$this->stage_request( '0' );
-		$this->stage_order( array() );
+		$this->stage_order( $this->default_order() );
 		$query = new WP_Query();
 
 		$posts = $this->router()->maybe_render( array(), $query );
@@ -244,7 +255,7 @@ final class CourseRouterTest extends TestCase {
 	 */
 	public function test_serves_a_bundled_entry_without_a_title_heading(): void {
 		$this->stage_request( '0' );
-		$this->stage_order( array() );
+		$this->stage_order( $this->default_order() );
 
 		$posts = $this->router()->maybe_render( array(), new WP_Query() );
 
@@ -261,7 +272,7 @@ final class CourseRouterTest extends TestCase {
 	 */
 	public function test_wraps_the_index_via_modulo(): void {
 		$this->stage_request( '5' );
-		$this->stage_order( array() );
+		$this->stage_order( $this->default_order() );
 
 		$posts = $this->router()->maybe_render( array(), new WP_Query() );
 
@@ -350,7 +361,7 @@ final class CourseRouterTest extends TestCase {
 
 	/**
 	 * A user entry that is saved and eligible (so the sanitizer keeps it when
-	 * healing the order) but whose post has since vanished between that
+	 * sanitizing the order) but whose post has since vanished between that
 	 * check and the router's own fetch is left unresolved rather than
 	 * fatally erroring.
 	 */
@@ -374,24 +385,64 @@ final class CourseRouterTest extends TestCase {
 	}
 
 	/**
-	 * An empty saved order (which should not occur in practice — bundled
-	 * pages can never be dropped by the real sanitizer) resolves to nothing
-	 * rather than dividing by zero.
+	 * An empty saved order — every page, bundled and user alike, removed from
+	 * the settings screen — is a genuinely reachable state now that bundled
+	 * pages are removable and no longer force-reinserted, and resolves to
+	 * nothing rather than dividing by zero.
 	 */
 	public function test_leaves_the_query_untouched_for_an_empty_saved_order(): void {
 		$this->stage_request( '0' );
 		$this->stage_order( array() );
-
-		$sanitizer = Mockery::mock( CourseOrderSanitizer::class );
-		$sanitizer->shouldReceive( 'default_order' )->andReturn( array() );
-		$sanitizer->shouldReceive( 'sanitize' )->andReturn( array() );
-
 		$original = array( 'untouched' );
 
-		$this->assertSame(
-			$original,
-			$this->router( null, $sanitizer )->maybe_render( $original, new WP_Query() )
+		$this->assertSame( $original, $this->router()->maybe_render( $original, new WP_Query() ) );
+	}
+
+	/**
+	 * A saved order shorter than the full bundled set — some bundled pages
+	 * removed, leaving just a couple of entries — still resolves correctly:
+	 * the index wraps via modulo against whatever length the saved order
+	 * actually is, not a length of (at least) 5.
+	 */
+	public function test_wraps_the_index_via_modulo_for_a_saved_order_shorter_than_the_bundled_set(): void {
+		$this->stage_request( '3' );
+		$this->stage_order(
+			array(
+				array(
+					'kind' => 'bundled',
+					'slug' => 'gallery',
+				),
+				array(
+					'kind' => 'bundled',
+					'slug' => 'video',
+				),
+			)
 		);
+
+		$posts = $this->router()->maybe_render( array(), new WP_Query() );
+
+		// count = 2, so index 3 % 2 = 1 → the second entry, 'video'.
+		$this->assertSame( 'video', $posts[0]->post_name );
+	}
+
+	/**
+	 * The saved order is read with the sanitizer's `default_order()` as the
+	 * `get_option` default, so a fresh install (the option never saved) still
+	 * surfs the full bundled set — the healing-on-every-read behaviour this
+	 * class no longer has moved entirely onto seeding a fresh install, not
+	 * patching a saved one.
+	 */
+	public function test_resolves_against_the_sanitizers_default_order_when_no_option_is_saved(): void {
+		$this->stage_request( '0' );
+
+		Functions\expect( 'get_option' )
+			->once()
+			->with( self::OPTION, $this->default_order() )
+			->andReturn( $this->default_order() );
+
+		$posts = $this->router()->maybe_render( array(), new WP_Query() );
+
+		$this->assertSame( 'article-1', $posts[0]->post_name );
 	}
 
 	/**
@@ -413,7 +464,7 @@ final class CourseRouterTest extends TestCase {
 	 */
 	public function test_serving_a_page_hooks_the_style_and_script_enqueue(): void {
 		$this->stage_request( '0' );
-		$this->stage_order( array() );
+		$this->stage_order( $this->default_order() );
 		$router = $this->router();
 
 		$router->maybe_render( array(), new WP_Query() );
@@ -429,7 +480,7 @@ final class CourseRouterTest extends TestCase {
 	 */
 	public function test_serving_a_page_hooks_the_body_class_marker(): void {
 		$this->stage_request( '0' );
-		$this->stage_order( array() );
+		$this->stage_order( $this->default_order() );
 		$router = $this->router();
 
 		$router->maybe_render( array(), new WP_Query() );

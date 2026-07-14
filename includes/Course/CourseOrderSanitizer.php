@@ -18,18 +18,24 @@ use function is_string;
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Validates and heals the saved surf-course order: an ordered, heterogeneous
- * list of `{kind: 'bundled', slug}` and `{kind: 'user', id}` entries describing
- * the surfer's full page sequence. Bundled entries are the pages the plugin
- * ships ({@see CourseCatalog}); user entries are posts or pages the site owner
- * chose from the settings screen.
+ * Validates the saved surf-course order: an ordered, heterogeneous list of
+ * `{kind: 'bundled', slug}` and `{kind: 'user', id}` entries describing the
+ * surfer's full page sequence. Bundled entries are the pages the plugin ships
+ * ({@see CourseCatalog}); user entries are posts or pages the site owner chose
+ * from the settings screen.
  *
- * Bundled pages can never be dropped from the sequence, so a saved order that
- * is missing one — because it predates a catalog change, or was tampered with
- * — is healed by appending the missing entries in catalog order. User entries
- * are dropped when they no longer resolve to an existing, published, publicly
- * viewable post of a selectable type, so a page that was trashed, unpublished
- * or deleted quietly falls out of the rotation instead of breaking the option.
+ * Bundled pages are the plugin's default sequence — {@see default_order()}
+ * seeds a fresh install with all of them, in catalog order — but they are not
+ * pinned into every saved order: once a site owner has saved a sequence, that
+ * sequence is authoritative, and a bundled page missing from it (because it
+ * was deliberately removed from the settings screen, or predates a catalog
+ * change) simply stays missing. It can always be re-added from the settings
+ * screen's "Built-in" browse filter. An unknown bundled slug (naming a page
+ * the catalog no longer has) is still dropped, since it can never resolve to
+ * real content. User entries are dropped when they no longer resolve to an
+ * existing, published, publicly viewable post of a selectable type, so a page
+ * that was trashed, unpublished or deleted quietly falls out of the rotation
+ * instead of breaking the option.
  */
 class CourseOrderSanitizer {
 
@@ -67,11 +73,14 @@ class CourseOrderSanitizer {
 
 	/**
 	 * Validates a saved (or submitted) order: drops entries that no longer
-	 * resolve or are malformed, drops duplicates, and re-inserts any bundled
-	 * page missing from the result so bundled pages can never be lost.
+	 * resolve or are malformed, and drops duplicates. A bundled page absent
+	 * from `$value` stays absent — the caller decided to remove it, and this
+	 * method never second-guesses that by re-adding it. Only
+	 * {@see default_order()} (used when no order has ever been saved) starts
+	 * with every bundled page present.
 	 *
 	 * @param mixed $value The raw value being saved for the option.
-	 * @return array<int, array{kind: string, slug?: string, id?: int}> The sanitized, healed order.
+	 * @return array<int, array{kind: string, slug?: string, id?: int}> The sanitized order.
 	 */
 	public function sanitize( mixed $value ): array {
 		if ( ! is_array( $value ) ) {
@@ -113,15 +122,6 @@ class CourseOrderSanitizer {
 				$order[]         = array(
 					'kind' => 'user',
 					'id'   => $id,
-				);
-			}
-		}
-
-		foreach ( $this->catalog->pages() as $page ) {
-			if ( ! isset( $seen_slugs[ $page->slug() ] ) ) {
-				$order[] = array(
-					'kind' => 'bundled',
-					'slug' => $page->slug(),
 				);
 			}
 		}

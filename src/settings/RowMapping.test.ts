@@ -12,7 +12,7 @@ const catalog: BundledCatalogEntry[] = [
 ];
 
 describe( 'mapOrderToRows', () => {
-	it( 'resolves a bundled entry to its catalog title, locked and non-removable', () => {
+	it( 'resolves a bundled entry to its catalog title, badged as built-in', () => {
 		const order: OrderEntry[] = [ { kind: 'bundled', slug: 'article-1' } ];
 
 		const rows = mapOrderToRows( order, catalog, {} );
@@ -22,7 +22,6 @@ describe( 'mapOrderToRows', () => {
 				key: 'bundled:article-1',
 				title: 'The Hidden Cost of a Browser Tab',
 				badge: 'bundled',
-				removable: false,
 				entry: order[ 0 ],
 			},
 		] );
@@ -48,7 +47,6 @@ describe( 'mapOrderToRows', () => {
 				key: 'user:42',
 				title: 'About',
 				badge: 'page',
-				removable: true,
 				entry: order[ 0 ],
 			},
 		] );
@@ -73,7 +71,6 @@ describe( 'mapOrderToRows', () => {
 			key: 'user:99',
 			title: '—',
 			badge: 'page',
-			removable: true,
 			entry: order[ 0 ],
 		} );
 	} );

@@ -1,15 +1,23 @@
 /**
- * Behavioral tests for the Browse pane's query args and pager.
+ * Behavioral tests for the Browse pane's query args, pager, and the bundled
+ * catalog's "Built-in" filter.
  *
- * `useSearchResults` is `BrowsePane`'s data source, so — following the
- * pattern `src/sessions/App.test.tsx` uses for DataViews — the query args it
- * is called with, and what it reports back (totals, resolving), are the
- * observable contract asserted here. The hook's own request-building and
- * header-parsing behavior is covered by `SearchQuery.test.ts`.
+ * `useSearchResults` is `BrowsePane`'s real-content data source, so —
+ * following the pattern `src/sessions/App.test.tsx` uses for DataViews — the
+ * query args it is called with, and what it reports back (totals, resolving),
+ * are the observable contract asserted here for real content. The bundled
+ * catalog is sourced client-side (never through the search endpoint), so its
+ * own tests assert on `bundledCatalog`/`selectedSlugs` props directly. The
+ * hook's own request-building and header-parsing behavior is covered by
+ * `SearchQuery.test.ts`.
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
+import type { BundledCatalogEntry } from './Types';
+
+/** Mirrors `BrowsePane`'s own (module-private) search debounce delay. */
+const SEARCH_DEBOUNCE_MS = 300;
 
 const hooks = vi.hoisted( () => ( {
 	useSearchResults: vi.fn(),
@@ -51,6 +59,35 @@ function result(
 	};
 }
 
+/** A representative bundled catalog, used by tests that exercise the "Built-in" filter or the "All" tab's pin. */
+const bundledCatalog: BundledCatalogEntry[] = [
+	{ slug: 'article-1', title: 'The Hidden Cost of a Browser Tab' },
+	{ slug: 'gallery', title: 'Inside the Machine' },
+];
+
+/**
+ * Renders `BrowsePane` with representative defaults, letting a test override
+ * only what it cares about.
+ *
+ * @param overrides Props to override the shared defaults with.
+ */
+function renderBrowsePane(
+	overrides: Partial< Parameters< typeof BrowsePane >[ 0 ] > = {}
+) {
+	return render(
+		<BrowsePane
+			postTypes={ [ 'page', 'post' ] }
+			selectedIds={ new Set() }
+			bundledCatalog={ [] }
+			selectedSlugs={ new Set() }
+			saving={ false }
+			onAdd={ vi.fn() }
+			onAddBundled={ vi.fn() }
+			{ ...overrides }
+		/>
+	);
+}
+
 beforeEach( () => {
 	hooks.useSearchResults.mockReset();
 } );
@@ -59,14 +96,7 @@ describe( 'BrowsePane queries', () => {
 	it( 'queries both selectable subtypes as one request on first render (the "All" filter)', () => {
 		hooks.useSearchResults.mockReturnValue( result( [], 0, 1 ) );
 
-		render(
-			<BrowsePane
-				postTypes={ [ 'page', 'post' ] }
-				selectedIds={ new Set() }
-				saving={ false }
-				onAdd={ vi.fn() }
-			/>
-		);
+		renderBrowsePane();
 
 		expect( hooks.useSearchResults ).toHaveBeenCalledWith(
 			{
@@ -82,14 +112,7 @@ describe( 'BrowsePane queries', () => {
 	it( 'narrows to a single subtype when the Pages filter is active', () => {
 		hooks.useSearchResults.mockReturnValue( result( [], 0, 1 ) );
 
-		render(
-			<BrowsePane
-				postTypes={ [ 'page', 'post' ] }
-				selectedIds={ new Set() }
-				saving={ false }
-				onAdd={ vi.fn() }
-			/>
-		);
+		renderBrowsePane();
 
 		fireEvent.click( screen.getByText( 'Pages' ) );
 
@@ -102,14 +125,7 @@ describe( 'BrowsePane queries', () => {
 	it( 'narrows to the post subtype when the Posts filter is active', () => {
 		hooks.useSearchResults.mockReturnValue( result( [], 0, 1 ) );
 
-		render(
-			<BrowsePane
-				postTypes={ [ 'page', 'post' ] }
-				selectedIds={ new Set() }
-				saving={ false }
-				onAdd={ vi.fn() }
-			/>
-		);
+		renderBrowsePane();
 
 		fireEvent.click( screen.getByText( 'Posts' ) );
 
@@ -131,14 +147,7 @@ describe( 'BrowsePane queries', () => {
 			)
 		);
 
-		render(
-			<BrowsePane
-				postTypes={ [ 'page', 'post' ] }
-				selectedIds={ new Set() }
-				saving={ false }
-				onAdd={ vi.fn() }
-			/>
-		);
+		renderBrowsePane();
 
 		expect( screen.getByText( 'About' ) ).toBeInTheDocument();
 		expect( screen.getByText( 'Field Notes' ) ).toBeInTheDocument();
@@ -147,14 +156,7 @@ describe( 'BrowsePane queries', () => {
 	it( 'reports the single query total, matching the rows shown', () => {
 		hooks.useSearchResults.mockReturnValue( result( [], 10, 1 ) );
 
-		render(
-			<BrowsePane
-				postTypes={ [ 'page', 'post' ] }
-				selectedIds={ new Set() }
-				saving={ false }
-				onAdd={ vi.fn() }
-			/>
-		);
+		renderBrowsePane();
 
 		expect( screen.getByText( /10 items/ ) ).toBeInTheDocument();
 	} );
@@ -164,14 +166,7 @@ describe( 'BrowsePane queries', () => {
 			result( [ { id: 1, title: 'About', subtype: 'page' } ], 1, 1 )
 		);
 
-		render(
-			<BrowsePane
-				postTypes={ [ 'page', 'post' ] }
-				selectedIds={ new Set( [ 1 ] ) }
-				saving={ false }
-				onAdd={ vi.fn() }
-			/>
-		);
+		renderBrowsePane( { selectedIds: new Set( [ 1 ] ) } );
 
 		expect( screen.getByText( 'Added' ) ).toBeInTheDocument();
 		expect( screen.queryByText( 'Add' ) ).not.toBeInTheDocument();
@@ -183,14 +178,7 @@ describe( 'BrowsePane queries', () => {
 			result( [ { id: 5, title: 'Pricing', subtype: 'page' } ], 1, 1 )
 		);
 
-		render(
-			<BrowsePane
-				postTypes={ [ 'page', 'post' ] }
-				selectedIds={ new Set() }
-				saving={ false }
-				onAdd={ onAdd }
-			/>
-		);
+		renderBrowsePane( { onAdd } );
 
 		fireEvent.click( screen.getByText( 'Add' ) );
 
@@ -200,14 +188,7 @@ describe( 'BrowsePane queries', () => {
 	it( 're-queries from page 1 when the type filter changes', () => {
 		hooks.useSearchResults.mockReturnValue( result( [], 30, 3 ) );
 
-		render(
-			<BrowsePane
-				postTypes={ [ 'page', 'post' ] }
-				selectedIds={ new Set() }
-				saving={ false }
-				onAdd={ vi.fn() }
-			/>
-		);
+		renderBrowsePane();
 
 		fireEvent.click( screen.getByText( 'Next ›' ) );
 		fireEvent.click( screen.getByText( 'Pages' ) );
@@ -236,15 +217,7 @@ describe( 'BrowsePane initial browse seed', () => {
 	it( 'offers the seed to useSearchResults on first render, while the query is still the default', () => {
 		hooks.useSearchResults.mockReturnValue( result( [], 0, 1 ) );
 
-		render(
-			<BrowsePane
-				postTypes={ [ 'page', 'post' ] }
-				selectedIds={ new Set() }
-				saving={ false }
-				onAdd={ vi.fn() }
-				initialBrowse={ seed }
-			/>
-		);
+		renderBrowsePane( { initialBrowse: seed } );
 
 		expect( hooks.useSearchResults ).toHaveBeenCalledWith(
 			expect.objectContaining( { search: '', page: 1 } ),
@@ -255,15 +228,7 @@ describe( 'BrowsePane initial browse seed', () => {
 	it( 'stops offering the seed once the type filter diverges from the default "All" query', () => {
 		hooks.useSearchResults.mockReturnValue( result( [], 0, 1 ) );
 
-		render(
-			<BrowsePane
-				postTypes={ [ 'page', 'post' ] }
-				selectedIds={ new Set() }
-				saving={ false }
-				onAdd={ vi.fn() }
-				initialBrowse={ seed }
-			/>
-		);
+		renderBrowsePane( { initialBrowse: seed } );
 
 		fireEvent.click( screen.getByText( 'Pages' ) );
 
@@ -276,15 +241,7 @@ describe( 'BrowsePane initial browse seed', () => {
 	it( 'stops offering the seed once paging past the first page', () => {
 		hooks.useSearchResults.mockReturnValue( result( [], 30, 3 ) );
 
-		render(
-			<BrowsePane
-				postTypes={ [ 'page', 'post' ] }
-				selectedIds={ new Set() }
-				saving={ false }
-				onAdd={ vi.fn() }
-				initialBrowse={ seed }
-			/>
-		);
+		renderBrowsePane( { initialBrowse: seed } );
 
 		fireEvent.click( screen.getByText( 'Next ›' ) );
 
@@ -299,14 +256,7 @@ describe( 'BrowsePane pager', () => {
 	it( 'disables Prev on the first page and enables Next when more pages exist', () => {
 		hooks.useSearchResults.mockReturnValue( result( [], 30, 3 ) );
 
-		render(
-			<BrowsePane
-				postTypes={ [ 'page', 'post' ] }
-				selectedIds={ new Set() }
-				saving={ false }
-				onAdd={ vi.fn() }
-			/>
-		);
+		renderBrowsePane();
 
 		expect( screen.getByText( '‹ Prev' ) ).toBeDisabled();
 		expect( screen.getByText( 'Next ›' ) ).not.toBeDisabled();
@@ -316,14 +266,7 @@ describe( 'BrowsePane pager', () => {
 	it( 'advances to the next page and re-queries with the new page number', () => {
 		hooks.useSearchResults.mockReturnValue( result( [], 30, 3 ) );
 
-		render(
-			<BrowsePane
-				postTypes={ [ 'page', 'post' ] }
-				selectedIds={ new Set() }
-				saving={ false }
-				onAdd={ vi.fn() }
-			/>
-		);
+		renderBrowsePane();
 
 		fireEvent.click( screen.getByText( 'Next ›' ) );
 
@@ -336,17 +279,22 @@ describe( 'BrowsePane pager', () => {
 	it( 'disables both pager buttons while a fetch is in flight, even mid-collection', () => {
 		hooks.useSearchResults.mockReturnValue( result( [], 30, 3, true ) );
 
-		render(
-			<BrowsePane
-				postTypes={ [ 'page', 'post' ] }
-				selectedIds={ new Set() }
-				saving={ false }
-				onAdd={ vi.fn() }
-			/>
-		);
+		renderBrowsePane();
 
 		expect( screen.getByText( '‹ Prev' ) ).toBeDisabled();
 		expect( screen.getByText( 'Next ›' ) ).toBeDisabled();
+	} );
+
+	it( 'hides the pager entirely on the "Built-in" filter', () => {
+		hooks.useSearchResults.mockReturnValue( result( [], 30, 3 ) );
+
+		const { container } = renderBrowsePane( { bundledCatalog } );
+
+		fireEvent.click( screen.getByRole( 'button', { name: 'Built-in' } ) );
+
+		expect(
+			container.querySelector( '.bsb-browse__pager' )
+		).not.toBeInTheDocument();
 	} );
 } );
 
@@ -354,14 +302,7 @@ describe( 'BrowsePane busy state', () => {
 	it( 'shows a busy indicator instead of rows while the query is in flight — including on first mount', () => {
 		hooks.useSearchResults.mockReturnValue( result( [], 0, 1, true ) );
 
-		const { container } = render(
-			<BrowsePane
-				postTypes={ [ 'page', 'post' ] }
-				selectedIds={ new Set() }
-				saving={ false }
-				onAdd={ vi.fn() }
-			/>
-		);
+		const { container } = renderBrowsePane();
 
 		expect( container.querySelector( '.bsb-browse__busy' ) ).toBeTruthy();
 		expect( container.querySelector( '.components-spinner' ) ).toBeTruthy();
@@ -377,14 +318,7 @@ describe( 'BrowsePane busy state', () => {
 			)
 		);
 
-		render(
-			<BrowsePane
-				postTypes={ [ 'page', 'post' ] }
-				selectedIds={ new Set() }
-				saving={ false }
-				onAdd={ vi.fn() }
-			/>
-		);
+		renderBrowsePane();
 
 		// Even though the mocked hook still hands back the stale record (the
 		// real hook keeps the last resolved records while re-resolving),
@@ -395,14 +329,7 @@ describe( 'BrowsePane busy state', () => {
 	it( 'does not show the empty state while resolving, even with zero records', () => {
 		hooks.useSearchResults.mockReturnValue( result( [], 0, 1, true ) );
 
-		render(
-			<BrowsePane
-				postTypes={ [ 'page', 'post' ] }
-				selectedIds={ new Set() }
-				saving={ false }
-				onAdd={ vi.fn() }
-			/>
-		);
+		renderBrowsePane();
 
 		expect(
 			screen.queryByText( 'No pages or posts match your search.' )
@@ -412,14 +339,7 @@ describe( 'BrowsePane busy state', () => {
 	it( 'shows the empty state only once settled with zero records', () => {
 		hooks.useSearchResults.mockReturnValue( result( [], 0, 1, false ) );
 
-		render(
-			<BrowsePane
-				postTypes={ [ 'page', 'post' ] }
-				selectedIds={ new Set() }
-				saving={ false }
-				onAdd={ vi.fn() }
-			/>
-		);
+		renderBrowsePane();
 
 		expect(
 			screen.getByText( 'No pages or posts match your search.' )
@@ -436,14 +356,7 @@ describe( 'BrowsePane busy state', () => {
 			)
 		);
 
-		const { container } = render(
-			<BrowsePane
-				postTypes={ [ 'page', 'post' ] }
-				selectedIds={ new Set() }
-				saving={ false }
-				onAdd={ vi.fn() }
-			/>
-		);
+		const { container } = renderBrowsePane();
 
 		expect( screen.getByText( 'About' ) ).toBeInTheDocument();
 		expect( container.querySelector( '.bsb-browse__busy' ) ).toBeFalsy();
@@ -452,14 +365,7 @@ describe( 'BrowsePane busy state', () => {
 	it( 'empties the meta line while resolving, rather than a stale count or a "Loading…" label', () => {
 		hooks.useSearchResults.mockReturnValue( result( [], 30, 3, true ) );
 
-		const { container } = render(
-			<BrowsePane
-				postTypes={ [ 'page', 'post' ] }
-				selectedIds={ new Set() }
-				saving={ false }
-				onAdd={ vi.fn() }
-			/>
-		);
+		const { container } = renderBrowsePane();
 
 		expect( screen.queryByText( /30 items/ ) ).not.toBeInTheDocument();
 		expect( screen.queryByText( 'Loading…' ) ).not.toBeInTheDocument();
@@ -474,14 +380,7 @@ describe( 'BrowsePane busy state', () => {
 	it( 'restores the item count in the meta line once the query settles', () => {
 		hooks.useSearchResults.mockReturnValue( result( [], 30, 3, false ) );
 
-		render(
-			<BrowsePane
-				postTypes={ [ 'page', 'post' ] }
-				selectedIds={ new Set() }
-				saving={ false }
-				onAdd={ vi.fn() }
-			/>
-		);
+		renderBrowsePane();
 
 		expect( screen.getByText( /30 items/ ) ).toBeInTheDocument();
 	} );
@@ -499,15 +398,7 @@ describe( 'BrowsePane fetch errors', () => {
 			result( [], 0, 1, false, true )
 		);
 
-		render(
-			<BrowsePane
-				postTypes={ [ 'page', 'post' ] }
-				selectedIds={ new Set() }
-				saving={ false }
-				onAdd={ vi.fn() }
-				onFetchError={ onFetchError }
-			/>
-		);
+		renderBrowsePane( { onFetchError } );
 
 		expect( onFetchError ).toHaveBeenCalledWith( true );
 	} );
@@ -518,15 +409,7 @@ describe( 'BrowsePane fetch errors', () => {
 			result( [], 0, 1, false, false )
 		);
 
-		render(
-			<BrowsePane
-				postTypes={ [ 'page', 'post' ] }
-				selectedIds={ new Set() }
-				saving={ false }
-				onAdd={ vi.fn() }
-				onFetchError={ onFetchError }
-			/>
-		);
+		renderBrowsePane( { onFetchError } );
 
 		expect( onFetchError ).toHaveBeenCalledWith( false );
 	} );
@@ -536,14 +419,7 @@ describe( 'BrowsePane fetch errors', () => {
 			result( [], 0, 1, false, true )
 		);
 
-		render(
-			<BrowsePane
-				postTypes={ [ 'page', 'post' ] }
-				selectedIds={ new Set() }
-				saving={ false }
-				onAdd={ vi.fn() }
-			/>
-		);
+		renderBrowsePane();
 
 		expect(
 			screen.getByText( 'No pages or posts match your search.' )
@@ -556,16 +432,7 @@ describe( 'BrowsePane fetch errors', () => {
 			result( [], 0, 1, false, true )
 		);
 
-		expect( () =>
-			render(
-				<BrowsePane
-					postTypes={ [ 'page', 'post' ] }
-					selectedIds={ new Set() }
-					saving={ false }
-					onAdd={ vi.fn() }
-				/>
-			)
-		).not.toThrow();
+		expect( () => renderBrowsePane() ).not.toThrow();
 	} );
 } );
 
@@ -575,14 +442,7 @@ describe( 'BrowsePane save-in-progress guard', () => {
 			result( [ { id: 1, title: 'About', subtype: 'page' } ], 1, 1 )
 		);
 
-		const { container } = render(
-			<BrowsePane
-				postTypes={ [ 'page', 'post' ] }
-				selectedIds={ new Set() }
-				saving
-				onAdd={ vi.fn() }
-			/>
-		);
+		const { container } = renderBrowsePane( { saving: true } );
 
 		expect(
 			container.querySelector( '.bsb-pane-overlay' )
@@ -594,14 +454,7 @@ describe( 'BrowsePane save-in-progress guard', () => {
 			result( [ { id: 1, title: 'About', subtype: 'page' } ], 1, 1 )
 		);
 
-		const { container } = render(
-			<BrowsePane
-				postTypes={ [ 'page', 'post' ] }
-				selectedIds={ new Set() }
-				saving={ false }
-				onAdd={ vi.fn() }
-			/>
-		);
+		const { container } = renderBrowsePane();
 
 		expect(
 			container.querySelector( '.bsb-pane-overlay' )
@@ -613,14 +466,7 @@ describe( 'BrowsePane save-in-progress guard', () => {
 			result( [ { id: 1, title: 'About', subtype: 'page' } ], 1, 1 )
 		);
 
-		render(
-			<BrowsePane
-				postTypes={ [ 'page', 'post' ] }
-				selectedIds={ new Set() }
-				saving
-				onAdd={ vi.fn() }
-			/>
-		);
+		renderBrowsePane( { saving: true } );
 
 		expect( screen.getByRole( 'button', { name: 'Add' } ) ).toBeDisabled();
 	} );
@@ -628,17 +474,181 @@ describe( 'BrowsePane save-in-progress guard', () => {
 	it( 'disables the pager while saving', () => {
 		hooks.useSearchResults.mockReturnValue( result( [], 30, 3 ) );
 
-		render(
-			<BrowsePane
-				postTypes={ [ 'page', 'post' ] }
-				selectedIds={ new Set() }
-				saving
-				onAdd={ vi.fn() }
-			/>
-		);
+		renderBrowsePane( { saving: true } );
 
 		expect(
 			screen.getByRole( 'button', { name: 'Next ›' } )
 		).toBeDisabled();
+	} );
+} );
+
+describe( 'BrowsePane "Built-in" filter', () => {
+	it( 'renders a 4th segmented button, alongside All/Pages/Posts', () => {
+		hooks.useSearchResults.mockReturnValue( result( [], 0, 1 ) );
+
+		renderBrowsePane( { bundledCatalog } );
+
+		expect(
+			screen.getByRole( 'button', { name: 'Built-in' } )
+		).toBeInTheDocument();
+	} );
+
+	it( 'shows only the bundled catalog rows, badged "Built-in", none of the real-content records', () => {
+		hooks.useSearchResults.mockReturnValue(
+			result( [ { id: 1, title: 'About', subtype: 'page' } ], 1, 1 )
+		);
+
+		renderBrowsePane( { bundledCatalog } );
+
+		fireEvent.click( screen.getByRole( 'button', { name: 'Built-in' } ) );
+
+		expect(
+			screen.getByText( 'The Hidden Cost of a Browser Tab' )
+		).toBeInTheDocument();
+		expect( screen.getByText( 'Inside the Machine' ) ).toBeInTheDocument();
+		expect( screen.queryByText( 'About' ) ).not.toBeInTheDocument();
+		expect( screen.getAllByText( 'Built-in' ).length ).toBeGreaterThan( 1 ); // The tab button plus at least one row badge.
+	} );
+
+	it( 'shows a bundled row already in the sequence as Added', () => {
+		hooks.useSearchResults.mockReturnValue( result( [], 0, 1 ) );
+
+		renderBrowsePane( {
+			bundledCatalog,
+			selectedSlugs: new Set( [ 'article-1' ] ),
+		} );
+
+		fireEvent.click( screen.getByRole( 'button', { name: 'Built-in' } ) );
+
+		const row = screen
+			.getByText( 'The Hidden Cost of a Browser Tab' )
+			.closest( '.bsb-browse__row' ) as HTMLElement;
+		expect( row ).toHaveTextContent( 'Added' );
+	} );
+
+	it( 'calls onAddBundled with the slug and title when a built-in row is added', () => {
+		const onAddBundled = vi.fn();
+		hooks.useSearchResults.mockReturnValue( result( [], 0, 1 ) );
+
+		renderBrowsePane( { bundledCatalog, onAddBundled } );
+
+		fireEvent.click( screen.getByRole( 'button', { name: 'Built-in' } ) );
+		fireEvent.click( screen.getAllByText( 'Add' )[ 0 ] );
+
+		expect( onAddBundled ).toHaveBeenCalledWith(
+			'article-1',
+			'The Hidden Cost of a Browser Tab'
+		);
+	} );
+
+	it( 'filters the built-in rows by the search box, client-side', () => {
+		vi.useFakeTimers();
+		hooks.useSearchResults.mockReturnValue( result( [], 0, 1 ) );
+
+		renderBrowsePane( { bundledCatalog } );
+
+		fireEvent.click( screen.getByRole( 'button', { name: 'Built-in' } ) );
+		fireEvent.change( screen.getByPlaceholderText( /built-in/i ), {
+			target: { value: 'Machine' },
+		} );
+		act( () => vi.advanceTimersByTime( SEARCH_DEBOUNCE_MS ) );
+
+		expect( screen.getByText( 'Inside the Machine' ) ).toBeInTheDocument();
+		expect(
+			screen.queryByText( 'The Hidden Cost of a Browser Tab' )
+		).not.toBeInTheDocument();
+
+		vi.useRealTimers();
+	} );
+
+	it( 'shows a built-in-specific empty state when the search matches no bundled page', () => {
+		vi.useFakeTimers();
+		hooks.useSearchResults.mockReturnValue( result( [], 0, 1 ) );
+
+		renderBrowsePane( { bundledCatalog } );
+
+		fireEvent.click( screen.getByRole( 'button', { name: 'Built-in' } ) );
+		fireEvent.change( screen.getByPlaceholderText( /built-in/i ), {
+			target: { value: 'nonexistent' },
+		} );
+		act( () => vi.advanceTimersByTime( SEARCH_DEBOUNCE_MS ) );
+
+		expect(
+			screen.getByText( 'No built-in pages match your search.' )
+		).toBeInTheDocument();
+
+		vi.useRealTimers();
+	} );
+
+	it( 'never calls the real search endpoint\'s rows into view on the "Built-in" filter', () => {
+		hooks.useSearchResults.mockReturnValue(
+			result( [ { id: 1, title: 'About', subtype: 'page' } ], 1, 1 )
+		);
+
+		renderBrowsePane( { bundledCatalog } );
+
+		fireEvent.click( screen.getByRole( 'button', { name: 'Built-in' } ) );
+
+		expect( screen.queryByText( 'About' ) ).not.toBeInTheDocument();
+	} );
+} );
+
+describe( 'BrowsePane "All" filter pins built-in rows on top', () => {
+	it( 'renders the built-in rows above the real-content rows on page 1', () => {
+		hooks.useSearchResults.mockReturnValue(
+			result( [ { id: 1, title: 'About', subtype: 'page' } ], 1, 1 )
+		);
+
+		const { container } = renderBrowsePane( { bundledCatalog } );
+
+		const titles = Array.from(
+			container.querySelectorAll( '.bsb-browse__row-title' )
+		).map( ( node ) => node.textContent );
+
+		expect( titles ).toEqual( [
+			'The Hidden Cost of a Browser Tab',
+			'Inside the Machine',
+			'About',
+		] );
+	} );
+
+	it( 'does not pin built-in rows on page 2 of the "All" filter', () => {
+		hooks.useSearchResults.mockReturnValue(
+			result( [ { id: 1, title: 'About', subtype: 'page' } ], 11, 2 )
+		);
+
+		renderBrowsePane( { bundledCatalog } );
+
+		fireEvent.click( screen.getByText( 'Next ›' ) );
+
+		expect(
+			screen.queryByText( 'The Hidden Cost of a Browser Tab' )
+		).not.toBeInTheDocument();
+		expect( screen.getByText( 'About' ) ).toBeInTheDocument();
+	} );
+
+	it( 'never pins built-in rows on the Pages or Posts filters', () => {
+		hooks.useSearchResults.mockReturnValue(
+			result( [ { id: 1, title: 'About', subtype: 'page' } ], 1, 1 )
+		);
+
+		renderBrowsePane( { bundledCatalog } );
+
+		fireEvent.click( screen.getByText( 'Pages' ) );
+
+		expect(
+			screen.queryByText( 'The Hidden Cost of a Browser Tab' )
+		).not.toBeInTheDocument();
+	} );
+
+	it( 'does not let the pinned built-in rows alter the pager, which stays driven by the real query', () => {
+		hooks.useSearchResults.mockReturnValue(
+			result( [ { id: 1, title: 'About', subtype: 'page' } ], 25, 3 )
+		);
+
+		renderBrowsePane( { bundledCatalog } );
+
+		expect( screen.getByText( 'Page 1 of 3' ) ).toBeInTheDocument();
+		expect( screen.getByText( /25 items/ ) ).toBeInTheDocument();
 	} );
 } );

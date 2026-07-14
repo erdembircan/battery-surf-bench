@@ -143,7 +143,7 @@ No TS change (contract unchanged). The engine already degrades on arbitrary cont
 ## Decisions log
 
 Resolved:
-1. ~~Include-bundled-pages toggle~~ → **No toggle.** Bundled pages are folded into the single Selected sequence, locked (no remove) but reorderable.
+1. ~~Include-bundled-pages toggle~~ → **No toggle.** Bundled pages are folded into the single Selected sequence, locked (no remove) but reorderable. **Superseded by M4** (below): bundled pages are now removable too, surfaced under a "Built-in" Browse filter for re-adding.
 2. ~~Add control (combobox vs token field)~~ → **Two-pane content picker** (paginated + server-searched Browse pane → dynamic Selected sequence). Both first variants rejected.
 3. ~~Reorder~~ → **Yes, drag-reorder** for every row (bundled + user, freely interleaved); feel = gap-open + tilted lifted row.
 6. ~~Admin stack (React vs Interactivity)~~ → **React**, matching the Sessions admin screen. wp-admin is React in this repo; Interactivity is the front-end (cockpit/DevTools) tech. Admin-only screen ⇒ SSR/hydration gains are negligible.
@@ -163,3 +163,30 @@ Supersedes §A/§B above. The client must know NOTHING about the pages (no IDs, 
 - **Nonce edge:** minted at cockpit load (~12–24h life); a run started right after opening is fine. Accept; optional run-start refresh if wanted.
 - Client no longer has page titles (removed with the pages array) — accepted.
 - Tests: `CourseRouter` index route (valid nonce+cap+in-range → serves the right entry; bad/missing nonce → 404; non-admin → 404; wraps via modulo; user entry renders title). Front-end: `RunStore.currentSrc` builds the index URL + nonce; `PageAdvance` increments. Security e2e: `?bsbSurfIndex=0` without a nonce (or logged out) → not served. Update both contract charts (remove CoursePagesSource/pages binding edges; CourseRouter reads order+nonce).
+
+## M4 — Removable built-in pages
+
+Reverses the M1/decision-#1 stance that bundled pages are "locked (no remove)". A site owner can now drop any bundled page from the surf sequence and re-add it later — there is no permanently-pinned content any more, bundled or user.
+
+### The core change: seed-default-only, not heal-always
+
+Before M4, `CourseOrderSanitizer::sanitize()` force-reinserted any bundled page missing from the saved order on every read (settings-screen render, `CourseRouter`'s index resolution) and every write. That made bundled pages effectively un-removable: a site owner could drag them around but any drop was immediately reversed.
+
+M4 flips this:
+
+- **`CourseOrderSanitizer::default_order()`** is unchanged — still the 5 bundled pages in catalog order. It is now the **only** place that guarantees every bundled page is present, and it applies **only** when no order has ever been saved (a fresh install).
+- **`CourseOrderSanitizer::sanitize()`** dropped its trailing force-reinsert loop entirely. It still validates/drops malformed entries, unknown bundled slugs, ineligible user ids, and duplicates — but a bundled page genuinely absent from the input stays absent in the output. Sanitizing is no longer "healing" in the sense of restoring lost bundled entries; it is purely defensive validation.
+- Both read sites (`SettingsScreen::screen_config()`, `CourseRouter::resolve_indexed_page()`) already passed `$sanitizer->default_order()` as the `get_option()` default — that single seam is what still guarantees a fresh install surfs all 5 pages, without the sanitizer itself needing to backfill anything.
+- `CourseRouter` needed no logic change: it already guarded `count === 0` → no render, and resolved `order[ absint($n) % count ]` for any `count >= 1`, so a saved order shorter than 5 (or a single page) was already handled correctly by the modulo — the plan's earlier "count is always ≥5" assumption (§M3 REDESIGN gates note above) no longer holds, and the guard band is now genuinely exercised.
+
+### UI: the "Built-in" Browse filter
+
+The Selected pane's lock column is gone — every row (bundled or user) renders the same `×` remove control and is equally draggable. The internal `kind: 'bundled'` identifier, the `RowBadge` value `'bundled'`, and the `.bsb-badge--bundled` CSS class are all **unchanged** — only the user-visible badge/tab label changed, from "Bundled" to **"Built-in"**.
+
+Removing a bundled row doesn't strand it: the Browse pane gained a 4th segmented filter, **"Built-in"**, sourced client-side from `config.bundledCatalog` (bundled pages are never indexed by `/wp/v2/search`, so they can't come from the real-content query). Selecting it shows only the bundled catalog, filtered by the same search box (a plain client-side substring match — the catalog is a short, fixed list, not worth a round trip), each row with an Add/Added action wired to `addBundledPage`/`removeEntry` in `src/settings/Order.ts`. The **"All"** filter additionally pins the built-in rows atop its own first page (never on page 2+, and never on the Pages/Posts filters) so a fresh visitor sees the full catalog without hunting for the new tab — the pin never disturbs the real-content query's own pagination/total, which stay driven entirely by the `/wp/v2/search` response.
+
+The Selected pane also gained an empty state (`.bsb-selected__empty`, mirroring `.bsb-browse__empty`): if every page — bundled and user alike — is removed, the list is replaced with copy pointing back at Browse and at Reset, since a benchmark needs at least one page.
+
+### Chart/doc updates
+
+`docs/contracts/php-class-interactions.mmd`: the `CourseRouter --> CourseOrderSanitizer` and `SettingsScreen --> CourseOrderSanitizer` edges no longer say "heals" — they say "sanitizes", since sanitize() no longer force-adds bundled pages. No class shapes/signatures changed. The React-internal Browse/Selected pane changes are not charted (see `admin-frontend-modules.mmd`'s header: screen-private React modules are out of scope for that chart).
