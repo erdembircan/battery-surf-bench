@@ -509,7 +509,7 @@ final class CourseRouterTest extends TestCase {
 	 */
 	public function test_serving_a_page_registers_the_youtube_embed_filter(): void {
 		$this->stage_request( '0' );
-		$this->stage_order( array() );
+		$this->stage_order( $this->default_order() );
 
 		$this->router()->maybe_render( array(), new WP_Query() );
 
