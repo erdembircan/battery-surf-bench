@@ -149,12 +149,24 @@ test.describe( 'Video course page (native YouTube embed)', () => {
 
 		// The control params the amend merges onto whatever oEmbed produced:
 		// JS-API enabled and muted (required for the surf engine's
-		// postMessage commands — see `VideoControl.ts` — the commands
-		// themselves are covered at the unit level, not here, since
-		// cross-origin playback state can't be asserted deterministically in
-		// e2e), the served page's own origin, and no `autoplay=1` — the
-		// simulation starts playback itself, the embed no longer autoplays on
-		// load.
+		// postMessage commands — see `VideoControl.ts`), the served page's
+		// own origin, and no `autoplay=1` — the simulation starts playback
+		// itself, the embed no longer autoplays on load.
+		//
+		// This markup contract is as far as e2e coverage goes for playback:
+		// the dev/e2e oEmbed stub returns a canned iframe pointed at a real
+		// youtube.com URL, but it never actually loads YouTube's real player
+		// (no reliable outbound network in wp-playground), so it never emits
+		// genuine player-state event messages to listen for. Faking that
+		// emission here would mean asserting against a fake of the very
+		// protocol under test — deliberately not done. The player-state-aware
+		// watch/replay/full-stop logic (`WatchVideo.run`, `Motor.playVideo`/
+		// `replayVideo`/`stopVideo`/`videoState`, and the message-listening
+		// `VideoControl` built for a YouTube iframe) is covered entirely by
+		// unit tests (`VideoControl.test.ts`, `Motor.test.ts`,
+		// `WatchVideo.test.ts`), verified in turn against a real, live
+		// YouTube embed while implementing it (see
+		// `docs/plans/native-youtube-embed-playback-plan.md`).
 		const src = await iframe.getAttribute( 'src' );
 		expect( src ).toMatch( /enablejsapi=1/ );
 		expect( src ).toMatch( /mute=1/ );
