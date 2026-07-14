@@ -90,14 +90,14 @@ classDiagram
 
     class BarkStore {
         <<module>>
-        state: hasBark, barkKey, barkMessage, phase flags (isBarkEntering/Holding/Leaving)
-        callbacks: initBark (raises a bark from the surf engine's behaviorStart message, while running), onBarkAnimationEnd
+        state: hasBark, barkKey, barkMessage, barkDurationCss, phase flags (isBarkEntering/Leaving)
+        callbacks: initBark (raises a bark, held for its announced duration, from the surf engine's behaviorStart message, while running)
     }
 
     %% --- Shared seam between slices.
     class CockpitContext {
         <<types>>
-        CockpitContext, RunEndReason, ReasonText, ToastKind, ToastPhase
+        CockpitContext, RunEndReason, ReasonText, ToastKind, ToastPhase, BarkPhase
     }
 
     class Toasts {
@@ -125,17 +125,17 @@ classDiagram
     class Barks {
         <<module>>
         +pickBarkText(strings, key, rng?) string
-        +raiseBark(ctx, instance, key, now?) void
+        +raiseBark(ctx, instance, key, durationMs) void
         +finishBark(ctx, instance) void
         +clearBark(ctx, instance) void
-        +BARK_HOLD_MS
-        +BARK_SAFE_MS
+        +BARK_LEAVE_MS
     }
 
     class BehaviorStart {
         <<module>>
         +isBehaviorStartMessage(MessageEvent, string) boolean
         +behaviorKeyOf(MessageEvent) string
+        +durationOf(MessageEvent) number
     }
 
     class RunLifecycle {
@@ -353,7 +353,7 @@ classDiagram
     SummaryStore --> RunInstance : auto-flip timer
     ToastStore --> RunInstance : toast queue & timer
     RunStore --> RunInstance : re-arms notice on run start
-    BarkStore --> RunInstance : reads/writes the pending slot & timers
+    BarkStore --> RunInstance : reads/writes the duration & leave timers
 
     %% Toast queue & lifecycle.
     ToastStore --> Toasts : enqueues / advances
@@ -361,14 +361,20 @@ classDiagram
     Toasts ..> CockpitContext : writes current toast
     RunInstance --> ToastQueue : creates & owns (composition)
 
-    %% Bark lifecycle: BarkStore recognizes the engine's behaviorStart message
-    %% (only while running) and hands the key to Barks, which owns the show /
-    %% safe-period-wait / pending-replace state machine; RunInstance owns the
-    %% pending slot and the hold/replace timers off the reactive context.
-    BarkStore --> Barks : raises / finishes a bark
-    BarkStore --> BehaviorStart : recognizes the message, reads the behavior key
+    %% Bark lifecycle: store-authoritative and duration-tied. BarkStore
+    %% recognizes the engine's behaviorStart message (key + durationMs, only
+    %% while running) and hands both to Barks, which owns the show/replace
+    %% state machine: a newer bark always replaces the showing one
+    %% immediately, at any phase — there is no safe period or pending slot.
+    %% Two store-owned timers (held off-context in RunInstance) drive every
+    %% transition: one for the announced duration (entering -> leaving), one
+    %% for the fixed leave duration (leaving -> cleared). The DOM's
+    %% ebbing-tide fill is a pure reactive projection of barkDurationMs/
+    %% barkPhase and never feeds back — no animationend drives any transition.
+    BarkStore --> Barks : raises a bark (replacing immediately at any phase)
+    BarkStore --> BehaviorStart : recognizes the message, reads the key & duration
     Barks ..> CockpitContext : writes the showing bark
-    RunLifecycle --> Barks : clears every bark (showing, pending, timers) on stop
+    RunLifecycle --> Barks : clears the showing bark & its timers on stop
 
     %% Slice → focused domain delegation.
     RunStore --> RunConfig : normalizes config

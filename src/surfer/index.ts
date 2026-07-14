@@ -85,9 +85,9 @@ if ( params.has( TRAITS_PARAM ) ) {
 				window.location.origin
 			);
 		},
-		onBehaviorRun: ( key ) => {
+		onBehaviorRun: ( key, durationMs ) => {
 			window.parent.postMessage(
-				{ type: BEHAVIOR_START_TYPE, key },
+				{ type: BEHAVIOR_START_TYPE, key, durationMs },
 				window.location.origin
 			);
 		},

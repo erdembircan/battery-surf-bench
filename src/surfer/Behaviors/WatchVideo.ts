@@ -8,7 +8,7 @@
  * cockpit, per maintainer preference.
  */
 
-import type { Behavior, BehaviorContext } from '../Behavior';
+import type { Behavior, BehaviorContext, BehaviorAnnounce } from '../Behavior';
 import { ALLURE } from '../Behavior';
 import type { Motor } from '../Motor';
 import { drive, noise } from '../Bid';
@@ -30,9 +30,14 @@ export class WatchVideo implements Behavior {
 		);
 	}
 
-	async run( motor: Motor, ctx: BehaviorContext ): Promise< void > {
+	async run(
+		motor: Motor,
+		ctx: BehaviorContext,
+		announce?: BehaviorAnnounce
+	): Promise< void > {
 		await motor.playVideo();
 		const ms = WATCH_MS_MIN + ctx.rng() * ( WATCH_MS_MAX - WATCH_MS_MIN );
+		announce?.( ms / ctx.speed );
 		await motor.idle( ms / ctx.speed );
 	}
 }

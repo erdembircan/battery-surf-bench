@@ -1,14 +1,15 @@
 /**
  * The orchestrator. Owns the tick loop, boredom, and appetite —
  * behaviors themselves stay stateless pure bidders. Each tick: collect bids,
- * draw a winner, notify `onBehaviorRun` with its key (so the cockpit can bark
- * a flavor quip for the novelty ones), run it — re-notifying `onBehaviorRun`
- * on a wall-clock heartbeat while a long run is still pending, so the cockpit
- * can re-bark rather than reading as stuck — accrue appetite/boredom by how
- * much sim time the iteration actually cost (not a flat step, so a
- * long-running behavior can't starve leave pressure), wait the tempo-scaled
- * interval. When `MoveOn` wins, the loop halts and fires `onPageDone` (after
- * notifying `onBehaviorRun`, so `moveOn` barks too).
+ * draw a winner, run it — a behavior that barks calls the `announce` callback
+ * passed into its `run()`, once, at the moment it knows its own wall-clock
+ * dwell, and that forwards to `onBehaviorRun` with the winner's key and
+ * duration (so the cockpit's bark can hold for exactly that long) — accrue
+ * appetite/boredom by how much sim time the iteration actually cost (not a
+ * flat step, so a long-running behavior can't starve leave pressure), wait
+ * the tempo-scaled interval. When `MoveOn` wins, the loop halts and notifies
+ * `onBehaviorRun` with a fixed short display duration (it has no dwell of its
+ * own) before firing `onPageDone`.
  */
 
 import type { Behavior, BehaviorContext } from './Behavior';
@@ -34,15 +35,10 @@ const SETTLE_MS_MIN = 1000;
 const SETTLE_MS_MAX = 3000;
 
 /**
- * How often `onBehaviorRun` re-fires with the same key while a single
- * winner's `run()` is still pending, so the cockpit can re-bark and the
- * viewer knows the surfer is still engaged through a long dwell (e.g.
- * watchVideo's watch) rather than reading as stuck once the first bark has
- * faded. Wall-clock, deliberately never divided by `speed`: at high demo
- * speeds a run finishes in mere seconds of screen time and no heartbeat is
- * wanted — what matters is perceived stillness in real time, not sim time.
+ * moveOn leaves immediately so it has no dwell; this is a fixed short display
+ * so its "paddling off" quip is visible during the page swap.
  */
-const BEHAVIOR_HEARTBEAT_MS = 20000;
+export const MOVE_ON_DISPLAY_MS = 2500;
 
 export interface SurfLoopDeps {
 	behaviors: Behavior[];
@@ -55,11 +51,15 @@ export interface SurfLoopDeps {
 	speed: number;
 	onPageDone: () => void;
 	/**
-	 * Notified with the auction winner's key as each behavior begins its
-	 * `run()`, so the cockpit can bark a flavor quip for the novelty ones.
-	 * Optional so existing tests and callers stay valid without wiring it.
+	 * Notified with the auction winner's key and its wall-clock dwell in ms
+	 * (via that winner's own `announce` callback, or a fixed display duration
+	 * for `moveOn`) so the cockpit can bark a flavor quip, held for exactly
+	 * that long, for the novelty ones. Optional so existing tests and callers
+	 * stay valid without wiring it. Behaviors that never call `announce` (the
+	 * mechanical scrollBurst/microScroll/fidgetWiggle) simply never notify —
+	 * correct, they don't bark.
 	 */
-	onBehaviorRun?: ( key: string ) => void;
+	onBehaviorRun?: ( key: string, durationMs?: number ) => void;
 }
 
 /** Runs the auction-driven tick loop for a single page visit. */
@@ -130,15 +130,22 @@ export class SurfLoop {
 			const winner = pickBehavior( bids, rng );
 
 			if ( winner ) {
-				this.deps.onBehaviorRun?.( winner.key );
-
 				if ( winner.key === MOVE_ON_KEY ) {
 					this.running = false;
+					this.deps.onBehaviorRun?.(
+						MOVE_ON_KEY,
+						MOVE_ON_DISPLAY_MS
+					);
 					this.deps.onPageDone();
 					break;
 				}
 
-				await this.runWithHeartbeat( winner, ctx );
+				await winner.run(
+					this.deps.motor,
+					ctx,
+					( durationMs ) =>
+						this.deps.onBehaviorRun?.( winner.key, durationMs )
+				);
 				this.appetite.consume( winner.key );
 			}
 
@@ -169,42 +176,5 @@ export class SurfLoop {
 
 			await clock.wait( interval / speed );
 		}
-	}
-
-	/**
-	 * Runs `winner.run()` to completion, re-notifying `onBehaviorRun` with
-	 * its key every {@link BEHAVIOR_HEARTBEAT_MS} of wall-clock time while
-	 * the run is still pending. Each cycle races the heartbeat wait against
-	 * the run itself (rather than just awaiting the wait on its own), so a
-	 * run that finishes mid-wait is noticed immediately instead of only once
-	 * that wait happens to elapse — the heartbeat must never fire after the
-	 * run has settled, and must never outlive it either. A `settled` flag,
-	 * set via the run promise's `.finally()` (which runs before the race's
-	 * own reaction to the same promise, since it was attached first),
-	 * decides which side of the race actually won.
-	 * @param winner
-	 * @param ctx
-	 */
-	private async runWithHeartbeat(
-		winner: Behavior,
-		ctx: BehaviorContext
-	): Promise< void > {
-		let settled = false;
-		const run = winner.run( this.deps.motor, ctx ).finally( () => {
-			settled = true;
-		} );
-
-		while ( ! settled ) {
-			await Promise.race( [
-				run,
-				this.deps.clock.wait( BEHAVIOR_HEARTBEAT_MS ),
-			] );
-
-			if ( ! settled ) {
-				this.deps.onBehaviorRun?.( winner.key );
-			}
-		}
-
-		await run;
 	}
 }

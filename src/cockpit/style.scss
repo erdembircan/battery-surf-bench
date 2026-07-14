@@ -972,10 +972,13 @@ body.bsb-cockpit-dashboard {
 // The behavior-start bark: a small pill dropped in from the top of the running
 // viewport whenever the surf engine starts a novelty behavior — ambient flavor
 // text, not actionable information, so the layer is `aria-hidden` and swallows
-// no pointer input. Non-persistent: it auto-dismisses on its own hold timer,
-// and a newer bark can replace it early but never mid-safe-period (the model
-// in Barks.ts owns that lifecycle; this is presentation only). Anchored inside
-// the already-`position: relative` .bsb-cockpit__viewport-wrap, so it reads as
+// no pointer input. Store-authoritative and duration-tied: the pill holds for
+// the behavior's full wall-clock dwell and a newer bark always replaces the
+// showing one immediately, at any phase (the model in Barks.ts owns that
+// lifecycle; this is presentation only — no animation here ever drives a
+// state transition). The countdown is a pure visual "ebbing tide" fill with no
+// numeric readout; see .bsb-cockpit__bark-tide below. Anchored inside the
+// already-`position: relative` .bsb-cockpit__viewport-wrap, so it reads as
 // "inside" the simulated page rather than the dashboard chrome.
 .bsb-cockpit__bark-layer {
 	position: absolute;
@@ -1000,12 +1003,15 @@ body.bsb-cockpit-dashboard {
 // is by the `[data-bark]` attribute rather than a per-kind class, since every
 // bark shares one accent.
 .bsb-cockpit__bark {
+	position: relative;
 	display: inline-flex;
 	align-items: center;
 	gap: 0.55rem;
 	max-width: min(28rem, 100%);
 	padding: 0.5rem 0.7rem 0.5rem 0.6rem;
 	border-radius: 999px;
+	// Clips the ebbing-tide fill to the pill's rounded shape.
+	overflow: hidden;
 	background: var(--toast-bg);
 	border: 1px solid var(--bark-accent-line);
 	box-shadow:
@@ -1031,12 +1037,12 @@ body.bsb-cockpit-dashboard {
 		display: none;
 	}
 
-	&.is-entering,
-	&.is-holding {
-		opacity: 1;
-	}
-
+	// `both` keeps the animation's end state (opacity: 1) applied for the
+	// pill's entire visible life — there is no separate "holding" phase or
+	// class; the store's duration timer (not this animation) owns when the
+	// pill actually leaves.
 	&.is-entering {
+		opacity: 1;
 		animation: bsb-bark-in 460ms cubic-bezier(0.16, 1, 0.3, 1) both;
 	}
 
@@ -1071,11 +1077,41 @@ body.bsb-cockpit-dashboard {
 	}
 }
 
+// The "ebbing tide" countdown — a water fill anchored to the pill's bottom
+// edge that recedes from full to empty over the behavior's announced
+// duration. Pure styling: no numeric/text readout, and the animation never
+// drives any state — the store's own duration timer independently owns the
+// actual dismiss timing (see BarkStore/Barks), fed the same duration so both
+// finish together. Sits behind the icon/message (z-index 1 vs. their 2) and
+// is clipped to the pill's rounded shape by the parent's `overflow: hidden`.
+.bsb-cockpit__bark-tide {
+	position: absolute;
+	inset: 0;
+	z-index: 1;
+	// A wavy top edge, reusing the same tileable wave motif and sizing
+	// convention as the deck's parallax waves (background-size 200px ×
+	// 100%, anchored to the bottom), tinted with the bark's own teal accent
+	// at low alpha so the icon/message stay legible over it.
+	background-image: theme.wave('%232f9bb3', 0.22);
+	background-repeat: repeat-x;
+	background-position: bottom;
+	background-size: 200px 100%;
+	// Anchored to the bottom: shrinking toward `scaleY(0)` recedes the fill
+	// upward off the bottom edge, reading as the tide going out.
+	transform-origin: bottom;
+	transform: scaleY(1);
+}
+
+.bsb-cockpit__bark.is-entering .bsb-cockpit__bark-tide {
+	animation: bsb-bark-ebb var(--bark-dur, 6000ms) linear forwards;
+}
+
 // A small accent circle carrying the white masked glyph — same construction as
 // .bsb-cockpit__toast-icon, selecting its glyph from the `--bark-icon` custom
 // property the `[data-bark]` rules above set.
 .bsb-cockpit__bark-icon {
 	position: relative;
+	z-index: 2;
 	flex: none;
 	width: 1.25rem;
 	height: 1.25rem;
@@ -1101,6 +1137,8 @@ body.bsb-cockpit-dashboard {
 }
 
 .bsb-cockpit__bark-msg {
+	position: relative;
+	z-index: 2;
 	padding-block: 1px;
 }
 
@@ -1134,10 +1172,29 @@ body.bsb-cockpit-dashboard {
 	}
 }
 
+// The ebbing tide itself: a plain scale from full to empty, timed by the
+// store-set `--bark-dur` custom property.
+@keyframes bsb-bark-ebb {
+	from {
+		transform: scaleY(1);
+	}
+
+	to {
+		transform: scaleY(0);
+	}
+}
+
 @media (prefers-reduced-motion: reduce) {
 	.bsb-cockpit__bark.is-entering,
 	.bsb-cockpit__bark.is-leaving {
 		animation-duration: 1ms;
+	}
+
+	// No smooth ebb under reduced motion — the tide shows a static, full fill
+	// instead of a countdown; the store timer still runs the full duration
+	// underneath, so dismiss timing is unaffected, only the visual glide.
+	.bsb-cockpit__bark-tide {
+		animation: none;
 	}
 }
 

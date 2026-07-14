@@ -7,7 +7,7 @@
  * the choice is a per-win rng draw, never gated on page state.
  */
 
-import type { Behavior, BehaviorContext } from '../Behavior';
+import type { Behavior, BehaviorContext, BehaviorAnnounce } from '../Behavior';
 import { LITERACY } from '../Behavior';
 import type { Motor } from '../Motor';
 import { drive, noise } from '../Bid';
@@ -32,8 +32,13 @@ export class ReadPause implements Behavior {
 		);
 	}
 
-	async run( motor: Motor, ctx: BehaviorContext ): Promise< void > {
+	async run(
+		motor: Motor,
+		ctx: BehaviorContext,
+		announce?: BehaviorAnnounce
+	): Promise< void > {
 		const ms = PAUSE_MS_MIN + ctx.rng() * ( PAUSE_MS_MAX - PAUSE_MS_MIN );
+		announce?.( ms / ctx.speed );
 
 		if ( ctx.rng() < TRACE_CHANCE ) {
 			await motor.readTrace( ms / ctx.speed );

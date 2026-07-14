@@ -26,6 +26,15 @@ export type ToastKind = 'error' | 'notice';
 /** The toast pill's animation phase; empty when no toast is showing. */
 export type ToastPhase = '' | 'entering' | 'holding' | 'leaving';
 
+/**
+ * The bark pill's animation phase; empty when no bark is showing. Unlike the
+ * toast, a bark has no `holding` phase: the store-owned duration timer covers
+ * the entire visible life (its ebbing-tide fill is a pure CSS projection of
+ * that duration), so `entering` stays applied throughout and the phase only
+ * ever moves to `leaving` once the duration timer fires.
+ */
+export type BarkPhase = '' | 'entering' | 'leaving';
+
 /** The translated wording shown on the summary for a given end reason. */
 export interface ReasonText {
 	/** Handwritten verdict heading, e.g. "The run is in.". */
@@ -96,12 +105,15 @@ export interface CockpitContext {
 	// localizable; the queue resolves the current message from here.
 	toastStrings: Record< ToastKind, string >;
 	// The behavior-start bark: the behavior key showing (empty when none), its
-	// resolved flavor text, and its animation phase. The pending slot lives
-	// off-context in the per-instance state; only the one showing rides the
-	// reactive context.
+	// resolved flavor text, its full wall-clock duration in ms (drives the
+	// ebbing-tide fill's CSS animation-duration via barkDurationCss), and its
+	// animation phase. Store-authoritative and duration-tied: a newly arriving
+	// bark always replaces the current one immediately, at any phase, driven
+	// entirely by the store's own timers — never by an animation's end.
 	barkBehavior: string;
 	barkText: string;
-	barkPhase: ToastPhase;
+	barkDurationMs: number;
+	barkPhase: BarkPhase;
 	// Translated bark quips by behavior key, two variants each; the cockpit
 	// picks one at random when the behavior starts. A behavior key absent here
 	// never barks (the mechanical, frequent behaviors have no entry).

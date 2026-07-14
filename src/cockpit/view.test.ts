@@ -54,7 +54,8 @@ interface CockpitContext {
 	toastStrings: { error: string; notice: string };
 	barkBehavior: string;
 	barkText: string;
-	barkPhase: '' | 'entering' | 'holding' | 'leaving';
+	barkDurationMs: number;
+	barkPhase: '' | 'entering' | 'leaving';
 	barkStrings: Record< string, string[] >;
 }
 
@@ -111,8 +112,8 @@ interface CockpitConfig {
 		barkKey: string;
 		barkMessage: string;
 		isBarkEntering: boolean;
-		isBarkHolding: boolean;
 		isBarkLeaving: boolean;
+		barkDurationCss: string;
 		// Present only once the dev-tools module has joined the store (never set
 		// by this file's own registration); the battery seam reads it optionally.
 		devtools?: {
@@ -158,7 +159,6 @@ interface CockpitConfig {
 		onToastAnimationEnd: () => void;
 		initDetail: () => void;
 		initBark: () => () => void;
-		onBarkAnimationEnd: () => void;
 	};
 }
 
@@ -204,11 +204,16 @@ const baseContext = (): CockpitContext => ( {
 	toastStrings: { error: 'Upload failed', notice: 'View only' },
 	barkBehavior: '',
 	barkText: '',
+	barkDurationMs: 0,
 	barkPhase: '',
 	barkStrings: {
 		readPause: [
 			'Deep in the good words…',
 			'Catching up on the fine print…',
+		],
+		lingerImage: [
+			'Basking in the beauty of the pictures…',
+			'Ooh, shiny pixels…',
 		],
 	},
 } );
@@ -2151,6 +2156,7 @@ describe( 'bsb/cockpit view store', () => {
 			dispatchMessage( window.location.origin, {
 				type: 'bsb:behaviorStart',
 				key: 'readPause',
+				durationMs: 8000,
 			} );
 
 			expect( mocks.context.barkBehavior ).toBe( 'readPause' );
@@ -2158,6 +2164,7 @@ describe( 'bsb/cockpit view store', () => {
 			expect( mocks.config!.state.barkKey ).toBe( 'readPause' );
 			expect( mocks.config!.state.barkMessage ).not.toBe( '' );
 			expect( mocks.context.barkPhase ).toBe( 'entering' );
+			expect( mocks.config!.state.barkDurationCss ).toBe( '8000ms' );
 		} );
 
 		it( 'ignores a behavior-start message while idle', () => {
@@ -2167,6 +2174,7 @@ describe( 'bsb/cockpit view store', () => {
 			dispatchMessage( window.location.origin, {
 				type: 'bsb:behaviorStart',
 				key: 'readPause',
+				durationMs: 8000,
 			} );
 
 			expect( mocks.context.barkBehavior ).toBe( '' );
@@ -2177,6 +2185,19 @@ describe( 'bsb/cockpit view store', () => {
 
 			mocks.config!.callbacks.initBark();
 			dispatchMessage( 'https://evil.test', {
+				type: 'bsb:behaviorStart',
+				key: 'readPause',
+				durationMs: 8000,
+			} );
+
+			expect( mocks.context.barkBehavior ).toBe( '' );
+		} );
+
+		it( 'ignores a message with no valid duration', () => {
+			mocks.context.running = true;
+
+			mocks.config!.callbacks.initBark();
+			dispatchMessage( window.location.origin, {
 				type: 'bsb:behaviorStart',
 				key: 'readPause',
 			} );
@@ -2191,6 +2212,7 @@ describe( 'bsb/cockpit view store', () => {
 			dispatchMessage( window.location.origin, {
 				type: 'bsb:behaviorStart',
 				key: 'scrollBurst',
+				durationMs: 8000,
 			} );
 
 			expect( mocks.context.barkBehavior ).toBe( '' );
@@ -2204,12 +2226,13 @@ describe( 'bsb/cockpit view store', () => {
 			dispatchMessage( window.location.origin, {
 				type: 'bsb:behaviorStart',
 				key: 'readPause',
+				durationMs: 8000,
 			} );
 
 			expect( mocks.context.barkBehavior ).toBe( '' );
 		} );
 
-		it( 'walks the pill through entering, holding, leaving and finishing', () => {
+		it( 'holds for the announced duration, then leaves and finishes — driven entirely by the store timers', () => {
 			vi.useFakeTimers();
 			mocks.context.running = true;
 
@@ -2217,23 +2240,61 @@ describe( 'bsb/cockpit view store', () => {
 			dispatchMessage( window.location.origin, {
 				type: 'bsb:behaviorStart',
 				key: 'readPause',
+				durationMs: 8000,
 			} );
 			expect( mocks.context.barkPhase ).toBe( 'entering' );
+			expect( mocks.config!.state.isBarkEntering ).toBe( true );
 
-			// Entering ends: the pill rests and a hold timer is armed.
-			mocks.config!.callbacks.onBarkAnimationEnd();
-			expect( mocks.context.barkPhase ).toBe( 'holding' );
-			expect( mocks.config!.state.isBarkHolding ).toBe( true );
+			// Holds for the full announced duration before leaving on its own —
+			// no animationend callback is involved.
+			vi.advanceTimersByTime( 7999 );
+			expect( mocks.context.barkPhase ).toBe( 'entering' );
 
-			// The hold timer elapses on its own and starts the leave.
-			vi.advanceTimersByTime( 6000 );
+			vi.advanceTimersByTime( 1 );
 			expect( mocks.context.barkPhase ).toBe( 'leaving' );
 			expect( mocks.config!.state.isBarkLeaving ).toBe( true );
 
-			// Leaving ends: the bark is cleared.
-			mocks.config!.callbacks.onBarkAnimationEnd();
+			// The leave timer elapses on its own and clears the bark.
+			vi.advanceTimersByTime( 320 );
 			expect( mocks.context.barkBehavior ).toBe( '' );
 			expect( mocks.config!.state.hasBark ).toBe( false );
+
+			vi.useRealTimers();
+		} );
+
+		it( 'a new message replaces the showing bark immediately, at any phase', () => {
+			vi.useFakeTimers();
+			mocks.context.running = true;
+
+			mocks.config!.callbacks.initBark();
+			dispatchMessage( window.location.origin, {
+				type: 'bsb:behaviorStart',
+				key: 'readPause',
+				durationMs: 8000,
+			} );
+			expect( mocks.context.barkPhase ).toBe( 'entering' );
+
+			// Replaces mid-entering, well before readPause's duration elapses.
+			dispatchMessage( window.location.origin, {
+				type: 'bsb:behaviorStart',
+				key: 'lingerImage',
+				durationMs: 2000,
+			} );
+			expect( mocks.context.barkBehavior ).toBe( 'lingerImage' );
+			expect( mocks.context.barkPhase ).toBe( 'entering' );
+			expect( mocks.config!.state.barkDurationCss ).toBe( '2000ms' );
+
+			// Let lingerImage reach its own leaving phase, then replace again.
+			vi.advanceTimersByTime( 2000 );
+			expect( mocks.context.barkPhase ).toBe( 'leaving' );
+
+			dispatchMessage( window.location.origin, {
+				type: 'bsb:behaviorStart',
+				key: 'readPause',
+				durationMs: 5000,
+			} );
+			expect( mocks.context.barkBehavior ).toBe( 'readPause' );
+			expect( mocks.context.barkPhase ).toBe( 'entering' );
 
 			vi.useRealTimers();
 		} );

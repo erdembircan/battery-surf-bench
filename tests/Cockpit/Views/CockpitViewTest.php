@@ -88,8 +88,10 @@ final class CockpitViewTest extends TestCase {
 	 * The behavior-start bark is rendered as one bound pill inside the viewport
 	 * wrap: hidden until a bark is raised, its behavior key bound onto the
 	 * `data-bark` attribute the stylesheet selects an icon from, its phase
-	 * driving the animation classes, and an `animationend` hook driving its
-	 * lifecycle. The layer is `aria-hidden`, since barks are decorative.
+	 * driving the animation classes, and its "ebbing tide" fill's animation
+	 * duration bound to the store-computed CSS time value. The store's own
+	 * timers (not any animation event) drive the pill's lifecycle. The layer
+	 * is `aria-hidden`, since barks are decorative.
 	 */
 	public function test_render_includes_the_behavior_bark(): void {
 		$markup = $this->render();
@@ -99,10 +101,12 @@ final class CockpitViewTest extends TestCase {
 		$this->assertStringContainsString( 'data-wp-bind--hidden="!state.hasBark"', $markup );
 		$this->assertStringContainsString( 'data-wp-bind--data-bark="state.barkKey"', $markup );
 		$this->assertStringContainsString( 'data-wp-class--is-entering="state.isBarkEntering"', $markup );
-		$this->assertStringContainsString( 'data-wp-class--is-holding="state.isBarkHolding"', $markup );
 		$this->assertStringContainsString( 'data-wp-class--is-leaving="state.isBarkLeaving"', $markup );
-		$this->assertStringContainsString( 'data-wp-on--animationend="callbacks.onBarkAnimationEnd"', $markup );
+		$this->assertStringContainsString( 'class="bsb-cockpit__bark-tide"', $markup );
+		$this->assertStringContainsString( 'data-wp-style----bark-dur="state.barkDurationCss"', $markup );
 		$this->assertStringContainsString( 'data-wp-text="state.barkMessage"', $markup );
+		$this->assertStringNotContainsString( 'state.isBarkHolding', $markup );
+		$this->assertStringNotContainsString( 'onBarkAnimationEnd', $markup );
 	}
 
 	/**
