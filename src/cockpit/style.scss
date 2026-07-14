@@ -1255,6 +1255,17 @@ body.bsb-cockpit-dashboard {
 	// visual glide. Overriding the resting `scaleY(0)` back to `scaleY(1)`
 	// here (rather than just dropping the animation) is what keeps it a
 	// static FULL fill rather than a static empty one.
+	//
+	// The `.bsb-cockpit__bark.is-entering .bsb-cockpit__bark-tide` selector
+	// MUST be repeated here (not just the bare `.bsb-cockpit__bark-tide`):
+	// the drain rule outside this media block is scoped to `.is-entering`,
+	// giving it specificity (0,3,0), while a media query adds no specificity
+	// of its own — a bare `.bsb-cockpit__bark-tide` override in here is only
+	// (0,1,0) and the higher-specificity `.is-entering` rule wins regardless
+	// of source order, silently keeping the drain animation running under
+	// reduced motion. Matching that selector's specificity is what lets this
+	// override actually take effect.
+	.bsb-cockpit__bark.is-entering .bsb-cockpit__bark-tide,
 	.bsb-cockpit__bark-tide {
 		animation: none;
 		transform: scaleY(1);
