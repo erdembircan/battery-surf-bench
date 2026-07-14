@@ -102,10 +102,13 @@ final class CockpitViewTest extends TestCase {
 		$this->assertStringContainsString( 'data-wp-bind--data-bark="state.barkKey"', $markup );
 		$this->assertStringContainsString( 'data-wp-class--is-entering="state.isBarkEntering"', $markup );
 		$this->assertStringContainsString( 'data-wp-class--is-leaving="state.isBarkLeaving"', $markup );
-		// Both custom properties bind on the tide element itself (not just
-		// anywhere in the markup) — the drain duration and the ripple's speed
-		// link, the latter the same binding pattern as the deck's own waves.
-		$this->assertStringContainsString( 'class="bsb-cockpit__bark-tide" aria-hidden="true" data-wp-style----bark-dur="state.barkDurationCss" data-wp-style----bsb-wave-speed="context.speed"', $markup );
+		// All three custom properties bind on the tide element itself (not
+		// just anywhere in the markup): the drain duration, the ebb keyframe
+		// name (alternated by the store on every fresh bark, guaranteeing the
+		// drain restarts from full even for two consecutive barks sharing a
+		// key/duration), and the ripple's speed link — the last the same
+		// binding pattern as the deck's own waves.
+		$this->assertStringContainsString( 'class="bsb-cockpit__bark-tide" aria-hidden="true" data-wp-style----bark-dur="state.barkDurationCss" data-wp-style----bark-ebb-name="state.barkEbbName" data-wp-style----bsb-wave-speed="context.speed"', $markup );
 		// The layered water body: a solid fill plus three rippling surface bands.
 		$this->assertStringContainsString( 'class="bsb-cockpit__bark-tide-fill"', $markup );
 		$this->assertStringContainsString( 'class="bsb-cockpit__bark-tide-wave bsb-cockpit__bark-tide-wave--back"', $markup );

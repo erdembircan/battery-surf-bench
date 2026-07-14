@@ -111,12 +111,16 @@ $bsb_context = array(
 	// The behavior-start bark shown over the top of the running viewport: the
 	// behavior key showing (empty when none), its resolved flavor text, its
 	// full announced wall-clock duration in ms (drives the ebbing-tide fill's
-	// animation-duration), and its animation phase. Empty/zero until the surf
-	// engine's behaviorStart handshake raises one.
+	// animation-duration), its animation phase, and a generation counter
+	// advanced on every fresh bark (drives which of two identical ebb
+	// keyframes the drain's animation-name resolves to, guaranteeing it
+	// restarts on every new bark). Empty/zero until the surf engine's
+	// behaviorStart handshake raises one.
 	'barkBehavior'        => '',
 	'barkText'            => '',
 	'barkDurationMs'      => 0,
 	'barkPhase'           => '',
+	'barkGeneration'      => 0,
 	// Translated bark quips by behavior key, two variants each, picked at
 	// random when the behavior starts; see {@see BarkStrings} for the keys
 	// (mirroring the engine's exported `*_KEY` constants, which PHP cannot

@@ -2,9 +2,10 @@
  * The bark slice of the cockpit store: the playful pill shown over the top of
  * the running viewport whenever the surf engine starts a novelty behavior.
  * Reads the bark currently showing off the reactive context (behavior key,
- * text, duration, phase) and binds the pill's visibility, icon selector,
- * ebbing-tide animation-duration and animation classes; listens for the surf
- * engine's behavior-start handshake and raises a bark while a run is live.
+ * text, duration, phase, generation) and binds the pill's visibility, icon
+ * selector, ebbing-tide animation-duration/animation-name and animation
+ * classes; listens for the surf engine's behavior-start handshake and raises
+ * a bark while a run is live.
  *
  * Store-authoritative: every phase transition is driven by the store's own
  * duration/replace/leave timers (owned by {@link ./Barks}) — never by the
@@ -69,6 +70,23 @@ export const barkStore: StorePart = {
 		 */
 		get barkDurationCss(): string {
 			return `${ getContext< CockpitContext >().barkDurationMs }ms`;
+		},
+
+		/**
+		 * Alternates between two byte-identical ebb keyframes by the parity of
+		 * `barkGeneration`, which `Barks.ts` advances on every fresh bark. Bound
+		 * onto the tide's `animation-name` (via the `--bark-ebb-name` custom
+		 * property) so the drain is guaranteed to restart from full on every new
+		 * bark — a change in `animation-name`'s computed value is the one
+		 * CSS-spec-guaranteed restart trigger, unlike a duration/custom-property
+		 * tweak alone, which would not restart two consecutive barks that
+		 * happen to share the same key and announced duration (e.g. two
+		 * `moveOn` or two `selectSnippet` barks in a row).
+		 */
+		get barkEbbName(): string {
+			return getContext< CockpitContext >().barkGeneration % 2 === 0
+				? 'bsb-bark-ebb-a'
+				: 'bsb-bark-ebb-b';
 		},
 	},
 	callbacks: {

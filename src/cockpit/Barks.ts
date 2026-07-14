@@ -22,8 +22,12 @@
  * pending arrival must wait; and a **leave timer**, armed for
  * {@link BARK_LEAVE_MS}, that clears the bark (and pumps the pending one, if
  * any) once the leave finishes. The DOM's ebbing-tide fill and its CSS
- * keyframes are a pure reactive projection of `barkDurationMs`/`barkPhase` and
- * never feed back into this lifecycle.
+ * keyframes are a pure reactive projection of `barkDurationMs`/`barkPhase`/
+ * `barkGeneration` and never feed back into this lifecycle. `barkGeneration`
+ * advances on every fresh bark specifically so the drain's `animation-name`
+ * (alternated between two identical keyframes by the store's `barkEbbName`
+ * getter) is always a genuine change, guaranteeing the drain restarts from
+ * full even when two consecutive barks share the same key and duration.
  */
 
 import { type CockpitContext } from './CockpitContext';
@@ -68,8 +72,11 @@ export const pickBarkText = (
 /**
  * Shows a bark for the given behavior key immediately: writes the behavior
  * key, its chosen text and its announced duration onto the context, starts
- * the enter phase, records when it appeared, and arms a duration timer that
- * begins the leave once the announced dwell elapses.
+ * the enter phase, records when it appeared, arms a duration timer that
+ * begins the leave once the announced dwell elapses, and advances
+ * `barkGeneration` so the tide's drain animation is guaranteed to restart
+ * from full even if this bark shares its key/duration with the one it
+ * replaces.
  *
  * @param context    The reactive cockpit context the pill binds to.
  * @param instance   The per-instance state to record the shown-at stamp and
@@ -89,6 +96,7 @@ const showBark = (
 	context.barkText = pickBarkText( context.barkStrings, key );
 	context.barkDurationMs = durationMs;
 	context.barkPhase = 'entering';
+	context.barkGeneration += 1;
 	instance.barkShownAt = now;
 	instance.barkDurationTimer = window.setTimeout( () => {
 		instance.barkDurationTimer = null;

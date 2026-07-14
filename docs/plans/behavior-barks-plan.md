@@ -195,10 +195,11 @@ export const clearBark = (context: CockpitContext, instance: InstanceState): voi
 Internal state machine details:
 
 - Showing a bark writes `barkBehavior = key`, `barkText = pickBarkText(...)`,
-  `barkDurationMs = durationMs`, `barkPhase = 'entering'`, records
-  `instance.barkShownAt` (from `performance.now()` via the injectable `now`
-  param), and arms `instance.barkDurationTimer` for `durationMs` — when it
-  fires, a module-private `beginLeave` sets phase `'leaving'` and arms
+  `barkDurationMs = durationMs`, `barkPhase = 'entering'`, **advances
+  `barkGeneration` by 1** (see below), records `instance.barkShownAt` (from
+  `performance.now()` via the injectable `now` param), and arms
+  `instance.barkDurationTimer` for `durationMs` — when it fires, a
+  module-private `beginLeave` sets phase `'leaving'` and arms
   `instance.barkLeaveTimer` for `BARK_LEAVE_MS`, which in turn calls
   `finishBark`.
 - The pending slot is `instance.pendingBark: string | null` +
@@ -217,6 +218,24 @@ Internal state machine details:
   `barkShownAt`, fresh duration timer for its own `pendingDurationMs`).
 - Timer ids live on the instance (`barkDurationTimer`, `barkReplaceTimer`,
   `barkLeaveTimer`), never on the reactive context.
+- **`barkGeneration` and the drain's guaranteed restart.** The tide's drain
+  animation is applied through both `is-entering` and `is-leaving` (so
+  removing `is-entering` at the entering → leaving transition never strips
+  the animation off the element mid-flight — see the `style.scss` section).
+  That means a *genuinely new* bark's `entering` phase must force the
+  browser to treat its drain as a fresh animation instance, not a
+  continuation of whatever the previous bark's drain was doing. A change to
+  `--bark-dur` alone cannot be relied on for this: two consecutive barks can
+  share the exact same announced duration (`moveOn` is always `2500`,
+  `selectSnippet` is always `1800`), in which case nothing about the
+  animation declaration would even change. `barkGeneration` is a plain
+  incrementing counter, bumped in `showBark` on every fresh bark (whether
+  raised directly or pumped from the pending slot) regardless of key or
+  duration; `BarkStore.barkEbbName` alternates it between two byte-identical
+  `@keyframes` names, and that named change is a genuine, CSS-spec-guaranteed
+  restart trigger. It is never reset — a monotonic counter that only ever
+  moves forward, so each fresh bark's generation is always distinct from the
+  one immediately before it.
 
 ### `src/cockpit/BarkStore.ts`
 
@@ -227,10 +246,19 @@ toast:
 
 - `state` getters: `hasBark` (`barkBehavior !== ''`), `barkKey` (the raw
   behavior key, bound onto the `data-bark` attribute), `barkMessage`,
-  `isBarkEntering`, `isBarkLeaving`, and `barkDurationCss` — the showing
-  bark's `barkDurationMs` formatted as a CSS time value (e.g. `"8000ms"`),
-  bound onto the tide element's `--bark-dur` custom property so its ebbing
-  animation matches the actual dwell.
+  `isBarkEntering`, `isBarkLeaving`, `barkDurationCss` — the showing bark's
+  `barkDurationMs` formatted as a CSS time value (e.g. `"8000ms"`), bound onto
+  the tide's `--bark-dur` custom property so its drain matches the actual
+  dwell — and `barkEbbName`, which alternates between two byte-identical ebb
+  keyframes (`bsb-bark-ebb-a`/`-b`) by the parity of `barkGeneration` (which
+  `Barks.ts` advances on every fresh bark), bound onto the tide's
+  `--bark-ebb-name` custom property. This is what *guarantees* the drain
+  restarts from full on every new bark: a change in `animation-name`'s own
+  computed value is the one CSS-spec-guaranteed restart trigger, whereas a
+  mere `--bark-dur` change is not — two consecutive barks can share the exact
+  same announced duration (e.g. two `moveOn` or two `selectSnippet` barks),
+  in which case the `animation-duration` alone wouldn't differ and a
+  duration-only scheme could silently fail to restart.
 - `callbacks.initBark(): () => void` — attaches a window `message` listener
   (pattern-copy of `RunStore.initPageAdvance`): no-op unless `context.running`
   and `isBehaviorStartMessage(event, window.location.origin)`; then
@@ -330,6 +358,7 @@ barkBehavior: string;                    // behavior key showing, '' when none
 barkText: string;
 barkDurationMs: number;                  // full announced duration, 0 when none
 barkPhase: BarkPhase;                    // '' | 'entering' | 'leaving' — own type
+barkGeneration: number;                  // advances every fresh bark; drives barkEbbName
 barkStrings: Record<string, string[]>;   // behavior key → 2 translated variants
 ```
 
@@ -371,6 +400,7 @@ Context seeding:
 'barkText'       => '',
 'barkDurationMs' => 0,
 'barkPhase'      => '',
+'barkGeneration' => 0,
 // Translated bark quips by behavior key, two variants each; the cockpit picks
 // one at random when the behavior starts. A behavior absent here never barks.
 'barkStrings'    => array(
@@ -415,7 +445,7 @@ Two edits:
 ```html
 <div class="bsb-cockpit__bark-layer" aria-hidden="true">
     <div class="bsb-cockpit__bark" hidden data-wp-bind--hidden="!state.hasBark" data-wp-bind--data-bark="state.barkKey" data-wp-class--is-entering="state.isBarkEntering" data-wp-class--is-leaving="state.isBarkLeaving">
-        <span class="bsb-cockpit__bark-tide" aria-hidden="true" data-wp-style----bark-dur="state.barkDurationCss" data-wp-style----bsb-wave-speed="context.speed">
+        <span class="bsb-cockpit__bark-tide" aria-hidden="true" data-wp-style----bark-dur="state.barkDurationCss" data-wp-style----bark-ebb-name="state.barkEbbName" data-wp-style----bsb-wave-speed="context.speed">
             <span class="bsb-cockpit__bark-tide-fill" aria-hidden="true"></span>
             <span class="bsb-cockpit__bark-tide-wave bsb-cockpit__bark-tide-wave--back" aria-hidden="true"></span>
             <span class="bsb-cockpit__bark-tide-wave bsb-cockpit__bark-tide-wave--mid" aria-hidden="true"></span>
@@ -429,9 +459,12 @@ Two edits:
 
 No `data-wp-class--is-holding` and no `data-wp-on--animationend` — the pill's
 lifecycle is driven entirely by the store's own timers, never by an animation
-event. The outer tide element carries two custom properties and no text of
+event. The outer tide element carries three custom properties and no text of
 its own: `data-wp-style----bark-dur` sets `--bark-dur` from the store's
-`barkDurationCss` getter (the drain's `animation-duration`), and
+`barkDurationCss` getter (the drain's `animation-duration`);
+`data-wp-style----bark-ebb-name` sets `--bark-ebb-name` from `barkEbbName`
+(the drain's `animation-name`, alternated on every fresh bark to guarantee a
+restart — see the `Barks.ts`/`BarkStore.ts` sections above); and
 `data-wp-style----bsb-wave-speed` sets `--bsb-wave-speed` from `context.speed`
 — the same binding pattern `.bsb-deck__waves` uses — so the ripple layers'
 speed tracks the run's demo-speed multiplier. Inside it: a solid fill span
@@ -492,24 +525,48 @@ a terminal text-cursor caret, and a stylized wave curl, each legible at
   leaves.
 - **The ebbing-tide countdown** — two independent animations, layered, never
   coupled to each other:
-  - **The drain** (`.bsb-cockpit__bark-tide`, `@keyframes bsb-bark-ebb`): the
-    water level dropping top → bottom over the behavior's wall-clock
-    `--bark-dur`. This is the one-shot countdown. An absolutely positioned
-    box (`inset: 0`), sitting behind the icon/message at `z-index: 1`,
-    clipped to the pill's rounded shape by the parent's `overflow: hidden`.
-    `transform-origin: bottom;` — its **resting** value is `scaleY(0)`
-    (empty), not `scaleY(1)`; while `.bsb-cockpit__bark.is-entering`, it runs
-    `animation: bsb-bark-ebb var(--bark-dur, 6000ms) linear forwards;`, whose
-    keyframes go `scaleY(1)` (full — top edge flush with the pill's own top)
-    → `scaleY(0)` (empty). Resting at `scaleY(0)` rather than `scaleY(1)` is
-    what keeps the fill from snapping back to full when `.is-entering` drops
-    at the entering → leaving transition: the drain animation is the *only*
-    thing that ever shows `scaleY(1)`, and once it's removed, the element
-    falls back to the same `scaleY(0)` the drain already left it at — no
-    jump, water stays exactly where it was throughout the leave. Purely
-    visual: it does not drive any JS, and the store's `barkDurationTimer`
-    independently owns the actual dismiss timing — both are fed the same
-    duration so they finish together.
+  - **The drain** (`.bsb-cockpit__bark-tide`, `@keyframes bsb-bark-ebb-a` /
+    `bsb-bark-ebb-b`): the water level dropping top → bottom over the
+    behavior's wall-clock `--bark-dur`. This is the one-shot countdown. An
+    absolutely positioned box (`inset: 0`), sitting behind the icon/message
+    at `z-index: 1`, clipped to the pill's rounded shape by the parent's
+    `overflow: hidden`. `transform-origin: bottom;` — the base rule carries
+    **no forced `transform`** (identity `scaleY(1)`, only ever visible for a
+    single frame at the drain's own 0% keyframe, so there is no flash).
+    Applied through **both** `.is-entering` AND `.is-leaving` (the identical
+    declaration in both — this is the part that matters): if the drain were
+    scoped to `.is-entering` alone, removing that class at the entering →
+    leaving transition would strip the animation off the element entirely,
+    leaving `animation-fill-mode: forwards` nothing to hold, and the element
+    would snap to whatever the base rule forced (a real bug an earlier
+    revision had, band-aided by forcing the base to `scaleY(0)` — which just
+    turned the snap from "always full" into "always empty" on an
+    interrupted drain, instead of removing the snap). Keeping the animation
+    applied across both phases means: a drain that completes naturally holds
+    at `scaleY(0)` via `forwards` (nothing forced, nothing to snap); and a
+    drain cut short by an early leave (the queue's safe-period replace)
+    simply *continues*, uninterrupted, from wherever it actually was — the
+    pill slides out from its real water level, never snapping to either end.
+    Purely visual: it does not drive any JS, and the store's
+    `barkDurationTimer` independently owns the actual dismiss timing — both
+    are fed the same duration so they finish together.
+  - **Guaranteed restart on every fresh bark** (`--bark-ebb-name` /
+    `barkGeneration` / `barkEbbName` — see the `Barks.ts`/`BarkStore.ts`
+    sections above). Declared as **longhand**, not the `animation` shorthand:
+    `animation-name: var(--bark-ebb-name, bsb-bark-ebb-a); animation-duration:
+    var(--bark-dur, 6000ms); animation-timing-function: linear;
+    animation-fill-mode: forwards;`. Because the SAME animation declaration
+    now spans both `is-entering` and `is-leaving`, a genuinely new bark's
+    `entering` phase must force a fresh animation instance rather than
+    continuing (or ignoring) whatever the previous bark's drain was doing —
+    and `--bark-dur` alone cannot guarantee that, since two consecutive barks
+    can share the exact same announced duration (`moveOn` is always `2500`,
+    `selectSnippet` is always `1800`), leaving nothing about the computed
+    `animation` value different. `animation-name`'s own computed value
+    changing is the one CSS-spec-guaranteed restart trigger, so
+    `--bark-ebb-name` alternates between two byte-identical `@keyframes`
+    (`bsb-bark-ebb-a`/`-b`) every time `barkGeneration` advances (i.e. on
+    every fresh bark, direct or pumped).
   - **The solid water body** (`.bsb-cockpit__bark-tide-fill`): `inset: 0`
     inside the tide box, a flat translucent teal wash covering 100% of the
     (possibly scaled-down) box at all times — this is what makes the fill
@@ -528,13 +585,19 @@ a terminal text-cursor caret, and a stylized wave curl, each legible at
     the tide element, and each layer's `animation-duration:
     calc(<base>s / var(--bsb-wave-speed, 1));`.
 - `@media (prefers-reduced-motion: reduce)`: collapses the enter/leave
-  animation durations to `1ms` as before. The tide additionally goes static:
+  animation durations to `1ms` as before. The tide additionally goes static —
   `animation: none; transform: scaleY(1);` (a still, full fill rather than a
-  countdown — overriding the resting `scaleY(0)` back to `scaleY(1)` is what
-  keeps it full rather than empty), and the ripple layers get `animation:
-  none` too (no horizontal motion). The store's duration timer still runs the
-  full time underneath either way, so dismiss timing is unaffected — only the
-  visual glide is dropped.
+  countdown) — and the ripple layers get `animation: none` too (no
+  horizontal motion). **Both** `.is-entering` and `.is-leaving` selectors
+  must be repeated inside this media block alongside the bare
+  `.bsb-cockpit__bark-tide` selector: the drain rule outside the media block
+  is scoped to those two phase selectors at specificity (0,3,0), and a media
+  query adds no specificity of its own, so a bare (0,1,0) override here would
+  silently lose to the higher-specificity drain rule regardless of source
+  order — the override must match that specificity to actually win, in
+  either phase. The store's duration timer still runs the full time
+  underneath either way, so dismiss timing is unaffected — only the visual
+  glide is dropped.
 
 ## Testing
 
@@ -570,6 +633,12 @@ context/getters:
 12. `clearBark` mid-anything (entering or leaving, with or without something
     pending) clears the pending slot and all three timers; the cleared
     timers must not fire later and resurrect a phase.
+13. `barkGeneration` advances every time a bark is shown — including a full
+    show → finish → re-show cycle of the *same* key with the *same*
+    duration, and a queued/pumped bark that shares its duration with the one
+    that just left — since neither case can be told apart by comparing
+    key/duration alone (the exact edge case the tide's restart guarantee
+    exists for).
 
 `BehaviorStart.test.ts` — origin mismatch, wrong type, missing/blank key,
 missing/invalid `durationMs` (zero, negative, `NaN`, `Infinity`, a string),
@@ -588,15 +657,18 @@ including `barkDurationCss`; the pill holds for the announced `durationMs`
 then leaves and finishes after `BARK_LEAVE_MS`, driven entirely by the store's
 own timers (no `animationend` callback exists to walk); a message arriving
 inside the safe period queues rather than replacing, and shows once the
-current bark leaves; only the newest of several queued arrivals is shown
-next; `initBark` raises on a legitimate message (with a valid duration) only
-while running, and its cleanup detaches. Every test that calls `initBark()`
-tracks and detaches its own listener in `afterEach` — jsdom's `window`
-persists across tests in this file, so a listener left dangling from one test
-would otherwise keep firing in every later test, racing a stale `raiseBark`
-call against the same shared `instanceFor()` singleton a later test's fresh
-listener also writes to (this bit a real cross-test contamination bug during
-development: a leaked listener silently duplicated every dispatched message).
+current bark leaves — asserting `barkEbbName` actually changes across that
+transition, so the tide is guaranteed to restart its drain rather than
+possibly continue a still-running one; only the newest of several queued
+arrivals is shown next; `initBark` raises on a legitimate message (with a
+valid duration) only while running, and its cleanup detaches. Every test that
+calls `initBark()` tracks and detaches its own listener in `afterEach` —
+jsdom's `window` persists across tests in this file, so a listener left
+dangling from one test would otherwise keep firing in every later test,
+racing a stale `raiseBark` call against the same shared `instanceFor()`
+singleton a later test's fresh listener also writes to (this bit a real
+cross-test contamination bug during development: a leaked listener silently
+duplicated every dispatched message).
 
 `RunLifecycle.test.ts` (extend) — `stopRun` clears an active bark, its
 pending slot, and its timers.
@@ -614,7 +686,8 @@ Extend the existing cockpit view/render coverage (find the existing test files
 for `CockpitView`/render context and follow their pattern): the rendered
 markup contains the bark layer with its directives (`data-wp-bind--data-bark`,
 `data-wp-class--is-entering`/`is-leaving`, the `bsb-cockpit__bark-tide`
-element with both `data-wp-style----bark-dur="state.barkDurationCss"` and
+element with all three of `data-wp-style----bark-dur="state.barkDurationCss"`,
+`data-wp-style----bark-ebb-name="state.barkEbbName"`, and
 `data-wp-style----bsb-wave-speed="context.speed"`, plus the layered
 `bsb-cockpit__bark-tide-fill` and `bsb-cockpit__bark-tide-wave--back/--mid/
 --front` children, `aria-hidden`), does **not** contain `is-holding` or
@@ -641,8 +714,10 @@ kept in sync with the markup in the same change, forever.
 ## Contract charts (same PR — mandatory)
 
 - `docs/contracts/cockpit-frontend-modules.mmd`: add `BarkStore` (composed by
-  `CockpitView`; state includes `barkDurationCss`, no `isBarkHolding`;
-  callbacks: `initBark` only, no `onBarkAnimationEnd`), `Barks` (module:
+  `CockpitView`; state includes `barkDurationCss`, `barkEbbName` (alternates
+  two identical keyframes per `barkGeneration`, guaranteeing the tide's drain
+  restarts on every fresh bark), no `isBarkHolding`; callbacks: `initBark`
+  only, no `onBarkAnimationEnd`), `Barks` (module:
   `raiseBark(ctx, instance, key, durationMs, now?)`/`finishBark`/`clearBark`/
   `pickBarkText`/`BARK_SAFE_MS`/`BARK_LEAVE_MS`), `BehaviorStart` (module:
   `isBehaviorStartMessage`/`behaviorKeyOf`/`durationOf`); relations — BarkStore

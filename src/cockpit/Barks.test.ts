@@ -35,6 +35,7 @@ const context = (): CockpitContext =>
 		barkText: '',
 		barkDurationMs: 0,
 		barkPhase: '',
+		barkGeneration: 0,
 		barkStrings: STRINGS,
 	} ) as unknown as CockpitContext;
 
@@ -211,6 +212,54 @@ describe( 'raiseBark', () => {
 		vi.advanceTimersByTime( 2000 );
 		expect( ctx.barkBehavior ).toBe( 'lingerImage' );
 		expect( ctx.barkPhase ).toBe( 'entering' );
+	} );
+} );
+
+describe( 'barkGeneration', () => {
+	beforeEach( () => vi.useFakeTimers() );
+	afterEach( () => vi.useRealTimers() );
+
+	it( 'advances every time a bark is shown, including a repeat of the same key/duration', () => {
+		const ctx = context();
+		const inst = instance();
+
+		raiseBark( ctx, inst, 'moveOn', 2500, 0 );
+		const firstGeneration = ctx.barkGeneration;
+
+		// The same key finishes fully (idle), then bars again with the exact
+		// same duration — the two consecutive shows of an identical key +
+		// duration must still be distinguishable, since a mere duration
+		// comparison can't tell them apart (this is exactly the case the
+		// tide's animation-restart guarantee depends on).
+		vi.advanceTimersByTime( 2500 + BARK_LEAVE_MS );
+		expect( ctx.barkBehavior ).toBe( '' );
+
+		raiseBark( ctx, inst, 'moveOn', 2500, 10_000 );
+
+		expect( ctx.barkGeneration ).not.toBe( firstGeneration );
+	} );
+
+	it( 'advances again when finishBark pumps a queued bark, sharing the same duration value as the one that just left', () => {
+		const ctx = context();
+		const inst = instance();
+
+		// A different key that happens to share moveOn's fixed duration —
+		// same-key queueing behind itself is impossible (the dedupe check
+		// blocks a repeat of the key currently showing from ever queuing),
+		// so a shared *duration* with a different key is the realistic shape
+		// of this edge case for the queued/pumped path specifically.
+		raiseBark( ctx, inst, 'moveOn', 2500, 0 );
+		const firstGeneration = ctx.barkGeneration;
+
+		raiseBark( ctx, inst, 'readPause', 2500, 500 );
+
+		vi.advanceTimersByTime( BARK_SAFE_MS - 500 );
+		expect( ctx.barkPhase ).toBe( 'leaving' );
+
+		vi.advanceTimersByTime( BARK_LEAVE_MS );
+		expect( ctx.barkBehavior ).toBe( 'readPause' );
+		expect( ctx.barkDurationMs ).toBe( 2500 );
+		expect( ctx.barkGeneration ).not.toBe( firstGeneration );
 	} );
 } );
 

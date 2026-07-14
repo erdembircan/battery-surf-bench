@@ -56,6 +56,7 @@ interface CockpitContext {
 	barkText: string;
 	barkDurationMs: number;
 	barkPhase: '' | 'entering' | 'leaving';
+	barkGeneration: number;
 	barkStrings: Record< string, string[] >;
 }
 
@@ -114,6 +115,7 @@ interface CockpitConfig {
 		isBarkEntering: boolean;
 		isBarkLeaving: boolean;
 		barkDurationCss: string;
+		barkEbbName: string;
 		// Present only once the dev-tools module has joined the store (never set
 		// by this file's own registration); the battery seam reads it optionally.
 		devtools?: {
@@ -206,6 +208,7 @@ const baseContext = (): CockpitContext => ( {
 	barkText: '',
 	barkDurationMs: 0,
 	barkPhase: '',
+	barkGeneration: 0,
 	barkStrings: {
 		readPause: [
 			'Deep in the good words…',
@@ -2291,6 +2294,7 @@ describe( 'bsb/cockpit view store', () => {
 				durationMs: 20000,
 			} );
 			expect( mocks.context.barkPhase ).toBe( 'entering' );
+			const ebbNameBeforeQueue = mocks.config!.state.barkEbbName;
 
 			// Arrives well inside the safe period — must NOT replace the
 			// showing bark yet.
@@ -2307,11 +2311,19 @@ describe( 'bsb/cockpit view store', () => {
 			expect( mocks.context.barkBehavior ).toBe( 'readPause' );
 			expect( mocks.context.barkPhase ).toBe( 'leaving' );
 
-			// The leave finishes: the queued bark is pumped in fresh.
+			// The leave finishes: the queued bark is pumped in fresh. Its
+			// ebb keyframe name must differ from the one the just-finished
+			// bark used, so the tide's drain animation is guaranteed to
+			// restart from full rather than continue (or be a no-op) —
+			// this holds even though nothing here depends on the two barks'
+			// key/duration actually differing.
 			vi.advanceTimersByTime( 320 );
 			expect( mocks.context.barkBehavior ).toBe( 'lingerImage' );
 			expect( mocks.context.barkPhase ).toBe( 'entering' );
 			expect( mocks.config!.state.barkDurationCss ).toBe( '3000ms' );
+			expect( mocks.config!.state.barkEbbName ).not.toBe(
+				ebbNameBeforeQueue
+			);
 
 			vi.useRealTimers();
 		} );

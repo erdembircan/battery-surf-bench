@@ -90,7 +90,7 @@ classDiagram
 
     class BarkStore {
         <<module>>
-        state: hasBark, barkKey, barkMessage, barkDurationCss, phase flags (isBarkEntering/Leaving)
+        state: hasBark, barkKey, barkMessage, barkDurationCss, barkEbbName (alternates two identical keyframes per barkGeneration, guaranteeing the tide's drain restarts on every fresh bark), phase flags (isBarkEntering/Leaving)
         callbacks: initBark (raises a bark, held for its announced duration, from the surf engine's behaviorStart message, while running)
     }
 

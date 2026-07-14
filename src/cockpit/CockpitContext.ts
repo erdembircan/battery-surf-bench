@@ -114,6 +114,18 @@ export interface CockpitContext {
 	barkText: string;
 	barkDurationMs: number;
 	barkPhase: BarkPhase;
+	// Incremented every time a NEW bark is shown (see Barks.ts's showBark),
+	// regardless of key or duration. Drives which of two byte-identical
+	// ebb keyframes (barkEbbName) the tide's drain animation-name resolves
+	// to, so the drain is GUARANTEED to restart from full on every fresh
+	// bark — including two consecutive barks that happen to share the exact
+	// same key and announced duration (e.g. two moveOn or two selectSnippet
+	// barks in a row), where the computed `animation` value would otherwise
+	// be byte-identical and the browser would treat it as the same,
+	// still-running instance rather than a fresh one. A change in
+	// animation-name's computed value is the one CSS-spec-guaranteed trigger
+	// for a hard restart; a duration/custom-property tweak alone is not.
+	barkGeneration: number;
 	// Translated bark quips by behavior key, two variants each; the cockpit
 	// picks one at random when the behavior starts. A behavior key absent here
 	// never barks (the mechanical, frequent behaviors have no entry).

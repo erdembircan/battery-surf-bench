@@ -1087,20 +1087,27 @@ body.bsb-cockpit-dashboard {
 // pill's rounded shape by the parent's `overflow: hidden`.
 //
 // Two independent animations layer here, never coupled to each other:
-//   - the DRAIN (`bsb-bark-ebb`, on this element): a one-shot `scaleY` from
-//     full to empty, timed to `--bark-dur`. This is the countdown.
+//   - the DRAIN (`bsb-bark-ebb-a`/`-b`, on this element): a one-shot `scaleY`
+//     from full to empty, timed to `--bark-dur`. This is the countdown.
 //   - the RIPPLE (`bsb-wave`, on the `-wave` children below): a constant,
 //     looping horizontal scroll of the wavy surface texture, exactly the
 //     deck's own wave treatment (same keyframe, same `--bsb-wave-speed`
 //     link) — it never stops or re-times itself off the drain.
 //
-// `scaleY(0)` (empty) is the RESTING value — not `scaleY(1)` — precisely so
-// the fill never snaps back to full when `.is-entering` is removed at the
-// entering -> leaving transition: the drain animation (scoped to
-// `.is-entering` below) is the only thing that ever shows `scaleY(1)`, and
-// once it finishes (or once the class is dropped for the leave), the element
-// falls back to this same `scaleY(0)` resting value — no jump, water stays
-// exactly where the drain left it throughout the leave.
+// No forced resting `transform` here — the base rule carries none (identity
+// scale, `scaleY(1)`), which is only ever visible for a single frame at the
+// drain's own 0% keyframe (itself `scaleY(1)`), so there is no flash. The
+// drain animation is applied through BOTH `.is-entering` AND `.is-leaving`
+// below, specifically so that removing `.is-entering` at the entering ->
+// leaving transition never strips the animation off the element: if it did,
+// `animation-fill-mode: forwards` would have nothing left to hold, and the
+// element would fall back to a forced base value — snapping either to full
+// or to empty regardless of where the drain actually was. Keeping the
+// animation applied across both phases means a drain that completed
+// naturally holds at `scaleY(0)` via `forwards` (no forced value needed),
+// and a drain cut short by an early leave (the queue's safe-period replace)
+// simply continues uninterrupted from wherever it actually was — the pill
+// slides out from its real water level, never snapping to either end.
 .bsb-cockpit__bark-tide {
 	position: absolute;
 	inset: 0;
@@ -1110,11 +1117,22 @@ body.bsb-cockpit-dashboard {
 	// `scaleY(1)` covers the whole box, top edge flush with the pill's own
 	// top edge.
 	transform-origin: bottom;
-	transform: scaleY(0);
 }
 
-.bsb-cockpit__bark.is-entering .bsb-cockpit__bark-tide {
-	animation: bsb-bark-ebb var(--bark-dur, 6000ms) linear forwards;
+// Longhand (not the `animation` shorthand): `animation-name` is bound to
+// `--bark-ebb-name`, which the store (BarkStore.barkEbbName) alternates
+// between two byte-identical keyframes on every fresh bark. A change in
+// duration/custom-property alone is NOT a guaranteed CSS restart trigger
+// (two consecutive barks that share the same key can share the exact same
+// `--bark-dur` too, e.g. two `moveOn` or two `selectSnippet` barks in a
+// row), but a change in `animation-name`'s own computed value always is —
+// this is what makes the restart deterministic rather than incidental.
+.bsb-cockpit__bark.is-entering .bsb-cockpit__bark-tide,
+.bsb-cockpit__bark.is-leaving .bsb-cockpit__bark-tide {
+	animation-name: var(--bark-ebb-name, bsb-bark-ebb-a);
+	animation-duration: var(--bark-dur, 6000ms);
+	animation-timing-function: linear;
+	animation-fill-mode: forwards;
 }
 
 // The solid water body — covers 100% of the (possibly scaled-down) tide box
@@ -1232,8 +1250,22 @@ body.bsb-cockpit-dashboard {
 }
 
 // The ebbing tide itself: a plain scale from full to empty, timed by the
-// store-set `--bark-dur` custom property.
-@keyframes bsb-bark-ebb {
+// store-set `--bark-dur` custom property. Defined TWICE under different
+// names, byte-identical, so the store can alternate `animation-name` between
+// them (via `--bark-ebb-name`) on every fresh bark — a genuine restart
+// trigger a mere duration change is not guaranteed to be. See
+// `.bsb-cockpit__bark-tide`'s rule above and `BarkStore.barkEbbName`.
+@keyframes bsb-bark-ebb-a {
+	from {
+		transform: scaleY(1);
+	}
+
+	to {
+		transform: scaleY(0);
+	}
+}
+
+@keyframes bsb-bark-ebb-b {
 	from {
 		transform: scaleY(1);
 	}
@@ -1252,20 +1284,22 @@ body.bsb-cockpit-dashboard {
 	// No smooth drain and no ripple under reduced motion — the tide shows a
 	// static, full fill instead of a countdown; the store timer still runs
 	// the full duration underneath, so dismiss timing is unaffected, only the
-	// visual glide. Overriding the resting `scaleY(0)` back to `scaleY(1)`
-	// here (rather than just dropping the animation) is what keeps it a
-	// static FULL fill rather than a static empty one.
+	// visual glide. Forcing `transform: scaleY(1)` here (rather than just
+	// dropping the animation) is what keeps it a static FULL fill.
 	//
-	// The `.bsb-cockpit__bark.is-entering .bsb-cockpit__bark-tide` selector
-	// MUST be repeated here (not just the bare `.bsb-cockpit__bark-tide`):
-	// the drain rule outside this media block is scoped to `.is-entering`,
-	// giving it specificity (0,3,0), while a media query adds no specificity
-	// of its own — a bare `.bsb-cockpit__bark-tide` override in here is only
-	// (0,1,0) and the higher-specificity `.is-entering` rule wins regardless
-	// of source order, silently keeping the drain animation running under
-	// reduced motion. Matching that selector's specificity is what lets this
-	// override actually take effect.
+	// Both `.bsb-cockpit__bark.is-entering .bsb-cockpit__bark-tide` AND
+	// `.bsb-cockpit__bark.is-leaving .bsb-cockpit__bark-tide` MUST be
+	// repeated here (not just the bare `.bsb-cockpit__bark-tide`): the drain
+	// rule outside this media block is scoped to those two selectors, each at
+	// specificity (0,3,0), while a media query adds no specificity of its
+	// own — a bare `.bsb-cockpit__bark-tide` override in here is only
+	// (0,1,0) and the higher-specificity `.is-entering`/`.is-leaving` rule
+	// wins regardless of source order, silently keeping the drain animation
+	// running (in both phases) under reduced motion. Matching those
+	// selectors' specificity is what lets this override actually take
+	// effect, in either phase.
 	.bsb-cockpit__bark.is-entering .bsb-cockpit__bark-tide,
+	.bsb-cockpit__bark.is-leaving .bsb-cockpit__bark-tide,
 	.bsb-cockpit__bark-tide {
 		animation: none;
 		transform: scaleY(1);
