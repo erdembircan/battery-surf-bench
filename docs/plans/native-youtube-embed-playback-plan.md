@@ -72,18 +72,25 @@ containing a YouTube embed.
   `{event:'listening'}`) to the player's own event-message stream — no
   external script load, keeping the surf engine's DOM footprint exactly as
   small as before.
-- **The watch is genuinely player-state-aware, driven off `'ended'`, never
-  off a duration/currentTime number.** The one signal that matters —
-  whether the player reports `'ended'` — covers both length-mismatch
-  directions in a single rule: a video shorter than the watch window ends
-  early and gets replayed so the surfer keeps watching; a video longer than
-  the window (or an unreadable target, e.g. Vimeo) never reports `'ended'`,
-  so the loop just dwells the full window. `Motor`/`VideoControl`
-  deliberately expose no duration or currentTime at all — there is nothing
-  to compare numbers against, only state to react to.
+- **The watch is genuinely event-driven, reacting to the player's real
+  `ended` event the instant it fires — never a polling timer, never a
+  duration/currentTime number.** An earlier version of this design had
+  `WatchVideo.run()` dwell in small timer slices, asking `motor.videoState()`
+  after each one — a polling band-aid on top of an event stream we already
+  receive. It was replaced: `VideoControl` subscribes directly to the
+  player's own event messages and calls back the instant the state
+  transitions into `ended`, so `Motor`/`WatchVideo` no longer poll anything
+  at all. The single signal that matters — the `ended` transition — still
+  covers both length-mismatch directions in one rule: a video shorter than
+  the watch window ends early, firing an immediate replay so the surfer
+  keeps watching; a video longer than the window (or an unreadable target,
+  e.g. Vimeo) never fires it, so the dwell simply runs out and the closing
+  `stopVideo()` cuts it off. `VideoControl` deliberately never exposes
+  duration/currentTime, and none of this reads them — there is nothing to
+  compare numbers against, only an event to react to.
 - **`VideoControl` (`src/surfer/VideoControl.ts`) is the one seam that knows
-  how to start, stop, replay and read the state of a given element**, so
-  `Motor` stays element-agnostic:
+  how to start, stop and replay a given element, and to report when it
+  ends**, so `Motor` stays element-agnostic:
   - `play()` — starts/resumes; replays from `0` when the player has ended
     (YouTube: `seekTo [0, true]` then `playVideo`; `<video>`: reset
     `currentTime` then `.play()` with the existing muted-retry fallback);
@@ -91,45 +98,46 @@ containing a YouTube embed.
   - `stop()` — a genuine full stop, not a pause (YouTube: `stopVideo`
     command; `<video>`: `.pause()` + reset `currentTime` to `0`), so a later
     `play()` always starts clean.
-  - `getState()` — the player's own reported `VideoPlaybackState`
-    (`'unavailable' | 'unstarted' | 'playing' | 'paused' | 'ended' |
-    'buffering' | 'cued'`). For a YouTube iframe this is read, not
-    inferred: the control registers a `window` `message` listener on
-    creation, asserts `{event:'listening'}` (re-asserted once more on the
-    first `play()`, defensively), and updates a cached state from the
-    player's own `onStateChange`/`infoDelivery` event messages — gated on
-    `event.source === iframe.contentWindow` and `event.origin ===
-    targetOrigin`, so nothing but the exact embed this control was built
-    for can influence it. For a `<video>` element, state is derived
-    directly from `ended`/`paused`/`currentTime`.
+  - `onEnded(callback)` — subscribes `callback` to fire the instant the
+    player reaches `ended`, returning an unsubscribe function. For a
+    YouTube iframe this is genuinely event-driven, not polled: the control
+    registers a `window` `message` listener on creation, asserts
+    `{event:'listening'}` (re-asserted once more on the first `play()`,
+    defensively), and — from the player's own `onStateChange`/
+    `infoDelivery` event messages, gated on `event.source ===
+    iframe.contentWindow` and `event.origin === targetOrigin` — fires the
+    subscriber only on the TRANSITION into `ended` (a repeated "still
+    ended" `infoDelivery` message does not re-fire). For a `<video>`
+    element, `onEnded` is the element's own native `'ended'` DOM event,
+    which the platform only ever dispatches once per genuine end.
   - `dispose()` — removes the message listener (YouTube only); a no-op
     otherwise. Idempotent.
   - anything else (Vimeo, or a YouTube iframe with an unparseable `src`) —
-    every verb is a safe no-op and `getState()` reports `'unavailable'`,
-    preserving today's behavior exactly (attended, dwelled the full
-    window, never actually started/stopped/replayed/queried).
-- **`Motor` grows `replayVideo()` and `videoState()` alongside `playVideo()`/
-  `stopVideo()`.** `playVideo()` attends (scroll + cursor, once), disposes
-  any control left over from a prior watch cycle (no listener leaks across
-  cycles or pages), builds a new `VideoControl` and calls `play()`.
-  `replayVideo()` calls the active control's `play()` WITHOUT re-attending —
-  restarting from `0` is `play()`'s own job when the state is `'ended'`.
-  `videoState()` delegates to the active control, `'unavailable'` when none
-  is active. `stopVideo()` stops AND disposes the active control, then
-  clears it.
-- **`WatchVideo.run()` dwells in slices, watching for `'ended'`.** Start,
-  then loop: idle a `STATE_CHECK_SLICE_MS` (750 ms) slice, check
-  `motor.videoState()`, replay on `'ended'`, repeat until the watch
-  window's remaining budget is exhausted; then a full `stopVideo()`. A
-  replay never extends the window — it only prevents the surfer from
-  idling next to a finished player. The 30–45 s window and bid math are
-  unchanged.
+    every verb is a safe no-op and `onEnded` never fires, preserving
+    today's behavior exactly (attended, dwelled the full window, never
+    actually started/stopped/replayed).
+- **`Motor.playVideo()` subscribes the started control's `onEnded` to
+  replay itself, for as long as it stays active.** It attends (scroll +
+  cursor, once), unsubscribes and disposes any control left over from a
+  prior watch cycle (no listener/subscription leaks across cycles or
+  pages), builds a new `VideoControl`, subscribes `onEnded(() =>
+  control.play())` and stores the returned unsubscribe function, then
+  calls `play()`. `Motor.stopVideo()` unsubscribes that auto-replay FIRST
+  — so a replay can never race the stop — then calls `stop()` and
+  `dispose()` on the control, then clears both fields. `Motor` exposes
+  only `playVideo()`/`stopVideo()`; there is no `replayVideo()` or
+  `videoState()` for a behavior to poll — the replay is entirely internal
+  to the subscription `playVideo()` sets up.
+- **`WatchVideo.run()` collapsed back to a plain `playVideo → idle(window)
+  → stopVideo` sequence.** Any mid-window replay is invisible to it —
+  handled entirely by the `onEnded` subscription `Motor.playVideo()` set
+  up. The 30–45 s window and bid math are unchanged.
 - **Detection is unchanged.** `VIDEO_EMBED_SELECTOR` already matches
   `youtube.com/embed` and `youtube-nocookie.com/embed` iframes — exactly
   what the native block (after WordPress's real oEmbed handling plus the
-  `embed_oembed_html` amend) renders as. What changed is what
-  `playVideo`/`replayVideo`/`stopVideo`/`videoState` now do with a match,
-  not how a match is found.
+  `embed_oembed_html` amend) renders as. What changed is what `Motor` does
+  with a match (subscribing to its end, not polling for it), not how a
+  match is found.
 
 ## Verifying the real IFrame API protocol against a live embed
 
@@ -157,6 +165,15 @@ with a real, live YouTube embed — not a mock), confirmed:
   deliberately-stopped player is never later mistaken for one that merely
   reached the end.
 
+These raw-protocol facts are what `VideoControl`'s `onEnded`/`play()`/
+`stop()` are built on, and are exercised through the real `WP_HTML_Tag_Processor`-amended,
+real-oEmbed-resolved iframe by the unit tests above. A further
+integration-level pass — driving the actual shipped `DomMotor`/`VideoControl`
+wiring (not raw `postMessage` probing) against the real embed to confirm the
+`onEnded` subscription fires an immediate replay and that `stopVideo`
+genuinely suppresses a later one — is recorded separately once run; see the
+PR description for that session's result.
+
 ## Why the amend runs on `embed_oembed_html`, not `pre_oembed_result`
 
 A site owner's own page might embed YouTube via a bare URL that WordPress
@@ -172,30 +189,37 @@ existing cache hit, or (in dev/e2e) the stub mu-plugin's canned response.
 
 - **Unit (vitest):** `VideoControl.test.ts` covers, for a `<video>` element:
   `play()`/`stop()`, replay-from-ended, no-op-when-already-playing, and
-  `getState()` across unstarted/playing/paused/ended. For a YouTube iframe:
-  the listening handshake posted on creation; `play()`'s exact command
-  payload, its no-op when already playing, and its seekTo-then-playVideo
-  replay when ended; `stop()`'s exact `stopVideo` command; `getState()`
-  reflecting both the `onStateChange` and `infoDelivery` message shapes for
-  every numeric code; messages from a different `source` or `origin` being
-  ignored (synthetic `MessageEvent`s dispatched with `source`/`origin` set
-  directly to the same `contentWindow`/origin the control reads — no
-  relaxed production check, jsdom simply stores whatever `source` a
-  `MessageEvent` is constructed with); `dispose()` removing the listener.
-  Plus the no-op/`'unavailable'` paths (Vimeo, unparseable src, unrelated
-  element). `Motor.test.ts` covers `playVideo` attending once, starting
-  playback, and disposing a prior active control before replacing it;
-  `replayVideo` replaying without re-attending (no new cursor travel);
-  `videoState` delegating to the active control (`'unavailable'` when
-  none); `stopVideo` stopping, disposing and clearing. `WatchVideo.test.ts`
-  covers the slice-dwell loop: no replay (and a single trailing
-  `stopVideo`) when the scripted video state never reports `'ended'`;
-  exactly one `replayVideo` when it's scripted to report `'ended'` once
-  mid-window, immediately after the slice that observed it, with the total
-  dwell budget unaffected; the `'unavailable'` (no video) path idling the
-  full window with no replay. `Affordances.test.ts` covers detection
-  against full native-block markup. `blueprint.test.mts` covers the
-  YouTube oEmbed stub mu-plugin's content and which blueprints install it.
+  `onEnded` firing on the native `'ended'` event with the returned
+  unsubscribe stopping it. For a YouTube iframe: the listening handshake
+  posted on creation; `play()`'s exact command payload, its no-op when
+  already playing, and its seekTo-then-playVideo replay when ended;
+  `stop()`'s exact `stopVideo` command; `onEnded` firing on the transition
+  into `ended` via both the `onStateChange` and `infoDelivery` message
+  shapes, firing exactly once per transition (a repeated "still ended"
+  message doesn't double-fire, but a genuinely new end after an
+  intervening non-ended state fires again), never firing for a non-ended
+  state, the returned unsubscribe stopping further callbacks, and messages
+  from a different `source`/`origin`/invalid JSON being ignored (synthetic
+  `MessageEvent`s dispatched with `source`/`origin` set directly to the
+  same `contentWindow`/origin the control reads — no relaxed production
+  check, jsdom simply stores whatever `source` a `MessageEvent` is
+  constructed with); `dispose()` removing the listener. Plus the
+  no-op/never-fires paths (Vimeo, unparseable src, unrelated element).
+  `Motor.test.ts` covers `playVideo` attending once, starting playback,
+  disposing AND unsubscribing a prior active control before replacing it
+  (an `ended` message after two `playVideo` calls triggers exactly one
+  replay, not two); the started control auto-replaying (seekTo then
+  playVideo) the instant a real `ended` message arrives, with no polling
+  involved; `stopVideo` unsubscribing the auto-replay before stopping and
+  disposing, so an `ended` message afterwards triggers nothing. Its
+  `Motor`/`FakeMotor` surface no longer includes `replayVideo`/
+  `videoState` — nothing consumes them anymore. `WatchVideo.test.ts` covers
+  the plain `playVideo → idle(window) → stopVideo` command sequence, with
+  no slice/replay/state assertions left — the dwell window (30–45 s /
+  speed) is the only thing it still checks. `Affordances.test.ts` covers
+  detection against full native-block markup. `blueprint.test.mts` covers
+  the YouTube oEmbed stub mu-plugin's content and which blueprints install
+  it.
 - **Unit (phpunit):** `YouTubeEmbedTest` covers only the PURE logic that
   never touches `WP_HTML_Tag_Processor` — `is_youtube_src()` (host
   detection, including the boundary-anchor negative cases) and
@@ -221,7 +245,7 @@ existing cache hit, or (in dev/e2e) the stub mu-plugin's canned response.
   YouTube's real player, so it never emits genuine player-state event
   messages — faking that emission would mean asserting against a fake of
   the very protocol under test, which is deliberately not done. The
-  player-state-aware watch/replay/full-stop logic is covered entirely by
+  event-driven watch/auto-replay/full-stop logic is covered entirely by
   the unit tests above, verified in turn against a real, live embed (see
   above) while implementing it.
 
