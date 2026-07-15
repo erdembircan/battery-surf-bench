@@ -442,12 +442,9 @@ Two edits:
 <div class="bsb-cockpit__bark-layer" aria-hidden="true">
     <div class="bsb-cockpit__bark" hidden data-wp-bind--hidden="!state.hasBark" data-wp-bind--data-bark="state.barkKey" data-wp-class--is-entering="state.isBarkEntering" data-wp-class--is-leaving="state.isBarkLeaving">
         <span class="bsb-cockpit__bark-tide" aria-hidden="true" data-wp-style----bark-dur="state.barkDurationCss" data-wp-style----bark-ebb-name="state.barkEbbName" data-wp-style----bsb-wave-speed="context.speed">
-            <span class="bsb-cockpit__bark-tide-fill" aria-hidden="true"></span>
-            <span class="bsb-cockpit__bark-tide-waves" aria-hidden="true">
-                <span class="bsb-cockpit__bark-tide-wave bsb-cockpit__bark-tide-wave--back" aria-hidden="true"></span>
-                <span class="bsb-cockpit__bark-tide-wave bsb-cockpit__bark-tide-wave--mid" aria-hidden="true"></span>
-                <span class="bsb-cockpit__bark-tide-wave bsb-cockpit__bark-tide-wave--front" aria-hidden="true"></span>
-            </span>
+            <span class="bsb-cockpit__bark-tide-wave bsb-cockpit__bark-tide-wave--back" aria-hidden="true"></span>
+            <span class="bsb-cockpit__bark-tide-wave bsb-cockpit__bark-tide-wave--mid" aria-hidden="true"></span>
+            <span class="bsb-cockpit__bark-tide-wave bsb-cockpit__bark-tide-wave--front" aria-hidden="true"></span>
         </span>
         <span class="bsb-cockpit__bark-icon" aria-hidden="true"></span>
         <span class="bsb-cockpit__bark-msg" data-wp-text="state.barkMessage"></span>
@@ -465,12 +462,13 @@ its own: `data-wp-style----bark-dur` sets `--bark-dur` from the store's
 restart — see the `Barks.ts`/`BarkStore.ts` sections above); and
 `data-wp-style----bsb-wave-speed` sets `--bsb-wave-speed` from `context.speed`
 — the same binding pattern `.bsb-deck__waves` uses — so the ripple layers'
-speed tracks the run's demo-speed multiplier. Inside it: a solid fill span
-(the water body) plus a `bsb-cockpit__bark-tide-waves` band holding three
-layered, rippling wave spans (`--back`/`--mid`/`--front`) — the deck's own
-wave simulation (`.bsb-deck__waves` and its `.bsb-deck__wave--back/--mid/
---front` children) reused wholesale and scaled down to the pill's
-proportions.
+speed tracks the run's demo-speed multiplier. Inside it: three full-height
+"water sheet" spans (`--back`/`--mid`/`--front`), stacked directly under the
+tide with no separate fill span or clipping band — each sheet carries its own
+wavy crest (the deck's own wave texture, scaled down to the pill's
+proportions) *and* its own same-colour fill running to the tide's bottom, so
+the three sheets together compose the entire water body and no seam can form
+between "waves" and "body".
 
 All markup stays in the view heredoc per the repo's markup rules. No new
 dynamic PHP values are needed beyond the store-bound custom property (no close
@@ -576,27 +574,27 @@ a terminal text-cursor caret, and a stylized wave curl, each legible at
     `--bark-ebb-name` alternates between two byte-identical `@keyframes`
     (`bsb-bark-ebb-a`/`-b`) every time `barkGeneration` advances (i.e. on
     every fresh bark, direct or pumped).
-  - **The solid water body** (`.bsb-cockpit__bark-tide-fill`): spans from
-    just under the ripple band (`top: 12px`) to the tide box's own bottom
-    (the box itself is never resized, only translated) — a top-to-bottom
-    gradient (coastal aqua fading to the deeper teal) that reads as
-    continuous water down to the pill's bottom rather than a thin wavy
-    strip, and makes `translateY(0)` cover the *entire* pill. Its top stop
-    deliberately matches the front wave layer's own fill/opacity, so the
-    ripple band blends into the body with no visible seam.
-  - **The ripple** (`.bsb-cockpit__bark-tide-waves` band holding
-    `.bsb-cockpit__bark-tide-wave--back/--mid/--front`, reusing
-    `@keyframes bsb-wave`): a direct, scaled-down port of the deck's own
-    wave simulation (`.bsb-deck__waves`/`.bsb-deck__wave--back/--mid/
-    --front`) — a fixed-height, `overflow: hidden` band at the tide's own
-    `top` (so it tracks the current water surface as the drain translates
-    the box, at constant size) holding three bottom-anchored, fixed-pixel-
-    height layers (11px/9px/6px on the pill vs. the deck's 44px/34px/24px),
-    each a 100px-wide tileable wave texture (half the deck's 200px
-    wavelength, matched to the pill's smaller scale) via
-    `theme.wave($fill, $opacity)`, scrolling horizontally — constant,
+  - **The water body is the waves, not a layer under them**
+    (`.bsb-cockpit__bark-tide-wave--back/--mid/--front`, reusing `@keyframes
+    bsb-wave`): there is no separate fill span or clipping band. Each of the
+    three layers is a full-height "water sheet" — two stacked backgrounds on
+    one element: a tileable wave-crest texture (fixed `100px 12px`,
+    `repeat-x`, a scaled-down port of the deck's own wave simulation via
+    `theme.wave($fill, $opacity)`) at its own top offset (0/2/5px, mirroring
+    the deck's stagger), and beneath it that same layer's own solid-colour
+    fill (a `linear-gradient` between two identical stops, so it reads as
+    flat colour) running from 1px above the crest tile's bottom edge down to
+    the sheet's own bottom — the sheet is never resized, only translated by
+    the drain, so the fill always reaches the tide box's true bottom.
+    Stacking all three sheets composes the *entire* water body: the surface
+    composite (where crests overlap) and the depth composite (below all
+    three crests) are the same three paints layered in the same order, so no
+    seam between "waves" and "body" can exist — the front sheet's own fill
+    (coastal aqua at 0.55, matching its own crest tile exactly) *is* what the
+    eye reads as the water underneath, deliberately graded down to the deeper
+    teal at its very bottom for a touch of depth. Scroll is constant,
     looping, **never tied to the drain duration, and never resized by it**.
-    Fixed pixel heights (not percentages) are what keep the crests from
+    Fixed pixel tile heights (not percentages) are what keep the crests from
     squishing into flat slabs regardless of the pill's own size. Speed is
     bound to the run's demo-speed multiplier exactly like the header waves:
     `data-wp-style----bsb-wave-speed="context.speed"` on the tide element,
@@ -706,9 +704,9 @@ markup contains the bark layer with its directives (`data-wp-bind--data-bark`,
 `data-wp-class--is-entering`/`is-leaving`, the `bsb-cockpit__bark-tide`
 element with all three of `data-wp-style----bark-dur="state.barkDurationCss"`,
 `data-wp-style----bark-ebb-name="state.barkEbbName"`, and
-`data-wp-style----bsb-wave-speed="context.speed"`, plus the layered
-`bsb-cockpit__bark-tide-fill` and the `bsb-cockpit__bark-tide-waves` band's
-`bsb-cockpit__bark-tide-wave--back/--mid/--front` children, `aria-hidden`),
+`data-wp-style----bsb-wave-speed="context.speed"`, plus the three
+`bsb-cockpit__bark-tide-wave--back/--mid/--front` water-sheet children
+(no separate fill/band elements), `aria-hidden`),
 does **not** contain `is-holding` or
 `onBarkAnimationEnd`, and the seeded context carries `barkStrings` with
 exactly two variants for each of the six behavior keys.

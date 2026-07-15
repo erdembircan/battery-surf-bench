@@ -1140,83 +1140,78 @@ body.bsb-cockpit-dashboard {
 	animation-fill-mode: forwards;
 }
 
-// The water body: a header-reuse construction. A thin band at the tide's
-// top (`.bsb-cockpit__bark-tide-waves`) holds the deck's own three-layer wave
-// simulation — see `.bsb-deck__waves` above — scaled down from the deck's
-// 46px band to the pill's proportions (~40px pill vs. 46px deck band, so
-// roughly a 0.26 scale: fixed-px layer heights of 11/9/6px on a 12px band,
-// vs. the deck's 44/34/24px on 46px). Below that band, a solid gradient
-// fills the rest of the tide down to its bottom, so the ripple reads as a
-// surface sitting on top of a continuous body of water rather than a thin
-// wavy strip over near-invisible fill. The drain (`bsb-bark-ebb-a`/`-b`,
-// above) only ever translates the whole `.bsb-cockpit__bark-tide` box, so
-// neither the band nor the body is ever resized — the pill's own
-// `overflow: hidden` is what clips the drained portion from view.
+// The water body: the waves ARE the water, not a decal pasted on top of it.
+// Each of the three layers below (`.bsb-cockpit__bark-tide-wave--back/--mid/
+// --front`) is a full-height water sheet: a tileable wavy crest at its own
+// top offset, plus that same layer's own solid fill continuing down to the
+// tide's bottom. Stacked, the three sheets compose the ENTIRE water body —
+// there is no separate band + body pair, so the surface composite (three
+// translucent fills layered where the crests overlap) and the depth
+// composite (the same three fills layered everywhere below the crests) are
+// identical paint at every level. No seam can exist between "waves" and
+// "body" because there is no boundary between them: the front sheet's own
+// fill is literally what the eye reads as "the water underneath". The drain
+// (`bsb-bark-ebb-a`/`-b`, above) only ever translates the whole
+// `.bsb-cockpit__bark-tide` box, so none of the three sheets is ever
+// resized — the pill's own `overflow: hidden` is what clips the drained
+// portion from view.
 //
-// The front wave layer's fill (coastal aqua at 0.55) deliberately matches
-// the body gradient's own top stop, so the rippling surface blends straight
-// into the body with no visible seam at the 12px mark.
-.bsb-cockpit__bark-tide-fill {
-	position: absolute;
-	inset-inline: 0;
-	top: 12px;
-	bottom: 0;
-	background: linear-gradient(
-		180deg,
-		#{rgba(theme.$coastal-aqua, 0.55)},
-		#{rgba(theme.$coastal-teal, 0.42)}
-	);
-}
+// The front sheet's fill grades from coastal aqua at 0.55 (matching its own
+// crest tile exactly, so tile meets fill invisibly) down to coastal teal at
+// 0.42, giving the body a touch of depth without introducing any layer that
+// isn't also present at the surface.
 
-// The rippling surface band: same construction as the deck's `.bsb-deck__waves`
-// (bottom-anchored layers, `overflow: hidden`, the shared `bsb-wave` keyframe
-// and `--bsb-wave-speed` link), scaled to the pill. Anchored to the tide's own
-// top (the current water surface, which moves with the parent's drain
-// translate automatically, at constant size — the drain never scales this
-// box, only repositions it).
-.bsb-cockpit__bark-tide-waves {
-	position: absolute;
-	inset-inline: 0;
-	top: 0;
-	height: 12px;
-	overflow: hidden;
-	pointer-events: none;
-}
-
-// One wave layer. Three are stacked (back/mid/front below), mirroring the
-// deck's `.bsb-deck__wave--back/--mid/--front` layering. Fixed pixel heights
-// (not percentages) are what keep the wave crests from squishing into flat
-// slabs — the drain never resizes this box, only the parent tide's position.
-// The 100px tile is half the deck's 200px wavelength, matched to the pill's
-// smaller scale; the shared `bsb-wave` keyframe still shifts
-// background-position-x by exactly -200px per loop, i.e. exactly two of
-// these smaller tiles, so the scroll stays seamless.
+// Each layer is a full water sheet, not a decal: two stacked backgrounds on
+// one element — the tileable wave crest (fixed 100px × 12px, repeat-x, the
+// only thing `bsb-wave` visibly scrolls) and, below it, a solid same-colour
+// fill running to the sheet's bottom. The fill starts 1px above the tile's
+// bottom edge (11px) so anti-aliasing can never open a hairline gap; being
+// horizontally uniform, it is unaffected by the x-scroll. Three sheets
+// stack into the whole body of water, so the surface composite and the
+// depth composite are the same paint at every level — a seam between
+// "waves" and "body" cannot exist, and the front sheet's colour is exactly
+// what fills underneath. Fixed tile height + translate-only drain = the
+// crests can never deform.
 .bsb-cockpit__bark-tide-wave {
 	position: absolute;
 	inset-inline: 0;
 	bottom: 0;
-	background-repeat: repeat-x;
-	background-position: bottom;
-	background-size: 100px 100%;
+	background-repeat: repeat-x, no-repeat;
+	background-size:
+		100px 12px,
+		100% calc(100% - 11px);
+	background-position:
+		0 0,
+		0 11px;
 	animation: bsb-wave 12s linear infinite;
 }
 
 .bsb-cockpit__bark-tide-wave--back {
-	height: 11px;
-	background-image: theme.wave('%231c7e96', 0.25);
+	top: 0;
+	background-image:
+		theme.wave('%231c7e96', 0.25),
+		linear-gradient(#{rgba(theme.$coastal-teal-deep, 0.25)}, #{rgba(theme.$coastal-teal-deep, 0.25)});
 	animation-duration: calc(20s / var(--bsb-wave-speed, 1));
 }
 
 .bsb-cockpit__bark-tide-wave--mid {
-	height: 9px;
-	background-image: theme.wave('%232f9bb3', 0.35);
+	top: 2px;
+	background-image:
+		theme.wave('%232f9bb3', 0.35),
+		linear-gradient(#{rgba(theme.$coastal-teal, 0.35)}, #{rgba(theme.$coastal-teal, 0.35)});
 	animation-duration: calc(13s / var(--bsb-wave-speed, 1));
 	animation-direction: reverse;
 }
 
 .bsb-cockpit__bark-tide-wave--front {
-	height: 6px;
-	background-image: theme.wave('%239ad9ea', 0.55);
+	top: 5px;
+	background-image:
+		theme.wave('%239ad9ea', 0.55),
+		linear-gradient(
+			180deg,
+			#{rgba(theme.$coastal-aqua, 0.55)},
+			#{rgba(theme.$coastal-teal, 0.42)}
+		);
 	animation-duration: calc(8s / var(--bsb-wave-speed, 1));
 }
 

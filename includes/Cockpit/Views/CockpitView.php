@@ -519,12 +519,9 @@ HTML;
 			<div class="bsb-cockpit__bark-layer" aria-hidden="true">
 				<div class="bsb-cockpit__bark" hidden data-wp-bind--hidden="!state.hasBark" data-wp-bind--data-bark="state.barkKey" data-wp-class--is-entering="state.isBarkEntering" data-wp-class--is-leaving="state.isBarkLeaving">
 					<span class="bsb-cockpit__bark-tide" aria-hidden="true" data-wp-style----bark-dur="state.barkDurationCss" data-wp-style----bark-ebb-name="state.barkEbbName" data-wp-style----bsb-wave-speed="context.speed">
-						<span class="bsb-cockpit__bark-tide-fill" aria-hidden="true"></span>
-						<span class="bsb-cockpit__bark-tide-waves" aria-hidden="true">
-							<span class="bsb-cockpit__bark-tide-wave bsb-cockpit__bark-tide-wave--back" aria-hidden="true"></span>
-							<span class="bsb-cockpit__bark-tide-wave bsb-cockpit__bark-tide-wave--mid" aria-hidden="true"></span>
-							<span class="bsb-cockpit__bark-tide-wave bsb-cockpit__bark-tide-wave--front" aria-hidden="true"></span>
-						</span>
+						<span class="bsb-cockpit__bark-tide-wave bsb-cockpit__bark-tide-wave--back" aria-hidden="true"></span>
+						<span class="bsb-cockpit__bark-tide-wave bsb-cockpit__bark-tide-wave--mid" aria-hidden="true"></span>
+						<span class="bsb-cockpit__bark-tide-wave bsb-cockpit__bark-tide-wave--front" aria-hidden="true"></span>
 					</span>
 					<span class="bsb-cockpit__bark-icon" aria-hidden="true"></span>
 					<span class="bsb-cockpit__bark-msg" data-wp-text="state.barkMessage"></span>
