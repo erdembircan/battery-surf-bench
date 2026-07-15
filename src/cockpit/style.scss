@@ -10,6 +10,9 @@
  * its own reset and web fonts (via @font-face, adding no extra stylesheet link).
  */
 
+@use 'sass:color';
+@use 'sass:math';
+@use 'sass:list';
 @use '../styles/theme' as theme;
 @use '../styles/toast';
 
@@ -1140,42 +1143,83 @@ body.bsb-cockpit-dashboard {
 	animation-fill-mode: forwards;
 }
 
-// The water body: the waves ARE the water, not a decal pasted on top of it.
-// Each of the three layers below (`.bsb-cockpit__bark-tide-wave--back/--mid/
-// --front`) is a full-height water sheet: a tileable wavy crest at its own
-// top offset, plus that same layer's own solid fill continuing down to the
-// tide's bottom. Stacked, the three sheets compose the ENTIRE water body —
-// there is no separate band + body pair, so the surface composite (three
-// translucent fills layered where the crests overlap) and the depth
-// composite (the same three fills layered everywhere below the crests) are
-// identical paint at every level. No seam can exist between "waves" and
-// "body" because there is no boundary between them: the front sheet's own
-// fill is literally what the eye reads as "the water underneath". The drain
-// (`bsb-bark-ebb-a`/`-b`, above) only ever translates the whole
-// `.bsb-cockpit__bark-tide` box, so none of the three sheets is ever
-// resized — the pill's own `overflow: hidden` is what clips the drained
-// portion from view.
+// The water body: the waves ARE the water, not a decal pasted on top of it —
+// and, critically, the FRONT sheet alone decides the body's colour; the back
+// and mid sheets are surface texture only, never accumulation.
 //
-// The front sheet's fill grades from coastal aqua at 0.55 (matching its own
-// crest tile exactly, so tile meets fill invisibly) down to coastal teal at
-// 0.42, giving the body a touch of depth without introducing any layer that
-// isn't also present at the surface.
+// Each of the three layers (`.bsb-cockpit__bark-tide-wave--back/--mid/
+// --front`) is a full-height water sheet: two stacked backgrounds on one
+// element — a tileable wavy crest (fixed 100px × 12px) at its own top offset,
+// and beneath it that same layer's own solid fill running to the tide's
+// bottom. `background-repeat: repeat-x` applies to BOTH layers (a single
+// value, not a per-layer pair): `bsb-wave` animates `background-position-x`
+// on every background layer it touches, so the fill must tile too, or the
+// x-shift would slide a `no-repeat` rect sideways and expose unpainted
+// element at its trailing edge. Being horizontally uniform, a repeat-x-tiled
+// fill is coverage-complete at any x offset in either direction, so its
+// motion is genuinely invisible — no gap can open. The fill starts 1px above
+// the tile's bottom edge (11px) so anti-aliasing can never open a hairline
+// gap. Fixed tile height + translate-only drain (`bsb-bark-ebb-a`/`-b`,
+// above, which only ever translates the whole `.bsb-cockpit__bark-tide` box)
+// = the crests can never deform; the pill's own `overflow: hidden` is what
+// clips the drained portion from view.
+//
+// Stacking translucent layers would accumulate alpha — back .25 ⊕ mid .35 ⊕
+// front .55 compositing to a body darker than any one layer's own colour,
+// with visible banding wherever the layer count changes (back-only vs.
+// back+mid vs. back+mid+front zones). To prevent that, only the FRONT sheet
+// is opaque, precomputed as if its old translucent stop were already
+// composited over the pill's white background — `$bark-water-surface` /
+// `$bark-water-deep` below — so it fully masks everything beneath its own
+// crest line and stacking cannot darken it further. The back and mid sheets
+// stay translucent, but since the opaque front sheet covers everything below
+// its crest, their fills are only ever visible as distant crest TIPS peeking
+// above the front wave's own crest — never as a contribution to the body
+// colour. Concretely, at any x position: below the front sheet's own crest
+// line, the paint is the front sheet's opaque colour alone (no back/mid
+// contribution reaches the eye); between the mid and front crest lines, a
+// back/mid translucent tip may show over white; there is no depth at which
+// more than one sheet's colour composites into what reads as "the body".
+//
+// The front sheet's fill grades from `$bark-water-surface` (matching its own
+// crest tile exactly, so tile meets fill invisibly) down to `$bark-water-deep`,
+// giving the body a touch of depth without introducing any layer that isn't
+// also present at the surface.
 
-// Each layer is a full water sheet, not a decal: two stacked backgrounds on
-// one element — the tileable wave crest (fixed 100px × 12px) and, below it, a
-// solid same-colour fill running to the sheet's bottom. `background-repeat:
-// repeat-x` applies to BOTH layers (a single value, not a per-layer pair):
-// `bsb-wave` animates `background-position-x` on every background layer it
-// touches, so the fill must tile too, or the x-shift would slide a `no-repeat`
-// rect sideways and expose unpainted element at its trailing edge. Being
-// horizontally uniform, a repeat-x-tiled fill is coverage-complete at any x
-// offset in either direction, so its motion is genuinely invisible — no gap
-// can open. The fill starts 1px above the tile's bottom edge (11px) so
-// anti-aliasing can never open a hairline gap. Three sheets stack into the
-// whole body of water, so the surface composite and the depth composite are
-// the same paint at every level — a seam between "waves" and "body" cannot
-// exist, and the front sheet's colour is exactly what fills underneath.
-// Fixed tile height + translate-only drain = the crests can never deform.
+// The front sheet's precomputed opaque stops: the old translucent colours
+// (coastal aqua at 0.55, coastal teal at 0.42) composited over the pill's
+// white background ahead of time, so the front sheet can be fully opaque —
+// masking every layer beneath it — without changing its intended appearance.
+// `color.mix($fg, white, $weight)` at `$weight` reproduces exactly what
+// `rgba($fg, $weight / 100%)` looks like painted over solid white (both are
+// the same linear blend), so these constants are the same colours the old
+// translucent stops rendered as, just baked in as solid paint.
+$bark-water-surface: color.mix(theme.$coastal-aqua, white, 55%); // ≈ #c7eaf3
+$bark-water-deep: color.mix(theme.$coastal-teal, white, 42%); // ≈ #a8d5df
+
+// Converts a Sass colour to a `%23rrggbb`-encoded hex string for embedding in
+// the `wave()` SVG data-URI (the `#` would otherwise truncate the URI as a
+// fragment delimiter — see `_url-encode-color` in `_icons.scss`, which this
+// mirrors, but that helper only accepts a literal hex colour already in `#…`
+// form; a computed `color.mix()` result serializes as `rgb(…)`, not hex, so it
+// needs its channels re-encoded directly). Keeps the front tile's fill
+// mathematically locked to `$bark-water-surface` — they can never drift out
+// of sync — rather than a hand-copied literal.
+@function _hex-byte($n) {
+	$n: math.round($n);
+	$hi: math.floor(math.div($n, 16));
+	$lo: $n - ($hi * 16);
+	$digits: '0' '1' '2' '3' '4' '5' '6' '7' '8' '9' 'a' 'b' 'c' 'd' 'e' 'f';
+	@return list.nth($digits, $hi + 1) + list.nth($digits, $lo + 1);
+}
+
+@function _url-encode-hex($color) {
+	$r: color.channel($color, 'red', $space: rgb);
+	$g: color.channel($color, 'green', $space: rgb);
+	$b: color.channel($color, 'blue', $space: rgb);
+	@return '%23' + _hex-byte($r) + _hex-byte($g) + _hex-byte($b);
+}
+
 .bsb-cockpit__bark-tide-wave {
 	position: absolute;
 	inset-inline: 0;
@@ -1190,6 +1234,9 @@ body.bsb-cockpit-dashboard {
 	animation: bsb-wave 12s linear infinite;
 }
 
+// Stays translucent: covered by the opaque front sheet below its crest line,
+// so this only ever reads as a distant crest tip over white, never as a
+// contribution to the body colour.
 .bsb-cockpit__bark-tide-wave--back {
 	top: 0;
 	background-image:
@@ -1198,6 +1245,7 @@ body.bsb-cockpit-dashboard {
 	animation-duration: calc(20s / var(--bsb-wave-speed, 1));
 }
 
+// Stays translucent, for the same reason as `--back` above.
 .bsb-cockpit__bark-tide-wave--mid {
 	top: 2px;
 	background-image:
@@ -1207,15 +1255,16 @@ body.bsb-cockpit-dashboard {
 	animation-direction: reverse;
 }
 
+// The only sheet that decides the body's colour: fully opaque (fill-opacity
+// 1 on the tile, solid stops on the gradient — no alpha at all), so no sheet
+// beneath it can ever show through and darken it via accumulation. The tile's
+// fill is `_url-encode-hex($bark-water-surface)`, not a literal, specifically
+// so it can never drift from the gradient's own top stop.
 .bsb-cockpit__bark-tide-wave--front {
 	top: 5px;
 	background-image:
-		theme.wave('%239ad9ea', 0.55),
-		linear-gradient(
-			180deg,
-			#{rgba(theme.$coastal-aqua, 0.55)},
-			#{rgba(theme.$coastal-teal, 0.42)}
-		);
+		theme.wave(_url-encode-hex($bark-water-surface), 1),
+		linear-gradient(180deg, $bark-water-surface, $bark-water-deep);
 	animation-duration: calc(8s / var(--bsb-wave-speed, 1));
 }
 
