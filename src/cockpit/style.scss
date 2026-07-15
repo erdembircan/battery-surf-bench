@@ -1162,21 +1162,25 @@ body.bsb-cockpit-dashboard {
 // isn't also present at the surface.
 
 // Each layer is a full water sheet, not a decal: two stacked backgrounds on
-// one element — the tileable wave crest (fixed 100px × 12px, repeat-x, the
-// only thing `bsb-wave` visibly scrolls) and, below it, a solid same-colour
-// fill running to the sheet's bottom. The fill starts 1px above the tile's
-// bottom edge (11px) so anti-aliasing can never open a hairline gap; being
-// horizontally uniform, it is unaffected by the x-scroll. Three sheets
-// stack into the whole body of water, so the surface composite and the
-// depth composite are the same paint at every level — a seam between
-// "waves" and "body" cannot exist, and the front sheet's colour is exactly
-// what fills underneath. Fixed tile height + translate-only drain = the
-// crests can never deform.
+// one element — the tileable wave crest (fixed 100px × 12px) and, below it, a
+// solid same-colour fill running to the sheet's bottom. `background-repeat:
+// repeat-x` applies to BOTH layers (a single value, not a per-layer pair):
+// `bsb-wave` animates `background-position-x` on every background layer it
+// touches, so the fill must tile too, or the x-shift would slide a `no-repeat`
+// rect sideways and expose unpainted element at its trailing edge. Being
+// horizontally uniform, a repeat-x-tiled fill is coverage-complete at any x
+// offset in either direction, so its motion is genuinely invisible — no gap
+// can open. The fill starts 1px above the tile's bottom edge (11px) so
+// anti-aliasing can never open a hairline gap. Three sheets stack into the
+// whole body of water, so the surface composite and the depth composite are
+// the same paint at every level — a seam between "waves" and "body" cannot
+// exist, and the front sheet's colour is exactly what fills underneath.
+// Fixed tile height + translate-only drain = the crests can never deform.
 .bsb-cockpit__bark-tide-wave {
 	position: absolute;
 	inset-inline: 0;
 	bottom: 0;
-	background-repeat: repeat-x, no-repeat;
+	background-repeat: repeat-x;
 	background-size:
 		100px 12px,
 		100% calc(100% - 11px);
