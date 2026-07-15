@@ -109,8 +109,11 @@ final class CockpitViewTest extends TestCase {
 		// key/duration), and the ripple's speed link — the last the same
 		// binding pattern as the deck's own waves.
 		$this->assertStringContainsString( 'class="bsb-cockpit__bark-tide" aria-hidden="true" data-wp-style----bark-dur="state.barkDurationCss" data-wp-style----bark-ebb-name="state.barkEbbName" data-wp-style----bsb-wave-speed="context.speed"', $markup );
-		// The layered water body: a solid fill plus three rippling surface bands.
+		// The layered water body: a solid fill plus a rippling surface band (the
+		// deck's own wave simulation, reused and scaled to the pill) holding three
+		// wave layers.
 		$this->assertStringContainsString( 'class="bsb-cockpit__bark-tide-fill"', $markup );
+		$this->assertStringContainsString( 'class="bsb-cockpit__bark-tide-waves"', $markup );
 		$this->assertStringContainsString( 'class="bsb-cockpit__bark-tide-wave bsb-cockpit__bark-tide-wave--back"', $markup );
 		$this->assertStringContainsString( 'class="bsb-cockpit__bark-tide-wave bsb-cockpit__bark-tide-wave--mid"', $markup );
 		$this->assertStringContainsString( 'class="bsb-cockpit__bark-tide-wave bsb-cockpit__bark-tide-wave--front"', $markup );
