@@ -1142,12 +1142,18 @@ body.bsb-cockpit-dashboard {
 
 // The solid water body — covers 100% of the tide box at all times (the box
 // itself is never resized, only translated), so the fill reads as
-// continuous water from the current surface line down to the pill's bottom,
-// not just a thin wavy strip.
+// continuous, clearly-colored water from the current surface line down to
+// the pill's bottom, not just a thin wavy strip or a near-invisible wash.
+// A top-to-bottom gradient (coastal aqua fading to the deeper teal), matching
+// the approved A3 mock exactly.
 .bsb-cockpit__bark-tide-fill {
 	position: absolute;
 	inset: 0;
-	background: #{rgba(theme.$coastal-teal, 0.14)};
+	background: linear-gradient(
+		180deg,
+		#{rgba(theme.$coastal-aqua, 0.55)},
+		#{rgba(theme.$coastal-teal, 0.42)}
+	);
 }
 
 // One rippling surface layer. Three are stacked (back/mid/front below),
