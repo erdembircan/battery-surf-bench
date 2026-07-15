@@ -1087,36 +1087,41 @@ body.bsb-cockpit-dashboard {
 // pill's rounded shape by the parent's `overflow: hidden`.
 //
 // Two independent animations layer here, never coupled to each other:
-//   - the DRAIN (`bsb-bark-ebb-a`/`-b`, on this element): a one-shot `scaleY`
-//     from full to empty, timed to `--bark-dur`. This is the countdown.
+//   - the DRAIN (`bsb-bark-ebb-a`/`-b`, on this element): a one-shot downward
+//     `translateY`, timed to `--bark-dur`. This is the countdown. It is a
+//     TRANSLATE, not a scale: the water body's own size never changes, so
+//     the wave-layer children keep their exact height and never squish —
+//     the pill's `overflow: hidden` clips whatever portion has slid below
+//     the pill's bottom edge, and that clipping is what makes the visible
+//     water level appear to drop. At `translateY(50%)` the box has moved
+//     down by half its own height, so the pill's top half is empty and its
+//     bottom half shows the water body's own top edge (waves at constant
+//     size) — that's the surface descending.
 //   - the RIPPLE (`bsb-wave`, on the `-wave` children below): a constant,
 //     looping horizontal scroll of the wavy surface texture, exactly the
 //     deck's own wave treatment (same keyframe, same `--bsb-wave-speed`
-//     link) — it never stops or re-times itself off the drain.
+//     link) — it never stops or re-times itself off the drain, and the
+//     drain never resizes it.
 //
-// No forced resting `transform` here — the base rule carries none (identity
-// scale, `scaleY(1)`), which is only ever visible for a single frame at the
-// drain's own 0% keyframe (itself `scaleY(1)`), so there is no flash. The
-// drain animation is applied through BOTH `.is-entering` AND `.is-leaving`
-// below, specifically so that removing `.is-entering` at the entering ->
-// leaving transition never strips the animation off the element: if it did,
-// `animation-fill-mode: forwards` would have nothing left to hold, and the
-// element would fall back to a forced base value — snapping either to full
-// or to empty regardless of where the drain actually was. Keeping the
-// animation applied across both phases means a drain that completed
-// naturally holds at `scaleY(0)` via `forwards` (no forced value needed),
-// and a drain cut short by an early leave (the queue's safe-period replace)
-// simply continues uninterrupted from wherever it actually was — the pill
-// slides out from its real water level, never snapping to either end.
+// No forced resting `transform` here — the base rule carries none (identity,
+// `translateY(0)`), which is only ever visible for a single frame at the
+// drain's own 0% keyframe (itself `translateY(0)`), so there is no flash.
+// The drain animation is applied through BOTH `.is-entering` AND
+// `.is-leaving` below, specifically so that removing `.is-entering` at the
+// entering -> leaving transition never strips the animation off the
+// element: if it did, `animation-fill-mode: forwards` would have nothing
+// left to hold, and the element would fall back to a forced base value —
+// snapping either to full or to empty regardless of where the drain
+// actually was. Keeping the animation applied across both phases means a
+// drain that completed naturally holds at `translateY(100%)` via `forwards`
+// (no forced value needed), and a drain cut short by an early leave (a
+// different key's arrival, which begins the leave immediately) simply
+// continues uninterrupted from wherever it actually was — the pill slides
+// out from its real water level, never snapping to either end.
 .bsb-cockpit__bark-tide {
 	position: absolute;
 	inset: 0;
 	z-index: 1;
-	// Anchored to the bottom: scaling toward `scaleY(0)` recedes the fill's
-	// top edge downward, reading as the tide going out; scaling toward
-	// `scaleY(1)` covers the whole box, top edge flush with the pill's own
-	// top edge.
-	transform-origin: bottom;
 }
 
 // Longhand (not the `animation` shorthand): `animation-name` is bound to
@@ -1135,9 +1140,10 @@ body.bsb-cockpit-dashboard {
 	animation-fill-mode: forwards;
 }
 
-// The solid water body — covers 100% of the (possibly scaled-down) tide box
-// at all times, so the fill reads as continuous water from the current
-// surface line down to the pill's bottom, not just a thin wavy strip.
+// The solid water body — covers 100% of the tide box at all times (the box
+// itself is never resized, only translated), so the fill reads as
+// continuous water from the current surface line down to the pill's bottom,
+// not just a thin wavy strip.
 .bsb-cockpit__bark-tide-fill {
 	position: absolute;
 	inset: 0;
@@ -1147,7 +1153,8 @@ body.bsb-cockpit-dashboard {
 // One rippling surface layer. Three are stacked (back/mid/front below),
 // mirroring the deck's `.bsb-deck__wave--back/--mid/--front` layering — each
 // anchored to the tide's own top (the current water surface, which moves
-// with the parent's drain scale automatically) rather than the deck's
+// with the parent's drain translate automatically, at constant size — the
+// drain never scales this box, only repositions it) rather than the deck's
 // bottom, since here the "shoreline" is the top of whatever water remains.
 // The ripple is the same tileable wave motif and keyframe as the deck's
 // parallax waves, so `background-size`/`animation` follow that convention
@@ -1249,29 +1256,33 @@ body.bsb-cockpit-dashboard {
 	}
 }
 
-// The ebbing tide itself: a plain scale from full to empty, timed by the
-// store-set `--bark-dur` custom property. Defined TWICE under different
-// names, byte-identical, so the store can alternate `animation-name` between
-// them (via `--bark-ebb-name`) on every fresh bark — a genuine restart
-// trigger a mere duration change is not guaranteed to be. See
-// `.bsb-cockpit__bark-tide`'s rule above and `BarkStore.barkEbbName`.
+// The ebbing tide itself: a downward translate from full to empty, timed by
+// the store-set `--bark-dur` custom property. A translate, not a scale, so
+// the water body's own size (and its wave-layer children) never changes —
+// only its position does; the pill's `overflow: hidden` clips the portion
+// that slides below the bottom edge, and that's what reads as the water
+// level dropping. Defined TWICE under different names, byte-identical, so
+// the store can alternate `animation-name` between them (via
+// `--bark-ebb-name`) on every fresh bark — a genuine restart trigger a mere
+// duration change is not guaranteed to be. See `.bsb-cockpit__bark-tide`'s
+// rule above and `BarkStore.barkEbbName`.
 @keyframes bsb-bark-ebb-a {
 	from {
-		transform: scaleY(1);
+		transform: translateY(0);
 	}
 
 	to {
-		transform: scaleY(0);
+		transform: translateY(100%);
 	}
 }
 
 @keyframes bsb-bark-ebb-b {
 	from {
-		transform: scaleY(1);
+		transform: translateY(0);
 	}
 
 	to {
-		transform: scaleY(0);
+		transform: translateY(100%);
 	}
 }
 
@@ -1284,8 +1295,9 @@ body.bsb-cockpit-dashboard {
 	// No smooth drain and no ripple under reduced motion — the tide shows a
 	// static, full fill instead of a countdown; the store timer still runs
 	// the full duration underneath, so dismiss timing is unaffected, only the
-	// visual glide. Forcing `transform: scaleY(1)` here (rather than just
-	// dropping the animation) is what keeps it a static FULL fill.
+	// visual glide. Forcing `transform: translateY(0)` here (the water body
+	// at its resting, undisplaced position — full) rather than just dropping
+	// the animation is what keeps it a static FULL fill.
 	//
 	// Both `.bsb-cockpit__bark.is-entering .bsb-cockpit__bark-tide` AND
 	// `.bsb-cockpit__bark.is-leaving .bsb-cockpit__bark-tide` MUST be
@@ -1302,7 +1314,7 @@ body.bsb-cockpit-dashboard {
 	.bsb-cockpit__bark.is-leaving .bsb-cockpit__bark-tide,
 	.bsb-cockpit__bark-tide {
 		animation: none;
-		transform: scaleY(1);
+		transform: translateY(0);
 	}
 
 	.bsb-cockpit__bark-tide-wave {

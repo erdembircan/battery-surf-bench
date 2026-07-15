@@ -526,27 +526,35 @@ a terminal text-cursor caret, and a stylized wave curl, each legible at
     behavior's wall-clock `--bark-dur`. This is the one-shot countdown. An
     absolutely positioned box (`inset: 0`), sitting behind the icon/message
     at `z-index: 1`, clipped to the pill's rounded shape by the parent's
-    `overflow: hidden`. `transform-origin: bottom;` — the base rule carries
-    **no forced `transform`** (identity `scaleY(1)`, only ever visible for a
-    single frame at the drain's own 0% keyframe, so there is no flash).
-    Applied through **both** `.is-entering` AND `.is-leaving` (the identical
-    declaration in both — this is the part that matters): if the drain were
-    scoped to `.is-entering` alone, removing that class at the entering →
-    leaving transition would strip the animation off the element entirely,
-    leaving `animation-fill-mode: forwards` nothing to hold, and the element
-    would snap to whatever the base rule forced (a real bug an earlier
-    revision had, band-aided by forcing the base to `scaleY(0)` — which just
-    turned the snap from "always full" into "always empty" on an
-    interrupted drain, instead of removing the snap). Keeping the animation
-    applied across both phases means: a drain that completes naturally holds
-    at `scaleY(0)` via `forwards` (nothing forced, nothing to snap); and a
-    drain cut short by an early leave (a different key's arrival, which
-    begins the leave immediately — see the "leave-then-show queue" above)
-    simply *continues*, uninterrupted, from wherever it actually was — the
-    pill slides out from its real water level, never snapping to either end.
-    Purely visual: it does not drive any JS, and the store's
-    `barkDurationTimer` independently owns the actual dismiss timing — both
-    are fed the same duration so they finish together.
+    `overflow: hidden`. **A downward `translateY`, not a `scaleY`** — the
+    water body's own size never changes (so its wave-layer children keep
+    their exact height and never squish); the pill's `overflow: hidden`
+    clips whatever portion has slid below the pill's bottom edge, and that
+    clipping is what makes the visible water level appear to drop. At
+    `translateY(50%)` the box has moved down by half its own height, so the
+    pill's top half is empty and its bottom half shows the water body's own
+    top edge (waves at constant size) — that's the surface descending. (An
+    earlier revision used `scaleY`, which visibly squished the wave layers
+    thinner as it drained — a real bug, fixed by switching to translate.)
+    The base rule carries **no forced `transform`** (identity
+    `translateY(0)`, only ever visible for a single frame at the drain's own
+    0% keyframe, so there is no flash). Applied through **both**
+    `.is-entering` AND `.is-leaving` (the identical declaration in both —
+    this is the part that matters): if the drain were scoped to
+    `.is-entering` alone, removing that class at the entering → leaving
+    transition would strip the animation off the element entirely, leaving
+    `animation-fill-mode: forwards` nothing to hold, and the element would
+    snap to whatever the base rule forced (a real bug an earlier revision
+    had). Keeping the animation applied across both phases means: a drain
+    that completes naturally holds at `translateY(100%)` via `forwards`
+    (nothing forced, nothing to snap); and a drain cut short by an early
+    leave (a different key's arrival, which begins the leave immediately —
+    see the "leave-then-show queue" above) simply *continues*, uninterrupted,
+    from wherever it actually was — the pill slides out from its real water
+    level, never snapping to either end. Purely visual: it does not drive
+    any JS, and the store's `barkDurationTimer` independently owns the
+    actual dismiss timing — both are fed the same duration so they finish
+    together.
   - **Guaranteed restart on every fresh bark** (`--bark-ebb-name` /
     `barkGeneration` / `barkEbbName` — see the `Barks.ts`/`BarkStore.ts`
     sections above). Declared as **longhand**, not the `animation` shorthand:
@@ -566,16 +574,18 @@ a terminal text-cursor caret, and a stylized wave curl, each legible at
     every fresh bark, direct or pumped).
   - **The solid water body** (`.bsb-cockpit__bark-tide-fill`): `inset: 0`
     inside the tide box, a flat translucent teal wash covering 100% of the
-    (possibly scaled-down) box at all times — this is what makes the fill
-    read as continuous water down to the pill's bottom rather than a thin
-    wavy strip, and what makes `scaleY(1)` cover the *entire* pill.
+    tide box at all times (the box itself is never resized, only
+    translated) — this is what makes the fill read as continuous water down
+    to the pill's bottom rather than a thin wavy strip, and what makes
+    `translateY(0)` cover the *entire* pill.
   - **The ripple** (`.bsb-cockpit__bark-tide-wave--back/--mid/--front`,
     reusing `@keyframes bsb-wave`): the wavy surface texture scrolling
-    horizontally — constant, looping, **never tied to the drain duration**.
-    Three layers, each anchored to the tide box's own `top` (so they track
-    the current water surface as the drain scales the box), at different
-    heights/opacities via `theme.wave($fill, $opacity)`, mirroring the deck's
-    own `--back/--mid/--front` layering (just top-anchored here, since the
+    horizontally — constant, looping, **never tied to the drain duration,
+    and never resized by it**. Three layers, each anchored to the tide box's
+    own `top` (so they track the current water surface as the drain
+    translates the box, at constant size), at different heights/opacities
+    via `theme.wave($fill, $opacity)`, mirroring the deck's own
+    `--back/--mid/--front` layering (just top-anchored here, since the
     "shoreline" is the top of whatever water remains, not a fixed bottom
     baseline). Speed is bound to the run's demo-speed multiplier exactly like
     the header waves: `data-wp-style----bsb-wave-speed="context.speed"` on
@@ -583,15 +593,16 @@ a terminal text-cursor caret, and a stylized wave curl, each legible at
     calc(<base>s / var(--bsb-wave-speed, 1));`.
 - `@media (prefers-reduced-motion: reduce)`: collapses the enter/leave
   animation durations to `1ms` as before. The tide additionally goes static —
-  `animation: none; transform: scaleY(1);` (a still, full fill rather than a
-  countdown) — and the ripple layers get `animation: none` too (no
-  horizontal motion). **Both** `.is-entering` and `.is-leaving` selectors
-  must be repeated inside this media block alongside the bare
-  `.bsb-cockpit__bark-tide` selector: the drain rule outside the media block
-  is scoped to those two phase selectors at specificity (0,3,0), and a media
-  query adds no specificity of its own, so a bare (0,1,0) override here would
-  silently lose to the higher-specificity drain rule regardless of source
-  order — the override must match that specificity to actually win, in
+  `animation: none; transform: translateY(0);` (the water body at its
+  resting, undisplaced position — full, rather than a countdown) — and the
+  ripple layers get `animation: none` too (no horizontal motion). **Both**
+  `.is-entering` and `.is-leaving` selectors must be repeated inside this
+  media block alongside the bare `.bsb-cockpit__bark-tide` selector: the
+  drain rule outside the media block is scoped to those two phase selectors
+  at specificity (0,3,0), and a media query adds no specificity of its own,
+  so a bare (0,1,0) override here would silently lose to the
+  higher-specificity drain rule regardless of source order — the override
+  must match that specificity to actually win, in
   either phase. The store's duration timer still runs the full time
   underneath either way, so dismiss timing is unaffected — only the visual
   glide is dropped.
