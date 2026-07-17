@@ -122,6 +122,16 @@ final class DevToolsPanelViewTest extends TestCase {
 			'data-wp-watch---devtools-persist="callbacks.devtoolsPersist"',
 			$markup
 		);
+
+		// Clears the Surf tool's steered-behavior state (the group-head
+		// countdown, the chip gate) the moment a run stops, driven by the
+		// production `runLive` mirror rather than waiting on the sterile
+		// engine's own `bsb:behaviorEnd` message — the same panel-root watch
+		// convention as `devtoolsPersist`.
+		$this->assertStringContainsString(
+			'data-wp-watch---devtools-surf-run="callbacks.devtoolsSyncSurfRun"',
+			$markup
+		);
 	}
 
 	/**

@@ -506,7 +506,7 @@ classDiagram
         <<module>>
         state: devtoolsIsSurfNatural/Sterile, devtoolsSurfModeDisabled (locks the Natural/Sterile seg while any run — natural or sterile — is live), devtoolsSurfIsRunning, devtoolsSurfCountdownDisplay, devtoolsSurfPageSlug, devtoolsSurfChipDisabled/Gated/Running/DurationCss (parameterized per calling chip via getElement()'s data-devtools-behavior), devtoolsSurfStepDisabled
         actions: devtoolsSurfSetMode, devtoolsSurfSteer (posts bsb:steerBehavior to the viewport iframe), devtoolsSurfStep (writes a monotonic-seq pageStep command)
-        callbacks: devtoolsInitSurf (the iframe message listener)
+        callbacks: devtoolsInitSurf (the iframe message listener), devtoolsSyncSurfRun (clears the steered-behavior state once runLive flips false, rather than waiting on bsb:behaviorEnd)
         +resetSurfSteer() void
     }
 

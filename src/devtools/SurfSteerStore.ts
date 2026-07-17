@@ -411,5 +411,27 @@ export const surfSteerStore: StorePart = {
 				stopCountdownTicker();
 			};
 		},
+
+		/**
+		 * Clears the steered-behavior fields (and stops the countdown ticker)
+		 * the moment the run is no longer live, driven by the production
+		 * `runLive` mirror rather than waiting on the engine's own
+		 * `bsb:behaviorEnd` message. Stopping a run mid-behavior tears down
+		 * the iframe before the engine can ever post that message, so without
+		 * this the group-head countdown would stay visible after the run
+		 * ends, and the next run would find every chip still reading "a
+		 * behavior is running" and stay disabled. Bound via
+		 * `data-wp-watch---devtools-surf-run` on the panel region; reading
+		 * `runLive` here is what makes it re-run reactively on the
+		 * production mirror's own transitions. A no-op while the run is
+		 * still live.
+		 */
+		devtoolsSyncSurfRun(): void {
+			if ( current().surf.runLive ) {
+				return;
+			}
+
+			clearRunning();
+		},
 	},
 };

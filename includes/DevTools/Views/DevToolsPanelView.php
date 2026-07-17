@@ -177,7 +177,7 @@ CHIP;
 		}
 
 		return <<<HTML
-<div class="bsb-devtools" data-wp-interactive="bsb/cockpit" data-wp-watch---devtools-persist="callbacks.devtoolsPersist" data-wp-init---devtools-surf="callbacks.devtoolsInitSurf" data-devtools-course-slugs="{$course_slugs_json}">
+<div class="bsb-devtools" data-wp-interactive="bsb/cockpit" data-wp-watch---devtools-persist="callbacks.devtoolsPersist" data-wp-watch---devtools-surf-run="callbacks.devtoolsSyncSurfRun" data-wp-init---devtools-surf="callbacks.devtoolsInitSurf" data-devtools-course-slugs="{$course_slugs_json}">
 	<div class="bsb-devtools__swap">
 		<button type="button" class="bsb-devtools__pill" id="bsb-devtools-pill" data-wp-bind--hidden="state.devtools.open" data-wp-class--is-armed="state.devtoolsIsArmed" data-wp-on--click="actions.devtoolsToggleOpen" aria-expanded="false" data-wp-bind--aria-expanded="state.devtools.open" aria-controls="bsb-devtools-card">{$dev}</button>
 

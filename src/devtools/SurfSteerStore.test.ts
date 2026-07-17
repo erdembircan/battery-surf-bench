@@ -65,6 +65,7 @@ const derived = surfSteerStore.state as unknown as {
 };
 const callbacks = surfSteerStore.callbacks as unknown as {
 	devtoolsInitSurf: () => () => void;
+	devtoolsSyncSurfRun: () => void;
 };
 
 const ORIGIN = window.location.origin;
@@ -264,6 +265,63 @@ describe( 'message handling', () => {
 		} );
 
 		expect( mocks.state.devtools.surf.behaviorKey ).toBe( '' );
+	} );
+} );
+
+describe( 'devtoolsSyncSurfRun', () => {
+	it( 'clears a mid-behavior steered state (key, countdown, ticker) the moment runLive flips false, even though bsb:behaviorEnd never arrived', () => {
+		const cleanup = callbacks.devtoolsInitSurf();
+
+		postMessageToWindow( {
+			type: 'bsb:behaviorStart',
+			key: 'readPause',
+			durationMs: 8000,
+		} );
+		expect( mocks.state.devtools.surf.behaviorKey ).toBe( 'readPause' );
+		expect( derived.devtoolsSurfCountdownDisplay ).not.toBe( '' );
+
+		// Stopping a run mid-behavior tears the iframe down before the engine
+		// can ever post bsb:behaviorEnd — the production watch's mirror is
+		// what must drive cleanup instead.
+		mocks.state.devtools.surf.runLive = false;
+		callbacks.devtoolsSyncSurfRun();
+
+		expect( mocks.state.devtools.surf.behaviorKey ).toBe( '' );
+		expect( mocks.state.devtools.surf.remainingMs ).toBeNull();
+		expect( derived.devtoolsSurfCountdownDisplay ).toBe( '' );
+
+		// The ticker really stopped: advancing the clock writes nothing further.
+		vi.advanceTimersByTime( 5000 );
+		expect( mocks.state.devtools.surf.remainingMs ).toBeNull();
+
+		cleanup();
+	} );
+
+	it( 'clears nothing while the run is still live', () => {
+		const cleanup = callbacks.devtoolsInitSurf();
+
+		postMessageToWindow( {
+			type: 'bsb:behaviorStart',
+			key: 'readPause',
+			durationMs: 8000,
+		} );
+		mocks.state.devtools.surf.runLive = true;
+
+		callbacks.devtoolsSyncSurfRun();
+
+		expect( mocks.state.devtools.surf.behaviorKey ).toBe( 'readPause' );
+		expect( mocks.state.devtools.surf.remainingMs ).not.toBeNull();
+
+		cleanup();
+	} );
+
+	it( 'is a harmless no-op when nothing was running and runLive is already false', () => {
+		mocks.state.devtools.surf.runLive = false;
+
+		callbacks.devtoolsSyncSurfRun();
+
+		expect( mocks.state.devtools.surf.behaviorKey ).toBe( '' );
+		expect( mocks.state.devtools.surf.remainingMs ).toBeNull();
 	} );
 } );
 

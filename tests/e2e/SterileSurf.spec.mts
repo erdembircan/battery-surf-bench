@@ -183,4 +183,39 @@ test.describe( 'Dev-tools Surf group', () => {
 
 		expect( await page.content() ).not.toMatch( PHP_NOTICE );
 	} );
+
+	test( 'stopping a run mid-behavior clears the group-head countdown even though bsb:behaviorEnd never arrives (the iframe tears down first)', async ( {
+		page,
+	} ) => {
+		await page.goto( '/?bsbSession=cockpit' );
+
+		await forceDischarging( page );
+		await armSterile( page );
+		await page.locator( '.bsb-devtools__card-close' ).click();
+
+		await startFastRun( page );
+		await page.locator( '.bsb-devtools__pill' ).click();
+
+		const scrollBurstChip = page.locator(
+			'[data-devtools-behavior="scrollBurst"]'
+		);
+		await expect( scrollBurstChip ).toBeEnabled( { timeout: 15_000 } );
+
+		const groupCountdown = page.locator(
+			'[data-wp-text="state.devtoolsSurfCountdownDisplay"]'
+		);
+		await page.locator( '[data-devtools-behavior="readPause"]' ).click();
+		await expect( groupCountdown ).toBeVisible();
+
+		// A live run is compact: the deck (and its `.bsb-run` control) is
+		// tucked off-screen, so the control that stops a LIVE run is the
+		// compact topbar's own stop button instead. The iframe tears down
+		// before the sterile engine can ever post bsb:behaviorEnd, so only
+		// the production runLive mirror drives the cleanup.
+		await page.locator( '.bsb-deck__readout-stop' ).click();
+
+		await expect( groupCountdown ).toBeHidden();
+
+		expect( await page.content() ).not.toMatch( PHP_NOTICE );
+	} );
 } );
