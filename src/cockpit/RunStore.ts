@@ -55,6 +55,10 @@ interface SharedDevtoolsSurfState {
 			pageStep: { delta: -1 | 1; seq: number } | null;
 			/** The live sterile page's affordance flags; cleared once the run is no longer live-and-sterile. */
 			affordances: unknown;
+			/** Whether ANY run (natural or sterile) is currently live — mirrored here every watch run, so the panel can lock its Natural/Sterile seg for the run's whole duration. */
+			runLive: boolean;
+			/** The live sterile page's opaque course-page index; cleared to null once the run is no longer live-and-sterile. */
+			pageIndex: number | null;
 		};
 	};
 }
@@ -526,25 +530,33 @@ export const runStore: StorePart = {
 		},
 
 		/**
-		 * The production side of the dev-tools Surf tool's page-jump and
-		 * affordance-gating seam. Driven by `data-wp-watch`, so it re-runs
-		 * reactively whenever `running`/`sterile` change or the panel writes a
-		 * fresh `state.devtools.surf.pageStep` command.
+		 * The production side of the dev-tools Surf tool's run-lock,
+		 * page-jump and affordance-gating seam. Driven by `data-wp-watch`, so
+		 * it re-runs reactively whenever `running`/`sterile`/`activeIndex`
+		 * change or the panel writes a fresh `state.devtools.surf.pageStep`
+		 * command.
 		 *
-		 * While the run is live and sterile: applies a pending `pageStep`
-		 * command to `context.activeIndex` exactly once (tracked by its
-		 * monotonic `seq`, so a repeat of the same delta still applies, and a
-		 * command already consumed never re-applies on an unrelated re-run).
+		 * Always mirrors `state.devtools.surf.runLive` from `context.running`
+		 * (the panel has no cockpit context of its own) — sterile is
+		 * snapshotted once at run start, so the Natural/Sterile seg must be
+		 * locked for the WHOLE duration of any live run, natural or sterile,
+		 * not just a sterile one.
+		 *
+		 * While the run is live and sterile: mirrors `state.devtools.surf.pageIndex`
+		 * from `context.activeIndex`, and applies a pending `pageStep` command
+		 * to `context.activeIndex` exactly once (tracked by its monotonic
+		 * `seq`, so a repeat of the same delta still applies, and a command
+		 * already consumed never re-applies on an unrelated re-run).
 		 *
 		 * Whenever the run is NOT live-and-sterile (never sterile, not yet
 		 * started, or just stopped): clears `state.devtools.surf.affordances`
-		 * to null, so the panel's chips (and the page stepper, gated the same
-		 * way) gate off the moment there is no live sterile page to steer on —
-		 * and clears any pending `pageStep` command too, so a click made
-		 * before this run (or after the last one ended) can never apply later
-		 * once some future sterile run goes live. Only ever touches
-		 * `state.devtools` when the dev-tools module has actually joined the
-		 * store.
+		 * and `pageIndex` to null, so the panel's chips (and the page
+		 * stepper's slug readout) gate off the moment there is no live
+		 * sterile page to steer on — and clears any pending `pageStep`
+		 * command too, so a click made before this run (or after the last one
+		 * ended) can never apply later once some future sterile run goes
+		 * live. Only ever touches `state.devtools` when the dev-tools module
+		 * has actually joined the store.
 		 */
 		syncDevtoolsSurf(): void {
 			const { state: sharedState } =
@@ -556,6 +568,8 @@ export const runStore: StorePart = {
 			}
 
 			const context = getContext< CockpitContext >();
+			surf.runLive = context.running;
+
 			const liveSterile = context.running && context.sterile;
 
 			if ( ! liveSterile ) {

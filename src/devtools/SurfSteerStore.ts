@@ -101,10 +101,17 @@ const clearRunning = (): void => {
 };
 
 /**
- * Resets the Surf tool: disarms the sterile override and clears every
- * runtime field. Exported (rather than folded into a `StorePart` action) so
- * the panel's cross-cutting Reset button ({@link ./ResetStore}) can call it
- * directly without a second store member.
+ * Resets the Surf tool: disarms the sterile override and clears the tool's
+ * own runtime fields. Exported (rather than folded into a `StorePart`
+ * action) so the panel's cross-cutting Reset button ({@link ./ResetStore})
+ * can call it directly without a second store member.
+ *
+ * Deliberately never touches `surf.runLive`: unlike `affordances`/`pageStep`/
+ * `pageIndex` (this tool's own view of the live page, harmlessly blanked
+ * until the next reactive watch run repopulates them), `runLive` is the
+ * production-owned truth the Natural/Sterile seg's lock reads directly —
+ * resetting it to `false` while a run is still live would wrongly unlock the
+ * seg mid-run, the exact bug the lock exists to prevent.
  */
 export const resetSurfSteer = (): void => {
 	clearRunning();
@@ -216,8 +223,18 @@ export const surfSteerStore: StorePart = {
 		},
 	},
 	actions: {
-		/** Arms or disarms the sterile override from the seg option's `data-devtools-surf-mode` (`natural` | `sterile`). */
+		/**
+		 * Arms or disarms the sterile override from the seg option's
+		 * `data-devtools-surf-mode` (`natural` | `sterile`). A no-op while any
+		 * run is live (`runLive`) — the seg's own `disabled` binding already
+		 * keeps this from firing by a real click, but a forced/tampered call
+		 * is guarded the same way.
+		 */
 		devtoolsSurfSetMode(): void {
+			if ( current().surf.runLive ) {
+				return;
+			}
+
 			const { ref } = getElement();
 			const choice = ( ref as HTMLElement | null )?.dataset
 				.devtoolsSurfMode;

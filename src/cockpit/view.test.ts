@@ -133,6 +133,8 @@ interface CockpitConfig {
 				sterile: boolean;
 				pageStep: { delta: -1 | 1; seq: number } | null;
 				affordances: unknown;
+				runLive: boolean;
+				pageIndex: number | null;
 			};
 		};
 	};
@@ -674,19 +676,30 @@ describe( 'bsb/cockpit view store', () => {
 	describe( 'dev-tools surf watch (syncDevtoolsSurf)', () => {
 		/**
 		 * Arms the merged state's Surf slice, as the devtools module would.
+		 * `runLive`/`pageIndex` default to their own idle values (`false`/
+		 * `null`) so every pre-existing call site — none of which cares about
+		 * the run-lock or page-slug mirroring — stays valid unchanged.
 		 * @param surf
 		 * @param surf.sterile
 		 * @param surf.pageStep
 		 * @param surf.affordances
+		 * @param surf.runLive
+		 * @param surf.pageIndex
 		 */
 		const setSurf = ( surf: {
 			sterile: boolean;
 			pageStep: { delta: -1 | 1; seq: number } | null;
 			affordances: unknown;
+			runLive?: boolean;
+			pageIndex?: number | null;
 		} ): void => {
 			mocks.config!.state.devtools = {
 				battery: { charging: null, level: null },
-				surf,
+				surf: {
+					runLive: false,
+					pageIndex: null,
+					...surf,
+				},
 			};
 		};
 
@@ -861,6 +874,83 @@ describe( 'bsb/cockpit view store', () => {
 			mocks.config?.callbacks.syncDevtoolsSurf();
 
 			expect( mocks.context.activeIndex ).toBe( 3 );
+		} );
+
+		it( 'mirrors runLive from context.running while idle', () => {
+			mocks.context.running = false;
+			setSurf( { sterile: false, pageStep: null, affordances: null } );
+
+			mocks.config?.callbacks.syncDevtoolsSurf();
+
+			expect( mocks.config?.state.devtools?.surf?.runLive ).toBe( false );
+		} );
+
+		it( 'mirrors runLive true for ANY live run, natural as well as sterile', () => {
+			mocks.context.running = true;
+			mocks.context.sterile = false;
+			setSurf( { sterile: false, pageStep: null, affordances: null } );
+
+			mocks.config?.callbacks.syncDevtoolsSurf();
+
+			expect( mocks.config?.state.devtools?.surf?.runLive ).toBe( true );
+		} );
+
+		it( 'mirrors runLive true for a live sterile run too', () => {
+			mocks.context.running = true;
+			mocks.context.sterile = true;
+			setSurf( { sterile: true, pageStep: null, affordances: null } );
+
+			mocks.config?.callbacks.syncDevtoolsSurf();
+
+			expect( mocks.config?.state.devtools?.surf?.runLive ).toBe( true );
+		} );
+
+		it( 'flips runLive back to false once the run stops', () => {
+			mocks.context.running = true;
+			mocks.context.sterile = false;
+			setSurf( { sterile: false, pageStep: null, affordances: null } );
+			mocks.config?.callbacks.syncDevtoolsSurf();
+			expect( mocks.config?.state.devtools?.surf?.runLive ).toBe( true );
+
+			mocks.context.running = false;
+			mocks.config?.callbacks.syncDevtoolsSurf();
+			expect( mocks.config?.state.devtools?.surf?.runLive ).toBe( false );
+		} );
+
+		it( 'mirrors pageIndex from activeIndex while the run is live and sterile', () => {
+			mocks.context.running = true;
+			mocks.context.sterile = true;
+			mocks.context.activeIndex = 2;
+			setSurf( { sterile: true, pageStep: null, affordances: null } );
+
+			mocks.config?.callbacks.syncDevtoolsSurf();
+
+			expect( mocks.config?.state.devtools?.surf?.pageIndex ).toBe( 2 );
+		} );
+
+		it( 'clears pageIndex to null whenever the run is not live-and-sterile', () => {
+			mocks.context.running = false;
+			mocks.context.sterile = false;
+			setSurf( {
+				sterile: false,
+				pageStep: null,
+				affordances: null,
+				pageIndex: 4,
+			} );
+
+			mocks.config?.callbacks.syncDevtoolsSurf();
+
+			expect( mocks.config?.state.devtools?.surf?.pageIndex ).toBeNull();
+		} );
+
+		it( 'never touches pageIndex or runLive when no dev-tools module has joined the store', () => {
+			expect( mocks.config?.state.devtools ).toBeUndefined();
+
+			expect(
+				() => mocks.config?.callbacks.syncDevtoolsSurf()
+			).not.toThrow();
+
+			expect( mocks.config?.state.devtools ).toBeUndefined();
 		} );
 	} );
 
@@ -1102,7 +1192,13 @@ describe( 'bsb/cockpit view store', () => {
 			if ( mocks.config ) {
 				mocks.config.state.devtools = {
 					battery: { charging: null, level: null },
-					surf: { sterile: true, pageStep: null, affordances: null },
+					surf: {
+						sterile: true,
+						pageStep: null,
+						affordances: null,
+						runLive: false,
+						pageIndex: null,
+					},
 				};
 			}
 

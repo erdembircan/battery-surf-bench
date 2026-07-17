@@ -38,15 +38,18 @@ defined( 'ABSPATH' ) || exit;
  *
  * The surf group arms the "Sterile" run override (a Natural/Sterile seg,
  * selecting in coral — an armed override, not a product mode; the seg speaks
- * for itself, with no hint line underneath it), a course-page stepper
- * (prev/next arrows around a mono glyph readout of the live sterile page's
- * affordance flags — the only page identity the client is allowed to leak,
- * since it only ever knows the opaque course index), and one chip per
- * behavior, in engine boot order, each carrying its own
+ * for itself, with no hint line underneath it). Sterile is snapshotted at
+ * run start only, so toggling the seg mid-run would do nothing to an
+ * already-live run: both seg options are disabled for the duration of ANY
+ * live run, natural or sterile, mirroring `state.devtoolsSurfModeDisabled`.
+ * A course-page stepper (prev/next arrows around a mono readout of the live
+ * course page's own real slug — this manager is environment-gated, so it may
+ * safely hand the panel an identifier a production surface never leaks) and
+ * one chip per behavior, in engine boot order, each carrying its own
  * `data-devtools-behavior` key as its visible text (a developer identifier,
- * deliberately NOT translated). The group's own head carries the same
- * right-aligned countdown pattern as Discharge, showing which behavior is
- * currently steered and its remaining dwell.
+ * deliberately NOT translated), round out the group. The group's own head
+ * carries the same right-aligned countdown pattern as Discharge, showing
+ * which behavior is currently steered and its remaining dwell.
  *
  * The card header divides into exactly three zones: the title (the eyebrow),
  * the override status (the armed indicator), and a panel-buttons container
@@ -252,8 +255,8 @@ CHIP;
 
 					<div class="bsb-devtools__group-body">
 						<div class="bsb-devtools__seg" role="group" aria-label="{$auction_override}">
-							<button type="button" class="bsb-devtools__seg-option" data-devtools-surf-mode="natural" data-wp-class--is-selected="state.devtoolsIsSurfNatural" data-wp-on--click="actions.devtoolsSurfSetMode">{$natural}</button>
-							<button type="button" class="bsb-devtools__seg-option bsb-devtools__seg-option--sterile" data-devtools-surf-mode="sterile" data-wp-class--is-selected="state.devtoolsIsSurfSterile" data-wp-on--click="actions.devtoolsSurfSetMode">{$sterile}</button>
+							<button type="button" class="bsb-devtools__seg-option" data-devtools-surf-mode="natural" data-wp-class--is-selected="state.devtoolsIsSurfNatural" data-wp-on--click="actions.devtoolsSurfSetMode" data-wp-bind--disabled="state.devtoolsSurfModeDisabled">{$natural}</button>
+							<button type="button" class="bsb-devtools__seg-option bsb-devtools__seg-option--sterile" data-devtools-surf-mode="sterile" data-wp-class--is-selected="state.devtoolsIsSurfSterile" data-wp-on--click="actions.devtoolsSurfSetMode" data-wp-bind--disabled="state.devtoolsSurfModeDisabled">{$sterile}</button>
 						</div>
 
 						<div class="bsb-devtools__stepper-row">

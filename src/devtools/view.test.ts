@@ -69,6 +69,8 @@ describe( 'devtools view', () => {
 				remainingMs: null,
 				affordances: null,
 				pageStep: null,
+				runLive: false,
+				pageIndex: null,
 			},
 		} );
 		expect( mocks.config?.actions ).toMatchObject( {

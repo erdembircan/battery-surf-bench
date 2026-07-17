@@ -27,6 +27,8 @@ interface MockDevtoolsState {
 			textDensity: number;
 		} | null;
 		pageStep: { delta: -1 | 1; seq: number } | null;
+		runLive: boolean;
+		pageIndex: number | null;
 	};
 }
 
@@ -66,6 +68,8 @@ const defaultSurf = () => ( {
 	remainingMs: null,
 	affordances: null,
 	pageStep: null,
+	runLive: false,
+	pageIndex: null,
 } );
 
 beforeEach( () => {
@@ -101,6 +105,8 @@ describe( 'persistence', () => {
 				sterile: true,
 				behaviorKey: 'readPause',
 				remainingMs: 4000,
+				runLive: true,
+				pageIndex: 2,
 			},
 		};
 
@@ -201,6 +207,8 @@ describe( 'persistence', () => {
 						textDensity: 1,
 					},
 					pageStep: { delta: 1, seq: 3 },
+					runLive: true,
+					pageIndex: 4,
 				},
 			} )
 		);

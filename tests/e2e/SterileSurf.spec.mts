@@ -118,6 +118,16 @@ test.describe( 'Dev-tools Surf group', () => {
 		// regardless — only the card's own visibility toggles).
 		await page.locator( '.bsb-devtools__pill' ).click();
 
+		// The Natural/Sterile seg is snapshotted only at run start, so toggling
+		// it mid-run would be a lie: both options lock while any run is live.
+		const sterileSeg = page.locator(
+			'[data-devtools-surf-mode="sterile"]'
+		);
+		await expect(
+			page.locator( '[data-devtools-surf-mode="natural"]' )
+		).toBeDisabled();
+		await expect( sterileSeg ).toBeDisabled();
+
 		// The chips start disabled (no affordances yet) and enable once the
 		// sterile page posts them at readiness.
 		const scrollBurstChip = page.locator(
