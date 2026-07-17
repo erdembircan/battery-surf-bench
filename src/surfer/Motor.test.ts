@@ -798,8 +798,21 @@ describe( 'DomMotor.selectSnippet', () => {
 	} );
 } );
 
-describe( 'DomMotor.readTrace', () => {
-	it( 'ends the sweep with the cursor resting inside the chosen block', async () => {
+describe( 'DomMotor.read', () => {
+	it( 'falls back to a still idle when the page has no readable prose', async () => {
+		document.body.innerHTML = '<p>short</p>';
+		const travelToSpy = vi.spyOn( FakeCursor.prototype, 'travelTo' );
+
+		await expect(
+			new DomMotor( () => 0.5, instantFrames ).read( 20 )
+		).resolves.toBeUndefined();
+
+		expect( travelToSpy ).not.toHaveBeenCalled();
+
+		travelToSpy.mockRestore();
+	} );
+
+	it( 'attends the chosen passage, ending with the cursor resting inside it', async () => {
 		document.body.innerHTML = `<p>${ 'word '.repeat( 20 ) }</p>`;
 		const p = document.querySelector( 'p' )!;
 		p.getBoundingClientRect = () =>
@@ -812,17 +825,22 @@ describe( 'DomMotor.readTrace', () => {
 				height: 100,
 			} ) as DOMRect;
 
-		const motor = new DomMotor( () => 0.5, instantFrames );
+		// jsdom has no real scroll implementation — mock it out rather than
+		// letting a possible reading creep fall through to jsdom's noisy
+		// "not implemented" stub.
+		const scrollBySpy = vi
+			.spyOn( window, 'scrollBy' )
+			.mockImplementation( () => undefined );
+		const motor = new DomMotor( () => 0.1, instantFrames );
 		const cursorEl =
 			document.querySelector< HTMLElement >( '.bsb-surf-cursor' );
 
-		await motor.readTrace( 5000 );
+		await motor.read( 5000 );
 
-		// The sweep's own moveTo calls are constrained to the block's rect by
-		// construction (x from `rect.left + rect.width * t`, t in (0, 1]; y
-		// fixed per line within the rect); only the initial approach travels
-		// from wherever the cursor already was, so the resting position is
-		// the reliable, non-transient signal to check here.
+		// A traced sweep's own moveTo calls are constrained to the passage's
+		// rect by construction (x from `rect.left + rect.width * t`, t in
+		// (0, 1]; y fixed per line within the rect), so the resting position
+		// is the reliable, non-transient signal to check here.
 		const transform = cursorEl?.style.transform ?? '';
 		const match = transform.match(
 			/translate\(([-\d.]+)px, ([-\d.]+)px\)/
@@ -835,60 +853,186 @@ describe( 'DomMotor.readTrace', () => {
 		expect( x ).toBeLessThanOrEqual( 450 );
 		expect( y ).toBeGreaterThanOrEqual( 100 );
 		expect( y ).toBeLessThanOrEqual( 200 );
+
+		scrollBySpy.mockRestore();
 	} );
 
-	it( 'sweeps multiple lines for a tall block', async () => {
-		document.body.innerHTML = `<p>${ 'word '.repeat( 40 ) }</p>`;
-		const p = document.querySelector( 'p' )!;
-		// Tall enough at the default 24px line-height fallback (jsdom's
-		// computed line-height is "normal", not a resolved px length) to
-		// estimate several lines.
-		p.getBoundingClientRect = () =>
+	it( 'reads the in-view passage first, then scrolls to a below-fold one', async () => {
+		document.body.innerHTML = `<p id="a">${ 'word '.repeat(
+			20
+		) }</p><p id="b">${ 'word '.repeat( 20 ) }</p>`;
+		const a = document.querySelector( '#a' )!;
+		const b = document.querySelector( '#b' )!;
+		a.getBoundingClientRect = () =>
 			( {
-				top: 0,
-				bottom: 120,
-				left: 0,
-				right: 400,
+				top: 100,
+				bottom: 200,
+				left: 50,
+				right: 450,
 				width: 400,
-				height: 120,
+				height: 100,
+			} ) as DOMRect;
+		b.getBoundingClientRect = () =>
+			( {
+				top: 2000,
+				bottom: 2100,
+				left: 50,
+				right: 450,
+				width: 400,
+				height: 100,
 			} ) as DOMRect;
 
-		const moveToSpy = vi.spyOn( FakeCursor.prototype, 'moveTo' );
+		const events: string[] = [];
+		const travelToSpy = vi
+			.spyOn( FakeCursor.prototype, 'travelTo' )
+			.mockImplementation( async () => {
+				events.push( 'travel' );
+			} );
+		const scrollBySpy = vi
+			.spyOn( DomMotor.prototype, 'scrollBy' )
+			.mockImplementation( async () => {
+				events.push( 'scroll' );
+			} );
 
-		await new DomMotor( () => 0.5, instantFrames ).readTrace( 10_000 );
+		// rng() = 0.9 -> dwell mode (not traced), no creep ever fires.
+		await new DomMotor( () => 0.9, instantFrames ).read( 20000 );
 
-		const linesVisited = new Set(
-			moveToSpy.mock.calls.map( ( call ) =>
-				Math.round( ( call[ 0 ] as Point ).y )
-			)
-		);
-		expect( linesVisited.size ).toBeGreaterThan( 1 );
+		const firstTravel = events.indexOf( 'travel' );
+		const firstScroll = events.indexOf( 'scroll' );
 
-		moveToSpy.mockRestore();
-	} );
-
-	it( 'falls back to a still idle, without throwing, when no readable block is in view', async () => {
-		document.body.innerHTML = '<p>short</p>';
-		const travelToSpy = vi.spyOn( FakeCursor.prototype, 'travelTo' );
-
-		await expect(
-			new DomMotor( () => 0.5, instantFrames ).readTrace( 20 )
-		).resolves.toBeUndefined();
-
-		expect( travelToSpy ).not.toHaveBeenCalled();
+		expect( firstTravel ).toBe( 0 );
+		expect( firstScroll ).toBeGreaterThan( firstTravel );
+		expect( travelToSpy.mock.calls.length ).toBeGreaterThanOrEqual( 2 );
 
 		travelToSpy.mockRestore();
+		scrollBySpy.mockRestore();
 	} );
 
-	it( 'stops within its time budget instead of sweeping every line of a very tall block', async () => {
-		document.body.innerHTML = `<p>${ 'word '.repeat( 50 ) }</p>`;
+	it( 'prefers an off-screen passage for the next target over a remaining in-view one', async () => {
+		const word20 = 'word '.repeat( 20 );
+		document.body.innerHTML = `<p id="a">${ word20 }</p><p id="c">${ word20 }</p><p id="b">${ word20 }</p>`;
+		const a = document.querySelector( '#a' )!;
+		const c = document.querySelector( '#c' )!;
+		const b = document.querySelector( '#b' )!;
+		a.getBoundingClientRect = () =>
+			( {
+				top: 100,
+				bottom: 200,
+				left: 50,
+				right: 450,
+				width: 400,
+				height: 100,
+			} ) as DOMRect;
+		c.getBoundingClientRect = () =>
+			( {
+				top: 300,
+				bottom: 400,
+				left: 50,
+				right: 450,
+				width: 400,
+				height: 100,
+			} ) as DOMRect;
+		b.getBoundingClientRect = () =>
+			( {
+				top: 2000,
+				bottom: 2100,
+				left: 50,
+				right: 450,
+				width: 400,
+				height: 100,
+			} ) as DOMRect;
+
+		const scrollBySpy = vi
+			.spyOn( DomMotor.prototype, 'scrollBy' )
+			.mockImplementation( async () => undefined );
+
+		// rng() = 0.4 -> dwell mode, no creep, and floor(0.4 * tier.length)
+		// always resolves to tier index 0.
+		await new DomMotor( () => 0.4, instantFrames ).read( 30000 );
+
+		// Anchor-scrolling to B (top 2000) is a single delta of
+		// rect.top - innerHeight/3 ~= 2000 - 256 = 1744 — far larger than any
+		// other scroll this run could produce — proving B (off-screen) was
+		// picked next over C, which was still unread and in view.
+		const bigScroll = scrollBySpy.mock.calls.some(
+			( call ) => ( call[ 0 ] as number ) > 1000
+		);
+		expect( bigScroll ).toBe( true );
+
+		scrollBySpy.mockRestore();
+	} );
+
+	it( 'creeps the page during a traced read', async () => {
+		document.body.innerHTML = `<p>${ 'word '.repeat( 20 ) }</p>`;
+		const p = document.querySelector( 'p' )!;
+		// A single line at the default 24px line-height fallback, so exactly
+		// one creep opportunity is drawn.
+		p.getBoundingClientRect = () =>
+			( {
+				top: 100,
+				bottom: 124,
+				left: 50,
+				right: 450,
+				width: 400,
+				height: 24,
+			} ) as DOMRect;
+
+		const scrollBySpy = vi
+			.spyOn( DomMotor.prototype, 'scrollBy' )
+			.mockImplementation( async () => undefined );
+
+		// rng() = 0.2 -> trace mode (0.2 < 0.35) and the creep chance always
+		// fires (0.2 < 0.25).
+		await new DomMotor( () => 0.2, instantFrames ).read( 8000 );
+
+		const creepCall = scrollBySpy.mock.calls.find( ( call ) => {
+			const px = call[ 0 ] as number;
+			return px >= 10 && px <= 30;
+		} );
+		expect( creepCall ).toBeDefined();
+
+		scrollBySpy.mockRestore();
+	} );
+
+	it( 'never creeps when the draw stays above the creep chance', async () => {
+		document.body.innerHTML = `<p>${ 'word '.repeat( 20 ) }</p>`;
 		const p = document.querySelector( 'p' )!;
 		p.getBoundingClientRect = () =>
 			( {
-				top: 0,
-				bottom: 5000,
-				left: 0,
-				right: 400,
+				top: 100,
+				bottom: 200,
+				left: 50,
+				right: 450,
+				width: 400,
+				height: 100,
+			} ) as DOMRect;
+
+		const scrollBySpy = vi
+			.spyOn( DomMotor.prototype, 'scrollBy' )
+			.mockImplementation( async () => undefined );
+
+		// rng() = 0.9 -> dwell mode, in view (no anchor scroll needed), and
+		// the creep chance never fires (0.9 is not < 0.25).
+		await new DomMotor( () => 0.9, instantFrames ).read( 8000 );
+
+		expect( scrollBySpy ).not.toHaveBeenCalled();
+
+		scrollBySpy.mockRestore();
+	} );
+
+	it( 'stops within its time budget instead of sweeping every line of a very tall passage', async () => {
+		document.body.innerHTML = `<p>${ 'word '.repeat( 50 ) }</p>`;
+		const p = document.querySelector( 'p' )!;
+		// Positioned close to the cursor's own starting point (viewport
+		// centre) so the approach travel itself stays short — isolating the
+		// budget cap's effect on the line sweep from the travel's own frame
+		// count.
+		p.getBoundingClientRect = () =>
+			( {
+				top: 380,
+				bottom: 5380,
+				left: 500,
+				right: 900,
 				width: 400,
 				height: 5000,
 			} ) as DOMRect;
@@ -896,7 +1040,7 @@ describe( 'DomMotor.readTrace', () => {
 		const moveToSpy = vi.spyOn( FakeCursor.prototype, 'moveTo' );
 
 		await expect(
-			new DomMotor( () => 0.5, instantFrames ).readTrace( 200 )
+			new DomMotor( () => 0.1, instantFrames ).read( 200 )
 		).resolves.toBeUndefined();
 
 		const linesVisited = new Set(
@@ -905,11 +1049,38 @@ describe( 'DomMotor.readTrace', () => {
 			)
 		);
 
-		// A 5000px-tall block at the default 24px line height renders roughly
-		// 200 lines; the ~200ms budget (a handful of frames) must cut the
-		// sweep short after one or two, not race through the whole block.
+		// A 200ms budget (a handful of frames) must cut the session short —
+		// nowhere near the ~200 lines a 5000px-tall block renders as at the
+		// default 24px line height.
 		expect( linesVisited.size ).toBeLessThan( 10 );
 
 		moveToSpy.mockRestore();
+	} );
+
+	it( 'rests once every passage has been read, without re-reading it', async () => {
+		document.body.innerHTML = `<p>${ 'word '.repeat( 20 ) }</p>`;
+		const p = document.querySelector( 'p' )!;
+		p.getBoundingClientRect = () =>
+			( {
+				top: 100,
+				bottom: 200,
+				left: 50,
+				right: 450,
+				width: 400,
+				height: 100,
+			} ) as DOMRect;
+
+		const travelToSpy = vi.spyOn( FakeCursor.prototype, 'travelTo' );
+
+		// rng() = 0.9 -> dwell mode; a single passage, so once it's read the
+		// only unread candidate pool is empty and the session rests instead
+		// of picking the same passage again.
+		await expect(
+			new DomMotor( () => 0.9, instantFrames ).read( 60000 )
+		).resolves.toBeUndefined();
+
+		expect( travelToSpy ).toHaveBeenCalledTimes( 1 );
+
+		travelToSpy.mockRestore();
 	} );
 } );
