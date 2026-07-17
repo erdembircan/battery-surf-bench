@@ -154,6 +154,67 @@ const hasViewportOverlap = ( el: Element ): boolean => {
 	return rect.bottom > 0 && rect.top < window.innerHeight;
 };
 
+/**
+ * Caret-anchored point of `textNode`'s first character: the left edge of that
+ * character's own client rect, at its vertical centre — where a user's
+ * pointer lands before dragging a selection open. Measured from a probing
+ * one-character range because a collapsed range has no client rects. `null`
+ * when the environment can't measure range geometry (e.g. jsdom) or the node
+ * has no laid-out rect — callers fall back to block-rect geometry.
+ * @param textNode
+ */
+const textStartPoint = ( textNode: Text ): Point | null => {
+	const probe = textNode.ownerDocument.createRange();
+	probe.setStart( textNode, 0 );
+	probe.setEnd( textNode, Math.min( 1, textNode.length ) );
+
+	if ( typeof probe.getClientRects !== 'function' ) {
+		return null;
+	}
+
+	const rects = probe.getClientRects();
+
+	if ( rects.length === 0 ) {
+		return null;
+	}
+
+	const first = rects[ 0 ];
+
+	if ( 0 === first.width && 0 === first.height ) {
+		return null;
+	}
+
+	return { x: first.left, y: first.top + first.height / 2 };
+};
+
+/**
+ * Caret-anchored point of `range`'s growing end: the right edge of its last
+ * client rect, at that rect's vertical centre — exactly where a dragging
+ * user's pointer sits mid-selection, wrapped lines included. `null` when the
+ * environment can't measure range geometry (e.g. jsdom) or the range has no
+ * laid-out rects — callers fall back to block-rect geometry.
+ * @param range
+ */
+const selectionEdgePoint = ( range: Range ): Point | null => {
+	if ( typeof range.getClientRects !== 'function' ) {
+		return null;
+	}
+
+	const rects = range.getClientRects();
+
+	if ( rects.length === 0 ) {
+		return null;
+	}
+
+	const last = rects[ rects.length - 1 ];
+
+	if ( 0 === last.width && 0 === last.height ) {
+		return null;
+	}
+
+	return { x: last.right, y: last.top + last.height / 2 };
+};
+
 /** How long the cursor travels to a snippet before the selection sweep starts. */
 const SNIPPET_APPROACH_MS = 500;
 
@@ -191,6 +252,13 @@ const TRACE_LINE_JITTER_FRACTION = 0.2;
 
 /** Small jitter, in px, on `traceBlock`'s approach point to the first line's start. */
 const TRACE_START_JITTER_PX = 6;
+
+/**
+ * Duration of the animated carriage return between traced lines — the swoop
+ * from one line's right edge back to the next line's start. Deliberately
+ * brisk: a reader's pointer snaps back far faster than it sweeps forward.
+ */
+const TRACE_RETURN_MS = 220;
 
 /**
  * The line height `traceBlock` paces its sweep by: the computed style's
@@ -357,7 +425,10 @@ export class DomMotor implements Motor {
 		const rect = el.getBoundingClientRect();
 
 		await this.cursor.travelTo(
-			{ x: rect.left, y: rect.top + rect.height / 2 },
+			textStartPoint( textNode ) ?? {
+				x: rect.left,
+				y: rect.top + rect.height / 2,
+			},
 			this.rng,
 			msToFrames( SNIPPET_APPROACH_MS )
 		);
@@ -369,17 +440,25 @@ export class DomMotor implements Motor {
 		selection.removeAllRanges();
 		selection.addRange( range );
 
-		// Extends the selection and sweeps the cursor across the snippet in
-		// lockstep, frame by frame, rather than selecting the whole thing at once.
+		// Extends the selection and rides its caret edge with the cursor,
+		// frame by frame — eased like a human drag, following the selection's
+		// real geometry across wrapped lines rather than gliding along the
+		// block's bounding box. At least one character stays selected from the
+		// first frame, so the caret edge is always measurable.
 		const sweepFrames = msToFrames( SNIPPET_SWEEP_MS );
 
 		for ( let i = 1; i <= sweepFrames; i++ ) {
-			const t = i / sweepFrames;
-			range.setEnd( textNode, Math.floor( text.length * t ) );
-			this.cursor.moveTo( {
-				x: rect.left + rect.width * t,
-				y: rect.top + rect.height / 2,
-			} );
+			const t = easeInOutQuad( i / sweepFrames );
+			range.setEnd(
+				textNode,
+				Math.max( 1, Math.floor( text.length * t ) )
+			);
+			this.cursor.moveTo(
+				selectionEdgePoint( range ) ?? {
+					x: rect.left + rect.width * t,
+					y: rect.top + rect.height / 2,
+				}
+			);
 			await this.nextFrameFn();
 		}
 
@@ -703,10 +782,12 @@ export class DomMotor implements Motor {
 	/**
 	 * Sweeps the cursor across `el` line by line, within `budgetFrames`,
 	 * returning the frames it actually spent so `read` can move on to the
-	 * next passage the moment this one's lines run out. Re-reads `el`'s rect
-	 * at the start of every line so a creep between lines never detaches the
-	 * cursor from the passage; after each line, a creep chance is drawn from
-	 * whatever budget remains.
+	 * next passage the moment this one's lines run out. Every line after the
+	 * first is entered through an animated carriage return — a brisk glide
+	 * back to the line's start — never an instant jump from the previous
+	 * line's right edge. Re-reads `el`'s rect at the start of every line so a
+	 * creep between lines never detaches the cursor from the passage; after
+	 * each line, a creep chance is drawn from whatever budget remains.
 	 * @param el
 	 * @param budgetFrames
 	 */
@@ -746,6 +827,25 @@ export class DomMotor implements Motor {
 		for ( let line = 0; line < lines && framesLeft > 0; line++ ) {
 			const rect = el.getBoundingClientRect();
 			const y = rect.top + lineHeight * ( line + 0.5 );
+
+			if ( line > 0 ) {
+				const returnFrames = Math.min(
+					framesLeft,
+					msToFrames( TRACE_RETURN_MS )
+				);
+				await this.cursor.travelTo(
+					{ x: rect.left, y },
+					this.rng,
+					returnFrames
+				);
+				framesLeft -= returnFrames;
+				consumed += returnFrames;
+
+				if ( framesLeft <= 0 ) {
+					break;
+				}
+			}
+
 			const lineMs =
 				TRACE_LINE_MS *
 				( 1 + ( this.rng() * 2 - 1 ) * TRACE_LINE_JITTER_FRACTION );
