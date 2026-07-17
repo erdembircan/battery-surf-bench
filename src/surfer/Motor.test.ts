@@ -1157,4 +1157,45 @@ describe( 'DomMotor.read', () => {
 
 		travelToSpy.mockRestore();
 	} );
+
+	it( 'glides back to the start of the next traced line instead of teleporting', async () => {
+		document.body.innerHTML = `<p>${ 'word '.repeat( 40 ) }</p>`;
+		const p = document.querySelector( 'p' )!;
+		// Three lines at the default 24px line-height fallback.
+		p.getBoundingClientRect = () =>
+			( {
+				top: 100,
+				bottom: 172,
+				left: 50,
+				right: 450,
+				width: 400,
+				height: 72,
+			} ) as DOMRect;
+
+		const moveToSpy = vi.spyOn( FakeCursor.prototype, 'moveTo' );
+
+		// rng() = 0.3 -> trace mode (0.3 < 0.35), creep never fires (0.3 > 0.25).
+		await new DomMotor( () => 0.3, instantFrames ).read( 20000 );
+
+		const points = moveToSpy.mock.calls.map(
+			( call ) => call[ 0 ] as Point
+		);
+		let maxJump = 0;
+		for ( let i = 1; i < points.length; i++ ) {
+			maxJump = Math.max(
+				maxJump,
+				Math.hypot(
+					points[ i ].x - points[ i - 1 ].x,
+					points[ i ].y - points[ i - 1 ].y
+				)
+			);
+		}
+
+		// Without an animated carriage return, the wrap from a line's right
+		// edge to the next line's start is a single ~400px jump; the glide
+		// keeps every painted step well under half the passage width.
+		expect( maxJump ).toBeLessThan( 200 );
+
+		moveToSpy.mockRestore();
+	} );
 } );

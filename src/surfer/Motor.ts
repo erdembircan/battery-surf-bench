@@ -254,6 +254,13 @@ const TRACE_LINE_JITTER_FRACTION = 0.2;
 const TRACE_START_JITTER_PX = 6;
 
 /**
+ * Duration of the animated carriage return between traced lines — the swoop
+ * from one line's right edge back to the next line's start. Deliberately
+ * brisk: a reader's pointer snaps back far faster than it sweeps forward.
+ */
+const TRACE_RETURN_MS = 220;
+
+/**
  * The line height `traceBlock` paces its sweep by: the computed style's
  * `line-height` when it resolved to a plain pixel length, else
  * {@link DEFAULT_LINE_HEIGHT_PX}. The DOM has no line-count API, so this
@@ -756,10 +763,12 @@ export class DomMotor implements Motor {
 	/**
 	 * Sweeps the cursor across `el` line by line, within `budgetFrames`,
 	 * returning the frames it actually spent so `read` can move on to the
-	 * next passage the moment this one's lines run out. Re-reads `el`'s rect
-	 * at the start of every line so a creep between lines never detaches the
-	 * cursor from the passage; after each line, a creep chance is drawn from
-	 * whatever budget remains.
+	 * next passage the moment this one's lines run out. Every line after the
+	 * first is entered through an animated carriage return — a brisk glide
+	 * back to the line's start — never an instant jump from the previous
+	 * line's right edge. Re-reads `el`'s rect at the start of every line so a
+	 * creep between lines never detaches the cursor from the passage; after
+	 * each line, a creep chance is drawn from whatever budget remains.
 	 * @param el
 	 * @param budgetFrames
 	 */
@@ -798,6 +807,25 @@ export class DomMotor implements Motor {
 		for ( let line = 0; line < lines && framesLeft > 0; line++ ) {
 			const rect = el.getBoundingClientRect();
 			const y = rect.top + lineHeight * ( line + 0.5 );
+
+			if ( line > 0 ) {
+				const returnFrames = Math.min(
+					framesLeft,
+					msToFrames( TRACE_RETURN_MS )
+				);
+				await this.cursor.travelTo(
+					{ x: rect.left, y },
+					this.rng,
+					returnFrames
+				);
+				framesLeft -= returnFrames;
+				consumed += returnFrames;
+
+				if ( framesLeft <= 0 ) {
+					break;
+				}
+			}
+
 			const lineMs =
 				TRACE_LINE_MS *
 				( 1 + ( this.rng() * 2 - 1 ) * TRACE_LINE_JITTER_FRACTION );
