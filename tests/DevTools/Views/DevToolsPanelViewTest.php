@@ -393,6 +393,10 @@ final class DevToolsPanelViewTest extends TestCase {
 		);
 		$this->assertSame(
 			9,
+			substr_count( $markup, 'data-wp-class--is-gated="state.devtoolsSurfChipGated"' )
+		);
+		$this->assertSame(
+			9,
 			substr_count( $markup, 'data-wp-class--is-running="state.devtoolsSurfChipRunning"' )
 		);
 		$this->assertSame(

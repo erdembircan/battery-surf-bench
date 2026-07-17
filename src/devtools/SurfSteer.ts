@@ -67,24 +67,26 @@ export const DEFAULT_SURF: SurfSteerState = Object.freeze( {
 } );
 
 /**
- * Whether a chip should be disabled: no live sterile page at all, a behavior
- * already running (including itself), or the behavior's own hard affordance
- * gate failing — `watchVideo` needs `hasVideo`; `lingerImage` needs
- * `imageCount > 0`; `readPause` and `selectSnippet` need `textDensity > 0`;
- * every other key has no gate.
+ * Whether a chip's own hard affordance gate fails on the current page:
+ * `watchVideo` needs `hasVideo`; `lingerImage` needs `imageCount > 0`;
+ * `readPause` and `selectSnippet` need `textDensity > 0`; every other key has
+ * no gate of its own. Always false when there is no live sterile page at all
+ * (`affordances === null`) — "gated" is a verdict about THIS page, not about
+ * there being no page to judge; that distinct case is `isChipDisabled`'s own
+ * concern; a busy panel (another behavior running) does not un-gate a chip
+ * either, since the gate is a property of the page, not of the panel's
+ * current activity.
  *
- * @param key   The chip's behavior key.
- * @param state The tool's live affordances and running key.
- * @return Whether the chip should be disabled.
+ * @param key         The chip's behavior key.
+ * @param affordances The live sterile page's affordance flags, or null.
+ * @return Whether this key's own hard gate fails on the current page.
  */
-export const isChipDisabled = (
+export const isChipGated = (
 	key: string,
-	state: Pick< SurfSteerState, 'affordances' | 'behaviorKey' >
+	affordances: SurfAffordances | null
 ): boolean => {
-	const { affordances, behaviorKey } = state;
-
-	if ( affordances === null || behaviorKey !== '' ) {
-		return true;
+	if ( affordances === null ) {
+		return false;
 	}
 
 	if ( key === 'watchVideo' ) {
@@ -100,6 +102,29 @@ export const isChipDisabled = (
 	}
 
 	return false;
+};
+
+/**
+ * Whether a chip should be disabled: no live sterile page at all, a behavior
+ * already running (including itself), or the behavior's own hard affordance
+ * gate failing (delegated to {@link isChipGated}, so the gate rule exists in
+ * exactly one place).
+ *
+ * @param key   The chip's behavior key.
+ * @param state The tool's live affordances and running key.
+ * @return Whether the chip should be disabled.
+ */
+export const isChipDisabled = (
+	key: string,
+	state: Pick< SurfSteerState, 'affordances' | 'behaviorKey' >
+): boolean => {
+	const { affordances, behaviorKey } = state;
+
+	if ( affordances === null || behaviorKey !== '' ) {
+		return true;
+	}
+
+	return isChipGated( key, affordances );
 };
 
 /**

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
 	isChipDisabled,
+	isChipGated,
 	surfCountdownDisplay,
 	affordanceGlyphs,
 	SURF_BEHAVIOR_KEYS,
@@ -81,6 +82,78 @@ describe( 'isChipDisabled', () => {
 			).toBe( false );
 		}
 	);
+} );
+
+describe( 'isChipGated', () => {
+	const openAffordances = { hasVideo: true, imageCount: 4, textDensity: 1 };
+
+	it( 'is false for every key when there is no live sterile page (affordances null) — gated is a verdict about the page, not the absence of one', () => {
+		expect( isChipGated( 'watchVideo', null ) ).toBe( false );
+		expect( isChipGated( 'lingerImage', null ) ).toBe( false );
+		expect( isChipGated( 'readPause', null ) ).toBe( false );
+	} );
+
+	it.each( [
+		[ 'watchVideo', { ...openAffordances, hasVideo: false }, true ],
+		[ 'watchVideo', { ...openAffordances, hasVideo: true }, false ],
+		[ 'lingerImage', { ...openAffordances, imageCount: 0 }, true ],
+		[ 'lingerImage', { ...openAffordances, imageCount: 1 }, false ],
+		[ 'readPause', { ...openAffordances, textDensity: 0 }, true ],
+		[ 'readPause', { ...openAffordances, textDensity: 0.01 }, false ],
+		[ 'selectSnippet', { ...openAffordances, textDensity: 0 }, true ],
+		[ 'selectSnippet', { ...openAffordances, textDensity: 0.01 }, false ],
+	] as const )(
+		'%s gates on its own affordance flag (%o) -> gated=%s',
+		( key, affordances, expected ) => {
+			expect( isChipGated( key, affordances ) ).toBe( expected );
+		}
+	);
+
+	it.each( [
+		'scrollBurst',
+		'glanceBack',
+		'fidgetWiggle',
+		'microScroll',
+		'moveOn',
+	] )( '%s is never gated, even on a starved page', ( key ) => {
+		const starved = { hasVideo: false, imageCount: 0, textDensity: 0 };
+		expect( isChipGated( key, starved ) ).toBe( false );
+	} );
+
+	it( 'stays true for a gated chip regardless of the panel’s busy/idle state — the gate takes only (key, affordances), never a running key', () => {
+		const noVideo = { ...openAffordances, hasVideo: false };
+
+		// isChipGated has no notion of "another behavior is running" at all —
+		// unlike isChipDisabled, which layers that on top — so the same
+		// (key, affordances) pair always yields the same verdict.
+		expect( isChipGated( 'watchVideo', noVideo ) ).toBe( true );
+		expect( isChipGated( 'watchVideo', noVideo ) ).toBe( true );
+	} );
+} );
+
+describe( 'isChipDisabled composing isChipGated', () => {
+	it( 'a chip disabled purely by its own gate (live page, idle panel) is also reported gated', () => {
+		const noVideo = { hasVideo: false, imageCount: 4, textDensity: 1 };
+		const state = { affordances: noVideo, behaviorKey: '' };
+
+		expect( isChipDisabled( 'watchVideo', state ) ).toBe( true );
+		expect( isChipGated( 'watchVideo', noVideo ) ).toBe( true );
+	} );
+
+	it( 'a chip disabled only because no live page exists is NOT reported gated', () => {
+		const state = { affordances: null, behaviorKey: '' };
+
+		expect( isChipDisabled( 'watchVideo', state ) ).toBe( true );
+		expect( isChipGated( 'watchVideo', null ) ).toBe( false );
+	} );
+
+	it( 'a chip disabled only because another behavior is running (and this chip has no gate of its own) is NOT reported gated', () => {
+		const openPage = { hasVideo: true, imageCount: 4, textDensity: 1 };
+		const state = { affordances: openPage, behaviorKey: 'readPause' };
+
+		expect( isChipDisabled( 'scrollBurst', state ) ).toBe( true );
+		expect( isChipGated( 'scrollBurst', openPage ) ).toBe( false );
+	} );
 } );
 
 describe( 'surfCountdownDisplay', () => {

@@ -164,7 +164,7 @@ class DevToolsPanelView implements View {
 			$bsb_key_attr    = esc_attr( (string) $bsb_behavior_key );
 			$bsb_chip_class  = 'bsb-devtools__chip' . ( 'moveOn' === $bsb_behavior_key ? ' bsb-devtools__chip--caution' : '' );
 			$bsb_surf_chips .= <<<CHIP
-<button type="button" class="{$bsb_chip_class}" data-devtools-behavior="{$bsb_key_attr}" data-wp-on--click="actions.devtoolsSurfSteer" data-wp-bind--disabled="state.devtoolsSurfChipDisabled" data-wp-class--is-running="state.devtoolsSurfChipRunning" data-wp-style----chip-dur="state.devtoolsSurfChipDurationCss"><span class="bsb-devtools__chip-tide" aria-hidden="true"></span><span class="bsb-devtools__chip-ico" aria-hidden="true"></span><span class="bsb-devtools__chip-key">{$bsb_key_html}</span></button>
+<button type="button" class="{$bsb_chip_class}" data-devtools-behavior="{$bsb_key_attr}" data-wp-on--click="actions.devtoolsSurfSteer" data-wp-bind--disabled="state.devtoolsSurfChipDisabled" data-wp-class--is-gated="state.devtoolsSurfChipGated" data-wp-class--is-running="state.devtoolsSurfChipRunning" data-wp-style----chip-dur="state.devtoolsSurfChipDurationCss"><span class="bsb-devtools__chip-tide" aria-hidden="true"></span><span class="bsb-devtools__chip-ico" aria-hidden="true"></span><span class="bsb-devtools__chip-key">{$bsb_key_html}</span></button>
 CHIP;
 		}
 

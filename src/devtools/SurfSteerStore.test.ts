@@ -55,6 +55,7 @@ const derived = surfSteerStore.state as unknown as {
 	devtoolsSurfCountdownDisplay: string;
 	devtoolsSurfAffordanceGlyphs: string;
 	devtoolsSurfChipDisabled: boolean;
+	devtoolsSurfChipGated: boolean;
 	devtoolsSurfChipRunning: boolean;
 	devtoolsSurfChipDurationCss: string;
 	devtoolsSurfStepDisabled: boolean;
@@ -375,6 +376,62 @@ describe( 'devtoolsSurfChipDisabled', () => {
 			chip( key );
 			expect( derived.devtoolsSurfChipDisabled ).toBe( false );
 		}
+	} );
+} );
+
+describe( 'devtoolsSurfChipGated', () => {
+	it( 'is false when there is no live sterile page — no page to be gated on', () => {
+		chip( 'watchVideo' );
+		expect( derived.devtoolsSurfChipGated ).toBe( false );
+	} );
+
+	it( 'is true for a chip whose own hard gate fails on the current page', () => {
+		mocks.state.devtools.surf.affordances = {
+			hasVideo: false,
+			imageCount: 4,
+			textDensity: 1,
+		};
+		chip( 'watchVideo' );
+		expect( derived.devtoolsSurfChipGated ).toBe( true );
+
+		mocks.state.devtools.surf.affordances.hasVideo = true;
+		expect( derived.devtoolsSurfChipGated ).toBe( false );
+	} );
+
+	it( 'is false for a chip with no affordance gate of its own, even on a starved page', () => {
+		mocks.state.devtools.surf.affordances = {
+			hasVideo: false,
+			imageCount: 0,
+			textDensity: 0,
+		};
+		chip( 'scrollBurst' );
+		expect( derived.devtoolsSurfChipGated ).toBe( false );
+	} );
+
+	it( 'stays true for a gated chip even while another behavior is running — the gate is a property of the page, not the panel’s current activity', () => {
+		mocks.state.devtools.surf.affordances = {
+			hasVideo: false,
+			imageCount: 4,
+			textDensity: 1,
+		};
+		chip( 'watchVideo' );
+		expect( derived.devtoolsSurfChipGated ).toBe( true );
+
+		mocks.state.devtools.surf.behaviorKey = 'readPause';
+		expect( derived.devtoolsSurfChipGated ).toBe( true );
+	} );
+
+	it( 'is false for a chip disabled only because the panel is busy (no gate of its own)', () => {
+		mocks.state.devtools.surf.affordances = {
+			hasVideo: true,
+			imageCount: 4,
+			textDensity: 1,
+		};
+		mocks.state.devtools.surf.behaviorKey = 'readPause';
+		chip( 'scrollBurst' );
+
+		expect( derived.devtoolsSurfChipDisabled ).toBe( true );
+		expect( derived.devtoolsSurfChipGated ).toBe( false );
 	} );
 } );
 

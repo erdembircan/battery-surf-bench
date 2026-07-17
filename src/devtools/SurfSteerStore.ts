@@ -33,6 +33,7 @@ import { postSteerBehavior } from '../cockpit/SteerBehavior';
 import { current } from './DevtoolsStore';
 import {
 	isChipDisabled,
+	isChipGated,
 	surfCountdownDisplay,
 	affordanceGlyphs,
 } from './SurfSteer';
@@ -165,6 +166,18 @@ export const surfSteerStore: StorePart = {
 		 */
 		get devtoolsSurfChipDisabled(): boolean {
 			return isChipDisabled( chipKey(), current().surf );
+		},
+
+		/**
+		 * Whether the calling chip's own hard affordance gate fails on the
+		 * live sterile page — the strike-through treatment, distinct from a
+		 * chip that is merely disabled because there is no live page at all or
+		 * another behavior is busy. Stays true for a gated chip even while
+		 * another behavior is running (the gate is a property of the page, not
+		 * of the panel's current activity).
+		 */
+		get devtoolsSurfChipGated(): boolean {
+			return isChipGated( chipKey(), current().surf.affordances );
 		},
 
 		/** Whether the calling chip is the one currently running — drives its `is-running` class and tide fill. */

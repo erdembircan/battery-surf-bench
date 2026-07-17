@@ -504,7 +504,7 @@ classDiagram
     %% tide fill animates smoothly instead of restarting every second.
     class SurfSteerStore {
         <<module>>
-        state: devtoolsIsSurfNatural/Sterile, devtoolsSurfIsRunning, devtoolsSurfCountdownDisplay, devtoolsSurfAffordanceGlyphs, devtoolsSurfChipDisabled/Running/DurationCss (parameterized per calling chip via getElement()'s data-devtools-behavior), devtoolsSurfStepDisabled
+        state: devtoolsIsSurfNatural/Sterile, devtoolsSurfIsRunning, devtoolsSurfCountdownDisplay, devtoolsSurfAffordanceGlyphs, devtoolsSurfChipDisabled/Gated/Running/DurationCss (parameterized per calling chip via getElement()'s data-devtools-behavior), devtoolsSurfStepDisabled
         actions: devtoolsSurfSetMode, devtoolsSurfSteer (posts bsb:steerBehavior to the viewport iframe), devtoolsSurfStep (writes a monotonic-seq pageStep command)
         callbacks: devtoolsInitSurf (the iframe message listener)
         +resetSurfSteer() void
@@ -513,6 +513,7 @@ classDiagram
     class SurfSteer {
         <<module>>
         +isChipDisabled(key, state) boolean
+        +isChipGated(key, affordances) boolean
         +surfCountdownDisplay(key, remainingMs) string
         +affordanceGlyphs(affordances) string
         +SURF_BEHAVIOR_KEYS, CAUTION_KEY, DEFAULT_SURF
