@@ -36,9 +36,12 @@ async function armSterile( page: Page ): Promise< void > {
 }
 
 /**
- * Flips the startup postcard, selects the fastest demo speed (so an
- * announced dwell resolves quickly), and starts a run. Assumes the
- * dev-tools card has already been closed.
+ * Flips the startup postcard, selects the 4× demo speed (fast enough that an
+ * announced dwell resolves well inside this spec's assertion timeouts, but —
+ * unlike 10×, whose ~0.8-2s readPause dwell leaves the bark-attribute and
+ * disabled-state assertions racing a narrow window — still comfortable: a
+ * readPause dwell of ~2-5s), and starts a run. Assumes the dev-tools card has
+ * already been closed.
  *
  * @param page - The page to act on.
  */
@@ -50,7 +53,7 @@ async function startFastRun( page: Page ): Promise< void > {
 		.first()
 		.click();
 	await page
-		.locator( '.bsb-seg--speed .bsb-seg__option[data-speed="10"]' )
+		.locator( '.bsb-seg--speed .bsb-seg__option[data-speed="4"]' )
 		.click();
 	await page
 		.locator( '.bsb-run[data-wp-on--click="actions.toggleRun"]' )
