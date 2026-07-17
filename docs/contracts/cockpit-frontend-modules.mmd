@@ -461,11 +461,11 @@ classDiagram
     %% override, the discharge simulation, and the Surf steerer — each own
     %% its own state field (`battery`, `sim`, `surf`) and never writes to the
     %% other's. A fourth tool is a new StorePart folded in here, not a rework
-    %% of the composition root. Only `open`, `battery` and `surf.sterile`
-    %% persist across a reload — the discharge sim and the Surf tool's own
-    %% runtime fields (steered key, countdown, live affordances, pending
-    %% page-jump) are live-session-only and never written to or restored from
-    %% storage.
+    %% of the composition root. Only `open` and `battery` persist across a
+    %% reload — the discharge sim and the WHOLE Surf tool (its armed
+    %% `sterile` flag included, so an arm from a prior session can never
+    %% silently start a later run sterile) are live-session-only and never
+    %% written to or restored from storage.
     class DevToolsView {
         <<module>>
         store('bsb/cockpit', mergeStoreParts(DevtoolsShellStore, BatteryOverrideStore, DischargeSimStore, SurfSteerStore, ResetStore))

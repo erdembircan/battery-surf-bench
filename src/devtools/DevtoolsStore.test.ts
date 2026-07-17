@@ -95,7 +95,7 @@ describe( 'devtoolsShellStore actions', () => {
 } );
 
 describe( 'persistence', () => {
-	it( 'writes only open, battery and the Surf tool’s armed sterile flag to localStorage on devtoolsPersist — never the discharge sim or the Surf tool’s runtime fields', () => {
+	it( 'writes only open and battery to localStorage on devtoolsPersist — never the discharge sim or any part of the Surf tool', () => {
 		mocks.state.devtools = {
 			open: true,
 			battery: { charging: true, level: 0.2 },
@@ -118,7 +118,6 @@ describe( 'persistence', () => {
 		expect( stored ).toEqual( {
 			open: true,
 			battery: { charging: true, level: 0.2 },
-			surf: { sterile: true },
 		} );
 	} );
 
@@ -142,18 +141,16 @@ describe( 'persistence', () => {
 			expect( stored ).toEqual( {
 				open: true,
 				battery: { charging: null, level: null },
-				surf: { sterile: false },
 			} );
 		}
 	} );
 
-	it( 'hydrates open, battery and the Surf tool’s armed sterile flag from a previously persisted slice', () => {
+	it( 'hydrates open and battery from a previously persisted slice', () => {
 		window.localStorage.setItem(
 			DEVTOOLS_STORAGE_KEY,
 			JSON.stringify( {
 				open: true,
 				battery: { charging: false, level: 0.6 },
-				surf: { sterile: true },
 			} )
 		);
 
@@ -164,7 +161,6 @@ describe( 'persistence', () => {
 			charging: false,
 			level: 0.6,
 		} );
-		expect( mocks.state.devtools.surf.sterile ).toBe( true );
 	} );
 
 	it( 'never restores the discharge sim, even from a running sim left over in storage', () => {
@@ -178,7 +174,6 @@ describe( 'persistence', () => {
 				open: true,
 				battery: { charging: false, level: 0.6 },
 				sim: { ...defaultSim(), running: true, startedAt: 12345 },
-				surf: { sterile: false },
 			} )
 		);
 
@@ -187,11 +182,13 @@ describe( 'persistence', () => {
 		expect( mocks.state.devtools.sim ).toEqual( defaultSim() );
 	} );
 
-	it( 'never restores the Surf tool’s runtime fields, even a running behavior left over in storage', () => {
-		// The persisted shape only ever carries `surf.sterile` — a value
+	it( 'never restores any part of the Surf tool — its armed sterile flag included — even a fully-armed, mid-behavior surf left over in storage', () => {
+		// The persisted shape no longer has a `surf` field at all, but a value
 		// written before this change (or by another tab still on old code)
-		// could still carry the runtime fields too, and hydrate must not
-		// resurrect any of them.
+		// could still carry one, sterile armed and all — hydrate must not
+		// resurrect any of it. A sterile override armed once must never
+		// silently survive a reload and start a later run sterile without the
+		// user re-choosing it.
 		window.localStorage.setItem(
 			DEVTOOLS_STORAGE_KEY,
 			JSON.stringify( {
@@ -215,10 +212,7 @@ describe( 'persistence', () => {
 
 		hydrateDevtools();
 
-		expect( mocks.state.devtools.surf ).toEqual( {
-			...defaultSurf(),
-			sterile: true,
-		} );
+		expect( mocks.state.devtools.surf ).toEqual( defaultSurf() );
 	} );
 
 	it( 'leaves the default state untouched when nothing is stored', () => {
@@ -253,31 +247,44 @@ describe( 'persistence', () => {
 		hydrateDevtools();
 		expect( mocks.state.devtools.open ).toBe( false );
 
-		// A stored value missing `surf` (or with a malformed `surf.sterile`) is
-		// rejected too.
+		// A malformed `battery.charging` is rejected too.
 		window.localStorage.setItem(
 			DEVTOOLS_STORAGE_KEY,
 			JSON.stringify( {
 				open: true,
-				battery: { charging: null, level: null },
-			} )
-		);
-		hydrateDevtools();
-		expect( mocks.state.devtools.open ).toBe( false );
-
-		window.localStorage.setItem(
-			DEVTOOLS_STORAGE_KEY,
-			JSON.stringify( {
-				open: true,
-				battery: { charging: null, level: null },
-				surf: { sterile: 'yes' },
+				battery: { charging: 'yes', level: null },
 			} )
 		);
 		hydrateDevtools();
 		expect( mocks.state.devtools.open ).toBe( false );
 	} );
 
-	it( 'ignores a value stored under the previous (pre-sterile-surf) v4 key', () => {
+	it( 'ignores a value stored under the previous (pre-run-lock) v5 key, sterile flag and all', () => {
+		// v5 was the last shape that persisted `surf.sterile`. The storage key
+		// bump means it is simply never looked up again — the slice starts
+		// fresh at its defaults, the sterile override never armed from it, so
+		// a run started after this reload is never silently sterile.
+		window.localStorage.setItem(
+			'bsb-devtools-v5',
+			JSON.stringify( {
+				open: true,
+				battery: { charging: true, level: 0.9 },
+				surf: { sterile: true },
+			} )
+		);
+
+		hydrateDevtools();
+
+		expect( DEVTOOLS_STORAGE_KEY ).toBe( 'bsb-devtools-v6' );
+		expect( mocks.state.devtools ).toEqual( {
+			open: false,
+			battery: { charging: null, level: null },
+			sim: defaultSim(),
+			surf: defaultSurf(),
+		} );
+	} );
+
+	it( 'ignores a value stored under the older (pre-sterile-surf) v4 key', () => {
 		// The v4 shape carried no `surf` field at all. The storage key bump
 		// means it is simply never looked up again — the slice starts fresh at
 		// its defaults, the sterile override never armed from it.
@@ -291,7 +298,6 @@ describe( 'persistence', () => {
 
 		hydrateDevtools();
 
-		expect( DEVTOOLS_STORAGE_KEY ).toBe( 'bsb-devtools-v5' );
 		expect( mocks.state.devtools ).toEqual( {
 			open: false,
 			battery: { charging: null, level: null },

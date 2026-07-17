@@ -31,15 +31,13 @@ export interface DevtoolsState {
  * sim is deliberately excluded — it is a live, in-session driver only, never
  * something a reload should resume: a page opened later with the surf engine
  * running would otherwise inherit a phantom drain from a session the user may
- * not even remember starting. The Surf tool's runtime fields (the currently
- * steered behavior, its countdown, the live page's affordances, any pending
- * page-jump) are excluded for the same reason — only whether the override is
- * armed survives; `open`, `battery` and the armed `surf.sterile` flag are the
- * only fields a returning session should see again.
+ * not even remember starting. The whole Surf tool is excluded for the same
+ * reason, armed `sterile` flag included: a sterile override armed once must
+ * never silently survive a reload or a later session and start a run sterile
+ * without the user re-choosing it. `open` and `battery` are the only fields a
+ * returning session should see again.
  */
-type PersistedDevtoolsState = Pick< DevtoolsState, 'open' | 'battery' > & {
-	surf: Pick< SurfSteerState, 'sterile' >;
-};
+type PersistedDevtoolsState = Pick< DevtoolsState, 'open' | 'battery' >;
 
 /**
  * The merged store shape sub-tool modules re-fetch by namespace.
@@ -73,10 +71,12 @@ const DEFAULT_STATE: DevtoolsState = {
  * `localStorage` key the slice persists under; bump the suffix on a shape
  * change — a stored value under a stale key is simply never read again
  * (`readStored()` looks up the current key only), so an old-shape blob is
- * inert rather than corrupting the new one. Bumped to v5 when the Surf
- * tool's armed `sterile` flag joined the persisted shape.
+ * inert rather than corrupting the new one. Bumped to v6 when the Surf
+ * tool's armed `sterile` flag was REMOVED from the persisted shape — sterile
+ * must never silently survive a reload, so a v5 blob carrying it is now
+ * simply inert rather than read back.
  */
-export const DEVTOOLS_STORAGE_KEY = 'bsb-devtools-v5';
+export const DEVTOOLS_STORAGE_KEY = 'bsb-devtools-v6';
 
 /**
  * Narrows an unknown value to a well-formed {@link PersistedDevtoolsState}, so
@@ -93,25 +93,21 @@ const isPersistedDevtoolsState = (
 		return false;
 	}
 
-	const { open, battery, surf } = value as Record< string, unknown >;
+	const { open, battery } = value as Record< string, unknown >;
 
 	if (
 		typeof open !== 'boolean' ||
 		typeof battery !== 'object' ||
-		battery === null ||
-		typeof surf !== 'object' ||
-		surf === null
+		battery === null
 	) {
 		return false;
 	}
 
 	const { charging, level } = battery as Record< string, unknown >;
-	const { sterile } = surf as Record< string, unknown >;
 
 	return (
 		( charging === null || typeof charging === 'boolean' ) &&
-		( level === null || typeof level === 'number' ) &&
-		typeof sterile === 'boolean'
+		( level === null || typeof level === 'number' )
 	);
 };
 
@@ -173,12 +169,12 @@ export const current = (): DevtoolsState => {
  * Restores the persisted devtools slice onto the shared state. Called once,
  * right after this module registers its store slice — not bound to a
  * directive — since by then the store already exists and `localStorage` needs
- * no DOM. Restores `open`, `battery` and the Surf tool's armed `sterile` flag
- * only; the discharge sim is never persisted, so it always starts a fresh
- * session at its {@link DEFAULT_SIM} default, never running — and the Surf
- * tool's own runtime fields (the steered behavior, its countdown, the live
- * page's affordances, any pending page-jump) always start fresh too, at
- * {@link DEFAULT_SURF}, never resuming a phantom run from a prior session.
+ * no DOM. Restores `open` and `battery` only; the discharge sim is never
+ * persisted, so it always starts a fresh session at its {@link DEFAULT_SIM}
+ * default, never running — and the whole Surf tool, its armed `sterile` flag
+ * included, always starts fresh too, at {@link DEFAULT_SURF}: a sterile
+ * override must never silently survive a reload and start a later run
+ * sterile without the user re-choosing it.
  */
 export const hydrateDevtools = (): void => {
 	const stored = readStored();
@@ -191,7 +187,6 @@ export const hydrateDevtools = (): void => {
 	state.open = stored.open;
 	state.battery.charging = stored.battery.charging;
 	state.battery.level = stored.battery.level;
-	state.surf.sterile = stored.surf.sterile;
 };
 
 /** The shared shell: panel open/closed and the whole slice's persistence. */
@@ -211,9 +206,9 @@ export const devtoolsShellStore: StorePart = {
 		 * Persists the devtools slice's persisted subset on every change. Bound
 		 * via `data-wp-watch--devtools-persist` on the panel; reading the slice
 		 * here is what makes it re-run reactively whenever any field changes.
-		 * `open`, `battery` and the Surf tool's armed `sterile` flag are
-		 * written; the discharge sim and the Surf tool's own runtime fields are
-		 * live-session-only drivers and never land in storage.
+		 * Only `open` and `battery` are written; the discharge sim and the
+		 * whole Surf tool (its armed `sterile` flag included) are
+		 * live-session-only and never land in storage.
 		 */
 		devtoolsPersist(): void {
 			const state = current();
@@ -221,7 +216,6 @@ export const devtoolsShellStore: StorePart = {
 			writeStored( {
 				open: state.open,
 				battery: { ...state.battery },
-				surf: { sterile: state.surf.sterile },
 			} );
 		},
 	},
