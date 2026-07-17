@@ -1318,16 +1318,17 @@ describe( 'DomMotor cursor glyph modes', () => {
 		video.pause = vi.fn();
 		const sampler = sampleCursor();
 		const motor = new DomMotor( () => 0.5, sampler.next );
+		// The cursor is already hovering the player at stop time (rng()=0.5
+		// draws the same jittered point both times), so stopVideo's own
+		// click clicks in place — no travel gap separates the two ripples,
+		// so counting them requires spying on the click itself rather than
+		// inferring two blocks from a 0-to-positive transition in samples.
+		const clickSpy = vi.spyOn( FakeCursor.prototype, 'click' );
 
 		await motor.playVideo();
 		await motor.stopVideo();
 
-		// A ripple appeared, then vanished, then appeared again — one click
-		// from playVideo's own approach, a second from stopVideo's.
-		const risingEdges = sampler.ripples.filter(
-			( n, i ) => n > 0 && ( i === 0 || sampler.ripples[ i - 1 ] === 0 )
-		).length;
-		expect( risingEdges ).toBeGreaterThanOrEqual( 2 );
+		expect( clickSpy ).toHaveBeenCalledTimes( 2 );
 
 		const cursorEl =
 			document.querySelector< HTMLElement >( '.bsb-surf-cursor' );
@@ -1337,6 +1338,89 @@ describe( 'DomMotor cursor glyph modes', () => {
 		expect(
 			document.querySelectorAll( '.bsb-surf-click-ripple' )
 		).toHaveLength( 0 );
+
+		clickSpy.mockRestore();
+	} );
+
+	it( 'stopVideo clicks in place, without moving the cursor, when already hovering the player', async () => {
+		document.body.innerHTML = '<video></video>';
+		const video = document.querySelector( 'video' ) as HTMLVideoElement;
+		video.getBoundingClientRect = () =>
+			( {
+				top: 100,
+				bottom: 300,
+				left: 50,
+				right: 450,
+				width: 400,
+				height: 200,
+			} ) as DOMRect;
+		video.play = vi.fn().mockResolvedValue( undefined );
+		video.pause = vi.fn();
+		const cursorTransform = (): string =>
+			document.querySelector< HTMLElement >( '.bsb-surf-cursor' )?.style
+				.transform ?? '';
+		const rippleTransforms: string[] = [];
+		const next = (): Promise< void > => {
+			if (
+				document.querySelectorAll( '.bsb-surf-click-ripple' ).length > 0
+			) {
+				rippleTransforms.push( cursorTransform() );
+			}
+			return Promise.resolve();
+		};
+		const motor = new DomMotor( () => 0.5, next );
+
+		await motor.playVideo();
+		const transformAfterPlay = cursorTransform();
+		// Only the stop's own click window matters from here.
+		rippleTransforms.length = 0;
+
+		await motor.stopVideo();
+
+		expect( rippleTransforms.length ).toBeGreaterThan( 0 );
+		expect(
+			rippleTransforms.every( ( t ) => t === transformAfterPlay )
+		).toBe( true );
+	} );
+
+	it( 'stopVideo still travels back to the player when the cursor was moved off it since play started', async () => {
+		document.body.innerHTML = '<video></video><img src="a.jpg">';
+		const video = document.querySelector( 'video' ) as HTMLVideoElement;
+		const img = document.querySelector( 'img' )!;
+		video.getBoundingClientRect = () =>
+			( {
+				top: 100,
+				bottom: 300,
+				left: 50,
+				right: 450,
+				width: 400,
+				height: 200,
+			} ) as DOMRect;
+		img.getBoundingClientRect = () =>
+			( {
+				top: 100,
+				bottom: 200,
+				left: 600,
+				right: 700,
+				width: 100,
+				height: 100,
+			} ) as DOMRect;
+		video.play = vi.fn().mockResolvedValue( undefined );
+		video.pause = vi.fn();
+		const motor = new DomMotor( () => 0.5, instantFrames );
+
+		await motor.playVideo();
+		// Move the cursor off the player, onto the unrelated image, before
+		// stopping.
+		await motor.lingerImage( 20 );
+
+		const travelToSpy = vi.spyOn( FakeCursor.prototype, 'travelTo' );
+
+		await motor.stopVideo();
+
+		expect( travelToSpy ).toHaveBeenCalled();
+
+		travelToSpy.mockRestore();
 	} );
 
 	it( 'stopVideo is a cursor-silent no-op when nothing was started', async () => {

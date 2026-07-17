@@ -530,10 +530,23 @@ export class DomMotor implements Motor {
 
 		if ( null !== control ) {
 			if ( null !== element && hasViewportOverlap( element ) ) {
-				await this.cursor.travelTo(
-					this.jitteredPointOn( element.getBoundingClientRect() ),
-					this.rng
-				);
+				const rect = element.getBoundingClientRect();
+				const { x, y } = this.cursor.position;
+				// A viewer pausing clicks where their pointer already hovers — only
+				// re-approach the player when the cursor genuinely left it.
+				const alreadyOnTarget =
+					x >= rect.left &&
+					x <= rect.right &&
+					y >= rect.top &&
+					y <= rect.bottom;
+
+				if ( ! alreadyOnTarget ) {
+					await this.cursor.travelTo(
+						this.jitteredPointOn( rect ),
+						this.rng
+					);
+				}
+
 				this.cursor.setMode( 'hand' );
 				await this.cursor.click();
 			}
