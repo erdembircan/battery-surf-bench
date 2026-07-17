@@ -162,8 +162,6 @@ class DevTools implements Manager {
 				'natural_label'           => __( 'Natural', 'battery-surf-bench' ),
 				'sterile_label'           => __( 'Sterile', 'battery-surf-bench' ),
 				'auction_override_label'  => __( 'Auction override', 'battery-surf-bench' ),
-				'sterile_hint_label'      => __( 'Auction muted for this run — no behavior bids, no boredom, no leave pressure. Chips below run the real behaviors on the live page.', 'battery-surf-bench' ),
-				'natural_hint_label'      => __( 'Auction live — behaviors bid and win on their own. Sterilize to take the wheel. Applies from the next run start.', 'battery-surf-bench' ),
 				'page_label'              => __( 'Page', 'battery-surf-bench' ),
 				'page_prev_label'         => __( 'Previous course page', 'battery-surf-bench' ),
 				'page_next_label'         => __( 'Next course page', 'battery-surf-bench' ),

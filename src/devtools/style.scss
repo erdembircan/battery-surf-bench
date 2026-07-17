@@ -650,33 +650,12 @@ $ease: cubic-bezier(0.22, 1, 0.36, 1);
 	display: inline;
 }
 
-// ── Surf group — Natural/Sterile seg, hint, page stepper, behavior chips ────
+// ── Surf group — Natural/Sterile seg, page stepper, behavior chips ─────────
 
 // The sterile choice selects in coral — it is an armed override, not a
 // product mode, unlike every other seg option's teal-deep selection.
 .bsb-devtools__seg-option--sterile.is-selected {
 	background: theme.$coastal-coral-deep;
-}
-
-// The hint line explaining what the current seg choice does.
-.bsb-devtools__hint {
-	font-size: 11px;
-	line-height: 1.45;
-	color: theme.$coastal-ink-soft;
-}
-
-// One label per seg state; the `is-sterile` class (set on the paragraph
-// itself, the same CSS-swap technique the sim toggle's Start/Stop spans
-// already use above) decides which shows — translated strings can't be
-// swapped client-side, since JS `__()` extraction is not wired for this
-// project.
-.bsb-devtools__hint-text {
-	display: none;
-}
-
-.bsb-devtools__hint:not(.is-sterile) .bsb-devtools__hint-text--natural,
-.bsb-devtools__hint.is-sterile .bsb-devtools__hint-text--sterile {
-	display: inline;
 }
 
 // The page stepper's affordance-glyph readout: a small mono glyph string

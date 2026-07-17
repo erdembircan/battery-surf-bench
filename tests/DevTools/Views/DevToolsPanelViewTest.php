@@ -284,10 +284,10 @@ final class DevToolsPanelViewTest extends TestCase {
 
 	/**
 	 * The Surf group: the Natural/Sterile seg (with the Sterile option's coral
-	 * modifier class), the CSS-swapped hint pair, the page stepper, and one
-	 * chip per behavior in the given order, each carrying its own
-	 * `data-devtools-behavior` key as visible text — with `moveOn` alone
-	 * carrying the caution modifier class.
+	 * modifier class — no hint line underneath it, the seg speaks for itself),
+	 * the page stepper, and one chip per behavior in the given order, each
+	 * carrying its own `data-devtools-behavior` key as visible text — with
+	 * `moveOn` alone carrying the caution modifier class.
 	 */
 	public function test_render_wires_the_surf_group(): void {
 		$markup = ( new DevToolsPanelView() )->render(
@@ -333,20 +333,8 @@ final class DevToolsPanelViewTest extends TestCase {
 			$markup
 		);
 
-		// The hint: two always-rendered spans, CSS-swapped by the seg's state —
-		// never a client-side text swap.
-		$this->assertStringContainsString(
-			'data-wp-class--is-sterile="state.devtoolsIsSurfSterile"',
-			$markup
-		);
-		$this->assertStringContainsString(
-			'bsb-devtools__hint-text--sterile',
-			$markup
-		);
-		$this->assertStringContainsString(
-			'bsb-devtools__hint-text--natural',
-			$markup
-		);
+		// No hint line: the seg speaks for itself.
+		$this->assertStringNotContainsString( 'bsb-devtools__hint', $markup );
 
 		// The page stepper: prev/next arrows around the affordance-glyph
 		// readout, both disabled while a behavior runs.
@@ -437,7 +425,6 @@ final class DevToolsPanelViewTest extends TestCase {
 				'close_label'            => '"Close"',
 				'level_label'            => '"Battery level override"',
 				'surf_label'             => '<b>Surf</b>',
-				'sterile_hint_label'     => '<script>sterile</script>',
 				'auction_override_label' => '"Auction override"',
 				'page_prev_label'        => '"Previous course page"',
 			)
@@ -453,7 +440,6 @@ final class DevToolsPanelViewTest extends TestCase {
 		$this->assertStringContainsString( 'aria-label="&quot;Battery level override&quot;"', $markup );
 		$this->assertStringNotContainsString( '<b>Surf</b>', $markup );
 		$this->assertStringContainsString( '&lt;b&gt;Surf&lt;/b&gt;', $markup );
-		$this->assertStringNotContainsString( '<script>sterile</script>', $markup );
 		$this->assertStringContainsString(
 			'aria-label="&quot;Auction override&quot;"',
 			$markup

@@ -37,15 +37,12 @@ defined( 'ABSPATH' ) || exit;
  * its "Discharge" title, shown only while the sim is running.
  *
  * The surf group arms the "Sterile" run override (a Natural/Sterile seg,
- * selecting in coral — an armed override, not a product mode), shows a hint
- * line explaining what the current choice does (two always-rendered spans,
- * CSS-swapped by the seg's state, the same technique the discharge group's
- * own Start/Stop toggle already uses — translated strings can't be swapped
- * client-side since JS `__()` extraction is not wired for this project), a
- * course-page stepper (prev/next arrows around a mono glyph readout of the
- * live sterile page's affordance flags — the only page identity the client
- * is allowed to leak, since it only ever knows the opaque course index), and
- * one chip per behavior, in engine boot order, each carrying its own
+ * selecting in coral — an armed override, not a product mode; the seg speaks
+ * for itself, with no hint line underneath it), a course-page stepper
+ * (prev/next arrows around a mono glyph readout of the live sterile page's
+ * affordance flags — the only page identity the client is allowed to leak,
+ * since it only ever knows the opaque course index), and one chip per
+ * behavior, in engine boot order, each carrying its own
  * `data-devtools-behavior` key as its visible text (a developer identifier,
  * deliberately NOT translated). The group's own head carries the same
  * right-aligned countdown pattern as Discharge, showing which behavior is
@@ -106,8 +103,6 @@ class DevToolsPanelView implements View {
 	 *     @type string              $natural_label          Raw label for the Natural seg option.
 	 *     @type string              $sterile_label          Raw label for the Sterile seg option.
 	 *     @type string              $auction_override_label Raw accessible group label for the Natural/Sterile seg.
-	 *     @type string              $sterile_hint_label     Raw hint shown while Sterile is selected.
-	 *     @type string              $natural_hint_label     Raw hint shown while Natural is selected.
 	 *     @type string              $page_label             Raw label for the page stepper row.
 	 *     @type string              $page_prev_label        Raw accessible label for the previous-page button.
 	 *     @type string              $page_next_label        Raw accessible label for the next-page button.
@@ -145,8 +140,6 @@ class DevToolsPanelView implements View {
 		$natural           = esc_html( (string) ( $data['natural_label'] ?? '' ) );
 		$sterile           = esc_html( (string) ( $data['sterile_label'] ?? '' ) );
 		$auction_override  = esc_attr( (string) ( $data['auction_override_label'] ?? '' ) );
-		$sterile_hint      = esc_html( (string) ( $data['sterile_hint_label'] ?? '' ) );
-		$natural_hint      = esc_html( (string) ( $data['natural_hint_label'] ?? '' ) );
 		$page              = esc_html( (string) ( $data['page_label'] ?? '' ) );
 		$page_prev         = esc_attr( (string) ( $data['page_prev_label'] ?? '' ) );
 		$page_next         = esc_attr( (string) ( $data['page_next_label'] ?? '' ) );
@@ -262,11 +255,6 @@ CHIP;
 							<button type="button" class="bsb-devtools__seg-option" data-devtools-surf-mode="natural" data-wp-class--is-selected="state.devtoolsIsSurfNatural" data-wp-on--click="actions.devtoolsSurfSetMode">{$natural}</button>
 							<button type="button" class="bsb-devtools__seg-option bsb-devtools__seg-option--sterile" data-devtools-surf-mode="sterile" data-wp-class--is-selected="state.devtoolsIsSurfSterile" data-wp-on--click="actions.devtoolsSurfSetMode">{$sterile}</button>
 						</div>
-
-						<p class="bsb-devtools__hint" data-wp-class--is-sterile="state.devtoolsIsSurfSterile">
-							<span class="bsb-devtools__hint-text bsb-devtools__hint-text--sterile">{$sterile_hint}</span>
-							<span class="bsb-devtools__hint-text bsb-devtools__hint-text--natural">{$natural_hint}</span>
-						</p>
 
 						<div class="bsb-devtools__stepper-row">
 							<span class="bsb-devtools__stepper-label">{$page}</span>
