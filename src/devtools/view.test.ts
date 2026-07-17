@@ -18,6 +18,7 @@ interface CapturedConfig {
 			open: boolean;
 			battery: object;
 			sim: object;
+			surf: object;
 		};
 	};
 	actions: Record< string, unknown >;
@@ -62,6 +63,13 @@ describe( 'devtools view', () => {
 				currentLevel: null,
 				remainingMs: null,
 			},
+			surf: {
+				sterile: false,
+				behaviorKey: '',
+				remainingMs: null,
+				affordances: null,
+				pageStep: null,
+			},
 		} );
 		expect( mocks.config?.actions ).toMatchObject( {
 			devtoolsToggleOpen: expect.any( Function ),
@@ -70,10 +78,14 @@ describe( 'devtools view', () => {
 			devtoolsResetLevel: expect.any( Function ),
 			devtoolsStepSim: expect.any( Function ),
 			devtoolsToggleSim: expect.any( Function ),
+			devtoolsSurfSetMode: expect.any( Function ),
+			devtoolsSurfSteer: expect.any( Function ),
+			devtoolsSurfStep: expect.any( Function ),
 			devtoolsReset: expect.any( Function ),
 		} );
 		expect( mocks.config?.callbacks ).toMatchObject( {
 			devtoolsPersist: expect.any( Function ),
+			devtoolsInitSurf: expect.any( Function ),
 		} );
 	} );
 } );

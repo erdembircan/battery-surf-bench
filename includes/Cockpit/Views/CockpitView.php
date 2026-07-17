@@ -57,6 +57,7 @@ class CockpitView implements View {
 	 *     @type string $tte_label          Translated label for the time-to-empty readout.
 	 *     @type string $target_short_label Translated label for the target readout (target-drop mode).
 	 *     @type string $surfing_label     Translated "Surfing" word for the running indicator.
+	 *     @type string $sterile_label     Translated "Sterile" status-head chip text, shown only during a sterile run.
 	 *     @type string $elapsed_label     Translated "elapsed" word (target-drop mode clock).
 	 *     @type string $remaining_label   Translated "left" word (duration-mode countdown clock).
 	 *     @type string $start_label       Translated label for the run control when idle.
@@ -112,6 +113,7 @@ class CockpitView implements View {
 		$tte_label           = isset( $data['tte_label'] ) ? (string) $data['tte_label'] : '';
 		$target_short_label  = isset( $data['target_short_label'] ) ? (string) $data['target_short_label'] : '';
 		$surfing_label       = isset( $data['surfing_label'] ) ? (string) $data['surfing_label'] : '';
+		$sterile_label       = isset( $data['sterile_label'] ) ? (string) $data['sterile_label'] : '';
 		$elapsed_label       = isset( $data['elapsed_label'] ) ? (string) $data['elapsed_label'] : '';
 		$remaining_label     = isset( $data['remaining_label'] ) ? (string) $data['remaining_label'] : '';
 		$start_label         = isset( $data['start_label'] ) ? (string) $data['start_label'] : '';
@@ -205,6 +207,7 @@ class CockpitView implements View {
 		$tte_label           = esc_html( $tte_label );
 		$target_short_label  = esc_html( $target_short_label );
 		$surfing_label       = esc_html( $surfing_label );
+		$sterile_label       = esc_html( $sterile_label );
 		$elapsed_label       = esc_html( $elapsed_label );
 		$remaining_label     = esc_html( $remaining_label );
 		$start_label         = esc_html( $start_label );
@@ -248,8 +251,8 @@ CELLS;
 		// Both bind to the same store getters, so the readings stay in lock-step.
 		$status_head = <<<HEAD
 <div class="bsb-deck__status-head">
-				<span class="bsb-deck__status-dot" aria-hidden="true"></span>
-				<span class="bsb-deck__status-text">{$surfing_label} &middot; <span class="bsb-deck__clock" data-wp-text="state.runClock"></span> <span data-wp-bind--hidden="state.isModeDuration">{$elapsed_label}</span><span data-wp-bind--hidden="state.isModeTargetDrop">{$remaining_label}</span></span>
+				<span class="bsb-deck__status-dot" aria-hidden="true" data-wp-class--is-sterile="state.isSterileRun"></span>
+				<span class="bsb-deck__status-text">{$surfing_label} &middot; <span class="bsb-deck__clock" data-wp-text="state.runClock"></span> <span data-wp-bind--hidden="state.isModeDuration">{$elapsed_label}</span><span data-wp-bind--hidden="state.isModeTargetDrop">{$remaining_label}</span><span class="bsb-deck__sterile-chip" hidden data-wp-bind--hidden="!state.isSterileRun">{$sterile_label}</span></span>
 			</div>
 HEAD;
 
@@ -413,7 +416,7 @@ ROW;
 HTML;
 
 		return <<<HTML
-<div {$wrapper} data-wp-interactive="bsb/cockpit" {$context} data-wp-init---battery="callbacks.initBattery" data-wp-init---wake-lock="callbacks.initWakeLock" data-wp-init---sound="callbacks.initSound" data-wp-init---page-advance="callbacks.initPageAdvance" data-wp-init---exit-guard="callbacks.initExitGuard" data-wp-init---bark="callbacks.initBark" data-wp-watch---run-activity="callbacks.syncRunActivity" data-wp-watch---viewport-watchdog="callbacks.syncViewportWatchdog" data-wp-watch---devtools-battery="callbacks.syncBatteryOverride" data-wp-class--is-compact="state.isCompact" data-wp-class--is-deck-shown="state.isDeckShown">
+<div {$wrapper} data-wp-interactive="bsb/cockpit" {$context} data-wp-init---battery="callbacks.initBattery" data-wp-init---wake-lock="callbacks.initWakeLock" data-wp-init---sound="callbacks.initSound" data-wp-init---page-advance="callbacks.initPageAdvance" data-wp-init---exit-guard="callbacks.initExitGuard" data-wp-init---bark="callbacks.initBark" data-wp-watch---run-activity="callbacks.syncRunActivity" data-wp-watch---viewport-watchdog="callbacks.syncViewportWatchdog" data-wp-watch---devtools-battery="callbacks.syncBatteryOverride" data-wp-watch---devtools-surf="callbacks.syncDevtoolsSurf" data-wp-class--is-compact="state.isCompact" data-wp-class--is-deck-shown="state.isDeckShown">
 	<aside class="bsb-cockpit__deck">
 		<header class="bsb-deck__brand">
 			<span class="bsb-deck__mark" aria-hidden="true"></span>

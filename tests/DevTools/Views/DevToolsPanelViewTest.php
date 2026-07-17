@@ -165,12 +165,21 @@ final class DevToolsPanelViewTest extends TestCase {
 		// The title-bar countdown: hidden by default (defensive, pre-hydration),
 		// revealed only while the sim is running, reading the formatted
 		// remaining-time getter — and appearing exactly once, in the Discharge
-		// group's own head, never the Battery group's.
+		// group's own head, never the Battery group's. The Surf group carries
+		// its own countdown span too (same class, different getters — see
+		// test_render_wires_the_surf_group), so the bare class name alone is
+		// no longer a unique count; the full Discharge-specific binding is.
 		$this->assertStringContainsString(
 			'class="bsb-devtools__group-countdown" hidden data-wp-bind--hidden="!state.devtoolsIsSimRunning" data-wp-text="state.devtoolsSimRemainingDisplay"',
 			$markup
 		);
-		$this->assertSame( 1, substr_count( $markup, 'bsb-devtools__group-countdown' ) );
+		$this->assertSame(
+			1,
+			substr_count(
+				$markup,
+				'data-wp-bind--hidden="!state.devtoolsIsSimRunning" data-wp-text="state.devtoolsSimRemainingDisplay"'
+			)
+		);
 
 		$this->assertStringContainsString(
 			'class="bsb-devtools__sim-steppers" data-wp-class--is-disabled="state.devtoolsIsSimRunning"',
@@ -274,17 +283,159 @@ final class DevToolsPanelViewTest extends TestCase {
 	}
 
 	/**
+	 * The Surf group: the Natural/Sterile seg (with the Sterile option's coral
+	 * modifier class), the CSS-swapped hint pair, the page stepper, and one
+	 * chip per behavior in the given order, each carrying its own
+	 * `data-devtools-behavior` key as visible text — with `moveOn` alone
+	 * carrying the caution modifier class.
+	 */
+	public function test_render_wires_the_surf_group(): void {
+		$markup = ( new DevToolsPanelView() )->render(
+			array(
+				'behavior_keys' => array(
+					'scrollBurst',
+					'readPause',
+					'glanceBack',
+					'watchVideo',
+					'lingerImage',
+					'fidgetWiggle',
+					'microScroll',
+					'selectSnippet',
+					'moveOn',
+				),
+			)
+		);
+
+		// The panel region's own init callback attaches the iframe<->cockpit
+		// message listener the Surf tool's countdown/gating state depends on —
+		// bound on the same top-level region as the persist watch, so it stays
+		// attached for the panel's whole lifetime regardless of open/closed.
+		$this->assertStringContainsString(
+			'data-wp-init---devtools-surf="callbacks.devtoolsInitSurf"',
+			$markup
+		);
+
+		// The group-head countdown: hidden by default, revealed only while a
+		// behavior is steered, reading the countdown display getter.
+		$this->assertStringContainsString(
+			'class="bsb-devtools__group-countdown" hidden data-wp-bind--hidden="!state.devtoolsSurfIsRunning" data-wp-text="state.devtoolsSurfCountdownDisplay"',
+			$markup
+		);
+
+		// The Natural/Sterile seg: Sterile carries the coral modifier class,
+		// each bound to its own selected-state getter.
+		$this->assertStringContainsString(
+			'data-devtools-surf-mode="natural" data-wp-class--is-selected="state.devtoolsIsSurfNatural" data-wp-on--click="actions.devtoolsSurfSetMode"',
+			$markup
+		);
+		$this->assertStringContainsString(
+			'class="bsb-devtools__seg-option bsb-devtools__seg-option--sterile" data-devtools-surf-mode="sterile" data-wp-class--is-selected="state.devtoolsIsSurfSterile" data-wp-on--click="actions.devtoolsSurfSetMode"',
+			$markup
+		);
+
+		// The hint: two always-rendered spans, CSS-swapped by the seg's state —
+		// never a client-side text swap.
+		$this->assertStringContainsString(
+			'data-wp-class--is-sterile="state.devtoolsIsSurfSterile"',
+			$markup
+		);
+		$this->assertStringContainsString(
+			'bsb-devtools__hint-text--sterile',
+			$markup
+		);
+		$this->assertStringContainsString(
+			'bsb-devtools__hint-text--natural',
+			$markup
+		);
+
+		// The page stepper: prev/next arrows around the affordance-glyph
+		// readout, both disabled while a behavior runs.
+		$this->assertStringContainsString(
+			'data-step="-1" data-wp-on--click="actions.devtoolsSurfStep" data-wp-bind--disabled="state.devtoolsSurfStepDisabled"',
+			$markup
+		);
+		$this->assertStringContainsString(
+			'data-step="1" data-wp-on--click="actions.devtoolsSurfStep" data-wp-bind--disabled="state.devtoolsSurfStepDisabled"',
+			$markup
+		);
+		$this->assertStringContainsString(
+			'data-wp-text="state.devtoolsSurfAffordanceGlyphs"',
+			$markup
+		);
+
+		// Nine chips, in the given (engine boot) order, each carrying its own
+		// key as plain (untranslated) visible text.
+		$keys          = array(
+			'scrollBurst',
+			'readPause',
+			'glanceBack',
+			'watchVideo',
+			'lingerImage',
+			'fidgetWiggle',
+			'microScroll',
+			'selectSnippet',
+			'moveOn',
+		);
+		$last_position = -1;
+		foreach ( $keys as $key ) {
+			$this->assertStringContainsString( 'data-devtools-behavior="' . $key . '"', $markup );
+			$this->assertStringContainsString( '<span class="bsb-devtools__chip-key">' . $key . '</span>', $markup );
+			$position = strpos( $markup, 'data-devtools-behavior="' . $key . '"' );
+			$this->assertNotFalse( $position );
+			$this->assertGreaterThan( $last_position, $position );
+			$last_position = $position;
+		}
+
+		// Every chip carries the shared gating/running/duration bindings.
+		$this->assertSame(
+			9,
+			substr_count( $markup, 'data-wp-bind--disabled="state.devtoolsSurfChipDisabled"' )
+		);
+		$this->assertSame(
+			9,
+			substr_count( $markup, 'data-wp-class--is-running="state.devtoolsSurfChipRunning"' )
+		);
+		$this->assertSame(
+			9,
+			substr_count( $markup, 'data-wp-style----chip-dur="state.devtoolsSurfChipDurationCss"' )
+		);
+
+		// Only moveOn carries the caution modifier class.
+		$this->assertStringContainsString(
+			'class="bsb-devtools__chip bsb-devtools__chip--caution" data-devtools-behavior="moveOn"',
+			$markup
+		);
+		$this->assertSame( 1, substr_count( $markup, 'bsb-devtools__chip--caution' ) );
+	}
+
+	/**
+	 * The Surf group renders no chips at all when no behavior keys are
+	 * supplied, rather than erroring — defensive against a missing/malformed
+	 * `behavior_keys` value.
+	 */
+	public function test_render_surf_group_renders_no_chips_when_behavior_keys_is_absent(): void {
+		$markup = ( new DevToolsPanelView() )->render();
+
+		$this->assertStringNotContainsString( 'data-devtools-behavior', $markup );
+		$this->assertStringContainsString( 'class="bsb-devtools__chips">', $markup );
+	}
+
+	/**
 	 * Every raw label handed to the view is escaped into its slot.
 	 */
 	public function test_render_escapes_the_supplied_labels(): void {
 		$markup = ( new DevToolsPanelView() )->render(
 			array(
-				'dev_label'     => '<b>DEV</b>',
-				'eyebrow_label' => '<script>Dev tools</script>',
-				'armed_label'   => '<i>Override active</i>',
-				'reset_label'   => '"Reset"',
-				'close_label'   => '"Close"',
-				'level_label'   => '"Battery level override"',
+				'dev_label'              => '<b>DEV</b>',
+				'eyebrow_label'          => '<script>Dev tools</script>',
+				'armed_label'            => '<i>Override active</i>',
+				'reset_label'            => '"Reset"',
+				'close_label'            => '"Close"',
+				'level_label'            => '"Battery level override"',
+				'surf_label'             => '<b>Surf</b>',
+				'sterile_hint_label'     => '<script>sterile</script>',
+				'auction_override_label' => '"Auction override"',
+				'page_prev_label'        => '"Previous course page"',
 			)
 		);
 
@@ -296,5 +447,16 @@ final class DevToolsPanelViewTest extends TestCase {
 		$this->assertStringContainsString( 'aria-label="&quot;Reset&quot;"', $markup );
 		$this->assertStringContainsString( 'aria-label="&quot;Close&quot;"', $markup );
 		$this->assertStringContainsString( 'aria-label="&quot;Battery level override&quot;"', $markup );
+		$this->assertStringNotContainsString( '<b>Surf</b>', $markup );
+		$this->assertStringContainsString( '&lt;b&gt;Surf&lt;/b&gt;', $markup );
+		$this->assertStringNotContainsString( '<script>sterile</script>', $markup );
+		$this->assertStringContainsString(
+			'aria-label="&quot;Auction override&quot;"',
+			$markup
+		);
+		$this->assertStringContainsString(
+			'aria-label="&quot;Previous course page&quot;"',
+			$markup
+		);
 	}
 }

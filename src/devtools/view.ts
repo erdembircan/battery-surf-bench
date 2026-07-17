@@ -8,7 +8,7 @@
  * Thin composition root, same convention as the cockpit's own {@link
  * ../cockpit/view}: fold each dev-tool's store part into one `mergeStoreParts`
  * call and join the existing namespace, so the panel shares the exact same
- * reactive `state` the cockpit reads and writes. A third tool is a new
+ * reactive `state` the cockpit reads and writes. A fourth tool is a new
  * StorePart folded in here, not a rework.
  */
 
@@ -17,6 +17,7 @@ import { mergeStoreParts } from '../cockpit/StoreParts';
 import { devtoolsShellStore, hydrateDevtools } from './DevtoolsStore';
 import { batteryOverrideStore } from './BatteryOverrideStore';
 import { dischargeSimStore } from './DischargeSimStore';
+import { surfSteerStore } from './SurfSteerStore';
 import { resetStore } from './ResetStore';
 
 store(
@@ -25,6 +26,7 @@ store(
 		devtoolsShellStore,
 		batteryOverrideStore,
 		dischargeSimStore,
+		surfSteerStore,
 		resetStore
 	)
 );

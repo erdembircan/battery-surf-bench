@@ -15,7 +15,6 @@ use WP_Post;
 use WP_Query;
 
 use function __return_empty_string;
-use function absint;
 use function add_action;
 use function add_filter;
 use function count;
@@ -185,6 +184,13 @@ class CourseRouter implements Manager {
 	 * pared down, or anything in between. An empty order (a site owner
 	 * removed every page) resolves to nothing rather than dividing by zero.
 	 *
+	 * The index is read as a signed integer (never `absint()`, which would
+	 * discard the sign rather than wrap it) and normalized with a proper
+	 * positive modulo: PHP's own `%` operator keeps the dividend's sign, so a
+	 * negative index (the dev-tools Surf tool's page stepper can send one,
+	 * walking backwards from index 0) would otherwise resolve to the wrong
+	 * entry instead of wrapping to the order's last one.
+	 *
 	 * @return CoursePage|null The resolved course page, or null when the saved order is empty or the entry no longer resolves.
 	 */
 	private function resolve_indexed_page(): ?CoursePage {
@@ -195,7 +201,8 @@ class CourseRouter implements Manager {
 			return null;
 		}
 
-		$index = absint( get_query_var( $this->index_param ) ) % $count;
+		$raw   = (int) get_query_var( $this->index_param );
+		$index = ( ( $raw % $count ) + $count ) % $count;
 		$entry = $order[ $index ];
 
 		return 'bundled' === $entry['kind']

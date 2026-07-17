@@ -49,4 +49,33 @@ describe( 'withSurferParams', () => {
 		);
 		expect( new URL( url ).searchParams.get( 'bsbSpeed' ) ).toBe( '1' );
 	} );
+
+	it( 'omits bsbSterile entirely when not sterile (the default)', () => {
+		const url = withSurferParams(
+			'https://example.test/article-1',
+			[ 5, 5, 5, 5, 5 ],
+			1
+		);
+		expect( new URL( url ).searchParams.has( 'bsbSterile' ) ).toBe( false );
+
+		const explicit = withSurferParams(
+			'https://example.test/article-1',
+			[ 5, 5, 5, 5, 5 ],
+			1,
+			false
+		);
+		expect( new URL( explicit ).searchParams.has( 'bsbSterile' ) ).toBe(
+			false
+		);
+	} );
+
+	it( 'appends bsbSterile=1 when sterile', () => {
+		const url = withSurferParams(
+			'https://example.test/article-1',
+			[ 5, 5, 5, 5, 5 ],
+			1,
+			true
+		);
+		expect( new URL( url ).searchParams.get( 'bsbSterile' ) ).toBe( '1' );
+	} );
 } );

@@ -68,6 +68,14 @@ export interface CockpitContext {
 	archetypeLabels: Record< string, string >;
 	running: boolean;
 	compact: boolean;
+	/**
+	 * Whether the live (or just-started) run is sterile: the dev-tools Surf
+	 * tool's "Sterile" override, snapshotted from `state.devtools?.surf?.sterile`
+	 * at run start only (see `RunStore.toggleRun`) — arming or disarming the
+	 * tool mid-run never affects an already-live run. Drives `currentSrc`'s
+	 * `bsbSterile=1` param, the status chip, and `stopRun`'s persist skip.
+	 */
+	sterile: boolean;
 	soundEnabled: boolean;
 	elapsed: number;
 	targetPercent: number;

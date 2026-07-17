@@ -134,8 +134,16 @@ $ease: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 // ── Expanded state — the field card ──────────────────────────────────────────
+// A third tool (Surf, with its 9-chip grid) makes the card genuinely taller
+// than a typical viewport can show while anchored `bottom: 1.5rem` — without
+// a height cap the card grows upward past the top of the screen, taking its
+// own header (Close, Reset) off-screen with it. Capped and flex-columned so
+// only the body scrolls; the header and divider stay pinned and reachable.
 .bsb-devtools__card {
 	width: 272px;
+	max-height: calc(100vh - 8.5rem);
+	display: flex;
+	flex-direction: column;
 	border-radius: 16px;
 	background: theme.$coastal-surface;
 	border: 1px solid theme.$coastal-line;
@@ -147,6 +155,7 @@ $ease: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .bsb-devtools__card-header {
+	flex: 0 0 auto;
 	display: flex;
 	align-items: center;
 	gap: 0.6rem;
@@ -266,13 +275,20 @@ $ease: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .bsb-devtools__card-divider {
+	flex: 0 0 auto;
 	height: 1px;
 	background: theme.$coastal-line;
 }
 
 // The card body: breathing room around one bounded group per sub-tool.
-// Stacked with a gap that already supports a second tool's container.
+// Stacked with a gap that already supports more than one tool's container.
+// The only scrolling region in the card (see `.bsb-devtools__card`'s own
+// height cap) — `min-height: 0` is required for a flex child to actually
+// shrink below its content size and let `overflow-y` engage.
 .bsb-devtools__card-body {
+	flex: 1 1 auto;
+	min-height: 0;
+	overflow-y: auto;
 	display: flex;
 	flex-direction: column;
 	gap: 0.7rem;
@@ -632,4 +648,231 @@ $ease: cubic-bezier(0.22, 1, 0.36, 1);
 .bsb-devtools__sim-toggle:not(.is-running) .bsb-devtools__sim-toggle-text--start,
 .bsb-devtools__sim-toggle.is-running .bsb-devtools__sim-toggle-text--stop {
 	display: inline;
+}
+
+// ── Surf group — Natural/Sterile seg, hint, page stepper, behavior chips ────
+
+// The sterile choice selects in coral — it is an armed override, not a
+// product mode, unlike every other seg option's teal-deep selection.
+.bsb-devtools__seg-option--sterile.is-selected {
+	background: theme.$coastal-coral-deep;
+}
+
+// The hint line explaining what the current seg choice does.
+.bsb-devtools__hint {
+	font-size: 11px;
+	line-height: 1.45;
+	color: theme.$coastal-ink-soft;
+}
+
+// One label per seg state; the `is-sterile` class (set on the paragraph
+// itself, the same CSS-swap technique the sim toggle's Start/Stop spans
+// already use above) decides which shows — translated strings can't be
+// swapped client-side, since JS `__()` extraction is not wired for this
+// project.
+.bsb-devtools__hint-text {
+	display: none;
+}
+
+.bsb-devtools__hint:not(.is-sterile) .bsb-devtools__hint-text--natural,
+.bsb-devtools__hint.is-sterile .bsb-devtools__hint-text--sterile {
+	display: inline;
+}
+
+// The page stepper's affordance-glyph readout: a small mono glyph string
+// (▤ text, ▦ images, ▶ video, concatenated, or — when there is no live
+// sterile page) — the only page identity the client is allowed to leak,
+// since it only ever knows the opaque course index.
+.bsb-devtools__stepper-readout--glyphs {
+	font-family: theme.$font-mono;
+	letter-spacing: 0.1em;
+}
+
+// The chip grid: two columns, each cell free to shrink so a long key still
+// fits without overflowing the card.
+.bsb-devtools__chips {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 0.4rem;
+}
+
+.bsb-devtools__chip {
+	position: relative;
+	overflow: hidden;
+	display: flex;
+	align-items: center;
+	gap: 0.3rem;
+	min-width: 0;
+	appearance: none;
+	border: 0;
+	cursor: pointer;
+	padding: 0.42rem 0.34rem;
+	border-radius: 8px;
+	background: #fff;
+	color: theme.$coastal-navy;
+	box-shadow: 0 1px 3px rgba(31, 58, 95, 0.18);
+	font-family: theme.$font-mono;
+	font-size: 9.5px;
+	font-weight: 700;
+	letter-spacing: -0.01em;
+	text-align: left;
+	white-space: nowrap;
+	transition:
+		background 0.18s ease,
+		color 0.18s ease,
+		opacity 0.18s ease;
+
+	&:hover:not(:disabled):not(.is-running) {
+		background: theme.$coastal-teal;
+		color: #fff;
+
+		.bsb-devtools__chip-ico {
+			background: #fff;
+		}
+	}
+
+	&:focus-visible {
+		outline: 2px solid theme.$coastal-teal;
+		outline-offset: 2px;
+	}
+
+	// No live sterile page, or another behavior already running — the plain
+	// disabled look.
+	&:disabled {
+		cursor: not-allowed;
+		opacity: 0.4;
+		box-shadow: none;
+	}
+
+	// Affordance-gated on the current page specifically (this chip's own
+	// hard gate failing, distinct from "nothing to steer at all" or "busy")
+	// — dimmed with a strike through the key.
+	&.is-gated {
+		text-decoration: line-through;
+		text-decoration-thickness: 1px;
+	}
+
+	// Running: the chip becomes its own little tide pool, the fill draining
+	// as the announced duration elapses.
+	&.is-running {
+		color: theme.$coastal-navy;
+		background: #fff;
+		box-shadow: inset 0 0 0 1.5px theme.$coastal-teal-deep;
+
+		.bsb-devtools__chip-ico {
+			background: theme.$coastal-teal-deep;
+		}
+	}
+
+	// moveOn: coral throughout — it navigates the course, everything else
+	// stays on the page.
+	&--caution {
+		.bsb-devtools__chip-ico {
+			background: theme.$coastal-coral-deep;
+		}
+
+		&:hover:not(:disabled):not(.is-running) {
+			background: theme.$coastal-coral;
+		}
+
+		&.is-running {
+			box-shadow: inset 0 0 0 1.5px theme.$coastal-coral-deep;
+
+			.bsb-devtools__chip-tide {
+				background: linear-gradient(180deg, #ffd9cd, #ffbfae);
+				border-top-color: rgba(239, 90, 58, 0.45);
+			}
+		}
+	}
+
+	// One rule per behavior key, feeding the icon span's mask via a custom
+	// property — the same technique the cockpit bark uses for its own icon
+	// selection (`[data-bark='…'] { --bark-icon: … }`). readPause,
+	// glanceBack, watchVideo, lingerImage and selectSnippet reuse the
+	// existing bark icon set; moveOn reuses its own bark icon too. scrollBurst,
+	// fidgetWiggle and microScroll get icons of their own — they never bark
+	// (mechanical, frequent behaviors), so no bark icon exists to reuse.
+	&[data-devtools-behavior='scrollBurst'] {
+		--chip-icon: #{theme.$icon-scroll-flick};
+	}
+
+	&[data-devtools-behavior='readPause'] {
+		--chip-icon: #{theme.$icon-book};
+	}
+
+	&[data-devtools-behavior='glanceBack'] {
+		--chip-icon: #{theme.$icon-glance-back};
+	}
+
+	&[data-devtools-behavior='watchVideo'] {
+		--chip-icon: #{theme.$icon-play};
+	}
+
+	&[data-devtools-behavior='lingerImage'] {
+		--chip-icon: #{theme.$icon-picture};
+	}
+
+	&[data-devtools-behavior='fidgetWiggle'] {
+		--chip-icon: #{theme.$icon-fidget-wiggle};
+	}
+
+	&[data-devtools-behavior='microScroll'] {
+		--chip-icon: #{theme.$icon-micro-scroll};
+	}
+
+	&[data-devtools-behavior='selectSnippet'] {
+		--chip-icon: #{theme.$icon-text-cursor};
+	}
+
+	&[data-devtools-behavior='moveOn'] {
+		--chip-icon: #{theme.$icon-wave};
+	}
+}
+
+.bsb-devtools__chip-ico {
+	position: relative;
+	z-index: 2;
+	flex: none;
+	width: 0.72rem;
+	height: 0.72rem;
+	background: theme.$coastal-teal-deep;
+	mask: var(--chip-icon) center / contain no-repeat;
+	-webkit-mask: var(--chip-icon) center / contain no-repeat;
+	transition: background 0.18s ease;
+}
+
+.bsb-devtools__chip-key {
+	position: relative;
+	z-index: 2;
+}
+
+// Sits behind the icon/key (z-index 1 vs. their 2), full-size but translated
+// fully out of view until `.is-running` arms its drain animation, fed the
+// announced duration via the `--chip-dur` custom property. Class add/remove
+// (never a bare duration/property tweak on an already-running chip, since a
+// steer is strictly sequential) is what triggers a fresh restart each time —
+// no generation-alternation trick needed here, unlike the bark's own tide
+// (see `../cockpit/style.scss`), whose "entering" state can stay applied
+// across two consecutive same-duration barks.
+.bsb-devtools__chip-tide {
+	position: absolute;
+	inset: 0;
+	z-index: 1;
+	transform: translateY(100%);
+}
+
+.bsb-devtools__chip.is-running .bsb-devtools__chip-tide {
+	animation: bsb-devtools-chip-ebb var(--chip-dur, 2000ms) linear forwards;
+	background: linear-gradient(180deg, #c7eaf3, #a8d5df);
+	border-top: 2px solid rgba(28, 126, 150, 0.45);
+}
+
+@keyframes bsb-devtools-chip-ebb {
+	from {
+		transform: translateY(0);
+	}
+
+	to {
+		transform: translateY(100%);
+	}
 }

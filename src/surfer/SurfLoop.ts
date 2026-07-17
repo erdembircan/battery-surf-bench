@@ -20,9 +20,10 @@ import type { Rng } from './Rng';
 import type { Affordances } from './Affordances';
 import { Appetite } from './Appetite';
 import { pickBehavior } from './Arbiter';
-import { MOVE_ON_KEY } from './Behaviors/MoveOn';
+import { MOVE_ON_KEY, MOVE_ON_DISPLAY_MS } from './Behaviors/MoveOn';
 import { tickIntervalMs } from './Tempo';
 import { MAX } from '../shared/SurferStats';
+import { buildBehaviorContext } from './PageSense';
 
 /** Boredom gained per tick at zero endurance. */
 const BOREDOM_RATE = 0.04;
@@ -34,11 +35,11 @@ const ENDURANCE_DAMP = 0.85;
 const SETTLE_MS_MIN = 1000;
 const SETTLE_MS_MAX = 3000;
 
-/**
- * moveOn leaves immediately so it has no dwell; this is a fixed short display
- * so its "paddling off" quip is visible during the page swap.
- */
-export const MOVE_ON_DISPLAY_MS = 2500;
+// Re-exported so existing importers (this module's own tests, `SterileHelm`)
+// keep a single source for the auction's fixed moveOn display duration —
+// see `./Behaviors/MoveOn`, which now owns the constant since it describes
+// that behavior's own display, not the loop's.
+export { MOVE_ON_DISPLAY_MS };
 
 export interface SurfLoopDeps {
 	behaviors: Behavior[];
@@ -90,15 +91,7 @@ export class SurfLoop {
 	}
 
 	private context(): BehaviorContext {
-		const { traits, senseAffordances, rng, clock, speed } = this.deps;
-		return {
-			traits,
-			affordances: senseAffordances(),
-			rng,
-			clock,
-			speed,
-			elapsedMs: ( clock.now() - this.startedAt ) * speed,
-		};
+		return buildBehaviorContext( this.deps, this.startedAt );
 	}
 
 	private async loop(): Promise< void > {

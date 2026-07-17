@@ -66,6 +66,13 @@ export interface InstanceState {
 	barkLeaveTimer: number | null;
 	/** The viewport load-watchdog timeout id while a navigation is pending, or null. */
 	loadWatchdog: number | null;
+	/**
+	 * The last `state.devtools.surf.pageStep` sequence this run has already
+	 * applied to `context.activeIndex`, or null before any has been consumed.
+	 * Lets `RunStore.syncDevtoolsSurf` tell a fresh page-jump command from one
+	 * it already acted on, even a repeat of the same delta.
+	 */
+	sterilePageStepSeq: number | null;
 }
 
 /**
@@ -92,6 +99,7 @@ const runInstance: InstanceState = {
 	barkDurationTimer: null,
 	barkLeaveTimer: null,
 	loadWatchdog: null,
+	sterilePageStepSeq: null,
 };
 
 /**
@@ -119,6 +127,7 @@ export const __resetInstance = (): void => {
 	runInstance.barkDurationTimer = null;
 	runInstance.barkLeaveTimer = null;
 	runInstance.loadWatchdog = null;
+	runInstance.sterilePageStepSeq = null;
 };
 
 /**

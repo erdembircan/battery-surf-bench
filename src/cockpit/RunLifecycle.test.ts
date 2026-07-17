@@ -38,6 +38,7 @@ const context = (): CockpitContext =>
 		soundEnabled: false,
 		elapsed: 1800,
 		running: true,
+		sterile: false,
 		ended: false,
 		endReason: '',
 		flipped: false,
@@ -82,6 +83,8 @@ const instance = ( session: RunSession ): InstanceState =>
 		pendingDurationMs: null,
 		barkDurationTimer: null,
 		barkLeaveTimer: null,
+		loadWatchdog: null,
+		sterilePageStepSeq: null,
 	} ) as InstanceState;
 
 describe( 'stopRun persistence', () => {
@@ -117,6 +120,30 @@ describe( 'stopRun persistence', () => {
 		stopRun( context(), instance( new RunSession() ), 'stopped' );
 
 		expect( globalThis.fetch ).not.toHaveBeenCalled();
+	} );
+
+	it( 'never uploads a sterile run, even one that recorded samples — a sterilized test run is not a benchmark', () => {
+		const session = new RunSession();
+		session.start( 0 );
+		session.record( 0, 0.82, false );
+		session.record( 600000, 0.7, false );
+		const ctx = { ...context(), sterile: true };
+
+		stopRun( ctx, instance( session ), 'stopped' );
+
+		expect( globalThis.fetch ).not.toHaveBeenCalled();
+	} );
+
+	it( 'still uploads a natural (non-sterile) run that recorded samples', () => {
+		const session = new RunSession();
+		session.start( 0 );
+		session.record( 0, 0.82, false );
+		session.record( 600000, 0.7, false );
+		const ctx = { ...context(), sterile: false };
+
+		stopRun( ctx, instance( session ), 'stopped' );
+
+		expect( globalThis.fetch ).toHaveBeenCalledTimes( 1 );
 	} );
 
 	it( 'uploads a run the viewport load guard cut short, same as any other reason', () => {

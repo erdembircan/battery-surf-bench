@@ -11,15 +11,22 @@ classDiagram
     direction LR
 
     %% --- Boot: the classic script the course router enqueues on every course
-    %% page. Boots the engine only when the traits URL param is present.
+    %% page. Boots the engine only when the traits URL param is present. When
+    %% the bsbSterile=1 param is ALSO present, builds and starts a SterileHelm
+    %% instead of a SurfLoop — the auction never ticks; every other dep
+    %% (motor, behaviors, traits, senseAffordances, speed, the shared
+    %% onPageDone/onBehaviorRun callbacks) is identical either way.
     class EngineBoot {
         <<module>>
-        boot guard on the traits URL param; builds and starts SurfLoop once
-        the document has loaded; posts 'bsb:pageDone' to the parent frame
-        when the page's session ends; posts 'bsb:behaviorStart' with the
-        winner's key and its announced wall-clock durationMs once, each time
-        a behavior begins running (including MoveOn, with a fixed display
-        duration)
+        boot guard on the traits URL param; builds and starts SurfLoop (or,
+        when bsbSterile=1, a SterileHelm instead) once the document has
+        loaded; posts 'bsb:pageDone' to the parent frame when the page's
+        session ends; posts 'bsb:behaviorStart' with the winner's key and its
+        announced wall-clock durationMs once, each time a behavior begins
+        running (including MoveOn, with a fixed display duration); the
+        sterile path additionally posts 'bsb:behaviorEnd' once a steered
+        behavior's run() resolves, and 'bsb:pageAffordances' once, at
+        readiness
     }
 
     %% --- Orchestration: the tick loop and its inputs.
@@ -34,6 +41,20 @@ classDiagram
     %% string table decides what barks and its own timers own the pill's
     %% full-duration hold, so no re-notification/heartbeat exists.
     class SurfLoop {
+        +start() void
+        +stop() void
+    }
+
+    %% --- Sterile run: no auction, no tick loop, no boredom/appetite. Each
+    %% behavior is instead fired on demand by a 'bsb:steerBehavior' command
+    %% from the dev-tools panel, strictly sequential (a steer arriving while
+    %% one is still running is ignored). A steered moveOn mirrors the loop's
+    %% own natural end exactly — announces MOVE_ON_DISPLAY_MS, posts
+    %% 'bsb:behaviorEnd', fires onPageDone immediately — never runs an actual
+    %% behavior. Every other steered behavior runs through its own run(),
+    %% wired to announce/onBehaviorRun the same way the loop wires it; once
+    %% run() resolves, posts 'bsb:behaviorEnd'.
+    class SterileHelm {
         +start() void
         +stop() void
     }
@@ -69,6 +90,15 @@ classDiagram
     class BehaviorAnnounce {
         <<types>>
         (durationMs) =&gt; void
+    }
+
+    %% --- Shared context-building: senses affordances fresh and derives
+    %% elapsedMs from a clock and a reference start time. Used by BOTH
+    %% SurfLoop's own tick loop and SterileHelm's steer handler, so the two
+    %% engine paths can never sense the page differently.
+    class PageSense {
+        <<module>>
+        +buildBehaviorContext(deps, startedAt) BehaviorContext
     }
 
     %% --- Sensing, motion and time seams the behaviors act through.
@@ -247,7 +277,8 @@ classDiagram
     DomMotor ..|> Motor
     RealClock ..|> Clock
 
-    EngineBoot --> SurfLoop : builds deps & starts
+    EngineBoot --> SurfLoop : builds deps & starts (bsbSterile absent)
+    EngineBoot --> SterileHelm : builds deps & starts (bsbSterile=1)
     EngineBoot --> PageLoad : gates start on document load
     EngineBoot --> DomMotor : creates
     DomMotor --> FakeCursor : creates & owns (composition)
@@ -260,6 +291,7 @@ classDiagram
     EngineBoot --> RunConfig : normalizeSpeed
     EngineBoot ..> RunStore : postMessage 'bsb:pageDone'
     EngineBoot ..> BarkStore : postMessage 'bsb:behaviorStart' ({key, durationMs})
+    EngineBoot ..> SurfSteerStore : postMessage 'bsb:behaviorEnd' ({key}), 'bsb:pageAffordances' ({affordances}) — sterile path only
 
     SurfLoop --> Behavior : bids & runs each tick
     SurfLoop --> Arbiter : draws a winner
@@ -268,8 +300,14 @@ classDiagram
     SurfLoop --> Clock : waits between ticks
     SurfLoop --> Rng : seeded randomness
     SurfLoop --> Tempo : tick interval from tempo
-    SurfLoop ..> BehaviorContext : builds each tick
+    SurfLoop --> PageSense : builds each tick's BehaviorContext
     SurfLoop --> MoveOn : recognizes its key to halt & fire onPageDone
+
+    SterileHelm --> Behavior : runs the steered behavior once
+    SterileHelm --> Motor : passes to the steered behavior
+    SterileHelm --> PageSense : builds the steered behavior's BehaviorContext
+    SterileHelm --> MoveOn : recognizes its key to mirror the loop's natural end
+    SterileHelm ..> SurfSteerStore : listens for 'bsb:steerBehavior' ({key}) posted by the panel
 
     ReadPause --> Bid : drive & noise
     GlanceBack --> Bid : drive & noise
@@ -312,4 +350,11 @@ classDiagram
         durationMs) while running and raises a bark held for the announced
         wall-clock duration (a key with no translated strings is silently
         ignored)
+    }
+
+    class SurfSteerStore {
+        <<module>>
+        dev-tools panel store part — posts 'bsb:steerBehavior' ({key}) to the
+        viewport iframe's contentWindow; recognizes 'bsb:behaviorEnd' and
+        'bsb:pageAffordances' to drive the panel's chip gating/countdown
     }

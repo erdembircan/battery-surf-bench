@@ -44,6 +44,10 @@ final class CockpitViewTest extends TestCase {
 		// reads an undefined `state.devtools` once and never fires again) but
 		// present regardless, so the module can join later with no markup change.
 		$this->assertStringContainsString( 'data-wp-watch---devtools-battery="callbacks.syncBatteryOverride"', $markup );
+		// The dev-tools Surf seam: same "inert but present" contract as the
+		// battery watch above, applying the panel's page-step commands and
+		// clearing its affordances once a sterile run is no longer live.
+		$this->assertStringContainsString( 'data-wp-watch---devtools-surf="callbacks.syncDevtoolsSurf"', $markup );
 		$this->assertStringContainsString( 'data-wp-class--is-compact="state.isCompact"', $markup );
 		// The deck is hidden by default (the stylesheet's base state) and revealed
 		// by the client adding this class once a run is live or the card is flipped.
@@ -336,6 +340,31 @@ final class CockpitViewTest extends TestCase {
 	}
 
 	/**
+	 * The status-head "Sterile" chip and its coral status-dot binding appear
+	 * in BOTH renderings of `$status_head` — the deck's own pill and the
+	 * compact topbar — since both interpolate the same snippet. Hidden unless
+	 * the production `isSterileRun` getter is true.
+	 */
+	public function test_render_wires_the_sterile_status_chip_in_both_status_heads(): void {
+		$markup = $this->render();
+
+		$this->assertSame(
+			2,
+			substr_count(
+				$markup,
+				'data-wp-class--is-sterile="state.isSterileRun"'
+			)
+		);
+		$this->assertSame(
+			2,
+			substr_count(
+				$markup,
+				'class="bsb-deck__sterile-chip" hidden data-wp-bind--hidden="!state.isSterileRun">Sterile</span>'
+			)
+		);
+	}
+
+	/**
 	 * Dark mode is disabled: the deck renders no theme switcher and the region
 	 * binds no theme, so the cockpit shows the light palette only and nothing
 	 * reads or writes a stored theme preference.
@@ -423,6 +452,7 @@ final class CockpitViewTest extends TestCase {
 				'tte_label'            => '100% → 0%',
 				'target_short_label'   => 'Target',
 				'surfing_label'        => 'Surfing',
+				'sterile_label'        => 'Sterile',
 				'elapsed_label'        => 'elapsed',
 				'remaining_label'      => 'left',
 				'start_label'          => 'Start',

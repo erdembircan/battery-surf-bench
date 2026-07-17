@@ -263,15 +263,17 @@ test.describe( 'Dev-tools battery-override panel', () => {
 	test( 'a persisted level override positions the slider thumb after a reload', async ( {
 		page,
 	} ) => {
-		// Seed the persisted devtools slice (the current v4 shape — `open` and
-		// `battery` only, no discharge-sim fields) before any module runs, as a
-		// prior session would have left it.
+		// Seed the persisted devtools slice (the current v5 shape — `open`,
+		// `battery` and the Surf tool's armed `sterile` flag, no runtime or
+		// discharge-sim fields) before any module runs, as a prior session
+		// would have left it.
 		await page.addInitScript( () => {
 			window.localStorage.setItem(
-				'bsb-devtools-v4',
+				'bsb-devtools-v5',
 				JSON.stringify( {
 					open: true,
 					battery: { charging: null, level: 0.3 },
+					surf: { sterile: false },
 				} )
 			);
 		} );
@@ -298,14 +300,15 @@ test.describe( 'Dev-tools battery-override panel', () => {
 		expect( await page.content() ).not.toMatch( PHP_NOTICE );
 	} );
 
-	test( 'a value stored under an old (pre-Milestone-3) key is ignored', async ( {
+	test( 'a value stored under an old (pre-sterile-surf) key is ignored', async ( {
 		page,
 	} ) => {
 		// The v1 shape carried a now-removed `enabled` flag; the v2 shape had no
 		// `sim` field at all; the v3 shape carried a `sim` field the panel would
-		// resume a running sim from. The current code reads only
-		// `bsb-devtools-v4`, so every stale blob is never looked up — the panel
-		// starts fresh at its defaults instead of inheriting anything from them.
+		// resume a running sim from; the v4 shape carried no `surf` field at
+		// all. The current code reads only `bsb-devtools-v5`, so every stale
+		// blob is never looked up — the panel starts fresh at its defaults
+		// instead of inheriting anything from them.
 		await page.addInitScript( () => {
 			window.localStorage.setItem(
 				'bsb-devtools-v1',
@@ -333,6 +336,13 @@ test.describe( 'Dev-tools battery-override panel', () => {
 						running: true,
 						startedAt: Date.now() - 60_000,
 					},
+				} )
+			);
+			window.localStorage.setItem(
+				'bsb-devtools-v4',
+				JSON.stringify( {
+					open: true,
+					battery: { charging: true, level: 0.9 },
 				} )
 			);
 		} );
@@ -374,17 +384,18 @@ test.describe( 'Dev-tools battery-override panel', () => {
 			.poll( () =>
 				page.evaluate(
 					( key ) => window.localStorage.getItem( key ),
-					'bsb-devtools-v4'
+					'bsb-devtools-v5'
 				)
 			)
 			.not.toBeNull();
 		const stored = await page.evaluate(
 			( key ) => window.localStorage.getItem( key ),
-			'bsb-devtools-v4'
+			'bsb-devtools-v5'
 		);
 		const parsed = JSON.parse( stored ?? '{}' );
 		expect( parsed ).not.toHaveProperty( 'sim' );
 		expect( parsed.battery ).toEqual( { charging: null, level: null } );
+		expect( parsed.surf ).toEqual( { sterile: false } );
 
 		await page.reload();
 
@@ -473,7 +484,12 @@ test.describe( 'Dev-tools battery-override panel', () => {
 			await minutesDecrease.click();
 		}
 
-		const countdown = page.locator( '.bsb-devtools__group-countdown' );
+		// The Surf group carries its own `.bsb-devtools__group-countdown` too
+		// (same class, different getters), so scope this to the Discharge
+		// group specifically via its own text getter binding.
+		const countdown = page.locator(
+			'[data-wp-text="state.devtoolsSimRemainingDisplay"]'
+		);
 		await expect( countdown ).toBeHidden();
 
 		const toggle = page.locator( '.bsb-devtools__sim-toggle' );
