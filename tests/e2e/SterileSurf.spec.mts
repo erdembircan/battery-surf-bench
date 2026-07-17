@@ -128,6 +128,12 @@ test.describe( 'Dev-tools Surf group', () => {
 		).toBeDisabled();
 		await expect( sterileSeg ).toBeDisabled();
 
+		// A disabled seg still shows which choice is active: locking the seg
+		// must never make the run's own already-armed Sterile choice look
+		// deselected.
+		await expect( sterileSeg ).toHaveClass( /is-selected/ );
+		await expect( sterileSeg ).toBeVisible();
+
 		// The chips start disabled (no affordances yet) and enable once the
 		// sterile page posts them at readiness.
 		const scrollBurstChip = page.locator(

@@ -384,12 +384,23 @@ $ease: cubic-bezier(0.22, 1, 0.36, 1);
 		box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25);
 	}
 
+	// A disabled seg option (the Natural/Sterile lock while a run is live)
+	// still must show which choice is active — only interaction is removed,
+	// never the selected appearance. So the mute (reduced opacity, hover
+	// reverting to the resting ink) applies only to the disabled option that
+	// is NOT selected; `.is-selected` keeps its full teal/coral fill and
+	// opacity regardless of `:disabled`, and this block is declared after
+	// `.is-selected` (equal specificity) so a disabled+selected element's
+	// unqualified `cursor` still applies without the opacity/hover mute.
 	&:disabled {
 		cursor: not-allowed;
-		opacity: 0.6;
 
-		&:hover {
-			color: theme.$coastal-ink-soft;
+		&:not(.is-selected) {
+			opacity: 0.6;
+
+			&:hover {
+				color: theme.$coastal-ink-soft;
+			}
 		}
 	}
 }
