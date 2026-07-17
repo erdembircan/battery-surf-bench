@@ -256,6 +256,8 @@ export class DomMotor implements Motor {
 	private activeVideo: VideoControl | null = null;
 	/** Unsubscribes `activeVideo`'s `onEnded` auto-replay; cleared alongside it. */
 	private activeVideoEndedUnsubscribe: ( () => void ) | null = null;
+	/** The element `activeVideo` was built from, so `stopVideo` can click it too. */
+	private activeVideoElement: Element | null = null;
 
 	/**
 	 * @param rng
@@ -359,6 +361,7 @@ export class DomMotor implements Motor {
 			this.rng,
 			msToFrames( SNIPPET_APPROACH_MS )
 		);
+		this.cursor.setMode( 'caret' );
 
 		const range = el.ownerDocument.createRange();
 		range.setStart( textNode, 0 );
@@ -385,6 +388,7 @@ export class DomMotor implements Motor {
 		}
 
 		selection.removeAllRanges();
+		this.cursor.setMode( 'arrow' );
 	}
 
 	async playVideo(): Promise< void > {
@@ -413,6 +417,8 @@ export class DomMotor implements Motor {
 			this.jitteredPointOn( target.getBoundingClientRect() ),
 			this.rng
 		);
+		this.cursor.setMode( 'hand' );
+		await this.cursor.click();
 
 		// Unsubscribe and dispose any control from a prior watch cycle before
 		// replacing it — otherwise its message listener (for a YouTube embed)
@@ -422,6 +428,7 @@ export class DomMotor implements Motor {
 
 		const control = createVideoControl( target );
 		this.activeVideo = control;
+		this.activeVideoElement = target;
 		// Subscribed for as long as this control stays active: the player's
 		// own 'ended' event replays it, so a video shorter than the watch
 		// window rewatches itself with no polling from this Motor at all.
@@ -434,15 +441,27 @@ export class DomMotor implements Motor {
 	async stopVideo(): Promise< void > {
 		const control = this.activeVideo;
 		const unsubscribe = this.activeVideoEndedUnsubscribe;
+		const element = this.activeVideoElement;
 		this.activeVideo = null;
 		this.activeVideoEndedUnsubscribe = null;
+		this.activeVideoElement = null;
 
 		// Unsubscribe FIRST so a replay can never race the stop.
 		unsubscribe?.();
 
 		if ( null !== control ) {
+			if ( null !== element && hasViewportOverlap( element ) ) {
+				await this.cursor.travelTo(
+					this.jitteredPointOn( element.getBoundingClientRect() ),
+					this.rng
+				);
+				this.cursor.setMode( 'hand' );
+				await this.cursor.click();
+			}
+
 			await control.stop();
 			control.dispose();
+			this.cursor.setMode( 'arrow' );
 		}
 	}
 
@@ -719,6 +738,7 @@ export class DomMotor implements Motor {
 			framesForDistance( distance )
 		);
 		await this.cursor.travelTo( approachTarget, this.rng, travelFrames );
+		this.cursor.setMode( 'caret' );
 
 		let framesLeft = budgetFrames - travelFrames;
 		let consumed = travelFrames;
@@ -747,6 +767,8 @@ export class DomMotor implements Motor {
 				consumed += creepFrames;
 			}
 		}
+
+		this.cursor.setMode( 'arrow' );
 
 		return consumed;
 	}

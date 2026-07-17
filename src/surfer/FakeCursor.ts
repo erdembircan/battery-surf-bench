@@ -21,6 +21,28 @@ export const SURFING_CLASS = 'bsb-surfing';
 /** Stylesheet hook for the cursor element itself (styled in `src/course/style.scss`). */
 const CURSOR_CLASS = 'bsb-surf-cursor';
 
+/**
+ * The glyph the cursor currently wears: the default arrow, the I-beam caret
+ * it reads and highlights text with, or the pointing hand it clicks video
+ * players with.
+ */
+export type CursorMode = 'arrow' | 'caret' | 'hand';
+
+/** Modifier classes {@link CursorMode}'s non-default modes map onto. */
+const MODE_CLASSES: Record< Exclude< CursorMode, 'arrow' >, string > = {
+	caret: 'bsb-surf-cursor--caret',
+	hand: 'bsb-surf-cursor--hand',
+};
+
+/** Modifier class carried while a click's press animation plays. */
+const PRESSING_CLASS = 'bsb-surf-cursor--pressing';
+
+/** Class of the transient ripple element a click spawns. */
+const RIPPLE_CLASS = 'bsb-surf-click-ripple';
+
+/** Frames a click's press-and-ripple moment holds for — ~380 ms at 16 ms/frame. */
+const CLICK_FRAMES = 24;
+
 /** How far the cursor overshoots past a target before settling onto it, in px. */
 const OVERSHOOT_PX = 6;
 
@@ -133,6 +155,7 @@ export class FakeCursor {
 	private readonly el: HTMLElement;
 	private readonly nextFrame: () => Promise< void >;
 	private point: Point;
+	private currentMode: CursorMode = 'arrow';
 
 	/**
 	 * Injects the cursor element and flags the document as engine-driven.
@@ -161,6 +184,53 @@ export class FakeCursor {
 	/** The cursor's current position. */
 	get position(): Point {
 		return this.point;
+	}
+
+	/** The glyph mode the cursor currently wears. */
+	get mode(): CursorMode {
+		return this.currentMode;
+	}
+
+	/**
+	 * Swaps the cursor's glyph. The glyph itself is pure stylesheet — this
+	 * only toggles the modifier class, so the course stylesheet stays the
+	 * single owner of what each mode looks like (and where its hotspot
+	 * sits).
+	 * @param mode
+	 */
+	setMode( mode: CursorMode ): void {
+		this.el.classList.remove( MODE_CLASSES.caret, MODE_CLASSES.hand );
+
+		if ( mode !== 'arrow' ) {
+			this.el.classList.add( MODE_CLASSES[ mode ] );
+		}
+
+		this.currentMode = mode;
+	}
+
+	/**
+	 * A brief press-and-ripple click at the current position: the glyph
+	 * squashes while a ring expands from the point and fades. Resolves once
+	 * the moment has played out; the ripple element is removed here, on the
+	 * frame budget, never via `animationend` — a test's instant frames would
+	 * otherwise leak it.
+	 */
+	async click(): Promise< void > {
+		this.el.classList.add( PRESSING_CLASS );
+
+		const ripple = this.doc.createElement( 'div' );
+		ripple.className = RIPPLE_CLASS;
+		ripple.setAttribute( 'aria-hidden', 'true' );
+		ripple.style.left = `${ this.point.x }px`;
+		ripple.style.top = `${ this.point.y }px`;
+		this.doc.body.appendChild( ripple );
+
+		for ( let i = 0; i < CLICK_FRAMES; i++ ) {
+			await this.nextFrame();
+		}
+
+		ripple.remove();
+		this.el.classList.remove( PRESSING_CLASS );
 	}
 
 	/**

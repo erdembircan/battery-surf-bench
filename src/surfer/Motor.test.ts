@@ -1084,3 +1084,157 @@ describe( 'DomMotor.read', () => {
 		travelToSpy.mockRestore();
 	} );
 } );
+
+describe( 'DomMotor cursor glyph modes', () => {
+	/**
+	 * Samples the fake cursor's className and the live ripple count on every
+	 * frame, so a mode/ripple that only wears for part of a run — not just
+	 * its state at the very end — can be asserted on.
+	 */
+	const sampleCursor = (): {
+		next: () => Promise< void >;
+		classes: string[];
+		ripples: number[];
+	} => {
+		const classes: string[] = [];
+		const ripples: number[] = [];
+		return {
+			next: () => {
+				classes.push(
+					document.querySelector( '.bsb-surf-cursor' )?.className ??
+						''
+				);
+				ripples.push(
+					document.querySelectorAll( '.bsb-surf-click-ripple' ).length
+				);
+				return Promise.resolve();
+			},
+			classes,
+			ripples,
+		};
+	};
+
+	it( 'selectSnippet wears the caret mode mid-sweep and drops every modifier once cleared', async () => {
+		document.body.innerHTML = `<p>${ 'word '.repeat( 20 ) }</p>`;
+		const sampler = sampleCursor();
+
+		await new DomMotor( () => 0.1, sampler.next ).selectSnippet();
+
+		expect(
+			sampler.classes.some( ( c ) =>
+				c.includes( 'bsb-surf-cursor--caret' )
+			)
+		).toBe( true );
+
+		const cursorEl =
+			document.querySelector< HTMLElement >( '.bsb-surf-cursor' );
+		expect( cursorEl?.classList.contains( 'bsb-surf-cursor--caret' ) ).toBe(
+			false
+		);
+		expect( cursorEl?.classList.contains( 'bsb-surf-cursor--hand' ) ).toBe(
+			false
+		);
+	} );
+
+	it( 'read wears the caret mode during a traced passage and drops it once the session ends', async () => {
+		document.body.innerHTML = `<p>${ 'word '.repeat( 20 ) }</p>`;
+		const p = document.querySelector( 'p' )!;
+		p.getBoundingClientRect = () =>
+			( {
+				top: 100,
+				bottom: 200,
+				left: 50,
+				right: 450,
+				width: 400,
+				height: 100,
+			} ) as DOMRect;
+		const scrollBySpy = vi
+			.spyOn( window, 'scrollBy' )
+			.mockImplementation( () => undefined );
+		const sampler = sampleCursor();
+
+		// rng() = 0.1 always selects trace mode (0.1 < TRACE_CHANCE 0.35).
+		await new DomMotor( () => 0.1, sampler.next ).read( 5000 );
+
+		expect(
+			sampler.classes.some( ( c ) =>
+				c.includes( 'bsb-surf-cursor--caret' )
+			)
+		).toBe( true );
+
+		const cursorEl =
+			document.querySelector< HTMLElement >( '.bsb-surf-cursor' );
+		expect( cursorEl?.classList.contains( 'bsb-surf-cursor--caret' ) ).toBe(
+			false
+		);
+
+		scrollBySpy.mockRestore();
+	} );
+
+	it( 'playVideo wears the hand mode and plays a click ripple, staying in hand mode once it resolves', async () => {
+		document.body.innerHTML = '<video></video>';
+		const video = document.querySelector( 'video' ) as HTMLVideoElement;
+		video.play = vi.fn().mockResolvedValue( undefined );
+		const sampler = sampleCursor();
+
+		await new DomMotor( () => 0.5, sampler.next ).playVideo();
+
+		expect( sampler.ripples.some( ( n ) => n > 0 ) ).toBe( true );
+		const cursorEl =
+			document.querySelector< HTMLElement >( '.bsb-surf-cursor' );
+		expect( cursorEl?.classList.contains( 'bsb-surf-cursor--hand' ) ).toBe(
+			true
+		);
+	} );
+
+	it( 'stopVideo clicks a second time when the video is in-viewport, then drops the hand mode and any ripple', async () => {
+		document.body.innerHTML = '<video></video>';
+		const video = document.querySelector( 'video' ) as HTMLVideoElement;
+		video.getBoundingClientRect = () =>
+			( {
+				top: 100,
+				bottom: 300,
+				left: 50,
+				right: 450,
+				width: 400,
+				height: 200,
+			} ) as DOMRect;
+		video.play = vi.fn().mockResolvedValue( undefined );
+		video.pause = vi.fn();
+		const sampler = sampleCursor();
+		const motor = new DomMotor( () => 0.5, sampler.next );
+
+		await motor.playVideo();
+		await motor.stopVideo();
+
+		// A ripple appeared, then vanished, then appeared again — one click
+		// from playVideo's own approach, a second from stopVideo's.
+		const risingEdges = sampler.ripples.filter(
+			( n, i ) => n > 0 && ( i === 0 || sampler.ripples[ i - 1 ] === 0 )
+		).length;
+		expect( risingEdges ).toBeGreaterThanOrEqual( 2 );
+
+		const cursorEl =
+			document.querySelector< HTMLElement >( '.bsb-surf-cursor' );
+		expect( cursorEl?.classList.contains( 'bsb-surf-cursor--hand' ) ).toBe(
+			false
+		);
+		expect(
+			document.querySelectorAll( '.bsb-surf-click-ripple' )
+		).toHaveLength( 0 );
+	} );
+
+	it( 'stopVideo is a cursor-silent no-op when nothing was started', async () => {
+		document.body.innerHTML = '<video></video>';
+		const sampler = sampleCursor();
+		const motor = new DomMotor( () => 0.5, sampler.next );
+		const cursorEl =
+			document.querySelector< HTMLElement >( '.bsb-surf-cursor' );
+		const initialClass = cursorEl?.className;
+
+		await expect( motor.stopVideo() ).resolves.toBeUndefined();
+
+		expect( cursorEl?.className ).toBe( initialClass );
+		expect( sampler.ripples.every( ( n ) => n === 0 ) ).toBe( true );
+	} );
+} );

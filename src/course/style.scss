@@ -5,6 +5,10 @@
 // of those fonts. Aliased to `theme` so the call below reads the same as
 // every other `theme.$icon-*`/`theme.icon-*()` consumer.
 @use '../styles/icons' as theme;
+// Pure variables, no CSS of its own — safe to `@use` here for the same
+// reason the icons partial is, without pulling in the theme's @font-face
+// output.
+@use '../styles/palette' as palette;
 
 // Typography
 $font-serif: georgia, "Times New Roman", times, serif;
@@ -720,4 +724,68 @@ $tag-bg: #eef3f8; // light-blue tag chip
 	background-image: theme.icon-cursor($ink, $white);
 	background-size: 100% 100%;
 	background-repeat: no-repeat;
+}
+
+// Glyph modes the engine swaps onto the cursor (see FakeCursor.setMode).
+// Each mode carries its own hotspot as a margin offset: the caret's stem
+// centre and the hand's index fingertip sit exactly on the cursor's point,
+// the way the OS positions the real equivalents. The hand keeps its source
+// 448x512 aspect via `contain` instead of stretching to the square box.
+.bsb-surf-cursor--caret {
+	margin: -12px 0 0 -12px;
+	background-image: theme.icon-cursor-caret($ink, $white);
+}
+
+.bsb-surf-cursor--hand {
+	margin: 0 0 0 -9px;
+	background-image: theme.icon-cursor-hand($ink, $white);
+	background-size: contain;
+	background-position: center;
+}
+
+// The click moment (FakeCursor.click): the glyph squashes toward the
+// fingertip while a ring expands from the point and fades. The squash
+// animates the standalone `scale` property, never `transform` — the engine
+// owns `transform` for positioning and writes it every frame.
+.bsb-surf-cursor--pressing {
+	transform-origin: 9px 2px;
+	animation: bsb-cursor-press 0.28s ease-out;
+}
+
+@keyframes bsb-cursor-press {
+	0% {
+		scale: 1;
+	}
+
+	40% {
+		scale: 0.8;
+	}
+
+	100% {
+		scale: 1;
+	}
+}
+
+.bsb-surf-click-ripple {
+	position: fixed;
+	width: 12px;
+	height: 12px;
+	margin: -6px 0 0 -6px;
+	border: 2.5px solid palette.$coastal-teal-deep;
+	border-radius: 50%;
+	pointer-events: none;
+	z-index: 999999;
+	animation: bsb-click-ripple 0.4s ease-out forwards;
+}
+
+@keyframes bsb-click-ripple {
+	0% {
+		transform: scale(0.5);
+		opacity: 0.9;
+	}
+
+	100% {
+		transform: scale(3.2);
+		opacity: 0;
+	}
 }

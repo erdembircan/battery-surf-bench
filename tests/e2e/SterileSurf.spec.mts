@@ -241,4 +241,100 @@ test.describe( 'Dev-tools Surf group', () => {
 
 		expect( await page.content() ).not.toMatch( PHP_NOTICE );
 	} );
+
+	// Regression coverage for the dynamic cursor glyphs (FakeCursor.setMode):
+	// the fake cursor swaps its class as the steered behavior moves through
+	// its own choreography, not just a static arrow the whole run.
+	test( 'steering selectSnippet wears the caret cursor while it runs, then drops it once done', async ( {
+		page,
+	} ) => {
+		await page.goto( '/?bsbSession=cockpit' );
+
+		await forceDischarging( page );
+		await armSterile( page );
+		await page.locator( '.bsb-devtools__card-close' ).click();
+
+		await startFastRun( page );
+		await page.locator( '.bsb-devtools__pill' ).click();
+
+		const selectSnippetChip = page.locator(
+			'[data-devtools-behavior="selectSnippet"]'
+		);
+		await expect( selectSnippetChip ).toBeEnabled( { timeout: 15_000 } );
+
+		const cursor = page
+			.locator( 'iframe.bsb-cockpit__viewport' )
+			.contentFrame()
+			.locator( '.bsb-surf-cursor' );
+
+		await selectSnippetChip.click();
+
+		await expect( cursor ).toHaveClass( /bsb-surf-cursor--caret/, {
+			timeout: 5_000,
+		} );
+
+		// Wait for the steered behavior to resolve (bsb:behaviorEnd), then
+		// confirm the caret mode was dropped along with it.
+		await expect( selectSnippetChip ).toBeEnabled( { timeout: 15_000 } );
+		await expect( cursor ).not.toHaveClass( /bsb-surf-cursor--caret/ );
+		await expect( cursor ).not.toHaveClass( /bsb-surf-cursor--hand/ );
+
+		expect( await page.content() ).not.toMatch( PHP_NOTICE );
+	} );
+
+	test( 'steering watchVideo wears the hand cursor shortly after, without waiting out the full watch dwell', async ( {
+		page,
+	} ) => {
+		test.setTimeout( 60_000 );
+
+		await page.goto( '/?bsbSession=cockpit' );
+
+		await forceDischarging( page );
+		await armSterile( page );
+		await page.locator( '.bsb-devtools__card-close' ).click();
+
+		await startFastRun( page );
+		await page.locator( '.bsb-devtools__pill' ).click();
+
+		const scrollBurstChip = page.locator(
+			'[data-devtools-behavior="scrollBurst"]'
+		);
+		const watchVideoChip = page.locator(
+			'[data-devtools-behavior="watchVideo"]'
+		);
+		const slugReadout = page.locator(
+			'.bsb-devtools__stepper-readout--slug'
+		);
+		await expect( scrollBurstChip ).toBeEnabled( { timeout: 15_000 } );
+
+		// Step from article-1 through to the video page (the bundled
+		// catalog's default order: article-1, gallery, article-2, video,
+		// links), waiting for each page's own affordances to arrive before
+		// advancing again — the stepper itself stays disabled until they do.
+		const nextButton = page.locator( '[aria-label="Next course page"]' );
+		for ( let step = 0; step < 3; step++ ) {
+			await nextButton.click();
+			await expect( scrollBurstChip ).toBeEnabled( { timeout: 15_000 } );
+		}
+		await expect( slugReadout ).toHaveText( 'video' );
+		await expect( watchVideoChip ).toBeEnabled( { timeout: 15_000 } );
+
+		const cursor = page
+			.locator( 'iframe.bsb-cockpit__viewport' )
+			.contentFrame()
+			.locator( '.bsb-surf-cursor' );
+
+		await watchVideoChip.click();
+
+		// watchVideo's own dwell is 30-45s (halved by the 4x demo speed to
+		// ~7.5-11.25s) — asserting the hand mode arrives promptly is enough;
+		// the click ripple's own window is a few hundred ms of real wall
+		// time regardless of speed, too narrow a race to assert on reliably
+		// against a live browser, so it is deliberately left unasserted here.
+		await expect( cursor ).toHaveClass( /bsb-surf-cursor--hand/, {
+			timeout: 10_000,
+		} );
+
+		expect( await page.content() ).not.toMatch( PHP_NOTICE );
+	} );
 } );
