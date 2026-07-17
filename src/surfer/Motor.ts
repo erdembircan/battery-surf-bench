@@ -154,6 +154,67 @@ const hasViewportOverlap = ( el: Element ): boolean => {
 	return rect.bottom > 0 && rect.top < window.innerHeight;
 };
 
+/**
+ * Caret-anchored point of `textNode`'s first character: the left edge of that
+ * character's own client rect, at its vertical centre — where a user's
+ * pointer lands before dragging a selection open. Measured from a probing
+ * one-character range because a collapsed range has no client rects. `null`
+ * when the environment can't measure range geometry (e.g. jsdom) or the node
+ * has no laid-out rect — callers fall back to block-rect geometry.
+ * @param textNode
+ */
+const textStartPoint = ( textNode: Text ): Point | null => {
+	const probe = textNode.ownerDocument.createRange();
+	probe.setStart( textNode, 0 );
+	probe.setEnd( textNode, Math.min( 1, textNode.length ) );
+
+	if ( typeof probe.getClientRects !== 'function' ) {
+		return null;
+	}
+
+	const rects = probe.getClientRects();
+
+	if ( rects.length === 0 ) {
+		return null;
+	}
+
+	const first = rects[ 0 ];
+
+	if ( 0 === first.width && 0 === first.height ) {
+		return null;
+	}
+
+	return { x: first.left, y: first.top + first.height / 2 };
+};
+
+/**
+ * Caret-anchored point of `range`'s growing end: the right edge of its last
+ * client rect, at that rect's vertical centre — exactly where a dragging
+ * user's pointer sits mid-selection, wrapped lines included. `null` when the
+ * environment can't measure range geometry (e.g. jsdom) or the range has no
+ * laid-out rects — callers fall back to block-rect geometry.
+ * @param range
+ */
+const selectionEdgePoint = ( range: Range ): Point | null => {
+	if ( typeof range.getClientRects !== 'function' ) {
+		return null;
+	}
+
+	const rects = range.getClientRects();
+
+	if ( rects.length === 0 ) {
+		return null;
+	}
+
+	const last = rects[ rects.length - 1 ];
+
+	if ( 0 === last.width && 0 === last.height ) {
+		return null;
+	}
+
+	return { x: last.right, y: last.top + last.height / 2 };
+};
+
 /** How long the cursor travels to a snippet before the selection sweep starts. */
 const SNIPPET_APPROACH_MS = 500;
 
@@ -355,7 +416,10 @@ export class DomMotor implements Motor {
 		const rect = el.getBoundingClientRect();
 
 		await this.cursor.travelTo(
-			{ x: rect.left, y: rect.top + rect.height / 2 },
+			textStartPoint( textNode ) ?? {
+				x: rect.left,
+				y: rect.top + rect.height / 2,
+			},
 			this.rng,
 			msToFrames( SNIPPET_APPROACH_MS )
 		);
@@ -366,17 +430,25 @@ export class DomMotor implements Motor {
 		selection.removeAllRanges();
 		selection.addRange( range );
 
-		// Extends the selection and sweeps the cursor across the snippet in
-		// lockstep, frame by frame, rather than selecting the whole thing at once.
+		// Extends the selection and rides its caret edge with the cursor,
+		// frame by frame — eased like a human drag, following the selection's
+		// real geometry across wrapped lines rather than gliding along the
+		// block's bounding box. At least one character stays selected from the
+		// first frame, so the caret edge is always measurable.
 		const sweepFrames = msToFrames( SNIPPET_SWEEP_MS );
 
 		for ( let i = 1; i <= sweepFrames; i++ ) {
-			const t = i / sweepFrames;
-			range.setEnd( textNode, Math.floor( text.length * t ) );
-			this.cursor.moveTo( {
-				x: rect.left + rect.width * t,
-				y: rect.top + rect.height / 2,
-			} );
+			const t = easeInOutQuad( i / sweepFrames );
+			range.setEnd(
+				textNode,
+				Math.max( 1, Math.floor( text.length * t ) )
+			);
+			this.cursor.moveTo(
+				selectionEdgePoint( range ) ?? {
+					x: rect.left + rect.width * t,
+					y: rect.top + rect.height / 2,
+				}
+			);
 			await this.nextFrameFn();
 		}
 

@@ -796,6 +796,80 @@ describe( 'DomMotor.selectSnippet', () => {
 
 		travelToSpy.mockRestore();
 	} );
+
+	it( 'rides the selection caret edge with the cursor, wrapped lines included, when range geometry is measurable', async () => {
+		document.body.innerHTML = `<p>${ 'word '.repeat( 20 ) }</p>`;
+		const p = document.querySelector( 'p' )!;
+		p.getBoundingClientRect = () =>
+			( {
+				top: 100,
+				bottom: 148,
+				left: 50,
+				right: 450,
+				width: 400,
+				height: 48,
+			} ) as DOMRect;
+		const text = p.firstChild as Text;
+		const half = Math.ceil( text.length / 2 );
+
+		// Synthetic two-line layout, 4px per character: the first `half`
+		// characters render on a line spanning y 100-124, the rest wrap to a
+		// second line spanning y 124-148. jsdom performs no layout, so this
+		// stub is the only way to hand the sweep measurable range geometry.
+		const syntheticRects = function ( this: Range ): DOMRect[] {
+			const end = this.endOffset;
+			const rects: DOMRect[] = [];
+			const firstLineEnd = Math.min( end, half );
+			rects.push( {
+				left: 50,
+				right: 50 + firstLineEnd * 4,
+				top: 100,
+				bottom: 124,
+				width: firstLineEnd * 4,
+				height: 24,
+			} as DOMRect );
+			if ( end > half ) {
+				rects.push( {
+					left: 50,
+					right: 50 + ( end - half ) * 4,
+					top: 124,
+					bottom: 148,
+					width: ( end - half ) * 4,
+					height: 24,
+				} as DOMRect );
+			}
+			return rects;
+		};
+		const originalGetClientRects = Range.prototype.getClientRects;
+		Range.prototype.getClientRects =
+			syntheticRects as unknown as typeof Range.prototype.getClientRects;
+
+		const moveToSpy = vi.spyOn( FakeCursor.prototype, 'moveTo' );
+
+		try {
+			await new DomMotor( () => 0.1, instantFrames ).selectSnippet();
+
+			const ys = moveToSpy.mock.calls.map(
+				( call ) => ( call[ 0 ] as Point ).y
+			);
+
+			// Sweep frames ride the caret: y 112 while the selection grows on
+			// the first line, dropping to y 136 once it wraps to the second.
+			expect( ys ).toContain( 112 );
+			expect( ys ).toContain( 136 );
+
+			// The final painted position is the exact caret edge of the fully
+			// extended selection: the second line's right edge.
+			const last = moveToSpy.mock.calls.at( -1 )![ 0 ] as Point;
+			expect( last ).toEqual( {
+				x: 50 + ( text.length - half ) * 4,
+				y: 136,
+			} );
+		} finally {
+			Range.prototype.getClientRects = originalGetClientRects;
+			moveToSpy.mockRestore();
+		}
+	} );
 } );
 
 describe( 'DomMotor.read', () => {
