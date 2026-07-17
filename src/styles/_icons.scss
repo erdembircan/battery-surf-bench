@@ -115,6 +115,20 @@ $icon-text-cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/
 // next page (moveOn).
 $icon-wave: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2 15q2.5-5 5 0t5 0 5 0 5 0'/%3E%3C/svg%3E");
 
+// A double downward chevron, masked onto the dev-tools Surf group's
+// scrollBurst chip — the surfer's baseline scroll flick. Ported verbatim from
+// the approved mockup (`devtools-sterile-run`, docs/mockups/README.md).
+$icon-scroll-flick: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 5l6 6 6-6M6 13l6 6 6-6'/%3E%3C/svg%3E");
+
+// A vertical double-arrow, masked onto the dev-tools Surf group's
+// microScroll chip — the surfer's fidgety up/down jitter. Ported verbatim
+// from the approved mockup.
+$icon-micro-scroll: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3v18M8 7l4-4 4 4M8 17l4 4 4-4'/%3E%3C/svg%3E");
+
+// A squiggle, masked onto the dev-tools Surf group's fidgetWiggle chip — the
+// surfer's aimless cursor wander. Ported verbatim from the approved mockup.
+$icon-fidget-wiggle: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 15c3-6 5 6 8 0s5 6 8 0'/%3E%3C/svg%3E");
+
 // ── Parameterized glyphs ─────────────────────────────────────────────────────
 // Encodes a hex colour (e.g. `#1a1a18`) for embedding in a data-URI: the `#`
 // would otherwise be read as the URL's fragment delimiter and truncate the

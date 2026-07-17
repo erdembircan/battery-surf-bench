@@ -143,6 +143,13 @@ body.bsb-cockpit-dashboard {
 	background: var(--status-dot);
 	box-shadow: 0 0 12px var(--status-dot);
 	animation: bsb-pulse 1.4s ease-in-out infinite;
+
+	// Sterile: the dot turns coral instead of the default amber/sun — the one
+	// visible departure on the status head besides the chip itself.
+	&.is-sterile {
+		background: theme.$coastal-coral;
+		box-shadow: 0 0 12px theme.$coastal-coral;
+	}
 }
 
 .bsb-deck__status-text {
@@ -150,6 +157,29 @@ body.bsb-cockpit-dashboard {
 	font-weight: 700;
 	letter-spacing: 0.14em;
 	text-transform: uppercase;
+}
+
+// The "Sterile" flag riding the status text — a small uppercase tag, coral
+// tinted on the teal status-head pill. Shown only while the live run is
+// sterile; appears identically in both the deck's own pill and the compact
+// topbar, since both interpolate the same status-head snippet.
+.bsb-deck__sterile-chip {
+	display: inline-block;
+	margin-left: 0.45rem;
+	padding: 0.1rem 0.4rem 0.12rem;
+	border-radius: 4px;
+	background: rgba(255, 122, 92, 0.25);
+	box-shadow: inset 0 0 0 1px rgba(255, 200, 185, 0.55);
+	color: #ffe3da;
+	letter-spacing: 0.14em;
+
+	// This selector sets its own `display`, which overrides the user-agent
+	// `display: none` that `[hidden]` would otherwise apply on its own — the
+	// same trap as `.bsb-devtools__card-reset`'s guard. Re-assert
+	// `display: none` explicitly so `[hidden]` wins.
+	&[hidden] {
+		display: none;
+	}
 }
 
 .bsb-deck__clock {

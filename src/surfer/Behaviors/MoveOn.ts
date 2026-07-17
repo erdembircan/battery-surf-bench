@@ -22,6 +22,14 @@ export const MIN_DWELL_MS = 12000;
 /** Ramp from first leave-readiness to full leave pressure. */
 export const LEAVE_RAMP_MS = 8000;
 
+/**
+ * moveOn leaves immediately so it has no dwell; this is a fixed short display
+ * so its "paddling off" quip is visible during the page swap. Shared by
+ * `SurfLoop` (the natural auction win) and `SterileHelm` (a steered moveOn),
+ * so both announce the exact same duration.
+ */
+export const MOVE_ON_DISPLAY_MS = 2500;
+
 export class MoveOn implements Behavior {
 	readonly key = MOVE_ON_KEY;
 

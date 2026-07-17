@@ -9,17 +9,19 @@ namespace ErdemBircan\BatterySurfBench\DevTools\Views;
 
 use ErdemBircan\BatterySurfBench\Support\View;
 
+use function array_map;
 use function esc_attr;
 use function esc_html;
+use function wp_json_encode;
 
 defined( 'ABSPATH' ) || exit;
 
 /**
  * Renders the floating dev-tools widget: a collapsed "DEV" pill that swaps —
  * mutually exclusive, never both on screen — into a coastal field card with
- * one bounded sub-panel per tool: Battery (the override) and Discharge (the
- * simulation that drives it). A third tool is another group in the card
- * body, not a rework.
+ * one bounded sub-panel per tool: Battery (the override), Discharge (the
+ * simulation that drives it) and Surf (the sterile-run behavior steerer). A
+ * fourth tool is another group in the card body, not a rework.
  *
  * The battery group has no enable switch: every control already carries its
  * own explicit off-state (the charging tri-state's "System" choice, the
@@ -36,15 +38,30 @@ defined( 'ABSPATH' ) || exit;
  * additionally carries a countdown (`MM:SS` remaining), right-aligned beside
  * its "Discharge" title, shown only while the sim is running.
  *
+ * The surf group arms the "Sterile" run override (a Natural/Sterile seg,
+ * selecting in coral — an armed override, not a product mode; the seg speaks
+ * for itself, with no hint line underneath it). Sterile is snapshotted at
+ * run start only, so toggling the seg mid-run would do nothing to an
+ * already-live run: both seg options are disabled for the duration of ANY
+ * live run, natural or sterile, mirroring `state.devtoolsSurfModeDisabled`.
+ * A course-page stepper (prev/next arrows around a mono readout of the live
+ * course page's own real slug — this manager is environment-gated, so it may
+ * safely hand the panel an identifier a production surface never leaks) and
+ * one chip per behavior, in engine boot order, each carrying its own
+ * `data-devtools-behavior` key as its visible text (a developer identifier,
+ * deliberately NOT translated), round out the group. The group's own head
+ * carries the same right-aligned countdown pattern as Discharge, showing
+ * which behavior is currently steered and its remaining dwell.
+ *
  * The card header divides into exactly three zones: the title (the eyebrow),
  * the override status (the armed indicator), and a panel-buttons container
  * (`.bsb-devtools__card-actions`) holding Reset then Close. Reset is the
  * panel's one cross-cutting escape hatch — it clears every override at once,
- * including stopping a running sim — rendered as an icon-only control (its
- * accessible name lives in `aria-label`, matching Close) and stays enabled
- * the whole time: unlike the battery group's own controls, it is never
- * disabled while a sim runs, since stopping the sim is exactly what it is
- * there to do.
+ * including stopping a running sim and disarming the sterile override —
+ * rendered as an icon-only control (its accessible name lives in
+ * `aria-label`, matching Close) and stays enabled the whole time: unlike the
+ * battery group's own controls, it is never disabled while a sim runs, since
+ * stopping the sim is exactly what it is there to do.
  *
  * The panel sits outside the `bsb/cockpit` block, so it carries its own
  * `data-wp-interactive="bsb/cockpit"` region but has no cockpit context — every
@@ -85,8 +102,17 @@ class DevToolsPanelView implements View {
 	 *     @type string $duration_increase_label Raw accessible label for increasing the duration.
 	 *     @type string $percent_unit_label      Raw unit label for the From/To steppers.
 	 *     @type string $minutes_unit_label      Raw unit label for the duration stepper.
-	 *     @type string $start_label             Raw label for the sim's Start state.
-	 *     @type string $stop_label              Raw label for the sim's Stop state.
+	 *     @type string              $start_label            Raw label for the sim's Start state.
+	 *     @type string              $stop_label             Raw label for the sim's Stop state.
+	 *     @type string              $surf_label             Raw Surf group heading.
+	 *     @type string              $natural_label          Raw label for the Natural seg option.
+	 *     @type string              $sterile_label          Raw label for the Sterile seg option.
+	 *     @type string              $auction_override_label Raw accessible group label for the Natural/Sterile seg.
+	 *     @type string              $page_label             Raw label for the page stepper row.
+	 *     @type string              $page_prev_label        Raw accessible label for the previous-page button.
+	 *     @type string              $page_next_label        Raw accessible label for the next-page button.
+	 *     @type array<int, string>  $behavior_keys          The nine behaviors' developer-identifier keys, in engine boot order — rendered verbatim as each chip's visible text, never translated.
+	 *     @type array<int, string>  $course_slugs           The saved surf-course order's slugs, in visit order — never translated; emitted as a JSON data attribute for the client to index by the opaque page position.
 	 * }
 	 * @return string The panel markup.
 	 */
@@ -116,9 +142,42 @@ class DevToolsPanelView implements View {
 		$minutes_unit      = esc_html( (string) ( $data['minutes_unit_label'] ?? '' ) );
 		$start             = esc_html( (string) ( $data['start_label'] ?? '' ) );
 		$stop              = esc_html( (string) ( $data['stop_label'] ?? '' ) );
+		$surf              = esc_html( (string) ( $data['surf_label'] ?? '' ) );
+		$natural           = esc_html( (string) ( $data['natural_label'] ?? '' ) );
+		$sterile           = esc_html( (string) ( $data['sterile_label'] ?? '' ) );
+		$auction_override  = esc_attr( (string) ( $data['auction_override_label'] ?? '' ) );
+		$page              = esc_html( (string) ( $data['page_label'] ?? '' ) );
+		$page_prev         = esc_attr( (string) ( $data['page_prev_label'] ?? '' ) );
+		$page_next         = esc_attr( (string) ( $data['page_next_label'] ?? '' ) );
+		$behavior_keys     = isset( $data['behavior_keys'] ) && is_array( $data['behavior_keys'] ) ? $data['behavior_keys'] : array();
+		$course_slugs      = isset( $data['course_slugs'] ) && is_array( $data['course_slugs'] ) ? $data['course_slugs'] : array();
+
+		// The ordered course-page slugs, as a JSON data attribute the client
+		// parses in devtoolsInitSurf() — developer identifiers, not translated
+		// text, so this is a plain escaped JSON encode, never __(). A failed
+		// encode (should not happen for a plain string list) falls back to an
+		// empty array rather than emitting `false` into the attribute.
+		$encoded_course_slugs = wp_json_encode( array_map( 'strval', $course_slugs ) );
+		$course_slugs_json    = esc_attr( false === $encoded_course_slugs ? '[]' : $encoded_course_slugs );
+
+		// One chip per behavior, in the engine's own boot order. Each key is a
+		// developer identifier — rendered verbatim as the chip's visible text,
+		// never translated — so it is escaped for HTML/attribute safety only,
+		// not passed through `__()`. `moveOn` additionally carries the caution
+		// modifier class: it navigates the course, everything else stays on
+		// the page.
+		$bsb_surf_chips = '';
+		foreach ( $behavior_keys as $bsb_behavior_key ) {
+			$bsb_key_html    = esc_html( (string) $bsb_behavior_key );
+			$bsb_key_attr    = esc_attr( (string) $bsb_behavior_key );
+			$bsb_chip_class  = 'bsb-devtools__chip' . ( 'moveOn' === $bsb_behavior_key ? ' bsb-devtools__chip--caution' : '' );
+			$bsb_surf_chips .= <<<CHIP
+<button type="button" class="{$bsb_chip_class}" data-devtools-behavior="{$bsb_key_attr}" data-wp-on--click="actions.devtoolsSurfSteer" data-wp-bind--disabled="state.devtoolsSurfChipDisabled" data-wp-class--is-gated="state.devtoolsSurfChipGated" data-wp-class--is-running="state.devtoolsSurfChipRunning" data-wp-style----chip-dur="state.devtoolsSurfChipDurationCss"><span class="bsb-devtools__chip-tide" aria-hidden="true"></span><span class="bsb-devtools__chip-ico" aria-hidden="true"></span><span class="bsb-devtools__chip-key">{$bsb_key_html}</span></button>
+CHIP;
+		}
 
 		return <<<HTML
-<div class="bsb-devtools" data-wp-interactive="bsb/cockpit" data-wp-watch---devtools-persist="callbacks.devtoolsPersist">
+<div class="bsb-devtools" data-wp-interactive="bsb/cockpit" data-wp-watch---devtools-persist="callbacks.devtoolsPersist" data-wp-watch---devtools-surf-run="callbacks.devtoolsSyncSurfRun" data-wp-init---devtools-surf="callbacks.devtoolsInitSurf" data-devtools-course-slugs="{$course_slugs_json}">
 	<div class="bsb-devtools__swap">
 		<button type="button" class="bsb-devtools__pill" id="bsb-devtools-pill" data-wp-bind--hidden="state.devtools.open" data-wp-class--is-armed="state.devtoolsIsArmed" data-wp-on--click="actions.devtoolsToggleOpen" aria-expanded="false" data-wp-bind--aria-expanded="state.devtools.open" aria-controls="bsb-devtools-card">{$dev}</button>
 
@@ -196,6 +255,34 @@ class DevToolsPanelView implements View {
 							<span class="bsb-devtools__sim-toggle-text bsb-devtools__sim-toggle-text--start">{$start}</span>
 							<span class="bsb-devtools__sim-toggle-text bsb-devtools__sim-toggle-text--stop">{$stop}</span>
 						</button>
+					</div>
+				</div>
+
+				<div class="bsb-devtools__group">
+					<div class="bsb-devtools__group-head">
+						<span class="bsb-devtools__group-title">{$surf}</span>
+						<span class="bsb-devtools__group-countdown" hidden data-wp-bind--hidden="!state.devtoolsSurfIsRunning" data-wp-text="state.devtoolsSurfCountdownDisplay"></span>
+					</div>
+					<div class="bsb-devtools__group-divider"></div>
+
+					<div class="bsb-devtools__group-body">
+						<div class="bsb-devtools__seg" role="group" aria-label="{$auction_override}">
+							<button type="button" class="bsb-devtools__seg-option" data-devtools-surf-mode="natural" data-wp-class--is-selected="state.devtoolsIsSurfNatural" data-wp-on--click="actions.devtoolsSurfSetMode" data-wp-bind--disabled="state.devtoolsSurfModeDisabled">{$natural}</button>
+							<button type="button" class="bsb-devtools__seg-option bsb-devtools__seg-option--sterile" data-devtools-surf-mode="sterile" data-wp-class--is-selected="state.devtoolsIsSurfSterile" data-wp-on--click="actions.devtoolsSurfSetMode" data-wp-bind--disabled="state.devtoolsSurfModeDisabled">{$sterile}</button>
+						</div>
+
+						<div class="bsb-devtools__stepper-row">
+							<span class="bsb-devtools__stepper-label">{$page}</span>
+							<div class="bsb-devtools__stepper">
+								<button type="button" class="bsb-devtools__stepper-btn" data-step="-1" data-wp-on--click="actions.devtoolsSurfStep" data-wp-bind--disabled="state.devtoolsSurfStepDisabled" aria-label="{$page_prev}">&lsaquo;</button>
+								<span class="bsb-devtools__stepper-readout bsb-devtools__stepper-readout--slug" data-wp-text="state.devtoolsSurfPageSlug"></span>
+								<button type="button" class="bsb-devtools__stepper-btn" data-step="1" data-wp-on--click="actions.devtoolsSurfStep" data-wp-bind--disabled="state.devtoolsSurfStepDisabled" aria-label="{$page_next}">&rsaquo;</button>
+							</div>
+						</div>
+
+						<div class="bsb-devtools__chips">
+							{$bsb_surf_chips}
+						</div>
 					</div>
 				</div>
 			</div>

@@ -18,10 +18,25 @@ interface MockSim {
 	remainingMs: number | null;
 }
 
+interface MockSurf {
+	sterile: boolean;
+	behaviorKey: string;
+	remainingMs: number | null;
+	affordances: {
+		hasVideo: boolean;
+		imageCount: number;
+		textDensity: number;
+	} | null;
+	pageStep: { delta: -1 | 1; seq: number } | null;
+	runLive: boolean;
+	pageIndex: number | null;
+}
+
 interface MockDevtoolsState {
 	open: boolean;
 	battery: { charging: boolean | null; level: number | null };
 	sim: MockSim;
+	surf: MockSurf;
 }
 
 const mocks = vi.hoisted( () => ( {
@@ -56,6 +71,16 @@ const defaultSim = (): MockSim => ( {
 	remainingMs: null,
 } );
 
+const defaultSurf = (): MockSurf => ( {
+	sterile: false,
+	behaviorKey: '',
+	remainingMs: null,
+	affordances: null,
+	pageStep: null,
+	runLive: false,
+	pageIndex: null,
+} );
+
 beforeEach( () => {
 	vi.useFakeTimers();
 	vi.setSystemTime( new Date( '2026-01-01T00:00:00.000Z' ) );
@@ -64,6 +89,7 @@ beforeEach( () => {
 			open: false,
 			battery: { charging: null, level: null },
 			sim: defaultSim(),
+			surf: defaultSurf(),
 		},
 	};
 } );
@@ -123,6 +149,45 @@ describe( 'devtoolsReset', () => {
 			level: null,
 		} );
 		expect( mocks.state.devtools.sim ).toEqual( defaultSim() );
+		expect( mocks.state.devtools.surf ).toEqual( defaultSurf() );
+	} );
+
+	it( 'disarms the Surf tool’s sterile override and clears its own runtime fields (affordances, pageStep, pageIndex)', () => {
+		mocks.state.devtools.surf = {
+			sterile: true,
+			behaviorKey: 'readPause',
+			remainingMs: 4000,
+			affordances: { hasVideo: true, imageCount: 2, textDensity: 0.5 },
+			pageStep: { delta: 1, seq: 3 },
+			runLive: false,
+			pageIndex: 3,
+		};
+
+		actions.devtoolsReset();
+
+		expect( mocks.state.devtools.surf ).toEqual( defaultSurf() );
+	} );
+
+	it( 'never clears surf.runLive — it is production-owned truth, not this tool’s own override, and resetting it to false mid-run would wrongly unlock the Natural/Sterile seg', () => {
+		mocks.state.devtools.surf = {
+			sterile: true,
+			behaviorKey: 'readPause',
+			remainingMs: 4000,
+			affordances: { hasVideo: true, imageCount: 2, textDensity: 0.5 },
+			pageStep: { delta: 1, seq: 3 },
+			runLive: true,
+			pageIndex: 3,
+		};
+
+		actions.devtoolsReset();
+
+		// Every one of the tool's own fields resets to its default...
+		expect( mocks.state.devtools.surf ).toEqual( {
+			...defaultSurf(),
+			runLive: true,
+		} );
+		// ...except runLive, left exactly as production last mirrored it.
+		expect( mocks.state.devtools.surf.runLive ).toBe( true );
 	} );
 } );
 

@@ -19,6 +19,7 @@ interface CockpitContext {
 	traits: number[];
 	running: boolean;
 	compact: boolean;
+	sterile: boolean;
 	soundEnabled: boolean;
 	elapsed: number;
 	targetPercent: number;
@@ -83,6 +84,7 @@ interface CockpitConfig {
 		batterySystemPercent: number | null;
 		isIdle: boolean;
 		isRunning: boolean;
+		isSterileRun: boolean;
 		isIdleFlipped: boolean;
 		isDeckShown: boolean;
 		isCompact: boolean;
@@ -127,6 +129,13 @@ interface CockpitConfig {
 				running: boolean;
 				currentLevel: number | null;
 			};
+			surf?: {
+				sterile: boolean;
+				pageStep: { delta: -1 | 1; seq: number } | null;
+				affordances: unknown;
+				runLive: boolean;
+				pageIndex: number | null;
+			};
 		};
 	};
 	actions: {
@@ -156,6 +165,7 @@ interface CockpitConfig {
 		initExitGuard: () => () => void;
 		syncRunActivity: () => void;
 		syncViewportWatchdog: () => void;
+		syncDevtoolsSurf: () => void;
 		rollDuration: () => void;
 		renderSummary: () => void;
 		onToastAnimationEnd: () => void;
@@ -181,6 +191,7 @@ const baseContext = (): CockpitContext => ( {
 	traits: [ 5, 5, 5, 5, 5 ],
 	running: false,
 	compact: false,
+	sterile: false,
 	soundEnabled: true,
 	elapsed: 0,
 	targetPercent: 20,
@@ -372,6 +383,23 @@ describe( 'bsb/cockpit view store', () => {
 
 			expect( src.searchParams.get( 'bsbTraits' ) ).toBe( '2,8,10,2,3' );
 			expect( src.searchParams.get( 'bsbSpeed' ) ).toBe( '4' );
+		} );
+
+		it( 'appends bsbSterile=1 only while the live run is sterile', () => {
+			mocks.context.running = true;
+			mocks.context.sterile = false;
+			expect(
+				new URL(
+					mocks.config?.state.currentSrc ?? ''
+				).searchParams.has( 'bsbSterile' )
+			).toBe( false );
+
+			mocks.context.sterile = true;
+			expect(
+				new URL(
+					mocks.config?.state.currentSrc ?? ''
+				).searchParams.get( 'bsbSterile' )
+			).toBe( '1' );
 		} );
 	} );
 
@@ -645,6 +673,287 @@ describe( 'bsb/cockpit view store', () => {
 		} );
 	} );
 
+	describe( 'dev-tools surf watch (syncDevtoolsSurf)', () => {
+		/**
+		 * Arms the merged state's Surf slice, as the devtools module would.
+		 * `runLive`/`pageIndex` default to their own idle values (`false`/
+		 * `null`) so every pre-existing call site — none of which cares about
+		 * the run-lock or page-slug mirroring — stays valid unchanged.
+		 * @param surf
+		 * @param surf.sterile
+		 * @param surf.pageStep
+		 * @param surf.affordances
+		 * @param surf.runLive
+		 * @param surf.pageIndex
+		 */
+		const setSurf = ( surf: {
+			sterile: boolean;
+			pageStep: { delta: -1 | 1; seq: number } | null;
+			affordances: unknown;
+			runLive?: boolean;
+			pageIndex?: number | null;
+		} ): void => {
+			mocks.config!.state.devtools = {
+				battery: { charging: null, level: null },
+				surf: {
+					runLive: false,
+					pageIndex: null,
+					...surf,
+				},
+			};
+		};
+
+		it( 'never touches state.devtools when no dev-tools module has joined the store', () => {
+			expect( mocks.config?.state.devtools ).toBeUndefined();
+
+			expect(
+				() => mocks.config?.callbacks.syncDevtoolsSurf()
+			).not.toThrow();
+
+			expect( mocks.config?.state.devtools ).toBeUndefined();
+		} );
+
+		it( 'applies a pending pageStep to activeIndex while the run is live and sterile', () => {
+			mocks.context.running = true;
+			mocks.context.sterile = true;
+			mocks.context.activeIndex = 3;
+			setSurf( {
+				sterile: true,
+				pageStep: { delta: 1, seq: 1 },
+				affordances: { hasVideo: false, imageCount: 0, textDensity: 0 },
+			} );
+
+			mocks.config?.callbacks.syncDevtoolsSurf();
+
+			expect( mocks.context.activeIndex ).toBe( 4 );
+		} );
+
+		it( 'applies a negative delta too', () => {
+			mocks.context.running = true;
+			mocks.context.sterile = true;
+			mocks.context.activeIndex = 3;
+			setSurf( {
+				sterile: true,
+				pageStep: { delta: -1, seq: 1 },
+				affordances: null,
+			} );
+
+			mocks.config?.callbacks.syncDevtoolsSurf();
+
+			expect( mocks.context.activeIndex ).toBe( 2 );
+		} );
+
+		it( 'never re-applies the same pageStep seq on a later, unrelated re-run', () => {
+			mocks.context.running = true;
+			mocks.context.sterile = true;
+			mocks.context.activeIndex = 0;
+			setSurf( {
+				sterile: true,
+				pageStep: { delta: 1, seq: 1 },
+				affordances: null,
+			} );
+
+			mocks.config?.callbacks.syncDevtoolsSurf();
+			expect( mocks.context.activeIndex ).toBe( 1 );
+
+			// The watch re-runs (e.g. some other dependency changed) with the same
+			// pageStep object still sitting there — must not re-apply it.
+			mocks.config?.callbacks.syncDevtoolsSurf();
+			expect( mocks.context.activeIndex ).toBe( 1 );
+		} );
+
+		it( 'a repeat click with the same delta still applies, since its seq is fresh', () => {
+			mocks.context.running = true;
+			mocks.context.sterile = true;
+			mocks.context.activeIndex = 0;
+			setSurf( {
+				sterile: true,
+				pageStep: { delta: 1, seq: 1 },
+				affordances: null,
+			} );
+			mocks.config?.callbacks.syncDevtoolsSurf();
+			expect( mocks.context.activeIndex ).toBe( 1 );
+
+			setSurf( {
+				sterile: true,
+				pageStep: { delta: 1, seq: 2 },
+				affordances: null,
+			} );
+			mocks.config?.callbacks.syncDevtoolsSurf();
+			expect( mocks.context.activeIndex ).toBe( 2 );
+		} );
+
+		it( 'never applies a pageStep while the run is natural (not sterile)', () => {
+			mocks.context.running = true;
+			mocks.context.sterile = false;
+			mocks.context.activeIndex = 3;
+			setSurf( {
+				sterile: false,
+				pageStep: { delta: 1, seq: 1 },
+				affordances: null,
+			} );
+
+			mocks.config?.callbacks.syncDevtoolsSurf();
+
+			expect( mocks.context.activeIndex ).toBe( 3 );
+		} );
+
+		it( 'never applies a pageStep while idle', () => {
+			mocks.context.running = false;
+			mocks.context.sterile = true;
+			mocks.context.activeIndex = 3;
+			setSurf( {
+				sterile: true,
+				pageStep: { delta: 1, seq: 1 },
+				affordances: null,
+			} );
+
+			mocks.config?.callbacks.syncDevtoolsSurf();
+
+			expect( mocks.context.activeIndex ).toBe( 3 );
+		} );
+
+		it( 'clears state.devtools.surf.affordances AND any pending pageStep whenever the run is not live-and-sterile', () => {
+			mocks.context.running = false;
+			mocks.context.sterile = false;
+			setSurf( {
+				sterile: false,
+				pageStep: { delta: 1, seq: 4 },
+				affordances: { hasVideo: true, imageCount: 2, textDensity: 1 },
+			} );
+
+			mocks.config?.callbacks.syncDevtoolsSurf();
+
+			expect(
+				mocks.config?.state.devtools?.surf?.affordances
+			).toBeNull();
+			expect( mocks.config?.state.devtools?.surf?.pageStep ).toBeNull();
+		} );
+
+		it( 'never clears affordances or pageStep while the run is live and sterile', () => {
+			mocks.context.running = true;
+			mocks.context.sterile = true;
+			const affordances = {
+				hasVideo: true,
+				imageCount: 2,
+				textDensity: 1,
+			};
+			setSurf( {
+				sterile: true,
+				pageStep: { delta: 1, seq: 5 },
+				affordances,
+			} );
+
+			mocks.config?.callbacks.syncDevtoolsSurf();
+
+			expect( mocks.config?.state.devtools?.surf?.affordances ).toEqual(
+				affordances
+			);
+		} );
+
+		it( 'a stale pageStep command written before any sterile run started never applies once a later run goes live-and-sterile', () => {
+			// The stepper was clicked while idle (no live sterile page): the
+			// command lands in state, but the watch — reacting to `running`
+			// being false — must clear it immediately, same as it clears
+			// affordances, so it can never surface once a run later starts.
+			mocks.context.running = false;
+			mocks.context.sterile = false;
+			mocks.context.activeIndex = 3;
+			setSurf( {
+				sterile: false,
+				pageStep: { delta: 1, seq: 9 },
+				affordances: null,
+			} );
+			mocks.config?.callbacks.syncDevtoolsSurf();
+			expect( mocks.config?.state.devtools?.surf?.pageStep ).toBeNull();
+
+			// A sterile run now starts; the watch re-runs with no pending
+			// command left to (wrongly) apply.
+			mocks.context.running = true;
+			mocks.context.sterile = true;
+			mocks.config?.callbacks.syncDevtoolsSurf();
+
+			expect( mocks.context.activeIndex ).toBe( 3 );
+		} );
+
+		it( 'mirrors runLive from context.running while idle', () => {
+			mocks.context.running = false;
+			setSurf( { sterile: false, pageStep: null, affordances: null } );
+
+			mocks.config?.callbacks.syncDevtoolsSurf();
+
+			expect( mocks.config?.state.devtools?.surf?.runLive ).toBe( false );
+		} );
+
+		it( 'mirrors runLive true for ANY live run, natural as well as sterile', () => {
+			mocks.context.running = true;
+			mocks.context.sterile = false;
+			setSurf( { sterile: false, pageStep: null, affordances: null } );
+
+			mocks.config?.callbacks.syncDevtoolsSurf();
+
+			expect( mocks.config?.state.devtools?.surf?.runLive ).toBe( true );
+		} );
+
+		it( 'mirrors runLive true for a live sterile run too', () => {
+			mocks.context.running = true;
+			mocks.context.sterile = true;
+			setSurf( { sterile: true, pageStep: null, affordances: null } );
+
+			mocks.config?.callbacks.syncDevtoolsSurf();
+
+			expect( mocks.config?.state.devtools?.surf?.runLive ).toBe( true );
+		} );
+
+		it( 'flips runLive back to false once the run stops', () => {
+			mocks.context.running = true;
+			mocks.context.sterile = false;
+			setSurf( { sterile: false, pageStep: null, affordances: null } );
+			mocks.config?.callbacks.syncDevtoolsSurf();
+			expect( mocks.config?.state.devtools?.surf?.runLive ).toBe( true );
+
+			mocks.context.running = false;
+			mocks.config?.callbacks.syncDevtoolsSurf();
+			expect( mocks.config?.state.devtools?.surf?.runLive ).toBe( false );
+		} );
+
+		it( 'mirrors pageIndex from activeIndex while the run is live and sterile', () => {
+			mocks.context.running = true;
+			mocks.context.sterile = true;
+			mocks.context.activeIndex = 2;
+			setSurf( { sterile: true, pageStep: null, affordances: null } );
+
+			mocks.config?.callbacks.syncDevtoolsSurf();
+
+			expect( mocks.config?.state.devtools?.surf?.pageIndex ).toBe( 2 );
+		} );
+
+		it( 'clears pageIndex to null whenever the run is not live-and-sterile', () => {
+			mocks.context.running = false;
+			mocks.context.sterile = false;
+			setSurf( {
+				sterile: false,
+				pageStep: null,
+				affordances: null,
+				pageIndex: 4,
+			} );
+
+			mocks.config?.callbacks.syncDevtoolsSurf();
+
+			expect( mocks.config?.state.devtools?.surf?.pageIndex ).toBeNull();
+		} );
+
+		it( 'never touches pageIndex or runLive when no dev-tools module has joined the store', () => {
+			expect( mocks.config?.state.devtools ).toBeUndefined();
+
+			expect(
+				() => mocks.config?.callbacks.syncDevtoolsSurf()
+			).not.toThrow();
+
+			expect( mocks.config?.state.devtools ).toBeUndefined();
+		} );
+	} );
+
 	describe( 'mode', () => {
 		it( 'reflects which mode is active', () => {
 			expect( mocks.config?.state.isModeDuration ).toBe( true );
@@ -854,6 +1163,19 @@ describe( 'bsb/cockpit view store', () => {
 			expect( mocks.config?.state.isIdle ).toBe( false );
 		} );
 
+		it( 'isSterileRun is true only while a sterile run is actually live', () => {
+			expect( mocks.config?.state.isSterileRun ).toBe( false );
+
+			mocks.context.sterile = true;
+			expect( mocks.config?.state.isSterileRun ).toBe( false ); // not running yet
+
+			mocks.context.running = true;
+			expect( mocks.config?.state.isSterileRun ).toBe( true );
+
+			mocks.context.sterile = false;
+			expect( mocks.config?.state.isSterileRun ).toBe( false );
+		} );
+
 		it( 'starts a run, resetting the run-scoped state', () => {
 			mocks.context.elapsed = 999;
 			// A run opens in the compact view regardless of the prior state.
@@ -864,6 +1186,39 @@ describe( 'bsb/cockpit view store', () => {
 			expect( mocks.context.running ).toBe( true );
 			expect( mocks.context.elapsed ).toBe( 0 );
 			expect( mocks.context.compact ).toBe( true );
+		} );
+
+		it( 'snapshots the dev-tools Surf tool’s sterile override at run start only', () => {
+			if ( mocks.config ) {
+				mocks.config.state.devtools = {
+					battery: { charging: null, level: null },
+					surf: {
+						sterile: true,
+						pageStep: null,
+						affordances: null,
+						runLive: false,
+						pageIndex: null,
+					},
+				};
+			}
+
+			mocks.config?.actions.toggleRun();
+
+			expect( mocks.context.sterile ).toBe( true );
+
+			// Arming/disarming the tool mid-run never affects the already-live run.
+			if ( mocks.config?.state.devtools?.surf ) {
+				mocks.config.state.devtools.surf.sterile = false;
+			}
+			expect( mocks.context.sterile ).toBe( true );
+		} );
+
+		it( 'defaults sterile to false when no dev-tools module has joined the store', () => {
+			expect( mocks.config?.state.devtools ).toBeUndefined();
+
+			expect( () => mocks.config?.actions.toggleRun() ).not.toThrow();
+
+			expect( mocks.context.sterile ).toBe( false );
 		} );
 
 		it( 'stops a live run back to the idle state', () => {

@@ -60,6 +60,11 @@ $bsb_context = array(
 	),
 	'running'             => false,
 	'compact'             => false,
+	// Whether the live (or just-started) run is sterile: snapshotted from the
+	// dev-tools Surf tool's armed override at run start only (see
+	// RunStore.toggleRun) — always false server-side, since a run can never
+	// already be live on first render.
+	'sterile'             => false,
 	// Seeded on; the client restores the remembered choice from localStorage on
 	// hydration, since the server cannot know a client-side preference.
 	'soundEnabled'        => true,
@@ -218,6 +223,7 @@ $bsb_markup = ( new CockpitView() )->render(
 		'tte_label'            => __( '100% → 0%', 'battery-surf-bench' ),
 		'target_short_label'   => __( 'Target', 'battery-surf-bench' ),
 		'surfing_label'        => __( 'Surfing', 'battery-surf-bench' ),
+		'sterile_label'        => __( 'Sterile', 'battery-surf-bench' ),
 		'elapsed_label'        => __( 'elapsed', 'battery-surf-bench' ),
 		'remaining_label'      => __( 'left', 'battery-surf-bench' ),
 		'start_label'          => __( 'Start', 'battery-surf-bench' ),

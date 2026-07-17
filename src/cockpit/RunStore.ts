@@ -6,7 +6,12 @@
  * single `running` signal so they start and stop with the run whatever its cause.
  */
 
-import { getConfig, getContext, getElement } from '@wordpress/interactivity';
+import {
+	getConfig,
+	getContext,
+	getElement,
+	store,
+} from '@wordpress/interactivity';
 import { type CockpitContext } from './CockpitContext';
 import { type StorePart } from './StoreParts';
 import { instanceFor, now, wallNow } from './RunInstance';
@@ -36,6 +41,34 @@ interface SurfConfig {
 }
 
 /**
+ * The slice of the merged `bsb/cockpit` state the Surf dev-tool contributes,
+ * read defensively (production reads `state.devtools` optionally, exactly as
+ * `../devtools/BatteryOverrideStore`'s precedent requires — it may not exist
+ * at all with no dev-tools module loaded).
+ */
+interface SharedDevtoolsSurfState {
+	devtools?: {
+		surf?: {
+			/** The armed override, snapshotted once at run start. */
+			sterile: boolean;
+			/** A pending page-jump command from the panel's stepper, or null. */
+			pageStep: { delta: -1 | 1; seq: number } | null;
+			/** The live sterile page's affordance flags; cleared once the run is no longer live-and-sterile. */
+			affordances: unknown;
+			/** Whether ANY run (natural or sterile) is currently live — mirrored here every watch run, so the panel can lock its Natural/Sterile seg for the run's whole duration. */
+			runLive: boolean;
+			/** The live sterile page's opaque course-page index; cleared to null once the run is no longer live-and-sterile. */
+			pageIndex: number | null;
+		};
+	};
+}
+
+/** The merged store shape the `syncDevtoolsSurf` callback re-fetches by namespace. */
+interface SharedDevtoolsSurfStore {
+	state: SharedDevtoolsSurfState;
+}
+
+/**
  * How long the viewport is given to fire a `load` after a run points it at a
  * page before the run is treated as failed. Generous — same-origin bundled
  * course pages load fast, so only a genuinely hung navigation (a server that
@@ -61,7 +94,7 @@ export const runStore: StorePart = {
 		 * the iframe reads them from.
 		 */
 		get currentSrc(): string {
-			const { activeIndex, running, traits, speed } =
+			const { activeIndex, running, traits, speed, sterile } =
 				getContext< CockpitContext >();
 
 			if ( ! running ) {
@@ -75,7 +108,7 @@ export const runStore: StorePart = {
 				config.surfNonce ?? ''
 			);
 
-			return url ? withSurferParams( url, traits, speed ) : '';
+			return url ? withSurferParams( url, traits, speed, sterile ) : '';
 		},
 
 		/** Whether no run is live — hides the readouts pill until one starts. */
@@ -86,6 +119,13 @@ export const runStore: StorePart = {
 		/** Whether a run is live — shows the pill and hides the config controls. */
 		get isRunning(): boolean {
 			return getContext< CockpitContext >().running;
+		},
+
+		/** Whether the live run is sterile — shows the status head's "Sterile" chip. */
+		get isSterileRun(): boolean {
+			const { sterile, running } = getContext< CockpitContext >();
+
+			return sterile && running;
 		},
 
 		/**
@@ -186,6 +226,14 @@ export const runStore: StorePart = {
 			);
 
 			context.elapsed = 0;
+			// The dev-tools Surf tool's "Sterile" override, snapshotted here only —
+			// arming or disarming it mid-run never affects an already-live run.
+			// `state.devtools` may not exist at all (no dev-tools module loaded),
+			// read defensively, same as `../devtools/BatteryOverrideStore`'s own
+			// precedent for a production seam reading dev-tools state.
+			const { state: sharedState } =
+				store< SharedDevtoolsSurfStore >( 'bsb/cockpit' );
+			context.sterile = Boolean( sharedState.devtools?.surf?.sterile );
 			// Runs open in the compact stage view; the user can expand to the
 			// full dashboard mid-run via the stage's expand control.
 			context.compact = true;
@@ -479,6 +527,72 @@ export const runStore: StorePart = {
 					stopRun( context, instance, 'loadError' );
 				}
 			}, VIEWPORT_LOAD_TIMEOUT_MS ) as unknown as number;
+		},
+
+		/**
+		 * The production side of the dev-tools Surf tool's run-lock,
+		 * page-jump and affordance-gating seam. Driven by `data-wp-watch`, so
+		 * it re-runs reactively whenever `running`/`sterile`/`activeIndex`
+		 * change or the panel writes a fresh `state.devtools.surf.pageStep`
+		 * command.
+		 *
+		 * Always mirrors `state.devtools.surf.runLive` from `context.running`
+		 * (the panel has no cockpit context of its own) — sterile is
+		 * snapshotted once at run start, so the Natural/Sterile seg must be
+		 * locked for the WHOLE duration of any live run, natural or sterile,
+		 * not just a sterile one.
+		 *
+		 * While the run is live and sterile: mirrors `state.devtools.surf.pageIndex`
+		 * from `context.activeIndex`, and applies a pending `pageStep` command
+		 * to `context.activeIndex` exactly once (tracked by its monotonic
+		 * `seq`, so a repeat of the same delta still applies, and a command
+		 * already consumed never re-applies on an unrelated re-run).
+		 *
+		 * Whenever the run is NOT live-and-sterile (never sterile, not yet
+		 * started, or just stopped): clears `state.devtools.surf.affordances`
+		 * and `pageIndex` to null, so the panel's chips (and the page
+		 * stepper's slug readout) gate off the moment there is no live
+		 * sterile page to steer on — and clears any pending `pageStep`
+		 * command too, so a click made before this run (or after the last one
+		 * ended) can never apply later once some future sterile run goes
+		 * live. Only ever touches `state.devtools` when the dev-tools module
+		 * has actually joined the store.
+		 */
+		syncDevtoolsSurf(): void {
+			const { state: sharedState } =
+				store< SharedDevtoolsSurfStore >( 'bsb/cockpit' );
+			const surf = sharedState.devtools?.surf;
+
+			if ( ! surf ) {
+				return;
+			}
+
+			const context = getContext< CockpitContext >();
+			surf.runLive = context.running;
+
+			const liveSterile = context.running && context.sterile;
+
+			if ( ! liveSterile ) {
+				surf.affordances = null;
+				surf.pageStep = null;
+				surf.pageIndex = null;
+				return;
+			}
+
+			const { pageStep } = surf;
+
+			if ( pageStep ) {
+				const instance = instanceFor();
+
+				if ( pageStep.seq !== instance.sterilePageStepSeq ) {
+					instance.sterilePageStepSeq = pageStep.seq;
+					context.activeIndex += pageStep.delta;
+				}
+			}
+
+			// Mirrored last, so a pageStep consumed above is reflected in this
+			// same pass rather than needing a second reactive re-run.
+			surf.pageIndex = context.activeIndex;
 		},
 	},
 };

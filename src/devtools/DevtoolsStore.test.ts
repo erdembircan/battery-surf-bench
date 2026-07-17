@@ -17,6 +17,19 @@ interface MockDevtoolsState {
 		startedAt: number | null;
 		currentLevel: number | null;
 	};
+	surf: {
+		sterile: boolean;
+		behaviorKey: string;
+		remainingMs: number | null;
+		affordances: {
+			hasVideo: boolean;
+			imageCount: number;
+			textDensity: number;
+		} | null;
+		pageStep: { delta: -1 | 1; seq: number } | null;
+		runLive: boolean;
+		pageIndex: number | null;
+	};
 }
 
 const mocks = vi.hoisted( () => ( {
@@ -49,12 +62,23 @@ const defaultSim = () => ( {
 	currentLevel: null,
 } );
 
+const defaultSurf = () => ( {
+	sterile: false,
+	behaviorKey: '',
+	remainingMs: null,
+	affordances: null,
+	pageStep: null,
+	runLive: false,
+	pageIndex: null,
+} );
+
 beforeEach( () => {
 	mocks.state = {
 		devtools: {
 			open: false,
 			battery: { charging: null, level: null },
 			sim: defaultSim(),
+			surf: defaultSurf(),
 		},
 	};
 	window.localStorage.clear();
@@ -71,11 +95,19 @@ describe( 'devtoolsShellStore actions', () => {
 } );
 
 describe( 'persistence', () => {
-	it( 'writes only open and battery to localStorage on devtoolsPersist — never the discharge sim', () => {
+	it( 'writes only open and battery to localStorage on devtoolsPersist — never the discharge sim or any part of the Surf tool', () => {
 		mocks.state.devtools = {
 			open: true,
 			battery: { charging: true, level: 0.2 },
 			sim: { ...defaultSim(), running: true, startedAt: 12345 },
+			surf: {
+				...defaultSurf(),
+				sterile: true,
+				behaviorKey: 'readPause',
+				remainingMs: 4000,
+				runLive: true,
+				pageIndex: 2,
+			},
 		};
 
 		callbacks.devtoolsPersist();
@@ -94,6 +126,7 @@ describe( 'persistence', () => {
 			open: true,
 			battery: { charging: null, level: null },
 			sim: { ...defaultSim(), running: true, startedAt: 12345 },
+			surf: defaultSurf(),
 		};
 
 		// Simulate several ticker writes to the sim's own output field — the
@@ -149,6 +182,39 @@ describe( 'persistence', () => {
 		expect( mocks.state.devtools.sim ).toEqual( defaultSim() );
 	} );
 
+	it( 'never restores any part of the Surf tool — its armed sterile flag included — even a fully-armed, mid-behavior surf left over in storage', () => {
+		// The persisted shape no longer has a `surf` field at all, but a value
+		// written before this change (or by another tab still on old code)
+		// could still carry one, sterile armed and all — hydrate must not
+		// resurrect any of it. A sterile override armed once must never
+		// silently survive a reload and start a later run sterile without the
+		// user re-choosing it.
+		window.localStorage.setItem(
+			DEVTOOLS_STORAGE_KEY,
+			JSON.stringify( {
+				open: true,
+				battery: { charging: null, level: null },
+				surf: {
+					sterile: true,
+					behaviorKey: 'readPause',
+					remainingMs: 4000,
+					affordances: {
+						hasVideo: true,
+						imageCount: 1,
+						textDensity: 1,
+					},
+					pageStep: { delta: 1, seq: 3 },
+					runLive: true,
+					pageIndex: 4,
+				},
+			} )
+		);
+
+		hydrateDevtools();
+
+		expect( mocks.state.devtools.surf ).toEqual( defaultSurf() );
+	} );
+
 	it( 'leaves the default state untouched when nothing is stored', () => {
 		hydrateDevtools();
 
@@ -158,6 +224,7 @@ describe( 'persistence', () => {
 			level: null,
 		} );
 		expect( mocks.state.devtools.sim ).toEqual( defaultSim() );
+		expect( mocks.state.devtools.surf ).toEqual( defaultSurf() );
 	} );
 
 	it( 'ignores a corrupted or stale-shape stored value', () => {
@@ -179,9 +246,67 @@ describe( 'persistence', () => {
 		);
 		hydrateDevtools();
 		expect( mocks.state.devtools.open ).toBe( false );
+
+		// A malformed `battery.charging` is rejected too.
+		window.localStorage.setItem(
+			DEVTOOLS_STORAGE_KEY,
+			JSON.stringify( {
+				open: true,
+				battery: { charging: 'yes', level: null },
+			} )
+		);
+		hydrateDevtools();
+		expect( mocks.state.devtools.open ).toBe( false );
 	} );
 
-	it( 'ignores a value stored under the previous (pre-Milestone-3) v3 key', () => {
+	it( 'ignores a value stored under the previous (pre-run-lock) v5 key, sterile flag and all', () => {
+		// v5 was the last shape that persisted `surf.sterile`. The storage key
+		// bump means it is simply never looked up again — the slice starts
+		// fresh at its defaults, the sterile override never armed from it, so
+		// a run started after this reload is never silently sterile.
+		window.localStorage.setItem(
+			'bsb-devtools-v5',
+			JSON.stringify( {
+				open: true,
+				battery: { charging: true, level: 0.9 },
+				surf: { sterile: true },
+			} )
+		);
+
+		hydrateDevtools();
+
+		expect( DEVTOOLS_STORAGE_KEY ).toBe( 'bsb-devtools-v6' );
+		expect( mocks.state.devtools ).toEqual( {
+			open: false,
+			battery: { charging: null, level: null },
+			sim: defaultSim(),
+			surf: defaultSurf(),
+		} );
+	} );
+
+	it( 'ignores a value stored under the older (pre-sterile-surf) v4 key', () => {
+		// The v4 shape carried no `surf` field at all. The storage key bump
+		// means it is simply never looked up again — the slice starts fresh at
+		// its defaults, the sterile override never armed from it.
+		window.localStorage.setItem(
+			'bsb-devtools-v4',
+			JSON.stringify( {
+				open: true,
+				battery: { charging: true, level: 0.9 },
+			} )
+		);
+
+		hydrateDevtools();
+
+		expect( mocks.state.devtools ).toEqual( {
+			open: false,
+			battery: { charging: null, level: null },
+			sim: defaultSim(),
+			surf: defaultSurf(),
+		} );
+	} );
+
+	it( 'ignores a value stored under the older (pre-Milestone-3) v3 key', () => {
 		// The v3 shape carried a `sim` field the panel would resume a running
 		// sim from. The storage key bump means it is simply never looked up
 		// again — the slice starts fresh at its defaults, sim never included.
@@ -196,11 +321,11 @@ describe( 'persistence', () => {
 
 		hydrateDevtools();
 
-		expect( DEVTOOLS_STORAGE_KEY ).toBe( 'bsb-devtools-v4' );
 		expect( mocks.state.devtools ).toEqual( {
 			open: false,
 			battery: { charging: null, level: null },
 			sim: defaultSim(),
+			surf: defaultSurf(),
 		} );
 	} );
 
@@ -219,6 +344,7 @@ describe( 'persistence', () => {
 			open: false,
 			battery: { charging: null, level: null },
 			sim: defaultSim(),
+			surf: defaultSurf(),
 		} );
 	} );
 
@@ -237,6 +363,7 @@ describe( 'persistence', () => {
 			open: false,
 			battery: { charging: null, level: null },
 			sim: defaultSim(),
+			surf: defaultSurf(),
 		} );
 	} );
 } );

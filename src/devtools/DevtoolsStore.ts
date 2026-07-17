@@ -12,6 +12,7 @@ import { store } from '@wordpress/interactivity';
 import { type StorePart } from '../cockpit/StoreParts';
 import { type BatteryOverrideState } from '../cockpit/BatteryOverride';
 import { type DischargeSimState, DEFAULT_SIM } from './DischargeSim';
+import { type SurfSteerState, DEFAULT_SURF } from './SurfSteer';
 
 /** The dev-tools slice of the shared `bsb/cockpit` state. */
 export interface DevtoolsState {
@@ -21,6 +22,8 @@ export interface DevtoolsState {
 	battery: BatteryOverrideState;
 	/** The discharge-simulation sub-tool's state. */
 	sim: DischargeSimState;
+	/** The Surf sub-tool's state: the armed sterile override, plus its live-run runtime fields. */
+	surf: SurfSteerState;
 }
 
 /**
@@ -28,7 +31,10 @@ export interface DevtoolsState {
  * sim is deliberately excluded — it is a live, in-session driver only, never
  * something a reload should resume: a page opened later with the surf engine
  * running would otherwise inherit a phantom drain from a session the user may
- * not even remember starting. `open` and `battery` are the only fields a
+ * not even remember starting. The whole Surf tool is excluded for the same
+ * reason, armed `sterile` flag included: a sterile override armed once must
+ * never silently survive a reload or a later session and start a run sterile
+ * without the user re-choosing it. `open` and `battery` are the only fields a
  * returning session should see again.
  */
 type PersistedDevtoolsState = Pick< DevtoolsState, 'open' | 'battery' >;
@@ -58,16 +64,19 @@ const DEFAULT_STATE: DevtoolsState = {
 	open: false,
 	battery: { charging: null, level: null },
 	sim: { ...DEFAULT_SIM },
+	surf: { ...DEFAULT_SURF },
 };
 
 /**
  * `localStorage` key the slice persists under; bump the suffix on a shape
  * change — a stored value under a stale key is simply never read again
  * (`readStored()` looks up the current key only), so an old-shape blob is
- * inert rather than corrupting the new one. Bumped to v4 when the discharge
- * sim stopped being part of the persisted shape at all.
+ * inert rather than corrupting the new one. Bumped to v6 when the Surf
+ * tool's armed `sterile` flag was REMOVED from the persisted shape — sterile
+ * must never silently survive a reload, so a v5 blob carrying it is now
+ * simply inert rather than read back.
  */
-export const DEVTOOLS_STORAGE_KEY = 'bsb-devtools-v4';
+export const DEVTOOLS_STORAGE_KEY = 'bsb-devtools-v6';
 
 /**
  * Narrows an unknown value to a well-formed {@link PersistedDevtoolsState}, so
@@ -162,7 +171,10 @@ export const current = (): DevtoolsState => {
  * directive — since by then the store already exists and `localStorage` needs
  * no DOM. Restores `open` and `battery` only; the discharge sim is never
  * persisted, so it always starts a fresh session at its {@link DEFAULT_SIM}
- * default, never running.
+ * default, never running — and the whole Surf tool, its armed `sterile` flag
+ * included, always starts fresh too, at {@link DEFAULT_SURF}: a sterile
+ * override must never silently survive a reload and start a later run
+ * sterile without the user re-choosing it.
  */
 export const hydrateDevtools = (): void => {
 	const stored = readStored();
@@ -194,8 +206,9 @@ export const devtoolsShellStore: StorePart = {
 		 * Persists the devtools slice's persisted subset on every change. Bound
 		 * via `data-wp-watch--devtools-persist` on the panel; reading the slice
 		 * here is what makes it re-run reactively whenever any field changes.
-		 * Only `open` and `battery` are written — the discharge sim is a
-		 * live-session-only driver and never lands in storage.
+		 * Only `open` and `battery` are written; the discharge sim and the
+		 * whole Surf tool (its armed `sterile` flag included) are
+		 * live-session-only and never land in storage.
 		 */
 		devtoolsPersist(): void {
 			const state = current();

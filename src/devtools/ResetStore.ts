@@ -21,18 +21,22 @@
 import { type StorePart } from '../cockpit/StoreParts';
 import { resetBatteryOverride } from './BatteryOverrideStore';
 import { resetDischargeSim } from './DischargeSimStore';
+import { resetSurfSteer } from './SurfSteerStore';
 
 /** The dev-tools panel's cross-cutting reset, joining `bsb/cockpit`. */
 export const resetStore: StorePart = {
 	actions: {
 		/**
 		 * Resets every dev-tools override in one click: clears the charging and
-		 * level overrides back to "follow the system", and stops a running
-		 * discharge sim, restoring its steppers to their defaults.
+		 * level overrides back to "follow the system", stops a running
+		 * discharge sim (restoring its steppers to their defaults), and
+		 * disarms the Surf tool's sterile override (clearing every runtime
+		 * field).
 		 */
 		devtoolsReset(): void {
 			resetBatteryOverride();
 			resetDischargeSim();
+			resetSurfSteer();
 		},
 	},
 };

@@ -282,6 +282,38 @@ final class CourseRouterTest extends TestCase {
 	}
 
 	/**
+	 * A negative index — reachable from the dev-tools Surf tool's page
+	 * stepper walking backwards past index 0 — wraps to the saved order's
+	 * LAST entry via a proper positive modulo, not `absint()`'s sign-discarding
+	 * behaviour (which would resolve -1 to entry 1) nor PHP's own `%`
+	 * operator alone (which keeps the dividend's sign and would resolve -1 % 5
+	 * to -1, an invalid array offset).
+	 */
+	public function test_wraps_a_negative_index_to_the_saved_orders_last_entry(): void {
+		$this->stage_request( '-1' );
+		$this->stage_order( $this->default_order() );
+
+		$posts = $this->router()->maybe_render( array(), new WP_Query() );
+
+		// count = 5 (default order): -1 normalizes to entry 4, 'links'.
+		$this->assertSame( 'links', $posts[0]->post_name );
+	}
+
+	/**
+	 * A negative index further back than one full wrap still resolves
+	 * correctly against the saved order's length, not just for -1.
+	 */
+	public function test_wraps_a_negative_index_further_back_than_one_full_cycle(): void {
+		$this->stage_request( '-7' );
+		$this->stage_order( $this->default_order() );
+
+		$posts = $this->router()->maybe_render( array(), new WP_Query() );
+
+		// count = 5: (-7 % 5 + 5) % 5 = 3, 'video'.
+		$this->assertSame( 'video', $posts[0]->post_name );
+	}
+
+	/**
 	 * A request naming no index at all (the parameter is absent) leaves the
 	 * query completely untouched — nothing about the gate is even reached.
 	 */

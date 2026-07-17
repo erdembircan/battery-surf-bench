@@ -12,6 +12,7 @@ import { RealClock } from './Clock';
 import { senseAffordances } from './Affordances';
 import { DomMotor } from './Motor';
 import { SurfLoop } from './SurfLoop';
+import { SterileHelm } from './SterileHelm';
 import { whenDocumentLoaded } from './PageLoad';
 import { ScrollBurst } from './Behaviors/ScrollBurst';
 import { ReadPause } from './Behaviors/ReadPause';
@@ -29,6 +30,13 @@ const TRAITS_PARAM = 'bsbTraits';
 /** URL param carrying the demo speed multiplier. */
 const SPEED_PARAM = 'bsbSpeed';
 
+/**
+ * URL param whose presence (`1`) boots a `SterileHelm` instead of the
+ * auction-driven `SurfLoop`: the dev-tools "Sterile" override, seeded by
+ * `RunStore.currentSrc` only while a run's `context.sterile` is armed.
+ */
+const STERILE_PARAM = 'bsbSterile';
+
 /** Posted to the parent frame when the page's surf session ends. */
 const PAGE_DONE_MESSAGE = { type: 'bsb:pageDone' } as const;
 
@@ -39,6 +47,22 @@ const PAGE_DONE_MESSAGE = { type: 'bsb:pageDone' } as const;
  * imports across the frame boundary, exactly as `bsb:pageDone` does today.
  */
 const BEHAVIOR_START_TYPE = 'bsb:behaviorStart';
+
+/**
+ * The message type `SterileHelm` posts once a steered behavior's `run()`
+ * resolves. The cockpit-side receiver ({@see src/cockpit/BehaviorEnd.ts})
+ * owns its own copy of this literal, for the same reason as
+ * `BEHAVIOR_START_TYPE` above.
+ */
+const BEHAVIOR_END_TYPE = 'bsb:behaviorEnd';
+
+/**
+ * The message type `SterileHelm` posts once, at readiness, with the sterile
+ * page's affordance flags. The dev-tools panel's own receiver
+ * ({@see src/cockpit/PageAffordances.ts}) owns its own copy of this literal,
+ * for the same reason as `BEHAVIOR_START_TYPE` above.
+ */
+const PAGE_AFFORDANCES_TYPE = 'bsb:pageAffordances';
 
 /** A fresh, unpredictable seed for the engine's one PRNG instance. */
 const randomSeed = (): number => {
@@ -60,8 +84,19 @@ if ( params.has( TRAITS_PARAM ) ) {
 	);
 	const speed = normalizeSpeed( Number( params.get( SPEED_PARAM ) ) );
 	const rng = mulberry32( randomSeed() );
+	const sterile = params.get( STERILE_PARAM ) === '1';
 
-	const loop = new SurfLoop( {
+	const onPageDone = (): void => {
+		window.parent.postMessage( PAGE_DONE_MESSAGE, window.location.origin );
+	};
+	const onBehaviorRun = ( key: string, durationMs?: number ): void => {
+		window.parent.postMessage(
+			{ type: BEHAVIOR_START_TYPE, key, durationMs },
+			window.location.origin
+		);
+	};
+
+	const sharedDeps = {
 		behaviors: [
 			new ScrollBurst(),
 			new ReadPause(),
@@ -79,19 +114,45 @@ if ( params.has( TRAITS_PARAM ) ) {
 		traits,
 		senseAffordances: () => senseAffordances( document ),
 		speed,
-		onPageDone: () => {
-			window.parent.postMessage(
-				PAGE_DONE_MESSAGE,
-				window.location.origin
-			);
-		},
-		onBehaviorRun: ( key, durationMs ) => {
-			window.parent.postMessage(
-				{ type: BEHAVIOR_START_TYPE, key, durationMs },
-				window.location.origin
-			);
-		},
-	} );
+	};
 
-	whenDocumentLoaded( window, () => loop.start() );
+	if ( sterile ) {
+		// The auction never ticks: each behavior is instead fired manually from
+		// the dev-tools panel, and run exactly once over this same motor and
+		// context-sensing path.
+		const helm = new SterileHelm( {
+			...sharedDeps,
+			onPageDone,
+			onBehaviorRun,
+			onBehaviorEnd: ( key ) => {
+				window.parent.postMessage(
+					{ type: BEHAVIOR_END_TYPE, key },
+					window.location.origin
+				);
+			},
+			onPageAffordances: ( affordances ) => {
+				window.parent.postMessage(
+					{
+						type: PAGE_AFFORDANCES_TYPE,
+						affordances: {
+							hasVideo: affordances.hasVideo,
+							imageCount: affordances.imageCount,
+							textDensity: affordances.textDensity,
+						},
+					},
+					window.location.origin
+				);
+			},
+		} );
+
+		whenDocumentLoaded( window, () => helm.start() );
+	} else {
+		const loop = new SurfLoop( {
+			...sharedDeps,
+			onPageDone,
+			onBehaviorRun,
+		} );
+
+		whenDocumentLoaded( window, () => loop.start() );
+	}
 }

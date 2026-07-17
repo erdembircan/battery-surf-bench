@@ -25,9 +25,9 @@ classDiagram
     %% --- Store slices: each owns one surface of the deck and reads CockpitContext.
     class RunStore {
         <<module>>
-        state: currentSrc (builds the ?bsbSurfIndex/&bsbNonce= URL from seeded config + activeIndex, then carries traits+speed onto it), run/idle/compact, clock & rate readouts
-        actions: toggleRun (refuses unsupported/charging), toggleCompact, guardViewport (stops the run on a failed iframe load/error)
-        callbacks: syncRunActivity, initWakeLock, initPageAdvance (increments activeIndex on the surf engine's page-done message — no client-side wrap, the server wraps), syncViewportWatchdog (arms/clears the viewport load-hang watchdog), initExitGuard (native leave-confirmation while a run is live)
+        state: currentSrc (builds the ?bsbSurfIndex/&bsbNonce= URL from seeded config + activeIndex, then carries traits+speed+sterile onto it), run/idle/compact, isSterileRun (context.sterile && context.running), clock & rate readouts
+        actions: toggleRun (refuses unsupported/charging; snapshots context.sterile from state.devtools?.surf?.sterile at start only), toggleCompact, guardViewport (stops the run on a failed iframe load/error)
+        callbacks: syncRunActivity, initWakeLock, initPageAdvance (increments activeIndex on the surf engine's page-done message — no client-side wrap, the server wraps), syncViewportWatchdog (arms/clears the viewport load-hang watchdog), initExitGuard (native leave-confirmation while a run is live), syncDevtoolsSurf (mirrors state.devtools.surf.runLive = context.running; while live-and-sterile also mirrors surf.pageIndex = context.activeIndex and applies surf.pageStep to activeIndex, else clears surf.affordances/pageStep/pageIndex — only ever touches state.devtools when it exists)
     }
 
     class ConfigStore {
@@ -138,9 +138,30 @@ classDiagram
         +durationOf(MessageEvent) number
     }
 
+    %% Sterile-run iframe<->cockpit protocol seam (see surf-engine-modules.mmd
+    %% for the engine-side sender/listener — SterileHelm). BehaviorEnd and
+    %% PageAffordances are receivers (iframe -> cockpit); SteerBehavior is the
+    %% one sender (cockpit -> iframe) in this whole feature.
+    class BehaviorEnd {
+        <<module>>
+        +isBehaviorEndMessage(MessageEvent, string) boolean
+        +behaviorEndKeyOf(MessageEvent) string
+    }
+
+    class PageAffordances {
+        <<module>>
+        +isPageAffordancesMessage(MessageEvent, string) boolean
+        +affordancesOf(MessageEvent) PageAffordancesPayload
+    }
+
+    class SteerBehavior {
+        <<module>>
+        +postSteerBehavior(Window|null, string, string) void
+    }
+
     class RunLifecycle {
         <<module>>
-        +stopRun(ctx, instance, RunEndReason) void
+        +stopRun(ctx, instance, RunEndReason) void — skips SessionUpload entirely when ctx.sterile (a sterilized test run is not a benchmark)
         +applyReadouts(ctx, RunSession) void
         +GRAPH_VIEWPORT
     }
@@ -190,7 +211,7 @@ classDiagram
     %% surf-engine-modules.mmd for the engine-side receiver).
     class SurferUrl {
         <<module>>
-        +withSurferParams(string, number[], number) string
+        +withSurferParams(string, number[], number, sterile?) string — appends bsbSterile=1 only when sterile, omitted otherwise
     }
 
     %% Builds the opaque ?bsbSurfIndex=/&bsbNonce= base URL RunStore layers
@@ -384,7 +405,7 @@ classDiagram
     %% Slice → focused domain delegation.
     RunStore --> RunConfig : normalizes config
     RunStore --> TargetControl : clamps target on start
-    RunStore --> SurferUrl : carries traits+speed onto currentSrc
+    RunStore --> SurferUrl : carries traits+speed+sterile onto currentSrc
     RunStore --> SurfIndexUrl : builds the base ?bsbSurfIndex=/&bsbNonce= URL from seeded config
     RunStore --> PageAdvance : recognizes page-done, increments activeIndex
     RunStore --> PageGuard : decides load/error viewport failure
@@ -437,20 +458,22 @@ classDiagram
     %% a `devtools` prefix. In production this module never loads at all.
     %% The devtools slice is itself composed of a shared shell (persistence,
     %% panel open state) plus one StorePart per sub-tool: the manual battery
-    %% override, and the discharge simulation — each own its own state field
-    %% (`battery`, `sim`) and never writes to the other's. A third tool is a
-    %% new StorePart folded in here, not a rework of the composition root.
-    %% Only `open` and `battery` persist across a reload — the discharge sim is
-    %% a live-session-only driver and is never written to or restored from
-    %% storage.
+    %% override, the discharge simulation, and the Surf steerer — each own
+    %% its own state field (`battery`, `sim`, `surf`) and never writes to the
+    %% other's. A fourth tool is a new StorePart folded in here, not a rework
+    %% of the composition root. Only `open` and `battery` persist across a
+    %% reload — the discharge sim and the WHOLE Surf tool (its armed
+    %% `sterile` flag included, so an arm from a prior session can never
+    %% silently start a later run sterile) are live-session-only and never
+    %% written to or restored from storage.
     class DevToolsView {
         <<module>>
-        store('bsb/cockpit', mergeStoreParts(DevtoolsShellStore, BatteryOverrideStore, DischargeSimStore, ResetStore))
+        store('bsb/cockpit', mergeStoreParts(DevtoolsShellStore, BatteryOverrideStore, DischargeSimStore, SurfSteerStore, ResetStore))
     }
 
     class DevtoolsStore {
         <<module>>
-        state: devtools.open, devtools.battery, devtools.sim
+        state: devtools.open, devtools.battery, devtools.sim, devtools.surf
         actions: devtoolsToggleOpen
         callbacks: devtoolsPersist
         +current() DevtoolsState
@@ -460,7 +483,7 @@ classDiagram
 
     class BatteryOverrideStore {
         <<module>>
-        state: devtoolsIsChargingSystem/On/Off, devtoolsIsLevelForced, devtoolsLevelPercent, devtoolsLevelFillPercent, devtoolsIsArmed
+        state: devtoolsIsChargingSystem/On/Off, devtoolsIsLevelForced, devtoolsLevelPercent, devtoolsLevelFillPercent, devtoolsIsArmed (also true while surf.sterile)
         actions: devtoolsSetCharging, devtoolsSetLevel, devtoolsResetLevel
         +resetBatteryOverride() void
     }
@@ -470,6 +493,30 @@ classDiagram
         state: devtoolsSimFromDisplay/ToDisplay/MinutesDisplay, devtoolsIsSimRunning, devtoolsIsSimStartBlocked, devtoolsSimRemainingDisplay
         actions: devtoolsStepSim, devtoolsToggleSim
         +resetDischargeSim() void
+    }
+
+    %% The Surf sub-tool: arms/disarms the sterile override, steers each of
+    %% the nine behaviors (strictly sequential — the chip gate mirrors the
+    %% engine's own guard), and steps the course page. Owns the iframe<->
+    %% cockpit bsb:behaviorStart/behaviorEnd/pageAffordances handshake and the
+    %% 1s countdown ticker; the chip's --chip-dur custom property is fed the
+    %% FIXED full announced duration (never the ticking remainingMs), so its
+    %% tide fill animates smoothly instead of restarting every second.
+    class SurfSteerStore {
+        <<module>>
+        state: devtoolsIsSurfNatural/Sterile, devtoolsSurfModeDisabled (locks the Natural/Sterile seg while any run — natural or sterile — is live), devtoolsSurfIsRunning, devtoolsSurfCountdownDisplay, devtoolsSurfPageSlug, devtoolsSurfChipDisabled/Gated/Running/DurationCss (parameterized per calling chip via getElement()'s data-devtools-behavior), devtoolsSurfStepDisabled
+        actions: devtoolsSurfSetMode, devtoolsSurfSteer (posts bsb:steerBehavior to the viewport iframe), devtoolsSurfStep (writes a monotonic-seq pageStep command)
+        callbacks: devtoolsInitSurf (the iframe message listener), devtoolsSyncSurfRun (clears the steered-behavior state once runLive flips false, rather than waiting on bsb:behaviorEnd)
+        +resetSurfSteer() void
+    }
+
+    class SurfSteer {
+        <<module>>
+        +isChipDisabled(key, state) boolean
+        +isChipGated(key, affordances) boolean
+        +surfCountdownDisplay(key, remainingMs) string
+        +pageSlugAt(slugs, pageIndex) string
+        +SURF_BEHAVIOR_KEYS, CAUTION_KEY, DEFAULT_SURF
     }
 
     class EffectiveBatteryOverride {
@@ -502,10 +549,17 @@ classDiagram
     DevToolsView --> DevtoolsStore : composes (shared shell)
     DevToolsView --> BatteryOverrideStore : composes
     DevToolsView --> DischargeSimStore : composes
+    DevToolsView --> SurfSteerStore : composes
     DevToolsView --> ResetStore : composes
     BatteryOverrideStore --> DevtoolsStore : reads/writes the shared devtools slice
     DischargeSimStore --> DevtoolsStore : reads/writes the shared devtools slice
     DischargeSimStore --> DischargeSim : evaluates the pure model against the clock
+    SurfSteerStore --> DevtoolsStore : reads/writes the shared devtools slice
+    SurfSteerStore --> SurfSteer : gating/formatting rules
+    SurfSteerStore --> BehaviorStart : recognizes bsb:behaviorStart to start the running countdown
+    SurfSteerStore --> BehaviorEnd : recognizes bsb:behaviorEnd to clear the running key
+    SurfSteerStore --> PageAffordances : recognizes bsb:pageAffordances to store the live page's flags
+    SurfSteerStore --> SteerBehavior : posts bsb:steerBehavior to the viewport iframe's contentWindow
 
     %% The discharge sim writes only its own `sim.currentLevel`/`remainingMs`/
     %% `running` fields — never `devtools.battery`, which BatteryOverrideStore's manual
@@ -519,9 +573,12 @@ classDiagram
 
     %% The panel-wide Reset button composes each sub-tool's own exported
     %% reset — it never duplicates their logic, and it is the only module that
-    %% depends on both sub-tools at once.
+    %% depends on all three sub-tools at once.
     ResetStore --> BatteryOverrideStore : calls resetBatteryOverride()
     ResetStore --> DischargeSimStore : calls resetDischargeSim()
+    ResetStore --> SurfSteerStore : calls resetSurfSteer()
 
     DevtoolsStore ..> BatteryStore : joins bsb/cockpit store (state.devtools.battery)
     BatteryStore ..> DevtoolsStore : reads state.devtools.battery (undefined in production)
+    DevtoolsStore ..> RunStore : joins bsb/cockpit store (state.devtools.surf)
+    RunStore ..> DevtoolsStore : reads/writes state.devtools.surf (undefined in production)

@@ -125,22 +125,24 @@ export const batteryOverrideStore: StorePart = {
 
 		/**
 		 * Whether an override is actually in effect: a charging choice other
-		 * than System, a forced level (dragged in by hand), or a running
-		 * discharge sim — checked directly here (not through the resolver)
-		 * since a sim with `{null, null}` still sitting underneath in the
-		 * manual layer must still read as armed. There is no separate
-		 * "enabled" switch otherwise — each manual field already carries its
-		 * own off-state (`null` follows the system), so a field being set is
-		 * what "armed" means. Drives the pill's coral state and the card
-		 * header's "Override active" text.
+		 * than System, a forced level (dragged in by hand), a running
+		 * discharge sim, or the Surf tool's sterile override armed — checked
+		 * directly here (not through the resolver) since a sim with
+		 * `{null, null}` still sitting underneath in the manual layer must
+		 * still read as armed. There is no separate "enabled" switch
+		 * otherwise — each manual field already carries its own off-state
+		 * (`null` follows the system), so a field being set is what "armed"
+		 * means. Drives the pill's coral state and the card header's
+		 * "Override active" text.
 		 */
 		get devtoolsIsArmed(): boolean {
-			const { battery, sim } = current();
+			const { battery, sim, surf } = current();
 
 			return (
 				battery.charging !== null ||
 				battery.level !== null ||
-				sim.running
+				sim.running ||
+				surf.sterile
 			);
 		},
 	},

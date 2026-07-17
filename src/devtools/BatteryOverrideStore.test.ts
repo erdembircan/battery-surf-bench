@@ -35,6 +35,9 @@ interface DevtoolsState {
 		startedAt: number | null;
 		currentLevel: number | null;
 	};
+	surf: {
+		sterile: boolean;
+	};
 }
 
 const mocks = vi.hoisted( () => ( {
@@ -81,6 +84,7 @@ beforeEach( () => {
 				startedAt: null,
 				currentLevel: null,
 			},
+			surf: { sterile: false },
 		},
 		batterySystemPercent: null,
 	};
@@ -232,6 +236,16 @@ describe( 'batteryOverrideStore derived state', () => {
 
 		// Clearing the level back to system disarms it again.
 		mocks.state.devtools.battery.level = null;
+		expect( derived.devtoolsIsArmed ).toBe( false );
+	} );
+
+	it( 'is armed while the Surf tool’s sterile override is on, even with the manual layer at {null, null}', () => {
+		expect( derived.devtoolsIsArmed ).toBe( false );
+
+		mocks.state.devtools.surf.sterile = true;
+		expect( derived.devtoolsIsArmed ).toBe( true );
+
+		mocks.state.devtools.surf.sterile = false;
 		expect( derived.devtoolsIsArmed ).toBe( false );
 	} );
 

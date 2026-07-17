@@ -157,7 +157,9 @@ const persistSession = (
  *
  * Ending also persists the run: the frozen session is uploaded to the server
  * (fire-and-forget) so every cause of a run ending records the session, with no
- * separate save step.
+ * separate save step — EXCEPT a sterile run, which is skipped entirely: a run
+ * with the auction muted and its behaviors fired manually from the dev-tools
+ * panel is not a benchmark, and must never pollute the stored session history.
  *
  * Ending also clears any behavior-start bark immediately (the showing bark,
  * any pending one, and its timers alike) so a stopped run never leaves a quip
@@ -173,7 +175,9 @@ export const stopRun = (
 	reason: RunEndReason
 ): void => {
 	freezeSummary( context, instance );
-	persistSession( context, instance, reason );
+	if ( ! context.sterile ) {
+		persistSession( context, instance, reason );
+	}
 	clearBark( context, instance );
 	context.running = false;
 	context.ended = true;

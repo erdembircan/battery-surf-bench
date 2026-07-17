@@ -200,7 +200,7 @@ classDiagram
     }
 
     class DevTools {
-        +__construct(array environments, string module, string style, Assets assets, string cockpit_param, string cockpit_value, DevToolsPanelView view)
+        +__construct(array environments, string module, string style, Assets assets, string cockpit_param, string cockpit_value, DevToolsPanelView view, CourseOrderSanitizer order_sanitizer, string course_option_name)
         +is_active() bool
         +register() void
         +enqueue_front() void
@@ -396,6 +396,7 @@ classDiagram
     DevTools ..|> Manager : implements
     DevTools --> Assets : uses
     DevTools --> DevToolsPanelView : renders via
+    DevTools --> CourseOrderSanitizer : reads & sanitizes the same saved course order CourseRouter resolves indexes against, to hand the panel its ordered page slugs
     DevToolsPanelView ..|> View : implements
     %% Filter-mediated, not a direct dependency: DevTools hooks
     %% `battery_surf_bench_devtools_panel` (only Cockpit applies it, when
