@@ -22,6 +22,8 @@ interface MockSurf {
 		textDensity: number;
 	} | null;
 	pageStep: { delta: -1 | 1; seq: number } | null;
+	runLive: boolean;
+	pageIndex: number | null;
 }
 
 interface MockDevtoolsState {
@@ -53,7 +55,8 @@ const derived = surfSteerStore.state as unknown as {
 	devtoolsIsSurfSterile: boolean;
 	devtoolsSurfIsRunning: boolean;
 	devtoolsSurfCountdownDisplay: string;
-	devtoolsSurfAffordanceGlyphs: string;
+	devtoolsSurfPageSlug: string;
+	devtoolsSurfModeDisabled: boolean;
 	devtoolsSurfChipDisabled: boolean;
 	devtoolsSurfChipGated: boolean;
 	devtoolsSurfChipRunning: boolean;
@@ -72,6 +75,8 @@ const defaultSurf = (): MockSurf => ( {
 	remainingMs: null,
 	affordances: null,
 	pageStep: null,
+	runLive: false,
+	pageIndex: null,
 } );
 
 const chip = ( key: string ): void => {
@@ -127,6 +132,25 @@ describe( 'Natural/Sterile seg', () => {
 		actions.devtoolsSurfSetMode();
 
 		expect( mocks.state.devtools.surf.sterile ).toBe( true );
+	} );
+
+	it( 'devtoolsSurfSetMode is a no-op while any run is live, even for an otherwise legitimate choice — defense in depth behind the seg’s own disabled binding', () => {
+		mocks.state.devtools.surf.runLive = true;
+		mocks.element = { dataset: { devtoolsSurfMode: 'sterile' } };
+
+		actions.devtoolsSurfSetMode();
+
+		expect( mocks.state.devtools.surf.sterile ).toBe( false );
+	} );
+
+	it( 'devtoolsSurfModeDisabled mirrors runLive — locked for the whole duration of ANY live run, natural or sterile', () => {
+		expect( derived.devtoolsSurfModeDisabled ).toBe( false );
+
+		mocks.state.devtools.surf.runLive = true;
+		expect( derived.devtoolsSurfModeDisabled ).toBe( true );
+
+		mocks.state.devtools.surf.runLive = false;
+		expect( derived.devtoolsSurfModeDisabled ).toBe( false );
 	} );
 } );
 
@@ -271,30 +295,65 @@ describe( 'devtoolsSurfCountdownDisplay', () => {
 	} );
 } );
 
-describe( 'devtoolsSurfAffordanceGlyphs', () => {
-	it( 'reads an em dash when there is no live sterile page', () => {
-		expect( derived.devtoolsSurfAffordanceGlyphs ).toBe( '—' );
+describe( 'devtoolsSurfPageSlug', () => {
+	it( 'reads an em dash when there is no live sterile page (pageIndex null)', () => {
+		// Explicit devtoolsInitSurf() call (rather than relying on whatever a
+		// prior test's own call left the module-level slug list at) so this
+		// test is self-contained regardless of execution order.
+		const cleanup = callbacks.devtoolsInitSurf();
+
+		expect( mocks.state.devtools.surf.pageIndex ).toBeNull();
+		expect( derived.devtoolsSurfPageSlug ).toBe( '—' );
+
+		cleanup();
 	} );
 
-	it( 'concatenates the glyphs for each true flag, in text/image/video order', () => {
-		mocks.state.devtools.surf.affordances = {
-			hasVideo: true,
-			imageCount: 2,
-			textDensity: 0.6,
+	it( 'parses the course slugs from the panel region’s data-devtools-course-slugs attribute at devtoolsInitSurf(), then resolves pageIndex against them — wrapping the same way CourseRouter does server-side', () => {
+		mocks.element = {
+			dataset: {
+				devtoolsCourseSlugs: JSON.stringify( [
+					'article-1',
+					'gallery',
+					'video',
+				] ),
+			},
 		};
+		const cleanup = callbacks.devtoolsInitSurf();
 
-		expect( derived.devtoolsSurfAffordanceGlyphs ).toBe( '▤▦▶' );
+		mocks.state.devtools.surf.pageIndex = 1;
+		expect( derived.devtoolsSurfPageSlug ).toBe( 'gallery' );
+
+		// Wraps beyond the list length: 5 % 3 = 2.
+		mocks.state.devtools.surf.pageIndex = 5;
+		expect( derived.devtoolsSurfPageSlug ).toBe( 'video' );
+
+		// Wraps a negative index to the tail.
+		mocks.state.devtools.surf.pageIndex = -1;
+		expect( derived.devtoolsSurfPageSlug ).toBe( 'video' );
+
+		cleanup();
 	} );
 
-	it( 'omits a glyph for a false flag', () => {
-		mocks.state.devtools.surf.affordances = {
-			hasVideo: false,
-			imageCount: 0,
-			textDensity: 0.6,
-		};
+	it.each( [
+		undefined,
+		'{not json',
+		JSON.stringify( 'just a string' ),
+		JSON.stringify( [ 1, 2, 3 ] ),
+		JSON.stringify( { a: 1 } ),
+	] )(
+		'defaults to an empty slug list — reading as an em dash — when the attribute is absent, malformed, or not a string array (%p)',
+		( raw ) => {
+			mocks.element = {
+				dataset: raw === undefined ? {} : { devtoolsCourseSlugs: raw },
+			};
+			const cleanup = callbacks.devtoolsInitSurf();
 
-		expect( derived.devtoolsSurfAffordanceGlyphs ).toBe( '▤' );
-	} );
+			mocks.state.devtools.surf.pageIndex = 0;
+			expect( derived.devtoolsSurfPageSlug ).toBe( '—' );
+
+			cleanup();
+		}
+	);
 } );
 
 describe( 'devtoolsSurfChipDisabled', () => {

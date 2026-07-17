@@ -3,7 +3,7 @@ import {
 	isChipDisabled,
 	isChipGated,
 	surfCountdownDisplay,
-	affordanceGlyphs,
+	pageSlugAt,
 	SURF_BEHAVIOR_KEYS,
 	CAUTION_KEY,
 } from './SurfSteer';
@@ -183,36 +183,36 @@ describe( 'surfCountdownDisplay', () => {
 	} );
 } );
 
-describe( 'affordanceGlyphs', () => {
-	it( 'is an em dash when there is no live sterile page', () => {
-		expect( affordanceGlyphs( null ) ).toBe( '—' );
+describe( 'pageSlugAt', () => {
+	const slugs = [ 'article-1', 'gallery', 'article-2', 'video', 'links' ];
+
+	it( 'is an em dash when pageIndex is null', () => {
+		expect( pageSlugAt( slugs, null ) ).toBe( '—' );
 	} );
 
-	it( 'concatenates the glyphs for each true flag, in text/image/video order', () => {
-		expect(
-			affordanceGlyphs( {
-				hasVideo: true,
-				imageCount: 2,
-				textDensity: 0.5,
-			} )
-		).toBe( '▤▦▶' );
+	it( 'is an em dash when the slug list is empty, even with a valid index', () => {
+		expect( pageSlugAt( [], 0 ) ).toBe( '—' );
 	} );
 
-	it( 'omits a glyph for each false flag', () => {
-		expect(
-			affordanceGlyphs( {
-				hasVideo: false,
-				imageCount: 0,
-				textDensity: 0,
-			} )
-		).toBe( '' );
+	it( 'resolves the slug at the given index directly, in range', () => {
+		expect( pageSlugAt( slugs, 0 ) ).toBe( 'article-1' );
+		expect( pageSlugAt( slugs, 3 ) ).toBe( 'video' );
+		expect( pageSlugAt( slugs, 4 ) ).toBe( 'links' );
+	} );
 
-		expect(
-			affordanceGlyphs( {
-				hasVideo: true,
-				imageCount: 0,
-				textDensity: 0,
-			} )
-		).toBe( '▶' );
+	it( 'wraps an index beyond the list length via positive modulo, same as CourseRouter', () => {
+		expect( pageSlugAt( slugs, 5 ) ).toBe( 'article-1' );
+		expect( pageSlugAt( slugs, 7 ) ).toBe( 'article-2' );
+	} );
+
+	it( 'wraps a negative index to the list’s tail, same as CourseRouter', () => {
+		expect( pageSlugAt( slugs, -1 ) ).toBe( 'links' );
+		expect( pageSlugAt( slugs, -5 ) ).toBe( 'article-1' );
+		expect( pageSlugAt( slugs, -7 ) ).toBe( 'video' );
+	} );
+
+	it( 'resolves correctly for a saved order shorter than the bundled set', () => {
+		expect( pageSlugAt( [ 'gallery', 'video' ], 3 ) ).toBe( 'video' );
+		expect( pageSlugAt( [ 'gallery', 'video' ], -1 ) ).toBe( 'video' );
 	} );
 } );

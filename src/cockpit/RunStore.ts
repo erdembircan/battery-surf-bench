@@ -575,6 +575,7 @@ export const runStore: StorePart = {
 			if ( ! liveSterile ) {
 				surf.affordances = null;
 				surf.pageStep = null;
+				surf.pageIndex = null;
 				return;
 			}
 
@@ -588,6 +589,10 @@ export const runStore: StorePart = {
 					context.activeIndex += pageStep.delta;
 				}
 			}
+
+			// Mirrored last, so a pageStep consumed above is reflected in this
+			// same pass rather than needing a second reactive re-run.
+			surf.pageIndex = context.activeIndex;
 		},
 	},
 };

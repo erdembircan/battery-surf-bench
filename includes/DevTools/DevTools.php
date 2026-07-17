@@ -8,12 +8,16 @@
 namespace ErdemBircan\BatterySurfBench\DevTools;
 
 use ErdemBircan\BatterySurfBench\Assets;
+use ErdemBircan\BatterySurfBench\Course\CourseOrderSanitizer;
 use ErdemBircan\BatterySurfBench\DevTools\Views\DevToolsPanelView;
 use ErdemBircan\BatterySurfBench\Support\Manager;
 
 use function __;
 use function add_action;
 use function add_filter;
+use function array_map;
+use function get_option;
+use function get_post_field;
 use function get_query_var;
 use function in_array;
 use function sanitize_key;
@@ -39,6 +43,14 @@ defined( 'ABSPATH' ) || exit;
  * `battery_surf_bench_cockpit_spared_style_handles` filter ({@see
  * StandaloneChrome}) — both keep this manager decoupled from the surface it
  * decorates.
+ *
+ * The Surf group's page stepper shows real course-page slugs (this manager is
+ * environment-gated, so it may safely hand the panel identifiers a production
+ * surface never leaks): {@see course_slugs()} reads the saved surf-course
+ * order from the exact same source {@see \ErdemBircan\BatterySurfBench\Course\CourseRouter}
+ * resolves indexes against — the same option, sanitized by the same
+ * {@see CourseOrderSanitizer} — so the ordered slug list the panel receives
+ * always matches what an index actually resolves to server-side.
  */
 class DevTools implements Manager {
 
@@ -61,13 +73,15 @@ class DevTools implements Manager {
 	/**
 	 * Stores everything needed to gate, render and enqueue the dev-tools panel.
 	 *
-	 * @param array<int, string> $environments      Environments the gate opens for (matched against `wp_get_environment_type()`).
-	 * @param string             $module             Built dev-tools view module, relative to the plugin root.
-	 * @param string             $style              Built dev-tools panel stylesheet, relative to the plugin root.
-	 * @param Assets             $assets             Service used to register and enqueue the module and stylesheet.
-	 * @param string             $cockpit_param      Query parameter that selects the cockpit dashboard.
-	 * @param string             $cockpit_value      Value of the parameter that serves the cockpit.
-	 * @param DevToolsPanelView  $view               View that renders the panel body.
+	 * @param array<int, string>   $environments          Environments the gate opens for (matched against `wp_get_environment_type()`).
+	 * @param string               $module                Built dev-tools view module, relative to the plugin root.
+	 * @param string               $style                 Built dev-tools panel stylesheet, relative to the plugin root.
+	 * @param Assets               $assets                Service used to register and enqueue the module and stylesheet.
+	 * @param string               $cockpit_param         Query parameter that selects the cockpit dashboard.
+	 * @param string               $cockpit_value         Value of the parameter that serves the cockpit.
+	 * @param DevToolsPanelView    $view                  View that renders the panel body.
+	 * @param CourseOrderSanitizer $course_order_sanitizer Validates the saved surf-course order, the same sanitizer CourseRouter resolves indexes against.
+	 * @param string               $course_option_name    Name of the option the surf-course order is saved under.
 	 */
 	public function __construct(
 		private array $environments,
@@ -76,7 +90,9 @@ class DevTools implements Manager {
 		private Assets $assets,
 		private string $cockpit_param,
 		private string $cockpit_value,
-		private DevToolsPanelView $view
+		private DevToolsPanelView $view,
+		private CourseOrderSanitizer $course_order_sanitizer,
+		private string $course_option_name
 	) {
 	}
 
@@ -176,7 +192,33 @@ class DevTools implements Manager {
 					'selectSnippet',
 					'moveOn',
 				),
+				'course_slugs'            => $this->course_slugs(),
 			)
+		);
+	}
+
+	/**
+	 * The saved surf-course order's slugs, in visit order — read from the
+	 * exact same option, and sanitized by the exact same
+	 * {@see CourseOrderSanitizer}, that CourseRouter resolves indexes
+	 * against, so the ordered list handed to the panel always matches what
+	 * an index actually resolves to server-side. A bundled entry's own slug
+	 * names it directly; a user entry resolves to the real post's own slug.
+	 *
+	 * @return array<int, string> The ordered course-page slugs.
+	 */
+	private function course_slugs(): array {
+		$order = $this->course_order_sanitizer->sanitize(
+			get_option( $this->course_option_name, $this->course_order_sanitizer->default_order() )
+		);
+
+		return array_map(
+			function ( array $entry ): string {
+				return 'bundled' === $entry['kind']
+					? (string) $entry['slug']
+					: (string) get_post_field( 'post_name', $entry['id'] );
+			},
+			$order
 		);
 	}
 

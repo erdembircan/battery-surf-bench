@@ -667,13 +667,15 @@ $ease: cubic-bezier(0.22, 1, 0.36, 1);
 	background: theme.$coastal-coral-deep;
 }
 
-// The page stepper's affordance-glyph readout: a small mono glyph string
-// (▤ text, ▦ images, ▶ video, concatenated, or — when there is no live
-// sterile page) — the only page identity the client is allowed to leak,
-// since it only ever knows the opaque course index.
-.bsb-devtools__stepper-readout--glyphs {
+// The page stepper's readout: the live course page's own real slug (e.g.
+// `article-1`) — this manager is environment-gated, so it may safely hand the
+// panel an identifier a production surface never leaks. `—` while idle.
+// Fixed-width and centered, matching the approved mockup's own slug readout,
+// so the stepper's width never shifts as the slug's length changes.
+.bsb-devtools__stepper-readout--slug {
+	min-width: 4.6em;
+	text-align: center;
 	font-family: theme.$font-mono;
-	letter-spacing: 0.1em;
 }
 
 // The chip grid: two columns, each cell free to shrink so a long key still

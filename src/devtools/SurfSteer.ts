@@ -1,7 +1,7 @@
 /**
  * The Surf dev-tool's pure model: its persisted/runtime state shape, the nine
  * behaviors' keys in engine boot order (the chip grid's own order), the chip
- * gating rule, and the countdown/glyph display formats. Kept free of any
+ * gating rule, and the countdown/page-slug display formats. Kept free of any
  * store/DOM dependency so the gating and formatting logic can be
  * unit-tested in isolation — the store slice ({@link ./SurfSteerStore}) only
  * wires this against the shared `bsb/cockpit` state and the iframe message
@@ -55,6 +55,24 @@ export interface SurfSteerState {
 	affordances: SurfAffordances | null;
 	/** The pending page-jump command, or null. */
 	pageStep: SurfPageStep | null;
+	/**
+	 * Whether ANY run — natural or sterile — is currently live, mirrored from
+	 * `context.running` by the production `RunStore.syncDevtoolsSurf` watch
+	 * (the panel has no cockpit context of its own). Sterile is snapshotted
+	 * once at run start, so toggling the Natural/Sterile seg mid-run would do
+	 * nothing to the already-live run; this is what locks the seg for the
+	 * run's whole duration. Production-owned truth — never written by this
+	 * tool's own actions or its Reset.
+	 */
+	runLive: boolean;
+	/**
+	 * The live sterile page's opaque course-page index, mirrored from
+	 * `context.activeIndex` by the same production watch while the run is
+	 * live and sterile; null otherwise. Resolved against the server-supplied
+	 * slug list ({@link ./SurfSteerStore}'s `devtoolsSurfPageSlug` getter) for
+	 * the page stepper's readout.
+	 */
+	pageIndex: number | null;
 }
 
 /** The tool's default, pre-hydration state. */
@@ -64,6 +82,8 @@ export const DEFAULT_SURF: SurfSteerState = Object.freeze( {
 	remainingMs: null,
 	affordances: null,
 	pageStep: null,
+	runLive: false,
+	pageIndex: null,
 } );
 
 /**
@@ -164,32 +184,31 @@ export const surfCountdownDisplay = (
 };
 
 /**
- * The page-affordance glyph readout: `▤` when the page has readable text,
- * `▦` when it has images, `▶` when it has video, concatenated in that
- * order — the only page identity the client is allowed to leak, since it
- * only ever knows the opaque course index. `—` when there is no live
- * sterile page at all.
+ * The page stepper's readout: the live course page's own real slug (e.g.
+ * `article-1`), resolved from the server-supplied ordered slug list by the
+ * opaque `pageIndex` the production watch mirrors. `—` when there is no live
+ * sterile page (`pageIndex` null) or the slug list is empty (the panel's
+ * `data-devtools-course-slugs` attribute was absent or failed to parse).
  *
- * @param affordances The live sterile page's affordance flags, or null.
- * @return The glyph readout.
+ * Wraps via the same positive modulo `CourseRouter` uses server-side
+ * (`((pageIndex % n) + n) % n`), so a negative index (the page stepper can
+ * walk one below 0) or an index beyond the list's length resolves to
+ * identically the same slug the server would actually serve.
+ *
+ * @param slugs     The saved surf-course order's slugs, in visit order.
+ * @param pageIndex The live sterile page's opaque course-page index, or null.
+ * @return The resolved slug, or an em dash.
  */
-export const affordanceGlyphs = (
-	affordances: SurfAffordances | null
+export const pageSlugAt = (
+	slugs: readonly string[],
+	pageIndex: number | null
 ): string => {
-	if ( affordances === null ) {
+	if ( pageIndex === null || slugs.length === 0 ) {
 		return '—';
 	}
 
-	let glyphs = '';
-	if ( affordances.textDensity > 0 ) {
-		glyphs += '▤';
-	}
-	if ( affordances.imageCount > 0 ) {
-		glyphs += '▦';
-	}
-	if ( affordances.hasVideo ) {
-		glyphs += '▶';
-	}
+	const count = slugs.length;
+	const wrapped = ( ( pageIndex % count ) + count ) % count;
 
-	return glyphs;
+	return slugs[ wrapped ];
 };

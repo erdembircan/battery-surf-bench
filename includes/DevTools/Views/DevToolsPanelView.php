@@ -9,8 +9,10 @@ namespace ErdemBircan\BatterySurfBench\DevTools\Views;
 
 use ErdemBircan\BatterySurfBench\Support\View;
 
+use function array_map;
 use function esc_attr;
 use function esc_html;
+use function wp_json_encode;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -110,6 +112,7 @@ class DevToolsPanelView implements View {
 	 *     @type string              $page_prev_label        Raw accessible label for the previous-page button.
 	 *     @type string              $page_next_label        Raw accessible label for the next-page button.
 	 *     @type array<int, string>  $behavior_keys          The nine behaviors' developer-identifier keys, in engine boot order — rendered verbatim as each chip's visible text, never translated.
+	 *     @type array<int, string>  $course_slugs           The saved surf-course order's slugs, in visit order — never translated; emitted as a JSON data attribute for the client to index by the opaque page position.
 	 * }
 	 * @return string The panel markup.
 	 */
@@ -147,6 +150,15 @@ class DevToolsPanelView implements View {
 		$page_prev         = esc_attr( (string) ( $data['page_prev_label'] ?? '' ) );
 		$page_next         = esc_attr( (string) ( $data['page_next_label'] ?? '' ) );
 		$behavior_keys     = isset( $data['behavior_keys'] ) && is_array( $data['behavior_keys'] ) ? $data['behavior_keys'] : array();
+		$course_slugs      = isset( $data['course_slugs'] ) && is_array( $data['course_slugs'] ) ? $data['course_slugs'] : array();
+
+		// The ordered course-page slugs, as a JSON data attribute the client
+		// parses in devtoolsInitSurf() — developer identifiers, not translated
+		// text, so this is a plain escaped JSON encode, never __(). A failed
+		// encode (should not happen for a plain string list) falls back to an
+		// empty array rather than emitting `false` into the attribute.
+		$encoded_course_slugs = wp_json_encode( array_map( 'strval', $course_slugs ) );
+		$course_slugs_json    = esc_attr( false === $encoded_course_slugs ? '[]' : $encoded_course_slugs );
 
 		// One chip per behavior, in the engine's own boot order. Each key is a
 		// developer identifier — rendered verbatim as the chip's visible text,
@@ -165,7 +177,7 @@ CHIP;
 		}
 
 		return <<<HTML
-<div class="bsb-devtools" data-wp-interactive="bsb/cockpit" data-wp-watch---devtools-persist="callbacks.devtoolsPersist" data-wp-init---devtools-surf="callbacks.devtoolsInitSurf">
+<div class="bsb-devtools" data-wp-interactive="bsb/cockpit" data-wp-watch---devtools-persist="callbacks.devtoolsPersist" data-wp-init---devtools-surf="callbacks.devtoolsInitSurf" data-devtools-course-slugs="{$course_slugs_json}">
 	<div class="bsb-devtools__swap">
 		<button type="button" class="bsb-devtools__pill" id="bsb-devtools-pill" data-wp-bind--hidden="state.devtools.open" data-wp-class--is-armed="state.devtoolsIsArmed" data-wp-on--click="actions.devtoolsToggleOpen" aria-expanded="false" data-wp-bind--aria-expanded="state.devtools.open" aria-controls="bsb-devtools-card">{$dev}</button>
 
@@ -263,7 +275,7 @@ CHIP;
 							<span class="bsb-devtools__stepper-label">{$page}</span>
 							<div class="bsb-devtools__stepper">
 								<button type="button" class="bsb-devtools__stepper-btn" data-step="-1" data-wp-on--click="actions.devtoolsSurfStep" data-wp-bind--disabled="state.devtoolsSurfStepDisabled" aria-label="{$page_prev}">&lsaquo;</button>
-								<span class="bsb-devtools__stepper-readout bsb-devtools__stepper-readout--glyphs" data-wp-text="state.devtoolsSurfAffordanceGlyphs"></span>
+								<span class="bsb-devtools__stepper-readout bsb-devtools__stepper-readout--slug" data-wp-text="state.devtoolsSurfPageSlug"></span>
 								<button type="button" class="bsb-devtools__stepper-btn" data-step="1" data-wp-on--click="actions.devtoolsSurfStep" data-wp-bind--disabled="state.devtoolsSurfStepDisabled" aria-label="{$page_next}">&rsaquo;</button>
 							</div>
 						</div>

@@ -35,7 +35,7 @@ import {
 	isChipDisabled,
 	isChipGated,
 	surfCountdownDisplay,
-	affordanceGlyphs,
+	pageSlugAt,
 } from './SurfSteer';
 
 /** How often the countdown ticker re-evaluates the running behavior's remaining time. */
@@ -57,6 +57,43 @@ let runningDurationMs: number | null = null;
 
 /** Monotonic sequence stamped onto every `pageStep` command, so the production watch (which reads it reactively) re-fires even on a repeat of the same delta. */
 let pageStepSeq = 0;
+
+/**
+ * The saved surf-course order's slugs, in visit order — parsed once, in
+ * `devtoolsInitSurf`, from the panel region's own
+ * `data-devtools-course-slugs` JSON attribute (this manager is
+ * environment-gated, so the server may safely hand the panel identifiers a
+ * production surface never leaks). Kept off reactive state, the same way
+ * `runningDurationMs` is: it never changes after the panel mounts, so a
+ * getter reading it fresh each render needs no signal of its own.
+ */
+let courseSlugs: string[] = [];
+
+/**
+ * Parses the panel region's `data-devtools-course-slugs` JSON attribute into
+ * a slug list, defensively: an absent attribute, malformed JSON, a
+ * non-array value, or an array containing a non-string all resolve to an
+ * empty list rather than throwing.
+ *
+ * @param raw The raw attribute value, or undefined.
+ * @return The parsed slug list, or an empty array.
+ */
+const parseCourseSlugs = ( raw: string | undefined ): string[] => {
+	if ( ! raw ) {
+		return [];
+	}
+
+	try {
+		const parsed: unknown = JSON.parse( raw );
+
+		return Array.isArray( parsed ) &&
+			parsed.every( ( slug ): slug is string => 'string' === typeof slug )
+			? parsed
+			: [];
+	} catch {
+		return [];
+	}
+};
 
 /** Stops the countdown ticker, idempotently. */
 const stopCountdownTicker = (): void => {
@@ -119,6 +156,7 @@ export const resetSurfSteer = (): void => {
 	surf.sterile = false;
 	surf.affordances = null;
 	surf.pageStep = null;
+	surf.pageIndex = null;
 };
 
 /**
@@ -161,9 +199,25 @@ export const surfSteerStore: StorePart = {
 			return surfCountdownDisplay( behaviorKey, remainingMs );
 		},
 
-		/** The page stepper's mono glyph readout: which affordance flags the live sterile page reports, or an em dash when there is none. */
-		get devtoolsSurfAffordanceGlyphs(): string {
-			return affordanceGlyphs( current().surf.affordances );
+		/**
+		 * The page stepper's readout: the live course page's own real slug,
+		 * resolved from the server-supplied ordered slug list by the opaque
+		 * `pageIndex` the production watch mirrors — or an em dash when there
+		 * is no live sterile page, or the slug list is empty.
+		 */
+		get devtoolsSurfPageSlug(): string {
+			return pageSlugAt( courseSlugs, current().surf.pageIndex );
+		},
+
+		/**
+		 * Whether the Natural/Sterile seg is locked: true for the WHOLE
+		 * duration of any live run, natural or sterile. Sterile is
+		 * snapshotted once at run start, so toggling the seg mid-run would do
+		 * nothing to the already-live run — an enabled seg mid-run would be a
+		 * lie.
+		 */
+		get devtoolsSurfModeDisabled(): boolean {
+			return current().surf.runLive;
 		},
 
 		/**
@@ -297,19 +351,27 @@ export const surfSteerStore: StorePart = {
 	},
 	callbacks: {
 		/**
-		 * Attaches the iframe↔cockpit message listener for the sterile engine's
-		 * three messages: `bsb:behaviorStart` (sets the running key and starts
-		 * its countdown, when the behavior announced a duration),
-		 * `bsb:behaviorEnd` (clears the running key and stops the countdown),
-		 * and `bsb:pageAffordances` (stores the freshly-sensed page's
-		 * affordance flags). Bound via `data-wp-init` on the panel region, so
-		 * it stays attached for the panel's whole lifetime regardless of
-		 * open/closed — the same convention as the panel's own
-		 * `devtoolsPersist` watch.
+		 * Parses the panel region's own `data-devtools-course-slugs` JSON
+		 * attribute into {@link courseSlugs}, then attaches the iframe↔cockpit
+		 * message listener for the sterile engine's three messages:
+		 * `bsb:behaviorStart` (sets the running key and starts its countdown,
+		 * when the behavior announced a duration), `bsb:behaviorEnd` (clears
+		 * the running key and stops the countdown), and `bsb:pageAffordances`
+		 * (stores the freshly-sensed page's affordance flags). Bound via
+		 * `data-wp-init` on the panel region, so it stays attached for the
+		 * panel's whole lifetime regardless of open/closed — the same
+		 * convention as the panel's own `devtoolsPersist` watch, and
+		 * `getElement()` inside an init callback refers to that same bound
+		 * element, the source of the slugs attribute.
 		 *
 		 * @return A cleanup that detaches the listener and stops the ticker.
 		 */
 		devtoolsInitSurf(): () => void {
+			const { ref } = getElement();
+			courseSlugs = parseCourseSlugs(
+				( ref as HTMLElement | null )?.dataset.devtoolsCourseSlugs
+			);
+
 			const onMessage = ( event: MessageEvent ): void => {
 				const origin = window.location.origin;
 

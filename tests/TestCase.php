@@ -39,6 +39,12 @@ abstract class TestCase extends PHPUnitTestCase {
 		Functions\when( 'esc_html__' )->returnArg();
 		Functions\when( 'esc_attr__' )->returnArg();
 		Functions\when( '__' )->returnArg();
+
+		// WordPress' JSON encoder behaves like PHP's own for the plain scalar/
+		// array values views encode (developer identifiers, never arbitrary
+		// user content), so code under test can call it without a loaded
+		// WordPress.
+		Functions\when( 'wp_json_encode' )->alias( 'json_encode' );
 	}
 
 	/**

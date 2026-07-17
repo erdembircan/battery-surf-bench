@@ -162,10 +162,18 @@ test.describe( 'Dev-tools Surf group', () => {
 		await expect( readPauseChip ).toBeEnabled( { timeout: 15_000 } );
 
 		// The page stepper navigates the viewport: clicking next advances the
-		// opaque course index from 0 to 1.
+		// opaque course index from 0 to 1. The readout mirrors the real
+		// course-page slug the server resolves that index against (the
+		// bundled catalog's default order: article-1, gallery, article-2,
+		// video, links) — never a glyph or the raw index.
+		const slugReadout = page.locator(
+			'.bsb-devtools__stepper-readout--slug'
+		);
 		await expect( viewport ).toHaveAttribute( 'src', /bsbSurfIndex=0/ );
+		await expect( slugReadout ).toHaveText( 'article-1' );
 		await page.locator( '[aria-label="Next course page"]' ).click();
 		await expect( viewport ).toHaveAttribute( 'src', /bsbSurfIndex=1/ );
+		await expect( slugReadout ).toHaveText( 'gallery' );
 
 		expect( await page.content() ).not.toMatch( PHP_NOTICE );
 	} );

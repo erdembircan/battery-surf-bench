@@ -27,7 +27,7 @@ classDiagram
         <<module>>
         state: currentSrc (builds the ?bsbSurfIndex/&bsbNonce= URL from seeded config + activeIndex, then carries traits+speed+sterile onto it), run/idle/compact, isSterileRun (context.sterile && context.running), clock & rate readouts
         actions: toggleRun (refuses unsupported/charging; snapshots context.sterile from state.devtools?.surf?.sterile at start only), toggleCompact, guardViewport (stops the run on a failed iframe load/error)
-        callbacks: syncRunActivity, initWakeLock, initPageAdvance (increments activeIndex on the surf engine's page-done message — no client-side wrap, the server wraps), syncViewportWatchdog (arms/clears the viewport load-hang watchdog), initExitGuard (native leave-confirmation while a run is live), syncDevtoolsSurf (applies state.devtools.surf.pageStep to activeIndex while live-and-sterile; else clears surf.affordances/pageStep — only ever touches state.devtools when it exists)
+        callbacks: syncRunActivity, initWakeLock, initPageAdvance (increments activeIndex on the surf engine's page-done message — no client-side wrap, the server wraps), syncViewportWatchdog (arms/clears the viewport load-hang watchdog), initExitGuard (native leave-confirmation while a run is live), syncDevtoolsSurf (mirrors state.devtools.surf.runLive = context.running; while live-and-sterile also mirrors surf.pageIndex = context.activeIndex and applies surf.pageStep to activeIndex, else clears surf.affordances/pageStep/pageIndex — only ever touches state.devtools when it exists)
     }
 
     class ConfigStore {
@@ -504,7 +504,7 @@ classDiagram
     %% tide fill animates smoothly instead of restarting every second.
     class SurfSteerStore {
         <<module>>
-        state: devtoolsIsSurfNatural/Sterile, devtoolsSurfIsRunning, devtoolsSurfCountdownDisplay, devtoolsSurfAffordanceGlyphs, devtoolsSurfChipDisabled/Gated/Running/DurationCss (parameterized per calling chip via getElement()'s data-devtools-behavior), devtoolsSurfStepDisabled
+        state: devtoolsIsSurfNatural/Sterile, devtoolsSurfModeDisabled (locks the Natural/Sterile seg while any run — natural or sterile — is live), devtoolsSurfIsRunning, devtoolsSurfCountdownDisplay, devtoolsSurfPageSlug, devtoolsSurfChipDisabled/Gated/Running/DurationCss (parameterized per calling chip via getElement()'s data-devtools-behavior), devtoolsSurfStepDisabled
         actions: devtoolsSurfSetMode, devtoolsSurfSteer (posts bsb:steerBehavior to the viewport iframe), devtoolsSurfStep (writes a monotonic-seq pageStep command)
         callbacks: devtoolsInitSurf (the iframe message listener)
         +resetSurfSteer() void
@@ -515,7 +515,7 @@ classDiagram
         +isChipDisabled(key, state) boolean
         +isChipGated(key, affordances) boolean
         +surfCountdownDisplay(key, remainingMs) string
-        +affordanceGlyphs(affordances) string
+        +pageSlugAt(slugs, pageIndex) string
         +SURF_BEHAVIOR_KEYS, CAUTION_KEY, DEFAULT_SURF
     }
 

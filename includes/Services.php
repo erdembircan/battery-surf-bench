@@ -139,11 +139,12 @@ return array(
 	),
 	DevTools::class             => array(
 		'args' => array(
-			'environments'  => '%devtools.environments%',
-			'module'        => '%devtools.module%',
-			'style'         => '%devtools.style%',
-			'cockpit_param' => '%cockpit.param%',
-			'cockpit_value' => '%cockpit.value%',
+			'environments'       => '%devtools.environments%',
+			'module'             => '%devtools.module%',
+			'style'              => '%devtools.style%',
+			'cockpit_param'      => '%cockpit.param%',
+			'cockpit_value'      => '%cockpit.value%',
+			'course_option_name' => '%settings.option%',
 		),
 	),
 

@@ -284,10 +284,12 @@ final class DevToolsPanelViewTest extends TestCase {
 
 	/**
 	 * The Surf group: the Natural/Sterile seg (with the Sterile option's coral
-	 * modifier class — no hint line underneath it, the seg speaks for itself),
-	 * the page stepper, and one chip per behavior in the given order, each
-	 * carrying its own `data-devtools-behavior` key as visible text — with
-	 * `moveOn` alone carrying the caution modifier class.
+	 * modifier class — no hint line underneath it, the seg speaks for itself —
+	 * and both options locked for the whole duration of any live run), the
+	 * page stepper (its readout showing the real course-page slug), and one
+	 * chip per behavior in the given order, each carrying its own
+	 * `data-devtools-behavior` key as visible text — with `moveOn` alone
+	 * carrying the caution modifier class.
 	 */
 	public function test_render_wires_the_surf_group(): void {
 		$markup = ( new DevToolsPanelView() )->render(
@@ -303,6 +305,7 @@ final class DevToolsPanelViewTest extends TestCase {
 					'selectSnippet',
 					'moveOn',
 				),
+				'course_slugs'  => array( 'article-1', 'gallery', 'video' ),
 			)
 		);
 
@@ -315,6 +318,14 @@ final class DevToolsPanelViewTest extends TestCase {
 			$markup
 		);
 
+		// The ordered course-page slugs, emitted as a JSON data attribute on
+		// that same region for devtoolsInitSurf() to parse — developer
+		// identifiers, escaped for HTML attribute safety but never __()'d.
+		$this->assertStringContainsString(
+			'data-devtools-course-slugs="' . esc_attr( '["article-1","gallery","video"]' ) . '"',
+			$markup
+		);
+
 		// The group-head countdown: hidden by default, revealed only while a
 		// behavior is steered, reading the countdown display getter.
 		$this->assertStringContainsString(
@@ -323,21 +334,31 @@ final class DevToolsPanelViewTest extends TestCase {
 		);
 
 		// The Natural/Sterile seg: Sterile carries the coral modifier class,
-		// each bound to its own selected-state getter.
+		// each bound to its own selected-state getter AND locked for the
+		// whole duration of any live run (natural or sterile) via the shared
+		// devtoolsSurfModeDisabled getter — an enabled seg mid-run would be a
+		// lie, since sterile is only ever snapshotted at run start.
 		$this->assertStringContainsString(
-			'data-devtools-surf-mode="natural" data-wp-class--is-selected="state.devtoolsIsSurfNatural" data-wp-on--click="actions.devtoolsSurfSetMode"',
+			'data-devtools-surf-mode="natural" data-wp-class--is-selected="state.devtoolsIsSurfNatural" data-wp-on--click="actions.devtoolsSurfSetMode" data-wp-bind--disabled="state.devtoolsSurfModeDisabled"',
 			$markup
 		);
 		$this->assertStringContainsString(
-			'class="bsb-devtools__seg-option bsb-devtools__seg-option--sterile" data-devtools-surf-mode="sterile" data-wp-class--is-selected="state.devtoolsIsSurfSterile" data-wp-on--click="actions.devtoolsSurfSetMode"',
+			'class="bsb-devtools__seg-option bsb-devtools__seg-option--sterile" data-devtools-surf-mode="sterile" data-wp-class--is-selected="state.devtoolsIsSurfSterile" data-wp-on--click="actions.devtoolsSurfSetMode" data-wp-bind--disabled="state.devtoolsSurfModeDisabled"',
 			$markup
+		);
+		$this->assertSame(
+			2,
+			substr_count( $markup, 'data-wp-bind--disabled="state.devtoolsSurfModeDisabled"' )
 		);
 
 		// No hint line: the seg speaks for itself.
 		$this->assertStringNotContainsString( 'bsb-devtools__hint', $markup );
 
-		// The page stepper: prev/next arrows around the affordance-glyph
-		// readout, both disabled while a behavior runs.
+		// The page stepper: prev/next arrows around the readout, both
+		// disabled while a behavior runs; the readout itself shows the real
+		// course-page slug (this manager is environment-gated, so it may
+		// safely hand the panel an identifier a production surface never
+		// leaks).
 		$this->assertStringContainsString(
 			'data-step="-1" data-wp-on--click="actions.devtoolsSurfStep" data-wp-bind--disabled="state.devtoolsSurfStepDisabled"',
 			$markup
@@ -347,7 +368,7 @@ final class DevToolsPanelViewTest extends TestCase {
 			$markup
 		);
 		$this->assertStringContainsString(
-			'data-wp-text="state.devtoolsSurfAffordanceGlyphs"',
+			'class="bsb-devtools__stepper-readout bsb-devtools__stepper-readout--slug" data-wp-text="state.devtoolsSurfPageSlug"',
 			$markup
 		);
 
@@ -413,6 +434,21 @@ final class DevToolsPanelViewTest extends TestCase {
 	}
 
 	/**
+	 * The course-slugs data attribute defaults to an empty JSON array — rather
+	 * than erroring or emitting nothing — when `course_slugs` is missing or
+	 * malformed, defensive the same way `behavior_keys` is.
+	 */
+	public function test_render_course_slugs_attribute_defaults_to_an_empty_array(): void {
+		$markup = ( new DevToolsPanelView() )->render();
+
+		$this->assertStringContainsString( 'data-devtools-course-slugs="[]"', $markup );
+
+		$malformed = ( new DevToolsPanelView() )->render( array( 'course_slugs' => 'not-an-array' ) );
+
+		$this->assertStringContainsString( 'data-devtools-course-slugs="[]"', $malformed );
+	}
+
+	/**
 	 * Every raw label handed to the view is escaped into its slot.
 	 */
 	public function test_render_escapes_the_supplied_labels(): void {
@@ -427,6 +463,7 @@ final class DevToolsPanelViewTest extends TestCase {
 				'surf_label'             => '<b>Surf</b>',
 				'auction_override_label' => '"Auction override"',
 				'page_prev_label'        => '"Previous course page"',
+				'course_slugs'           => array( '"><script>slug</script>' ),
 			)
 		);
 
@@ -448,5 +485,10 @@ final class DevToolsPanelViewTest extends TestCase {
 			'aria-label="&quot;Previous course page&quot;"',
 			$markup
 		);
+
+		// A course slug is a developer identifier, escaped for HTML attribute
+		// safety (via the JSON-encode + esc_attr pipeline) but never __()'d.
+		$this->assertStringNotContainsString( '<script>slug</script>', $markup );
+		$this->assertStringContainsString( '&lt;script&gt;', $markup );
 	}
 }
