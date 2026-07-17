@@ -54,7 +54,9 @@ interface CockpitContext {
 	toastStrings: { error: string; notice: string };
 	barkBehavior: string;
 	barkText: string;
-	barkPhase: '' | 'entering' | 'holding' | 'leaving';
+	barkDurationMs: number;
+	barkPhase: '' | 'entering' | 'leaving';
+	barkGeneration: number;
 	barkStrings: Record< string, string[] >;
 }
 
@@ -111,8 +113,9 @@ interface CockpitConfig {
 		barkKey: string;
 		barkMessage: string;
 		isBarkEntering: boolean;
-		isBarkHolding: boolean;
 		isBarkLeaving: boolean;
+		barkDurationCss: string;
+		barkEbbName: string;
 		// Present only once the dev-tools module has joined the store (never set
 		// by this file's own registration); the battery seam reads it optionally.
 		devtools?: {
@@ -158,7 +161,6 @@ interface CockpitConfig {
 		onToastAnimationEnd: () => void;
 		initDetail: () => void;
 		initBark: () => () => void;
-		onBarkAnimationEnd: () => void;
 	};
 }
 
@@ -204,11 +206,21 @@ const baseContext = (): CockpitContext => ( {
 	toastStrings: { error: 'Upload failed', notice: 'View only' },
 	barkBehavior: '',
 	barkText: '',
+	barkDurationMs: 0,
 	barkPhase: '',
+	barkGeneration: 0,
 	barkStrings: {
 		readPause: [
 			'Deep in the good words…',
 			'Catching up on the fine print…',
+		],
+		lingerImage: [
+			'Basking in the beauty of the pictures…',
+			'Ooh, shiny pixels…',
+		],
+		moveOn: [
+			'Paddling off to the next page…',
+			'This wave is done — surfing on…',
 		],
 	},
 } );
@@ -2144,13 +2156,28 @@ describe( 'bsb/cockpit view store', () => {
 			);
 		};
 
+		// `initBark` attaches a real `window` 'message' listener; jsdom's
+		// `window` persists across tests within this file, so a listener a
+		// test forgets to detach would keep firing in every later test —
+		// racing a second, stale `raiseBark` call against the SAME shared
+		// `instanceFor()` singleton every fresh test's listener also writes
+		// to. Tracking and detaching it here (rather than trusting each test
+		// to remember) is what keeps the tests actually isolated.
+		let barkCleanup: ( () => void ) | undefined;
+
+		afterEach( () => {
+			barkCleanup?.();
+			barkCleanup = undefined;
+		} );
+
 		it( 'raises a bark on a legitimate behavior-start message while running', () => {
 			mocks.context.running = true;
 
-			mocks.config!.callbacks.initBark();
+			barkCleanup = mocks.config!.callbacks.initBark();
 			dispatchMessage( window.location.origin, {
 				type: 'bsb:behaviorStart',
 				key: 'readPause',
+				durationMs: 8000,
 			} );
 
 			expect( mocks.context.barkBehavior ).toBe( 'readPause' );
@@ -2158,15 +2185,17 @@ describe( 'bsb/cockpit view store', () => {
 			expect( mocks.config!.state.barkKey ).toBe( 'readPause' );
 			expect( mocks.config!.state.barkMessage ).not.toBe( '' );
 			expect( mocks.context.barkPhase ).toBe( 'entering' );
+			expect( mocks.config!.state.barkDurationCss ).toBe( '8000ms' );
 		} );
 
 		it( 'ignores a behavior-start message while idle', () => {
 			mocks.context.running = false;
 
-			mocks.config!.callbacks.initBark();
+			barkCleanup = mocks.config!.callbacks.initBark();
 			dispatchMessage( window.location.origin, {
 				type: 'bsb:behaviorStart',
 				key: 'readPause',
+				durationMs: 8000,
 			} );
 
 			expect( mocks.context.barkBehavior ).toBe( '' );
@@ -2175,8 +2204,21 @@ describe( 'bsb/cockpit view store', () => {
 		it( 'ignores a message from a different origin', () => {
 			mocks.context.running = true;
 
-			mocks.config!.callbacks.initBark();
+			barkCleanup = mocks.config!.callbacks.initBark();
 			dispatchMessage( 'https://evil.test', {
+				type: 'bsb:behaviorStart',
+				key: 'readPause',
+				durationMs: 8000,
+			} );
+
+			expect( mocks.context.barkBehavior ).toBe( '' );
+		} );
+
+		it( 'ignores a message with no valid duration', () => {
+			mocks.context.running = true;
+
+			barkCleanup = mocks.config!.callbacks.initBark();
+			dispatchMessage( window.location.origin, {
 				type: 'bsb:behaviorStart',
 				key: 'readPause',
 			} );
@@ -2187,10 +2229,11 @@ describe( 'bsb/cockpit view store', () => {
 		it( 'ignores a key with no translated strings (non-barking behavior)', () => {
 			mocks.context.running = true;
 
-			mocks.config!.callbacks.initBark();
+			barkCleanup = mocks.config!.callbacks.initBark();
 			dispatchMessage( window.location.origin, {
 				type: 'bsb:behaviorStart',
 				key: 'scrollBurst',
+				durationMs: 8000,
 			} );
 
 			expect( mocks.context.barkBehavior ).toBe( '' );
@@ -2204,36 +2247,114 @@ describe( 'bsb/cockpit view store', () => {
 			dispatchMessage( window.location.origin, {
 				type: 'bsb:behaviorStart',
 				key: 'readPause',
+				durationMs: 8000,
 			} );
 
 			expect( mocks.context.barkBehavior ).toBe( '' );
 		} );
 
-		it( 'walks the pill through entering, holding, leaving and finishing', () => {
+		it( 'holds for the announced duration, then leaves and finishes — driven entirely by the store timers', () => {
 			vi.useFakeTimers();
 			mocks.context.running = true;
 
-			mocks.config!.callbacks.initBark();
+			barkCleanup = mocks.config!.callbacks.initBark();
 			dispatchMessage( window.location.origin, {
 				type: 'bsb:behaviorStart',
 				key: 'readPause',
+				durationMs: 8000,
 			} );
 			expect( mocks.context.barkPhase ).toBe( 'entering' );
+			expect( mocks.config!.state.isBarkEntering ).toBe( true );
 
-			// Entering ends: the pill rests and a hold timer is armed.
-			mocks.config!.callbacks.onBarkAnimationEnd();
-			expect( mocks.context.barkPhase ).toBe( 'holding' );
-			expect( mocks.config!.state.isBarkHolding ).toBe( true );
+			// Holds for the full announced duration before leaving on its own —
+			// no animationend callback is involved.
+			vi.advanceTimersByTime( 7999 );
+			expect( mocks.context.barkPhase ).toBe( 'entering' );
 
-			// The hold timer elapses on its own and starts the leave.
-			vi.advanceTimersByTime( 6000 );
+			vi.advanceTimersByTime( 1 );
 			expect( mocks.context.barkPhase ).toBe( 'leaving' );
 			expect( mocks.config!.state.isBarkLeaving ).toBe( true );
 
-			// Leaving ends: the bark is cleared.
-			mocks.config!.callbacks.onBarkAnimationEnd();
+			// The leave timer elapses on its own and clears the bark.
+			vi.advanceTimersByTime( 320 );
 			expect( mocks.context.barkBehavior ).toBe( '' );
 			expect( mocks.config!.state.hasBark ).toBe( false );
+
+			vi.useRealTimers();
+		} );
+
+		it( 'a message arriving while one bark is showing queues rather than replacing, and begins the showing bark’s leave immediately — no minimum on-screen time', () => {
+			vi.useFakeTimers();
+			mocks.context.running = true;
+
+			barkCleanup = mocks.config!.callbacks.initBark();
+			dispatchMessage( window.location.origin, {
+				type: 'bsb:behaviorStart',
+				key: 'readPause',
+				durationMs: 20000,
+			} );
+			expect( mocks.context.barkPhase ).toBe( 'entering' );
+			const ebbNameBeforeQueue = mocks.config!.state.barkEbbName;
+
+			// Arrives almost immediately — still readPause showing, but its
+			// leave begins right away (synchronously), with no wait of any
+			// kind before that.
+			dispatchMessage( window.location.origin, {
+				type: 'bsb:behaviorStart',
+				key: 'lingerImage',
+				durationMs: 3000,
+			} );
+			expect( mocks.context.barkBehavior ).toBe( 'readPause' );
+			expect( mocks.context.barkPhase ).toBe( 'leaving' );
+
+			// The leave finishes: the queued bark is pumped in fresh. Its
+			// ebb keyframe name must differ from the one the just-finished
+			// bark used, so the tide's drain animation is guaranteed to
+			// restart from full rather than continue (or be a no-op) —
+			// this holds even though nothing here depends on the two barks'
+			// key/duration actually differing.
+			vi.advanceTimersByTime( 320 );
+			expect( mocks.context.barkBehavior ).toBe( 'lingerImage' );
+			expect( mocks.context.barkPhase ).toBe( 'entering' );
+			expect( mocks.config!.state.barkDurationCss ).toBe( '3000ms' );
+			expect( mocks.config!.state.barkEbbName ).not.toBe(
+				ebbNameBeforeQueue
+			);
+
+			vi.useRealTimers();
+		} );
+
+		it( 'keeps only the newest of several messages that arrive while one bark is showing', () => {
+			vi.useFakeTimers();
+			mocks.context.running = true;
+
+			barkCleanup = mocks.config!.callbacks.initBark();
+			dispatchMessage( window.location.origin, {
+				type: 'bsb:behaviorStart',
+				key: 'readPause',
+				durationMs: 20000,
+			} );
+			dispatchMessage( window.location.origin, {
+				type: 'bsb:behaviorStart',
+				key: 'lingerImage',
+				durationMs: 3000,
+			} );
+			dispatchMessage( window.location.origin, {
+				type: 'bsb:behaviorStart',
+				key: 'moveOn',
+				durationMs: 2500,
+			} );
+			// Still readPause showing (now leaving) — none of the queued
+			// arrivals swapped in directly.
+			expect( mocks.context.barkBehavior ).toBe( 'readPause' );
+			expect( mocks.context.barkPhase ).toBe( 'leaving' );
+
+			vi.advanceTimersByTime( 320 );
+
+			// Only the newest of the queued arrivals (moveOn) is shown next —
+			// lingerImage was superseded in the pending slot before it ever aired.
+			expect( mocks.context.barkBehavior ).toBe( 'moveOn' );
+			expect( mocks.context.barkPhase ).toBe( 'entering' );
 
 			vi.useRealTimers();
 		} );

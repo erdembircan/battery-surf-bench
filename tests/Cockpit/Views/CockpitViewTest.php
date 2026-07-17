@@ -88,7 +88,9 @@ final class CockpitViewTest extends TestCase {
 	 * The behavior-start bark is rendered as one bound pill inside the viewport
 	 * wrap: hidden until a bark is raised, its behavior key bound onto the
 	 * `data-bark` attribute the stylesheet selects an icon from, its phase
-	 * driving the animation classes, and an `animationend` hook driving its
+	 * driving the animation classes, and its layered "ebbing tide" fill's
+	 * drain duration and ripple speed bound to store-computed values. The
+	 * store's own timers (not any animation event) drive the pill's
 	 * lifecycle. The layer is `aria-hidden`, since barks are decorative.
 	 */
 	public function test_render_includes_the_behavior_bark(): void {
@@ -99,10 +101,25 @@ final class CockpitViewTest extends TestCase {
 		$this->assertStringContainsString( 'data-wp-bind--hidden="!state.hasBark"', $markup );
 		$this->assertStringContainsString( 'data-wp-bind--data-bark="state.barkKey"', $markup );
 		$this->assertStringContainsString( 'data-wp-class--is-entering="state.isBarkEntering"', $markup );
-		$this->assertStringContainsString( 'data-wp-class--is-holding="state.isBarkHolding"', $markup );
 		$this->assertStringContainsString( 'data-wp-class--is-leaving="state.isBarkLeaving"', $markup );
-		$this->assertStringContainsString( 'data-wp-on--animationend="callbacks.onBarkAnimationEnd"', $markup );
+		// All three custom properties bind on the tide element itself (not
+		// just anywhere in the markup): the drain duration, the ebb keyframe
+		// name (alternated by the store on every fresh bark, guaranteeing the
+		// drain restarts from full even for two consecutive barks sharing a
+		// key/duration), and the ripple's speed link — the last the same
+		// binding pattern as the deck's own waves.
+		$this->assertStringContainsString( 'class="bsb-cockpit__bark-tide" aria-hidden="true" data-wp-style----bark-dur="state.barkDurationCss" data-wp-style----bark-ebb-name="state.barkEbbName" data-wp-style----bsb-wave-speed="context.speed"', $markup );
+		// The layered water body: three full-height "water sheet" layers (each its
+		// own wavy crest plus same-colour fill down to the bottom), stacked directly
+		// under the tide with no separate fill/band wrapper — the waves ARE the water.
+		$this->assertStringContainsString( 'class="bsb-cockpit__bark-tide-wave bsb-cockpit__bark-tide-wave--back"', $markup );
+		$this->assertStringContainsString( 'class="bsb-cockpit__bark-tide-wave bsb-cockpit__bark-tide-wave--mid"', $markup );
+		$this->assertStringContainsString( 'class="bsb-cockpit__bark-tide-wave bsb-cockpit__bark-tide-wave--front"', $markup );
+		$this->assertStringNotContainsString( 'bsb-cockpit__bark-tide-fill', $markup );
+		$this->assertStringNotContainsString( 'bsb-cockpit__bark-tide-waves"', $markup );
 		$this->assertStringContainsString( 'data-wp-text="state.barkMessage"', $markup );
+		$this->assertStringNotContainsString( 'state.isBarkHolding', $markup );
+		$this->assertStringNotContainsString( 'onBarkAnimationEnd', $markup );
 	}
 
 	/**

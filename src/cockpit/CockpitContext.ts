@@ -26,6 +26,15 @@ export type ToastKind = 'error' | 'notice';
 /** The toast pill's animation phase; empty when no toast is showing. */
 export type ToastPhase = '' | 'entering' | 'holding' | 'leaving';
 
+/**
+ * The bark pill's animation phase; empty when no bark is showing. Unlike the
+ * toast, a bark has no `holding` phase: the store-owned duration timer covers
+ * the entire visible life (its ebbing-tide fill is a pure CSS projection of
+ * that duration), so `entering` stays applied throughout and the phase only
+ * ever moves to `leaving` once the duration timer fires.
+ */
+export type BarkPhase = '' | 'entering' | 'leaving';
+
 /** The translated wording shown on the summary for a given end reason. */
 export interface ReasonText {
 	/** Handwritten verdict heading, e.g. "The run is in.". */
@@ -96,12 +105,27 @@ export interface CockpitContext {
 	// localizable; the queue resolves the current message from here.
 	toastStrings: Record< ToastKind, string >;
 	// The behavior-start bark: the behavior key showing (empty when none), its
-	// resolved flavor text, and its animation phase. The pending slot lives
-	// off-context in the per-instance state; only the one showing rides the
-	// reactive context.
+	// resolved flavor text, its full wall-clock duration in ms (drives the
+	// ebbing-tide fill's CSS animation-duration via barkDurationCss), and its
+	// animation phase. Store-authoritative and duration-tied: a newly arriving
+	// bark always replaces the current one immediately, at any phase, driven
+	// entirely by the store's own timers — never by an animation's end.
 	barkBehavior: string;
 	barkText: string;
-	barkPhase: ToastPhase;
+	barkDurationMs: number;
+	barkPhase: BarkPhase;
+	// Incremented every time a NEW bark is shown (see Barks.ts's showBark),
+	// regardless of key or duration. Drives which of two byte-identical
+	// ebb keyframes (barkEbbName) the tide's drain animation-name resolves
+	// to, so the drain is GUARANTEED to restart from full on every fresh
+	// bark — including two consecutive barks that happen to share the exact
+	// same key and announced duration (e.g. two moveOn or two selectSnippet
+	// barks in a row), where the computed `animation` value would otherwise
+	// be byte-identical and the browser would treat it as the same,
+	// still-running instance rather than a fresh one. A change in
+	// animation-name's computed value is the one CSS-spec-guaranteed trigger
+	// for a hard restart; a duration/custom-property tweak alone is not.
+	barkGeneration: number;
 	// Translated bark quips by behavior key, two variants each; the cockpit
 	// picks one at random when the behavior starts. A behavior key absent here
 	// never barks (the mechanical, frequent behaviors have no entry).

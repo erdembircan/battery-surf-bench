@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { ReadPause } from './ReadPause';
 import { makeContext, openAffordances } from '../TestFixtures';
 import { FakeMotor } from '../FakeMotor';
@@ -90,5 +90,48 @@ describe( 'ReadPause.run', () => {
 		const [ ms ] = motor.commands[ 0 ].args;
 		expect( ms ).toBeGreaterThanOrEqual( 800 );
 		expect( ms ).toBeLessThanOrEqual( 2000 );
+	} );
+
+	it( 'announces the same wall-clock ms it eventually idles for', async () => {
+		const motor = new FakeMotor();
+		const announce = vi.fn();
+		await new ReadPause().run(
+			motor,
+			makeContext( [ 0, 0, 5, 0, 0 ], { rng: () => 0.9 } ),
+			announce
+		);
+
+		const [ idleMs ] = motor.commands[ 0 ].args;
+		expect( announce ).toHaveBeenCalledTimes( 1 );
+		expect( announce ).toHaveBeenCalledWith( idleMs );
+	} );
+
+	it( 'announces the same wall-clock ms it eventually traces for', async () => {
+		const motor = new FakeMotor();
+		const announce = vi.fn();
+		await new ReadPause().run(
+			motor,
+			makeContext( [ 0, 0, 5, 0, 0 ], { rng: () => 0.1 } ),
+			announce
+		);
+
+		const [ traceMs ] = motor.commands[ 0 ].args;
+		expect( announce ).toHaveBeenCalledTimes( 1 );
+		expect( announce ).toHaveBeenCalledWith( traceMs );
+	} );
+
+	it( 'announces the speed-scaled duration, not the raw sample', async () => {
+		const motor = new FakeMotor();
+		const announce = vi.fn();
+		await new ReadPause().run(
+			motor,
+			makeContext( [ 0, 0, 5, 0, 0 ], { rng: () => 0.9, speed: 10 } ),
+			announce
+		);
+
+		const [ idleMs ] = motor.commands[ 0 ].args;
+		expect( announce ).toHaveBeenCalledTimes( 1 );
+		expect( announce ).toHaveBeenCalledWith( idleMs );
+		expect( idleMs ).toBeLessThanOrEqual( 2000 );
 	} );
 } );

@@ -593,16 +593,22 @@ test.describe( 'Cockpit behavior barks', () => {
 		await expect( barkLayer ).toHaveAttribute( 'aria-hidden', 'true' );
 
 		// The pill itself ships hidden and carries the store bindings its
-		// lifecycle depends on.
+		// lifecycle depends on. There is no `animationend` binding — the store's
+		// own duration/leave timers drive every transition — and the "ebbing
+		// tide" fill carries the store-computed duration, not any numeric or
+		// text countdown.
 		const bark = barkLayer.locator( '.bsb-cockpit__bark' );
 		await expect( bark ).toBeHidden();
 		await expect( bark ).toHaveAttribute(
 			'data-wp-bind--hidden',
 			'!state.hasBark'
 		);
-		await expect( bark ).toHaveAttribute(
-			'data-wp-on--animationend',
-			'callbacks.onBarkAnimationEnd'
+
+		const tide = bark.locator( '.bsb-cockpit__bark-tide' );
+		await expect( tide ).toBeAttached();
+		await expect( tide ).toHaveAttribute(
+			'data-wp-style----bark-dur',
+			'state.barkDurationCss'
 		);
 
 		await expect(
@@ -642,9 +648,12 @@ test.describe( 'Cockpit behavior barks', () => {
 			.locator( '.bsb-run[data-wp-on--click="actions.toggleRun"]' )
 			.click();
 
-		await expect( page.locator( '.bsb-cockpit__bark' ) ).toBeVisible( {
-			timeout: 30_000,
-		} );
+		const bark = page.locator( '.bsb-cockpit__bark' );
+		await expect( bark ).toBeVisible( { timeout: 30_000 } );
+
+		// No numeric/text remaining-time indicator — the countdown is pure
+		// styling (the "ebbing tide" fill), not a rendered figure.
+		await expect( bark ).not.toHaveText( /\d/ );
 	} );
 } );
 

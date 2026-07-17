@@ -159,9 +159,9 @@ const persistSession = (
  * (fire-and-forget) so every cause of a run ending records the session, with no
  * separate save step.
  *
- * Ending also clears any behavior-start bark immediately (showing, pending and
- * timers alike) so a stopped run never leaves a quip hanging over the idle
- * viewport.
+ * Ending also clears any behavior-start bark immediately (the showing bark,
+ * any pending one, and its timers alike) so a stopped run never leaves a quip
+ * hanging over the idle viewport.
  *
  * @param context  The reactive cockpit context to mark ended.
  * @param instance The per-instance run state to wind up.

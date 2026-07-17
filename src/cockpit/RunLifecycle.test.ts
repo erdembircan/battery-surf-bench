@@ -55,6 +55,7 @@ const context = (): CockpitContext =>
 		toastStrings: { error: 'Upload failed', notice: 'View only' },
 		barkBehavior: '',
 		barkText: '',
+		barkDurationMs: 0,
 		barkPhase: '',
 		barkStrings: {},
 	} ) as unknown as CockpitContext;
@@ -78,9 +79,9 @@ const instance = ( session: RunSession ): InstanceState =>
 		toastTimer: null,
 		noticeShownThisRun: false,
 		pendingBark: null,
-		barkTimer: null,
-		barkReplaceTimer: null,
-		barkShownAt: null,
+		pendingDurationMs: null,
+		barkDurationTimer: null,
+		barkLeaveTimer: null,
 	} ) as InstanceState;
 
 describe( 'stopRun persistence', () => {
@@ -152,25 +153,30 @@ describe( 'stopRun persistence', () => {
 		expect( ctx.toastPhase ).toBe( 'entering' );
 	} );
 
-	it( 'clears an active bark when the run stops', () => {
+	it( 'clears an active bark (and any queued one) when the run stops', () => {
 		const ctx = context();
 		ctx.barkBehavior = 'readPause';
 		ctx.barkText = 'Deep in the good words…';
-		ctx.barkPhase = 'holding';
+		ctx.barkDurationMs = 8000;
+		ctx.barkPhase = 'entering';
 		const inst = instance( new RunSession() );
 		inst.pendingBark = 'lingerImage';
-		inst.barkTimer = setTimeout(
+		inst.pendingDurationMs = 2000;
+		inst.barkDurationTimer = setTimeout(
 			() => undefined,
-			6000
+			8000
 		) as unknown as number;
 
 		stopRun( ctx, inst, 'stopped' );
 
 		expect( ctx.barkBehavior ).toBe( '' );
 		expect( ctx.barkText ).toBe( '' );
+		expect( ctx.barkDurationMs ).toBe( 0 );
 		expect( ctx.barkPhase ).toBe( '' );
 		expect( inst.pendingBark ).toBeNull();
-		expect( inst.barkTimer ).toBeNull();
+		expect( inst.pendingDurationMs ).toBeNull();
+		expect( inst.barkDurationTimer ).toBeNull();
+		expect( inst.barkLeaveTimer ).toBeNull();
 	} );
 
 	it( 'does not toast when the upload succeeds', async () => {

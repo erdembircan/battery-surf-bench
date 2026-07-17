@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { WatchVideo } from './WatchVideo';
 import { makeContext, openAffordances } from '../TestFixtures';
 import { FakeMotor } from '../FakeMotor';
@@ -45,5 +45,33 @@ describe( 'WatchVideo.run', () => {
 		const [ ms ] = motor.commands[ 1 ].args;
 		expect( ms ).toBeGreaterThanOrEqual( 30000 );
 		expect( ms ).toBeLessThanOrEqual( 45000 );
+	} );
+
+	it( 'announces the same wall-clock ms it eventually watches for', async () => {
+		const motor = new FakeMotor();
+		const announce = vi.fn();
+		await new WatchVideo().run(
+			motor,
+			makeContext( [ 0, 0, 0, 5, 0 ] ),
+			announce
+		);
+
+		const [ watchMs ] = motor.commands[ 1 ].args;
+		expect( announce ).toHaveBeenCalledTimes( 1 );
+		expect( announce ).toHaveBeenCalledWith( watchMs );
+	} );
+
+	it( 'announces the speed-scaled duration', async () => {
+		const motor = new FakeMotor();
+		const announce = vi.fn();
+		await new WatchVideo().run(
+			motor,
+			makeContext( [ 0, 0, 0, 5, 0 ], { speed: 10 } ),
+			announce
+		);
+
+		const [ watchMs ] = motor.commands[ 1 ].args;
+		expect( announce ).toHaveBeenCalledWith( watchMs );
+		expect( watchMs ).toBeLessThanOrEqual( 4500 );
 	} );
 } );

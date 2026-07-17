@@ -89,6 +89,14 @@ All source files (both JS/TS and PHP) must use **CamelCase** (e.g. `BatteryMonit
 
 **Author all styles as SCSS — never hand-write `.css` files.** A hand-written `.css` file in the source tree is a regression: every stylesheet must have an SCSS source that the build compiles into its CSS artifact. Always enqueue the compiled artifact, never a CSS file edited by hand. Discover where sources live and where they compile to from the build configuration — don't assume a fixed directory layout, tool, or naming convention.
 
+## Single Light Theme — No Dark Mode
+
+**This app ships exactly one theme, and it is light.** There is no theme toggle and no reachable dark mode in the product.
+
+- **The dark tokens are dormant, not a feature.** `src/styles/_theme.scss` carries a full `[data-theme='dark']` (Dusk Lineup) block, but nothing in the running app ever sets `data-theme='dark'`. It is kept **only** as documentation / a hedge in case the decision is ever revisited — it is unreachable ~99.99% of the time. **The presence of those tokens is not permission to support dark mode.**
+- **Never add dark handling.** Do not write `@media (prefers-color-scheme: dark)` rules, `[data-theme='dark']` overrides for new UI, or any theme switcher — in production code **or** in design mockups. Author every surface light-only. Use the theme tokens normally (they resolve to the light values); just never introduce new dark variants.
+- **If dark is ever genuinely wanted, it's a maintainer decision** — raise it explicitly. Don't infer it from the dormant tokens.
+
 ## Mock Big Design Decisions First
 
 **For any significant style or design decision, build a standalone HTML mockup before touching production code.** New UI surfaces, redesigns, distinctive components, palette/typography directions, novel interactions — prototype them as self-contained `.html` files (inline CSS/JS, self-contained assets — data-URI images or system fonts, no external CDN or remote resources), iterate on the mockup with the maintainer, and only port the approved direction into the real SCSS/markup/Interactivity code. This keeps exploration off the build/test/lint cycle and avoids churning production files through rejected ideas.

@@ -38,6 +38,14 @@ export interface BehaviorContext {
 	elapsedMs: number;
 }
 
+/**
+ * Called once from inside run(), at the moment the behavior knows how long
+ * it will hold the stage (its wall-clock dwell in ms), before awaiting — so
+ * the cockpit's bark countdown matches the actual dwell exactly. Same single
+ * rng draw; never sample twice.
+ */
+export type BehaviorAnnounce = ( durationMs: number ) => void;
+
 /** One action the surfer can bid to perform. */
 export interface Behavior {
 	/** Stable identity used for appetite bookkeeping. */
@@ -45,5 +53,9 @@ export interface Behavior {
 	/** Pure bid score for the current tick — never a side effect. */
 	bid: ( ctx: BehaviorContext, appetite: number, boredom: number ) => number;
 	/** Performs the action through `motor` once this behavior wins the tick. */
-	run: ( motor: Motor, ctx: BehaviorContext ) => Promise< void >;
+	run: (
+		motor: Motor,
+		ctx: BehaviorContext,
+		announce?: BehaviorAnnounce
+	) => Promise< void >;
 }

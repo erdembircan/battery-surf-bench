@@ -17,18 +17,22 @@ classDiagram
         boot guard on the traits URL param; builds and starts SurfLoop once
         the document has loaded; posts 'bsb:pageDone' to the parent frame
         when the page's session ends; posts 'bsb:behaviorStart' with the
-        winner's key each time one begins running, and again every 20
-        wall-clock seconds while that run is still pending
+        winner's key and its announced wall-clock durationMs once, each time
+        a behavior begins running (including MoveOn, with a fixed display
+        duration)
     }
 
     %% --- Orchestration: the tick loop and its inputs.
-    %% onBehaviorRun (an optional SurfLoopDeps callback) is notified with each
-    %% auction winner's key as it begins running, including MoveOn (before the
-    %% loop halts and fires onPageDone) — the engine stays flavor-free, only
-    %% posting every winner's key; the cockpit's string table decides what barks.
-    %% While a winner's run() is still pending, onBehaviorRun is re-notified
-    %% with the same key every 20 wall-clock seconds (never speed-scaled) so a
-    %% long dwell doesn't read as stuck once the cockpit's bark for it fades.
+    %% onBehaviorRun (an optional SurfLoopDeps callback) is notified once per
+    %% winner with its key and wall-clock durationMs as it begins running —
+    %% for MoveOn a fixed display duration (it has no dwell of its own,
+    %% before the loop halts and fires onPageDone); for every other winner,
+    %% whatever duration its own run() reports via the announce callback
+    %% passed into it. A behavior that never calls announce (the mechanical
+    %% scrollBurst/microScroll/fidgetWiggle) simply never notifies — the
+    %% engine stays flavor-free, only posting a key+duration; the cockpit's
+    %% string table decides what barks and its own timers own the pill's
+    %% full-duration hold, so no re-notification/heartbeat exists.
     class SurfLoop {
         +start() void
         +stop() void
@@ -46,16 +50,25 @@ classDiagram
     }
 
     %% --- The behavior contract every action implements.
+    %% announce is called once from inside run(), at the moment the behavior
+    %% knows its own wall-clock dwell, before awaiting — the cockpit's bark
+    %% countdown matches that exact duration. Behaviors with no dwell to
+    %% announce (the mechanical ones) simply never call it.
     class Behavior {
         <<interface>>
         +key string
         +bid(BehaviorContext, appetite, boredom) number
-        +run(Motor, BehaviorContext) Promise
+        +run(Motor, BehaviorContext, announce?) Promise
     }
 
     class BehaviorContext {
         <<types>>
         traits, affordances, rng, clock, speed, elapsedMs
+    }
+
+    class BehaviorAnnounce {
+        <<types>>
+        (durationMs) =&gt; void
     }
 
     %% --- Sensing, motion and time seams the behaviors act through.
@@ -246,7 +259,7 @@ classDiagram
     EngineBoot --> SurferStats : normalizeTraits
     EngineBoot --> RunConfig : normalizeSpeed
     EngineBoot ..> RunStore : postMessage 'bsb:pageDone'
-    EngineBoot ..> BarkStore : postMessage 'bsb:behaviorStart' (every winner's key)
+    EngineBoot ..> BarkStore : postMessage 'bsb:behaviorStart' ({key, durationMs})
 
     SurfLoop --> Behavior : bids & runs each tick
     SurfLoop --> Arbiter : draws a winner
@@ -274,6 +287,7 @@ classDiagram
 
     Behavior ..> BehaviorContext : reads
     Behavior ..> Motor : acts through
+    Behavior ..> BehaviorAnnounce : calls once with its wall-clock dwell
 
     %% --- Shared contracts with the cockpit (see cockpit-frontend-modules.mmd).
     class SurferStats {
@@ -294,7 +308,8 @@ classDiagram
 
     class BarkStore {
         <<module>>
-        cockpit-side receiver — recognizes 'bsb:behaviorStart' while running
-        and raises a bark for the winner's key (a key with no translated
-        strings is silently ignored)
+        cockpit-side receiver — recognizes 'bsb:behaviorStart' (key +
+        durationMs) while running and raises a bark held for the announced
+        wall-clock duration (a key with no translated strings is silently
+        ignored)
     }

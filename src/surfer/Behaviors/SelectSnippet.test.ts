@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { SelectSnippet } from './SelectSnippet';
+import { describe, it, expect, vi } from 'vitest';
+import { SelectSnippet, SELECT_SNIPPET_DISPLAY_MS } from './SelectSnippet';
 import { makeContext, openAffordances } from '../TestFixtures';
 import { FakeMotor } from '../FakeMotor';
 import { DRIVE_FLOOR } from '../Bid';
@@ -38,9 +38,25 @@ describe( 'SelectSnippet.bid', () => {
 describe( 'SelectSnippet.run', () => {
 	it( 'selects a snippet through the motor', async () => {
 		const motor = new FakeMotor();
-		await new SelectSnippet().run( motor );
+		await new SelectSnippet().run(
+			motor,
+			makeContext( [ 0, 0, 0, 0, MAX ] )
+		);
 		expect( motor.commands ).toEqual( [
 			{ kind: 'selectSnippet', args: [] },
 		] );
+	} );
+
+	it( 'announces the fixed selection-choreography duration before selecting', async () => {
+		const motor = new FakeMotor();
+		const announce = vi.fn();
+		await new SelectSnippet().run(
+			motor,
+			makeContext( [ 0, 0, 0, 0, MAX ] ),
+			announce
+		);
+
+		expect( announce ).toHaveBeenCalledTimes( 1 );
+		expect( announce ).toHaveBeenCalledWith( SELECT_SNIPPET_DISPLAY_MS );
 	} );
 } );

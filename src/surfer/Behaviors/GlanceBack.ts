@@ -6,7 +6,7 @@
  * `docs/knowledge-base/surf-behavior-profile.md`.
  */
 
-import type { Behavior, BehaviorContext } from '../Behavior';
+import type { Behavior, BehaviorContext, BehaviorAnnounce } from '../Behavior';
 import { LITERACY } from '../Behavior';
 import type { Motor } from '../Motor';
 import { drive, noise, clamp01 } from '../Bid';
@@ -33,14 +33,24 @@ export class GlanceBack implements Behavior {
 		);
 	}
 
-	async run( motor: Motor, ctx: BehaviorContext ): Promise< void > {
+	async run(
+		motor: Motor,
+		ctx: BehaviorContext,
+		announce?: BehaviorAnnounce
+	): Promise< void > {
 		const px =
 			SCROLL_UP_PX_MIN +
 			ctx.rng() * ( SCROLL_UP_PX_MAX - SCROLL_UP_PX_MIN );
-		await motor.scrollBy( -px, SCROLL_UP_MS );
 
 		const settleMs =
 			SETTLE_MS_MIN + ctx.rng() * ( SETTLE_MS_MAX - SETTLE_MS_MIN );
+
+		// Both samples happen first (rng order unaffected — the scroll await
+		// below consumes no rng), so the announced total — the fixed scroll
+		// leg plus the speed-scaled settle — is known before either await.
+		announce?.( SCROLL_UP_MS + settleMs / ctx.speed );
+
+		await motor.scrollBy( -px, SCROLL_UP_MS );
 		await motor.idle( settleMs / ctx.speed );
 	}
 }

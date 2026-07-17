@@ -50,12 +50,20 @@ export interface InstanceState {
 	noticeShownThisRun: boolean;
 	/** The behavior key waiting behind the bark showing, or null when none. */
 	pendingBark: string | null;
-	/** The showing bark's hold timeout id, or null when none is on screen. */
-	barkTimer: number | null;
-	/** The armed safe-period replace timeout id, or null when none is pending. */
-	barkReplaceTimer: number | null;
-	/** The `performance.now()` timestamp the showing bark appeared, or null. */
-	barkShownAt: number | null;
+	/** The queued bark's announced duration in ms, or null when none is queued. */
+	pendingDurationMs: number | null;
+	/**
+	 * The showing bark's duration timeout id — armed for its full announced
+	 * wall-clock dwell, firing the entering → leaving transition — or null
+	 * when no bark is on screen.
+	 */
+	barkDurationTimer: number | null;
+	/**
+	 * The showing bark's leave timeout id — armed for the fixed leave
+	 * duration once leaving begins, firing the clear — or null when not
+	 * leaving.
+	 */
+	barkLeaveTimer: number | null;
 	/** The viewport load-watchdog timeout id while a navigation is pending, or null. */
 	loadWatchdog: number | null;
 }
@@ -80,9 +88,9 @@ const runInstance: InstanceState = {
 	toastTimer: null,
 	noticeShownThisRun: false,
 	pendingBark: null,
-	barkTimer: null,
-	barkReplaceTimer: null,
-	barkShownAt: null,
+	pendingDurationMs: null,
+	barkDurationTimer: null,
+	barkLeaveTimer: null,
 	loadWatchdog: null,
 };
 
@@ -107,9 +115,9 @@ export const __resetInstance = (): void => {
 	runInstance.toastTimer = null;
 	runInstance.noticeShownThisRun = false;
 	runInstance.pendingBark = null;
-	runInstance.barkTimer = null;
-	runInstance.barkReplaceTimer = null;
-	runInstance.barkShownAt = null;
+	runInstance.pendingDurationMs = null;
+	runInstance.barkDurationTimer = null;
+	runInstance.barkLeaveTimer = null;
 	runInstance.loadWatchdog = null;
 };
 

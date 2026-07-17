@@ -10,6 +10,9 @@
  * its own reset and web fonts (via @font-face, adding no extra stylesheet link).
  */
 
+@use 'sass:color';
+@use 'sass:math';
+@use 'sass:list';
 @use '../styles/theme' as theme;
 @use '../styles/toast';
 
@@ -972,10 +975,13 @@ body.bsb-cockpit-dashboard {
 // The behavior-start bark: a small pill dropped in from the top of the running
 // viewport whenever the surf engine starts a novelty behavior — ambient flavor
 // text, not actionable information, so the layer is `aria-hidden` and swallows
-// no pointer input. Non-persistent: it auto-dismisses on its own hold timer,
-// and a newer bark can replace it early but never mid-safe-period (the model
-// in Barks.ts owns that lifecycle; this is presentation only). Anchored inside
-// the already-`position: relative` .bsb-cockpit__viewport-wrap, so it reads as
+// no pointer input. Store-authoritative and duration-tied: the pill holds for
+// the behavior's full wall-clock dwell and a newer bark always replaces the
+// showing one immediately, at any phase (the model in Barks.ts owns that
+// lifecycle; this is presentation only — no animation here ever drives a
+// state transition). The countdown is a pure visual "ebbing tide" fill with no
+// numeric readout; see .bsb-cockpit__bark-tide below. Anchored inside the
+// already-`position: relative` .bsb-cockpit__viewport-wrap, so it reads as
 // "inside" the simulated page rather than the dashboard chrome.
 .bsb-cockpit__bark-layer {
 	position: absolute;
@@ -1000,12 +1006,15 @@ body.bsb-cockpit-dashboard {
 // is by the `[data-bark]` attribute rather than a per-kind class, since every
 // bark shares one accent.
 .bsb-cockpit__bark {
+	position: relative;
 	display: inline-flex;
 	align-items: center;
 	gap: 0.55rem;
 	max-width: min(28rem, 100%);
 	padding: 0.5rem 0.7rem 0.5rem 0.6rem;
 	border-radius: 999px;
+	// Clips the ebbing-tide fill to the pill's rounded shape.
+	overflow: hidden;
 	background: var(--toast-bg);
 	border: 1px solid var(--bark-accent-line);
 	box-shadow:
@@ -1031,12 +1040,12 @@ body.bsb-cockpit-dashboard {
 		display: none;
 	}
 
-	&.is-entering,
-	&.is-holding {
-		opacity: 1;
-	}
-
+	// `both` keeps the animation's end state (opacity: 1) applied for the
+	// pill's entire visible life — there is no separate "holding" phase or
+	// class; the store's duration timer (not this animation) owns when the
+	// pill actually leaves.
 	&.is-entering {
+		opacity: 1;
 		animation: bsb-bark-in 460ms cubic-bezier(0.16, 1, 0.3, 1) both;
 	}
 
@@ -1071,11 +1080,200 @@ body.bsb-cockpit-dashboard {
 	}
 }
 
+// The "ebbing tide" countdown — a layered water fill that starts covering the
+// ENTIRE pill (top edge flush with the pill's own top) and drains, top down,
+// to empty over the behavior's announced duration. Pure styling: no
+// numeric/text readout, and the drain never drives any state — the store's
+// own duration timer independently owns the actual dismiss timing (see
+// BarkStore/Barks), fed the same duration so both finish together. Sits
+// behind the icon/message (z-index 1 vs. their 2) and is clipped to the
+// pill's rounded shape by the parent's `overflow: hidden`.
+//
+// Two independent animations layer here, never coupled to each other:
+//   - the DRAIN (`bsb-bark-ebb-a`/`-b`, on this element): a one-shot downward
+//     `translateY`, timed to `--bark-dur`. This is the countdown. It is a
+//     TRANSLATE, not a scale: the water body's own size never changes, so
+//     the wave-layer children keep their exact height and never squish —
+//     the pill's `overflow: hidden` clips whatever portion has slid below
+//     the pill's bottom edge, and that clipping is what makes the visible
+//     water level appear to drop. At `translateY(50%)` the box has moved
+//     down by half its own height, so the pill's top half is empty and its
+//     bottom half shows the water body's own top edge (waves at constant
+//     size) — that's the surface descending.
+//   - the RIPPLE (`bsb-wave`, on the `-wave` children below): a constant,
+//     looping horizontal scroll of the wavy surface texture, exactly the
+//     deck's own wave treatment (same keyframe, same `--bsb-wave-speed`
+//     link) — it never stops or re-times itself off the drain, and the
+//     drain never resizes it.
+//
+// No forced resting `transform` here — the base rule carries none (identity,
+// `translateY(0)`), which is only ever visible for a single frame at the
+// drain's own 0% keyframe (itself `translateY(0)`), so there is no flash.
+// The drain animation is applied through BOTH `.is-entering` AND
+// `.is-leaving` below, specifically so that removing `.is-entering` at the
+// entering -> leaving transition never strips the animation off the
+// element: if it did, `animation-fill-mode: forwards` would have nothing
+// left to hold, and the element would fall back to a forced base value —
+// snapping either to full or to empty regardless of where the drain
+// actually was. Keeping the animation applied across both phases means a
+// drain that completed naturally holds at `translateY(100%)` via `forwards`
+// (no forced value needed), and a drain cut short by an early leave (a
+// different key's arrival, which begins the leave immediately) simply
+// continues uninterrupted from wherever it actually was — the pill slides
+// out from its real water level, never snapping to either end.
+.bsb-cockpit__bark-tide {
+	position: absolute;
+	inset: 0;
+	z-index: 1;
+}
+
+// Longhand (not the `animation` shorthand): `animation-name` is bound to
+// `--bark-ebb-name`, which the store (BarkStore.barkEbbName) alternates
+// between two byte-identical keyframes on every fresh bark. A change in
+// duration/custom-property alone is NOT a guaranteed CSS restart trigger
+// (two consecutive barks that share the same key can share the exact same
+// `--bark-dur` too, e.g. two `moveOn` or two `selectSnippet` barks in a
+// row), but a change in `animation-name`'s own computed value always is —
+// this is what makes the restart deterministic rather than incidental.
+.bsb-cockpit__bark.is-entering .bsb-cockpit__bark-tide,
+.bsb-cockpit__bark.is-leaving .bsb-cockpit__bark-tide {
+	animation-name: var(--bark-ebb-name, bsb-bark-ebb-a);
+	animation-duration: var(--bark-dur, 6000ms);
+	animation-timing-function: linear;
+	animation-fill-mode: forwards;
+}
+
+// The water body: the waves ARE the water, not a decal pasted on top of it —
+// and, critically, the FRONT sheet alone decides the body's colour; the back
+// and mid sheets are surface texture only, never accumulation.
+//
+// Each of the three layers (`.bsb-cockpit__bark-tide-wave--back/--mid/
+// --front`) is a full-height water sheet: two stacked backgrounds on one
+// element — a tileable wavy crest (fixed 100px × 12px) at its own top offset,
+// and beneath it that same layer's own solid fill running to the tide's
+// bottom. `background-repeat: repeat-x` applies to BOTH layers (a single
+// value, not a per-layer pair): `bsb-wave` animates `background-position-x`
+// on every background layer it touches, so the fill must tile too, or the
+// x-shift would slide a `no-repeat` rect sideways and expose unpainted
+// element at its trailing edge. Being horizontally uniform, a repeat-x-tiled
+// fill is coverage-complete at any x offset in either direction, so its
+// motion is genuinely invisible — no gap can open. The fill starts 1px above
+// the tile's bottom edge (11px) so anti-aliasing can never open a hairline
+// gap. Fixed tile height + translate-only drain (`bsb-bark-ebb-a`/`-b`,
+// above, which only ever translates the whole `.bsb-cockpit__bark-tide` box)
+// = the crests can never deform; the pill's own `overflow: hidden` is what
+// clips the drained portion from view.
+//
+// Stacking translucent layers would accumulate alpha — back .25 ⊕ mid .35 ⊕
+// front .55 compositing to a body darker than any one layer's own colour,
+// with visible banding wherever the layer count changes (back-only vs.
+// back+mid vs. back+mid+front zones). To prevent that, only the FRONT sheet
+// is opaque, precomputed as if its old translucent stop were already
+// composited over the pill's white background — `$bark-water-surface` /
+// `$bark-water-deep` below — so it fully masks everything beneath its own
+// crest line and stacking cannot darken it further. The back and mid sheets
+// stay translucent, but since the opaque front sheet covers everything below
+// its crest, their fills are only ever visible as distant crest TIPS peeking
+// above the front wave's own crest — never as a contribution to the body
+// colour. Concretely, at any x position: below the front sheet's own crest
+// line, the paint is the front sheet's opaque colour alone (no back/mid
+// contribution reaches the eye); between the mid and front crest lines, a
+// back/mid translucent tip may show over white; there is no depth at which
+// more than one sheet's colour composites into what reads as "the body".
+//
+// The front sheet's fill grades from `$bark-water-surface` (matching its own
+// crest tile exactly, so tile meets fill invisibly) down to `$bark-water-deep`,
+// giving the body a touch of depth without introducing any layer that isn't
+// also present at the surface.
+
+// The front sheet's precomputed opaque stops: the old translucent colours
+// (coastal aqua at 0.55, coastal teal at 0.42) composited over the pill's
+// white background ahead of time, so the front sheet can be fully opaque —
+// masking every layer beneath it — without changing its intended appearance.
+// `color.mix($fg, white, $weight)` at `$weight` reproduces exactly what
+// `rgba($fg, $weight / 100%)` looks like painted over solid white (both are
+// the same linear blend), so these constants are the same colours the old
+// translucent stops rendered as, just baked in as solid paint.
+$bark-water-surface: color.mix(theme.$coastal-aqua, white, 55%); // ≈ #c7eaf3
+$bark-water-deep: color.mix(theme.$coastal-teal, white, 42%); // ≈ #a8d5df
+
+// Converts a Sass colour to a `%23rrggbb`-encoded hex string for embedding in
+// the `wave()` SVG data-URI (the `#` would otherwise truncate the URI as a
+// fragment delimiter — see `_url-encode-color` in `_icons.scss`, which this
+// mirrors, but that helper only accepts a literal hex colour already in `#…`
+// form; a computed `color.mix()` result serializes as `rgb(…)`, not hex, so it
+// needs its channels re-encoded directly). Keeps the front tile's fill
+// mathematically locked to `$bark-water-surface` — they can never drift out
+// of sync — rather than a hand-copied literal.
+@function _hex-byte($n) {
+	$n: math.round($n);
+	$hi: math.floor(math.div($n, 16));
+	$lo: $n - ($hi * 16);
+	$digits: '0' '1' '2' '3' '4' '5' '6' '7' '8' '9' 'a' 'b' 'c' 'd' 'e' 'f';
+	@return list.nth($digits, $hi + 1) + list.nth($digits, $lo + 1);
+}
+
+@function _url-encode-hex($color) {
+	$r: color.channel($color, 'red', $space: rgb);
+	$g: color.channel($color, 'green', $space: rgb);
+	$b: color.channel($color, 'blue', $space: rgb);
+	@return '%23' + _hex-byte($r) + _hex-byte($g) + _hex-byte($b);
+}
+
+.bsb-cockpit__bark-tide-wave {
+	position: absolute;
+	inset-inline: 0;
+	bottom: 0;
+	background-repeat: repeat-x;
+	background-size:
+		100px 12px,
+		100% calc(100% - 11px);
+	background-position:
+		0 0,
+		0 11px;
+	animation: bsb-wave 12s linear infinite;
+}
+
+// Stays translucent: covered by the opaque front sheet below its crest line,
+// so this only ever reads as a distant crest tip over white, never as a
+// contribution to the body colour.
+.bsb-cockpit__bark-tide-wave--back {
+	top: 0;
+	background-image:
+		theme.wave('%231c7e96', 0.25),
+		linear-gradient(#{rgba(theme.$coastal-teal-deep, 0.25)}, #{rgba(theme.$coastal-teal-deep, 0.25)});
+	animation-duration: calc(20s / var(--bsb-wave-speed, 1));
+}
+
+// Stays translucent, for the same reason as `--back` above.
+.bsb-cockpit__bark-tide-wave--mid {
+	top: 2px;
+	background-image:
+		theme.wave('%232f9bb3', 0.35),
+		linear-gradient(#{rgba(theme.$coastal-teal, 0.35)}, #{rgba(theme.$coastal-teal, 0.35)});
+	animation-duration: calc(13s / var(--bsb-wave-speed, 1));
+	animation-direction: reverse;
+}
+
+// The only sheet that decides the body's colour: fully opaque (fill-opacity
+// 1 on the tile, solid stops on the gradient — no alpha at all), so no sheet
+// beneath it can ever show through and darken it via accumulation. The tile's
+// fill is `_url-encode-hex($bark-water-surface)`, not a literal, specifically
+// so it can never drift from the gradient's own top stop.
+.bsb-cockpit__bark-tide-wave--front {
+	top: 5px;
+	background-image:
+		theme.wave(_url-encode-hex($bark-water-surface), 1),
+		linear-gradient(180deg, $bark-water-surface, $bark-water-deep);
+	animation-duration: calc(8s / var(--bsb-wave-speed, 1));
+}
+
 // A small accent circle carrying the white masked glyph — same construction as
 // .bsb-cockpit__toast-icon, selecting its glyph from the `--bark-icon` custom
 // property the `[data-bark]` rules above set.
 .bsb-cockpit__bark-icon {
 	position: relative;
+	z-index: 2;
 	flex: none;
 	width: 1.25rem;
 	height: 1.25rem;
@@ -1101,6 +1299,8 @@ body.bsb-cockpit-dashboard {
 }
 
 .bsb-cockpit__bark-msg {
+	position: relative;
+	z-index: 2;
 	padding-block: 1px;
 }
 
@@ -1134,10 +1334,69 @@ body.bsb-cockpit-dashboard {
 	}
 }
 
+// The ebbing tide itself: a downward translate from full to empty, timed by
+// the store-set `--bark-dur` custom property. A translate, not a scale, so
+// the water body's own size (and its wave-layer children) never changes —
+// only its position does; the pill's `overflow: hidden` clips the portion
+// that slides below the bottom edge, and that's what reads as the water
+// level dropping. Defined TWICE under different names, byte-identical, so
+// the store can alternate `animation-name` between them (via
+// `--bark-ebb-name`) on every fresh bark — a genuine restart trigger a mere
+// duration change is not guaranteed to be. See `.bsb-cockpit__bark-tide`'s
+// rule above and `BarkStore.barkEbbName`.
+@keyframes bsb-bark-ebb-a {
+	from {
+		transform: translateY(0);
+	}
+
+	to {
+		transform: translateY(100%);
+	}
+}
+
+@keyframes bsb-bark-ebb-b {
+	from {
+		transform: translateY(0);
+	}
+
+	to {
+		transform: translateY(100%);
+	}
+}
+
 @media (prefers-reduced-motion: reduce) {
 	.bsb-cockpit__bark.is-entering,
 	.bsb-cockpit__bark.is-leaving {
 		animation-duration: 1ms;
+	}
+
+	// No smooth drain and no ripple under reduced motion — the tide shows a
+	// static, full fill instead of a countdown; the store timer still runs
+	// the full duration underneath, so dismiss timing is unaffected, only the
+	// visual glide. Forcing `transform: translateY(0)` here (the water body
+	// at its resting, undisplaced position — full) rather than just dropping
+	// the animation is what keeps it a static FULL fill.
+	//
+	// Both `.bsb-cockpit__bark.is-entering .bsb-cockpit__bark-tide` AND
+	// `.bsb-cockpit__bark.is-leaving .bsb-cockpit__bark-tide` MUST be
+	// repeated here (not just the bare `.bsb-cockpit__bark-tide`): the drain
+	// rule outside this media block is scoped to those two selectors, each at
+	// specificity (0,3,0), while a media query adds no specificity of its
+	// own — a bare `.bsb-cockpit__bark-tide` override in here is only
+	// (0,1,0) and the higher-specificity `.is-entering`/`.is-leaving` rule
+	// wins regardless of source order, silently keeping the drain animation
+	// running (in both phases) under reduced motion. Matching those
+	// selectors' specificity is what lets this override actually take
+	// effect, in either phase.
+	.bsb-cockpit__bark.is-entering .bsb-cockpit__bark-tide,
+	.bsb-cockpit__bark.is-leaving .bsb-cockpit__bark-tide,
+	.bsb-cockpit__bark-tide {
+		animation: none;
+		transform: translateY(0);
+	}
+
+	.bsb-cockpit__bark-tide-wave {
+		animation: none;
 	}
 }
 

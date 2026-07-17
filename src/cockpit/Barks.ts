@@ -4,29 +4,40 @@
  * behavior. Pure over an injected context and instance, unit-testable without
  * the Interactivity runtime (same philosophy as {@link ./Toasts}).
  *
- * Unlike the bottom toast (a FIFO queue, every item eventually shown), a bark
- * has at most one pending replacement: a behavior key with no translated
- * strings never barks, a bark arriving for the key already showing or pending
- * is ignored, and a bark that arrives while the showing one is inside its safe
- * period waits there until the safe period ends — so a fast-firing engine can
- * never flicker through a backlog of quips. This module owns the data (the
- * showing bark rides the reactive context; the pending slot and timers live in
- * the per-instance state); the store slice ({@link ./BarkStore}) drives the
- * phase transitions from the pill's `animationend`.
+ * A store-driven queue, duration-tied: the showing bark holds for the FULL
+ * wall-clock duration the behavior announces, and a bark has at most one
+ * pending replacement (depth-1, newest wins). A behavior key with no
+ * translated strings never barks; a bark arriving for the key already showing
+ * or pending is ignored. There is no minimum on-screen time: a different key
+ * arriving while one is showing (or already leaving) queues in the pending
+ * slot and immediately begins the showing bark's leave — behaviors run one at
+ * a time and each bark lasts its own full duration, so barks never fire in a
+ * rapid burst that would need guarding against. The outgoing bark always
+ * plays its full leave animation before the pending one enters.
+ *
+ * Every transition is store-owned — no `animationend` drives any of it. Two
+ * timers live on the per-instance state: a **duration timer**, armed for the
+ * announced `durationMs`, that begins the leave once the dwell elapses; and a
+ * **leave timer**, armed for {@link BARK_LEAVE_MS}, that clears the bark (and
+ * pumps the pending one, if any) once the leave finishes. The DOM's
+ * ebbing-tide fill and its CSS keyframes are a pure reactive projection of
+ * `barkDurationMs`/`barkPhase`/`barkGeneration` and never feed back into this
+ * lifecycle. `barkGeneration` advances on every fresh bark specifically so
+ * the drain's `animation-name` (alternated between two identical keyframes by
+ * the store's `barkEbbName` getter) is always a genuine change, guaranteeing
+ * the drain restarts from full even when two consecutive barks share the same
+ * key and duration.
  */
 
 import { type CockpitContext } from './CockpitContext';
 import { type InstanceState } from './RunInstance';
 
-/** How long a bark rests on screen, in milliseconds, once it finishes entering. */
-export const BARK_HOLD_MS = 6000;
-
 /**
- * The minimum time a bark must stay on screen before a newer one can replace
- * it. A bark arriving inside this window waits in the pending slot instead of
- * cutting the current one short.
+ * How long the leave animation takes, in milliseconds — matches the CSS exit
+ * keyframe duration, so the store clears the bark exactly as it finishes
+ * animating out.
  */
-export const BARK_SAFE_MS = 2500;
+export const BARK_LEAVE_MS = 320;
 
 /**
  * Picks one of a behavior's two flavor variants at random, or an empty string
@@ -51,68 +62,85 @@ export const pickBarkText = (
 };
 
 /**
- * Begins the leave animation for the bark currently showing, cancelling its
- * pending hold timer and any pending replace timer so neither can fire after
- * the leave has already started.
+ * Shows a bark for the given behavior key immediately: writes the behavior
+ * key, its chosen text and its announced duration onto the context, starts
+ * the enter phase, arms a duration timer that begins the leave once the
+ * announced dwell elapses, and advances `barkGeneration` so the tide's drain
+ * animation is guaranteed to restart from full even if this bark shares its
+ * key/duration with the one it replaces.
  *
- * @param context  The reactive cockpit context the pill binds to.
- * @param instance The per-instance state holding the bark's timers.
- */
-const startLeave = (
-	context: CockpitContext,
-	instance: InstanceState
-): void => {
-	if ( instance.barkTimer !== null ) {
-		clearTimeout( instance.barkTimer );
-		instance.barkTimer = null;
-	}
-	if ( instance.barkReplaceTimer !== null ) {
-		clearTimeout( instance.barkReplaceTimer );
-		instance.barkReplaceTimer = null;
-	}
-	context.barkPhase = 'leaving';
-};
-
-/**
- * Shows a bark for the given behavior key immediately: writes the behavior key
- * and its chosen text onto the context, starts the enter animation, and
- * records when it appeared.
- *
- * @param context  The reactive cockpit context the pill binds to.
- * @param instance The per-instance state to record the shown-at stamp onto.
- * @param key      The behavior key to show.
- * @param now      The current time, in milliseconds.
+ * @param context    The reactive cockpit context the pill binds to.
+ * @param instance   The per-instance state to arm the duration timer onto.
+ * @param key        The behavior key to show.
+ * @param durationMs The full wall-clock duration to hold the bark for, in ms.
  */
 const showBark = (
 	context: CockpitContext,
 	instance: InstanceState,
 	key: string,
-	now: number
+	durationMs: number
 ): void => {
 	context.barkBehavior = key;
 	context.barkText = pickBarkText( context.barkStrings, key );
+	context.barkDurationMs = durationMs;
 	context.barkPhase = 'entering';
-	instance.barkShownAt = now;
+	context.barkGeneration += 1;
+	instance.barkDurationTimer = window.setTimeout( () => {
+		instance.barkDurationTimer = null;
+		beginLeave( context, instance );
+	}, durationMs );
+};
+
+/**
+ * Begins the leave phase for the bark currently showing, cancelling its
+ * duration timer so it cannot fire after the leave has already started. A
+ * no-op while already leaving, so a stale duration timer racing in after the
+ * leave has begun cannot restart the leave countdown.
+ *
+ * @param context  The reactive cockpit context the pill binds to.
+ * @param instance The per-instance state holding the bark's timers.
+ */
+const beginLeave = (
+	context: CockpitContext,
+	instance: InstanceState
+): void => {
+	if ( context.barkPhase === 'leaving' ) {
+		return;
+	}
+
+	if ( instance.barkDurationTimer !== null ) {
+		window.clearTimeout( instance.barkDurationTimer );
+		instance.barkDurationTimer = null;
+	}
+
+	context.barkPhase = 'leaving';
+	instance.barkLeaveTimer = window.setTimeout( () => {
+		instance.barkLeaveTimer = null;
+		finishBark( context, instance );
+	}, BARK_LEAVE_MS );
 };
 
 /**
  * Raises a bark for a behavior start. A no-op when the key has no translated
  * strings (a non-barking, mechanical behavior) or already matches the bark
- * showing or pending. Otherwise: shows immediately when the pill is free;
- * replaces the showing bark once its safe period has elapsed; or, inside the
- * safe period, stores the key as pending and arms a timer for the remainder of
- * the safe period, so only the newest arrival survives to replace it.
+ * showing or pending. Otherwise: shows immediately when the pill is free; or,
+ * when a bark is already showing (entering or leaving), queues this one as
+ * pending (newest wins the slot) and begins the showing bark's leave right
+ * away — there is no minimum on-screen time, so the outgoing bark always
+ * plays its full leave animation before the pending one enters, but never
+ * waits any longer than that.
  *
- * @param context  The reactive cockpit context the pill binds to.
- * @param instance The per-instance state holding the pending slot and timers.
- * @param key      The behavior key that started running.
- * @param now      The current time, in milliseconds; defaults to `performance.now()`.
+ * @param context    The reactive cockpit context the pill binds to.
+ * @param instance   The per-instance state holding the pending slot and
+ *                   timers.
+ * @param key        The behavior key that started running.
+ * @param durationMs The full wall-clock duration to hold the bark for, in ms.
  */
 export const raiseBark = (
 	context: CockpitContext,
 	instance: InstanceState,
 	key: string,
-	now: number = performance.now()
+	durationMs: number
 ): void => {
 	const variants = context.barkStrings[ key ];
 	if ( ! variants || variants.length === 0 ) {
@@ -124,34 +152,19 @@ export const raiseBark = (
 	}
 
 	if ( context.barkBehavior === '' ) {
-		showBark( context, instance, key, now );
+		showBark( context, instance, key, durationMs );
 		return;
 	}
 
 	instance.pendingBark = key;
-
-	if ( instance.barkReplaceTimer !== null ) {
-		clearTimeout( instance.barkReplaceTimer );
-		instance.barkReplaceTimer = null;
-	}
-
-	const elapsedSinceShown = now - ( instance.barkShownAt ?? now );
-	const remainingSafeMs = BARK_SAFE_MS - elapsedSinceShown;
-
-	if ( remainingSafeMs <= 0 ) {
-		startLeave( context, instance );
-		return;
-	}
-
-	instance.barkReplaceTimer = setTimeout( () => {
-		instance.barkReplaceTimer = null;
-		startLeave( context, instance );
-	}, remainingSafeMs ) as unknown as number;
+	instance.pendingDurationMs = durationMs;
+	beginLeave( context, instance );
 };
 
 /**
  * Clears the bark that just finished leaving and pumps the pending one (if
- * any), showing it fresh. Called by the store when the leave animation ends.
+ * any), showing it fresh. Called by the leave timer once
+ * {@link BARK_LEAVE_MS} elapses.
  *
  * @param context  The reactive cockpit context the pill binds to.
  * @param instance The per-instance state holding the pending slot.
@@ -160,17 +173,25 @@ export const finishBark = (
 	context: CockpitContext,
 	instance: InstanceState
 ): void => {
+	if ( instance.barkLeaveTimer !== null ) {
+		window.clearTimeout( instance.barkLeaveTimer );
+		instance.barkLeaveTimer = null;
+	}
+
 	context.barkBehavior = '';
 	context.barkText = '';
+	context.barkDurationMs = 0;
 	context.barkPhase = '';
 
-	const pending = instance.pendingBark;
-	if ( pending === null ) {
+	const pendingKey = instance.pendingBark;
+	const pendingDurationMs = instance.pendingDurationMs;
+	if ( pendingKey === null || pendingDurationMs === null ) {
 		return;
 	}
 
 	instance.pendingBark = null;
-	showBark( context, instance, pending, performance.now() );
+	instance.pendingDurationMs = null;
+	showBark( context, instance, pendingKey, pendingDurationMs );
 };
 
 /**
@@ -185,16 +206,18 @@ export const clearBark = (
 	context: CockpitContext,
 	instance: InstanceState
 ): void => {
-	if ( instance.barkTimer !== null ) {
-		clearTimeout( instance.barkTimer );
-		instance.barkTimer = null;
+	if ( instance.barkDurationTimer !== null ) {
+		window.clearTimeout( instance.barkDurationTimer );
+		instance.barkDurationTimer = null;
 	}
-	if ( instance.barkReplaceTimer !== null ) {
-		clearTimeout( instance.barkReplaceTimer );
-		instance.barkReplaceTimer = null;
+	if ( instance.barkLeaveTimer !== null ) {
+		window.clearTimeout( instance.barkLeaveTimer );
+		instance.barkLeaveTimer = null;
 	}
 	instance.pendingBark = null;
+	instance.pendingDurationMs = null;
 	context.barkBehavior = '';
 	context.barkText = '';
+	context.barkDurationMs = 0;
 	context.barkPhase = '';
 };

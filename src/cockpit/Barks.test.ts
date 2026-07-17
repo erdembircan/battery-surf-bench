@@ -1,7 +1,7 @@
 /**
  * Tests for the bark model — the lifecycle behind the cockpit's behavior-start
- * pill. Pure over a plain context and instance, with injected fake timers and a
- * controllable clock/rng, no Interactivity runtime or DOM.
+ * pill. Pure over a plain context and instance, with injected fake timers, no
+ * Interactivity runtime or DOM.
  */
 
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
@@ -10,8 +10,7 @@ import {
 	raiseBark,
 	finishBark,
 	clearBark,
-	BARK_HOLD_MS,
-	BARK_SAFE_MS,
+	BARK_LEAVE_MS,
 } from './Barks';
 import { type CockpitContext } from './CockpitContext';
 import { type InstanceState } from './RunInstance';
@@ -33,7 +32,9 @@ const context = (): CockpitContext =>
 	( {
 		barkBehavior: '',
 		barkText: '',
+		barkDurationMs: 0,
 		barkPhase: '',
+		barkGeneration: 0,
 		barkStrings: STRINGS,
 	} ) as unknown as CockpitContext;
 
@@ -41,15 +42,14 @@ const context = (): CockpitContext =>
 const instance = (): InstanceState =>
 	( {
 		pendingBark: null,
-		barkTimer: null,
-		barkReplaceTimer: null,
-		barkShownAt: null,
+		pendingDurationMs: null,
+		barkDurationTimer: null,
+		barkLeaveTimer: null,
 	} ) as unknown as InstanceState;
 
-describe( 'BARK_HOLD_MS / BARK_SAFE_MS', () => {
-	it( 'holds for six seconds with a 2.5s safe period', () => {
-		expect( BARK_HOLD_MS ).toBe( 6000 );
-		expect( BARK_SAFE_MS ).toBe( 2500 );
+describe( 'BARK_LEAVE_MS', () => {
+	it( 'matches the CSS exit keyframe duration', () => {
+		expect( BARK_LEAVE_MS ).toBe( 320 );
 	} );
 } );
 
@@ -72,20 +72,19 @@ describe( 'pickBarkText', () => {
 } );
 
 describe( 'raiseBark', () => {
-	afterEach( () => {
-		vi.useRealTimers();
-	} );
+	beforeEach( () => vi.useFakeTimers() );
+	afterEach( () => vi.useRealTimers() );
 
-	it( 'shows immediately when the pill is free', () => {
+	it( 'shows immediately when the pill is free, with the announced duration', () => {
 		const ctx = context();
 		const inst = instance();
 
-		raiseBark( ctx, inst, 'readPause', 1000 );
+		raiseBark( ctx, inst, 'readPause', 8000 );
 
 		expect( ctx.barkBehavior ).toBe( 'readPause' );
 		expect( STRINGS.readPause ).toContain( ctx.barkText );
+		expect( ctx.barkDurationMs ).toBe( 8000 );
 		expect( ctx.barkPhase ).toBe( 'entering' );
-		expect( inst.barkShownAt ).toBe( 1000 );
 	} );
 
 	it( 'is a no-op for a key with no strings entry (non-barking behavior)', () => {
@@ -102,12 +101,14 @@ describe( 'raiseBark', () => {
 		const ctx = context();
 		const inst = instance();
 
-		raiseBark( ctx, inst, 'readPause', 1000 );
+		raiseBark( ctx, inst, 'readPause', 8000 );
 		const textAfterFirst = ctx.barkText;
-		raiseBark( ctx, inst, 'readPause', 1200 );
+
+		raiseBark( ctx, inst, 'readPause', 12000 );
 
 		expect( ctx.barkText ).toBe( textAfterFirst );
-		expect( inst.barkShownAt ).toBe( 1000 );
+		expect( ctx.barkDurationMs ).toBe( 8000 );
+		expect( ctx.barkPhase ).toBe( 'entering' );
 		expect( inst.pendingBark ).toBeNull();
 	} );
 
@@ -115,94 +116,179 @@ describe( 'raiseBark', () => {
 		const ctx = context();
 		const inst = instance();
 
-		raiseBark( ctx, inst, 'readPause', 1000 );
-		// Inside the safe period: lingerImage becomes pending.
-		raiseBark( ctx, inst, 'lingerImage', 1200 );
+		raiseBark( ctx, inst, 'readPause', 8000 );
+		raiseBark( ctx, inst, 'lingerImage', 2000 );
 		expect( inst.pendingBark ).toBe( 'lingerImage' );
+		expect( inst.pendingDurationMs ).toBe( 2000 );
 
 		// A second lingerImage arrival while it is already pending is a no-op.
-		raiseBark( ctx, inst, 'lingerImage', 1300 );
+		raiseBark( ctx, inst, 'lingerImage', 9999 );
 		expect( inst.pendingBark ).toBe( 'lingerImage' );
+		expect( inst.pendingDurationMs ).toBe( 2000 );
 	} );
 
-	it( 'stores a new key as pending inside the safe period without changing what shows yet', () => {
-		vi.useFakeTimers();
+	it( 'a different key queues as pending and begins the showing bark’s leave immediately — no minimum on-screen time', () => {
 		const ctx = context();
 		const inst = instance();
 
-		raiseBark( ctx, inst, 'readPause', 0 );
-		raiseBark( ctx, inst, 'lingerImage', 500 );
+		raiseBark( ctx, inst, 'readPause', 20000 );
+		raiseBark( ctx, inst, 'lingerImage', 3000 );
 
 		expect( inst.pendingBark ).toBe( 'lingerImage' );
+		expect( inst.pendingDurationMs ).toBe( 3000 );
+		// Still readPause showing, but already leaving — synchronously, with
+		// no wait of any kind.
 		expect( ctx.barkBehavior ).toBe( 'readPause' );
-		expect( ctx.barkPhase ).toBe( 'entering' );
-
-		// The replace timer fires at the safe period's end and starts the leave.
-		vi.advanceTimersByTime( BARK_SAFE_MS - 500 );
 		expect( ctx.barkPhase ).toBe( 'leaving' );
 	} );
 
-	it( 'keeps only the newest of several arrivals inside the safe period', () => {
-		vi.useFakeTimers();
+	it( 'the queued bark shows only once the leave animation finishes', () => {
 		const ctx = context();
 		const inst = instance();
 
-		raiseBark( ctx, inst, 'readPause', 0 );
-		raiseBark( ctx, inst, 'lingerImage', 400 );
-		raiseBark( ctx, inst, 'moveOn', 800 );
+		raiseBark( ctx, inst, 'readPause', 20000 );
+		raiseBark( ctx, inst, 'lingerImage', 3000 );
+
+		vi.advanceTimersByTime( BARK_LEAVE_MS - 1 );
+		expect( ctx.barkBehavior ).toBe( 'readPause' );
+		expect( ctx.barkPhase ).toBe( 'leaving' );
+
+		vi.advanceTimersByTime( 1 );
+		expect( ctx.barkBehavior ).toBe( 'lingerImage' );
+		expect( ctx.barkDurationMs ).toBe( 3000 );
+		expect( ctx.barkPhase ).toBe( 'entering' );
+	} );
+
+	it( 'keeps only the newest of several arrivals that queue behind one showing bark', () => {
+		const ctx = context();
+		const inst = instance();
+
+		raiseBark( ctx, inst, 'readPause', 20000 );
+		raiseBark( ctx, inst, 'lingerImage', 3000 );
+		raiseBark( ctx, inst, 'moveOn', 2500 );
 
 		expect( inst.pendingBark ).toBe( 'moveOn' );
-
-		vi.advanceTimersByTime( BARK_SAFE_MS );
+		expect( inst.pendingDurationMs ).toBe( 2500 );
 		expect( ctx.barkPhase ).toBe( 'leaving' );
 
-		finishBark( ctx, inst );
+		vi.advanceTimersByTime( BARK_LEAVE_MS );
 		expect( ctx.barkBehavior ).toBe( 'moveOn' );
+		expect( ctx.barkDurationMs ).toBe( 2500 );
+		expect( ctx.barkPhase ).toBe( 'entering' );
 	} );
 
-	it( 'replaces immediately (pending + leaving) once the safe period has elapsed', () => {
+	it( 'a new arrival while the showing bark is already leaving still queues, without restarting the leave', () => {
 		const ctx = context();
 		const inst = instance();
 
-		raiseBark( ctx, inst, 'readPause', 0 );
-		raiseBark( ctx, inst, 'lingerImage', BARK_SAFE_MS + 50 );
+		raiseBark( ctx, inst, 'readPause', 1000 );
+		vi.advanceTimersByTime( 1000 );
+		expect( ctx.barkPhase ).toBe( 'leaving' );
 
+		// Arrives partway through the leave animation.
+		vi.advanceTimersByTime( 100 );
+		raiseBark( ctx, inst, 'lingerImage', 3000 );
 		expect( inst.pendingBark ).toBe( 'lingerImage' );
 		expect( ctx.barkPhase ).toBe( 'leaving' );
+
+		// The leave finishes at its ORIGINAL time (100ms already elapsed, not
+		// restarted from the new arrival) — proof the arrival didn't reset it.
+		vi.advanceTimersByTime( BARK_LEAVE_MS - 100 );
+		expect( ctx.barkBehavior ).toBe( 'lingerImage' );
+		expect( ctx.barkPhase ).toBe( 'entering' );
+	} );
+
+	it( 'a completed-duration bark (no interruption) leaves on its own and finishes', () => {
+		const ctx = context();
+		const inst = instance();
+
+		raiseBark( ctx, inst, 'readPause', 5000 );
+		vi.advanceTimersByTime( 4999 );
+		expect( ctx.barkPhase ).toBe( 'entering' );
+
+		vi.advanceTimersByTime( 1 );
+		expect( ctx.barkPhase ).toBe( 'leaving' );
+
+		vi.advanceTimersByTime( BARK_LEAVE_MS );
+		expect( ctx.barkBehavior ).toBe( '' );
+		expect( ctx.barkPhase ).toBe( '' );
+	} );
+} );
+
+describe( 'barkGeneration', () => {
+	beforeEach( () => vi.useFakeTimers() );
+	afterEach( () => vi.useRealTimers() );
+
+	it( 'advances every time a bark is shown, including a repeat of the same key/duration', () => {
+		const ctx = context();
+		const inst = instance();
+
+		raiseBark( ctx, inst, 'moveOn', 2500 );
+		const firstGeneration = ctx.barkGeneration;
+
+		// The same key finishes fully (idle), then barks again with the exact
+		// same duration — the two consecutive shows of an identical key +
+		// duration must still be distinguishable, since a mere duration
+		// comparison can't tell them apart (this is exactly the case the
+		// tide's animation-restart guarantee depends on).
+		vi.advanceTimersByTime( 2500 + BARK_LEAVE_MS );
+		expect( ctx.barkBehavior ).toBe( '' );
+
+		raiseBark( ctx, inst, 'moveOn', 2500 );
+
+		expect( ctx.barkGeneration ).not.toBe( firstGeneration );
+	} );
+
+	it( 'advances again when finishBark pumps a queued bark, sharing the same duration value as the one that just left', () => {
+		const ctx = context();
+		const inst = instance();
+
+		// A different key that happens to share moveOn's fixed duration —
+		// same-key queueing behind itself is impossible (the dedupe check
+		// blocks a repeat of the key currently showing from ever queuing),
+		// so a shared *duration* with a different key is the realistic shape
+		// of this edge case for the queued/pumped path specifically.
+		raiseBark( ctx, inst, 'moveOn', 2500 );
+		const firstGeneration = ctx.barkGeneration;
+
+		raiseBark( ctx, inst, 'readPause', 2500 );
+		expect( ctx.barkPhase ).toBe( 'leaving' );
+
+		vi.advanceTimersByTime( BARK_LEAVE_MS );
+		expect( ctx.barkBehavior ).toBe( 'readPause' );
+		expect( ctx.barkDurationMs ).toBe( 2500 );
+		expect( ctx.barkGeneration ).not.toBe( firstGeneration );
 	} );
 } );
 
 describe( 'finishBark', () => {
 	it( 'clears the context and shows the pending bark fresh', () => {
-		// finishBark has no injectable `now` (per its public signature), so it
-		// reads performance.now() directly; spy on it rather than faking timers.
-		vi.spyOn( performance, 'now' ).mockReturnValue( 5000 );
 		const ctx = context();
 		const inst = instance();
 
-		raiseBark( ctx, inst, 'readPause', 0 );
-		raiseBark( ctx, inst, 'lingerImage', BARK_SAFE_MS + 50 );
+		raiseBark( ctx, inst, 'readPause', 20000 );
+		raiseBark( ctx, inst, 'lingerImage', 3000 );
 		expect( ctx.barkPhase ).toBe( 'leaving' );
 
 		finishBark( ctx, inst );
 
 		expect( ctx.barkBehavior ).toBe( 'lingerImage' );
+		expect( ctx.barkDurationMs ).toBe( 3000 );
 		expect( ctx.barkPhase ).toBe( 'entering' );
 		expect( inst.pendingBark ).toBeNull();
-		expect( inst.barkShownAt ).toBe( 5000 );
-
-		vi.restoreAllMocks();
+		expect( inst.pendingDurationMs ).toBeNull();
 	} );
 
 	it( 'leaves the pill idle when nothing is pending', () => {
 		const ctx = context();
 		const inst = instance();
 
-		raiseBark( ctx, inst, 'readPause', 0 );
+		raiseBark( ctx, inst, 'readPause', 1000 );
 		finishBark( ctx, inst );
 
 		expect( ctx.barkBehavior ).toBe( '' );
 		expect( ctx.barkText ).toBe( '' );
+		expect( ctx.barkDurationMs ).toBe( 0 );
 		expect( ctx.barkPhase ).toBe( '' );
 	} );
 
@@ -210,14 +296,11 @@ describe( 'finishBark', () => {
 		const ctx = context();
 		const inst = instance();
 
-		// A behavior's first win shows, then finishes entirely (no bark
-		// showing or pending) before the same behavior wins again — a long
-		// dwell's heartbeat re-notification is exactly this shape.
-		raiseBark( ctx, inst, 'readPause', 0 );
+		raiseBark( ctx, inst, 'readPause', 1000 );
 		finishBark( ctx, inst );
 		expect( ctx.barkBehavior ).toBe( '' );
 
-		raiseBark( ctx, inst, 'readPause', 10_000 );
+		raiseBark( ctx, inst, 'readPause', 1000 );
 
 		expect( ctx.barkBehavior ).toBe( 'readPause' );
 		expect( ctx.barkPhase ).toBe( 'entering' );
@@ -232,24 +315,40 @@ describe( 'clearBark', () => {
 		const ctx = context();
 		const inst = instance();
 
-		raiseBark( ctx, inst, 'readPause', 0 );
-		raiseBark( ctx, inst, 'lingerImage', 500 );
-		inst.barkTimer = setTimeout(
-			() => undefined,
-			BARK_HOLD_MS
-		) as unknown as number;
+		raiseBark( ctx, inst, 'readPause', 20000 );
+		raiseBark( ctx, inst, 'lingerImage', 3000 );
 
 		clearBark( ctx, inst );
 
 		expect( ctx.barkBehavior ).toBe( '' );
 		expect( ctx.barkText ).toBe( '' );
+		expect( ctx.barkDurationMs ).toBe( 0 );
 		expect( ctx.barkPhase ).toBe( '' );
 		expect( inst.pendingBark ).toBeNull();
-		expect( inst.barkTimer ).toBeNull();
-		expect( inst.barkReplaceTimer ).toBeNull();
+		expect( inst.pendingDurationMs ).toBeNull();
+		expect( inst.barkDurationTimer ).toBeNull();
+		expect( inst.barkLeaveTimer ).toBeNull();
 
-		// The cleared replace timer must not fire later and resurrect a phase.
-		vi.advanceTimersByTime( BARK_SAFE_MS );
+		// The cleared timers must not fire later and resurrect a phase.
+		vi.advanceTimersByTime( 20000 + BARK_LEAVE_MS );
+		expect( ctx.barkPhase ).toBe( '' );
+		expect( ctx.barkBehavior ).toBe( '' );
+	} );
+
+	it( 'clears a bark that was already leaving, cancelling its leave timer too', () => {
+		const ctx = context();
+		const inst = instance();
+
+		raiseBark( ctx, inst, 'readPause', 1000 );
+		vi.advanceTimersByTime( 1000 );
+		expect( ctx.barkPhase ).toBe( 'leaving' );
+
+		clearBark( ctx, inst );
+
+		expect( ctx.barkPhase ).toBe( '' );
+		expect( inst.barkLeaveTimer ).toBeNull();
+
+		vi.advanceTimersByTime( BARK_LEAVE_MS );
 		expect( ctx.barkPhase ).toBe( '' );
 	} );
 } );

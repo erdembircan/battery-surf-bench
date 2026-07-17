@@ -7,7 +7,7 @@
  * `docs/knowledge-base/surf-behavior-profile.md` (1.5–4 s).
  */
 
-import type { Behavior, BehaviorContext } from '../Behavior';
+import type { Behavior, BehaviorContext, BehaviorAnnounce } from '../Behavior';
 import { ALLURE } from '../Behavior';
 import type { Motor } from '../Motor';
 import { drive, noise, clamp01 } from '../Bid';
@@ -36,9 +36,14 @@ export class LingerImage implements Behavior {
 		);
 	}
 
-	async run( motor: Motor, ctx: BehaviorContext ): Promise< void > {
+	async run(
+		motor: Motor,
+		ctx: BehaviorContext,
+		announce?: BehaviorAnnounce
+	): Promise< void > {
 		const ms =
 			LINGER_MS_MIN + ctx.rng() * ( LINGER_MS_MAX - LINGER_MS_MIN );
+		announce?.( ms / ctx.speed );
 		await motor.lingerImage( ms / ctx.speed );
 	}
 }

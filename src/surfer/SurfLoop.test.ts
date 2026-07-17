@@ -1,12 +1,11 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
-import { SurfLoop } from './SurfLoop';
-import type { Behavior, BehaviorContext } from './Behavior';
+import { describe, it, expect, vi } from 'vitest';
+import { SurfLoop, MOVE_ON_DISPLAY_MS } from './SurfLoop';
+import type { Behavior, BehaviorContext, BehaviorAnnounce } from './Behavior';
 import type { Motor } from './Motor';
 import { FakeMotor } from './FakeMotor';
 import { FakeClock } from './FakeClock';
-import { RealClock } from './Clock';
 import { mulberry32 } from './Rng';
-import { ScrollBurst, SCROLL_BURST_KEY } from './Behaviors/ScrollBurst';
+import { ScrollBurst } from './Behaviors/ScrollBurst';
 import { ReadPause } from './Behaviors/ReadPause';
 import { GlanceBack } from './Behaviors/GlanceBack';
 import { WatchVideo } from './Behaviors/WatchVideo';
@@ -275,15 +274,33 @@ describe( 'SurfLoop', () => {
 		expect( clock.now() * speed ).toBeGreaterThanOrEqual( MIN_DWELL_MS );
 	} );
 
-	it( 'notifies onBehaviorRun with the winning behavior key', async () => {
-		const motor = new FakeMotor();
+	it( 'notifies onBehaviorRun with the winning behavior key and its announced duration', async () => {
+		// A behavior notifies only by calling `announce` from inside its own
+		// run() — the mechanical ScrollBurst never does, so it never notifies
+		// (covered by the "runs safely with no onBehaviorRun dep wired" and
+		// "runs a content behavior before MoveOn" tests using it); this
+		// stand-in exercises a behavior that does bark.
+		class AnnouncingBehavior implements Behavior {
+			readonly key = 'announcingBehavior';
+			bid(): number {
+				return 1;
+			}
+			async run(
+				_motor: Motor,
+				_ctx: BehaviorContext,
+				announce?: BehaviorAnnounce
+			): Promise< void > {
+				announce?.( 4200 );
+			}
+		}
+
 		const onPageDone = vi.fn();
 		const onBehaviorRun = vi.fn();
 		const loop = new SurfLoop( {
-			behaviors: [ new ScrollBurst(), new MoveOn() ],
-			motor,
+			behaviors: [ new AnnouncingBehavior(), new MoveOn() ],
+			motor: new FakeMotor(),
 			clock: new FakeClock(),
-			rng: () => 0.999999, // always resolves to the last positive-bid entry
+			rng: neutralRng,
 			traits: [ 0, 0, 0, 0, 0 ],
 			senseAffordances: () => openAffordances,
 			speed: 1,
@@ -296,13 +313,19 @@ describe( 'SurfLoop', () => {
 			expect( onPageDone ).toHaveBeenCalledTimes( 1 )
 		);
 
-		expect( onBehaviorRun ).toHaveBeenCalledWith( SCROLL_BURST_KEY );
+		expect( onBehaviorRun ).toHaveBeenCalledWith(
+			'announcingBehavior',
+			4200
+		);
 	} );
 
-	it( 'notifies onBehaviorRun with the MoveOn key before onPageDone fires', async () => {
+	it( 'notifies onBehaviorRun with the MoveOn key and its fixed display duration before onPageDone fires', async () => {
 		const onPageDone = vi.fn();
-		const calls: string[] = [];
-		const onBehaviorRun = vi.fn( ( key: string ) => calls.push( key ) );
+		const calls: unknown[][] = [];
+		const onBehaviorRun = vi.fn(
+			( key: string, durationMs?: number ) =>
+				void calls.push( [ key, durationMs ] )
+		);
 		const loop = new SurfLoop( {
 			behaviors: [ new MoveOn() ],
 			motor: new FakeMotor(),
@@ -312,7 +335,7 @@ describe( 'SurfLoop', () => {
 			senseAffordances: () => openAffordances,
 			speed: 1,
 			onPageDone: () => {
-				calls.push( 'pageDone' );
+				calls.push( [ 'pageDone' ] );
 				onPageDone();
 			},
 			onBehaviorRun,
@@ -323,8 +346,60 @@ describe( 'SurfLoop', () => {
 			expect( onPageDone ).toHaveBeenCalledTimes( 1 )
 		);
 
-		expect( onBehaviorRun ).toHaveBeenCalledWith( MOVE_ON_KEY );
-		expect( calls ).toEqual( [ MOVE_ON_KEY, 'pageDone' ] );
+		expect( onBehaviorRun ).toHaveBeenCalledWith(
+			MOVE_ON_KEY,
+			MOVE_ON_DISPLAY_MS
+		);
+		expect( calls ).toEqual( [
+			[ MOVE_ON_KEY, MOVE_ON_DISPLAY_MS ],
+			[ 'pageDone' ],
+		] );
+	} );
+
+	it( 'notifies onBehaviorRun exactly once for a long-dwelling behavior, via its own announce', async () => {
+		// Regression for the removed heartbeat: a behavior that dwells for a
+		// long stretch of sim time in one `run()` call must notify only once,
+		// at the moment it announces its own duration — never re-notified on
+		// any interval while its run() is still pending.
+		class LongBehavior implements Behavior {
+			readonly key = 'longBehavior';
+			bid(): number {
+				return 1;
+			}
+			async run(
+				_motor: Motor,
+				ctx: BehaviorContext,
+				announce?: BehaviorAnnounce
+			): Promise< void > {
+				announce?.( 90_000 );
+				await ctx.clock.wait( 90_000 );
+			}
+		}
+
+		const onBehaviorRun = vi.fn();
+		const onPageDone = vi.fn();
+		const clock = new FakeClock();
+		const loop = new SurfLoop( {
+			behaviors: [ new LongBehavior(), new MoveOn() ],
+			motor: new FakeMotor(),
+			clock,
+			rng: neutralRng,
+			traits: [ 0, 0, 0, 0, 0 ],
+			senseAffordances: () => openAffordances,
+			speed: 1,
+			onPageDone,
+			onBehaviorRun,
+		} );
+
+		loop.start();
+		await vi.waitFor( () =>
+			expect( onPageDone ).toHaveBeenCalledTimes( 1 )
+		);
+
+		const longBehaviorCalls = onBehaviorRun.mock.calls.filter(
+			( [ key ] ) => key === 'longBehavior'
+		);
+		expect( longBehaviorCalls ).toEqual( [ [ 'longBehavior', 90_000 ] ] );
 	} );
 
 	it( 'runs safely with no onBehaviorRun dep wired', async () => {
@@ -366,136 +441,5 @@ describe( 'SurfLoop', () => {
 		await new Promise( ( resolve ) => setTimeout( resolve, 10 ) );
 
 		expect( onPageDone ).not.toHaveBeenCalled();
-	} );
-} );
-
-describe( 'SurfLoop behavior-run heartbeat', () => {
-	// These tests need a real relative notion of time between two
-	// concurrently pending waits (the run's own duration vs. the heartbeat
-	// interval) — unlike `FakeClock` (every wait resolves instantly, with no
-	// ordering between different requested durations), so they use the real
-	// `setTimeout`-backed `RealClock` under Vitest's fake timers, advanced
-	// explicitly.
-	afterEach( () => {
-		vi.useRealTimers();
-	} );
-
-	/** The settle beat is deterministic at speed 1 with a constant 0.5 rng. */
-	const SETTLE_MS = 2000;
-
-	it( 're-notifies onBehaviorRun on the heartbeat while a long run is still pending, and never after it settles', async () => {
-		vi.useFakeTimers();
-
-		class LongBehavior implements Behavior {
-			readonly key = 'longBehavior';
-			bid(): number {
-				return 1;
-			}
-			run(): Promise< void > {
-				return new Promise( ( resolve ) =>
-					setTimeout( resolve, 30_000 )
-				);
-			}
-		}
-
-		const onBehaviorRun = vi.fn();
-		const loop = new SurfLoop( {
-			behaviors: [ new LongBehavior() ],
-			motor: new FakeMotor(),
-			clock: new RealClock(),
-			rng: neutralRng,
-			traits: [ 0, 0, 0, 0, 0 ],
-			senseAffordances: () => openAffordances,
-			speed: 1,
-			onPageDone: vi.fn(),
-			onBehaviorRun,
-		} );
-
-		loop.start();
-
-		await vi.advanceTimersByTimeAsync( SETTLE_MS );
-		expect( onBehaviorRun ).toHaveBeenCalledTimes( 1 );
-		expect( onBehaviorRun ).toHaveBeenLastCalledWith( 'longBehavior' );
-
-		// The 30s run is still pending 20s in — the heartbeat re-fires.
-		await vi.advanceTimersByTimeAsync( 20_000 );
-		expect( onBehaviorRun ).toHaveBeenCalledTimes( 2 );
-		expect( onBehaviorRun ).toHaveBeenLastCalledWith( 'longBehavior' );
-
-		// The run settles at 30s (10s after the heartbeat); the next
-		// heartbeat wouldn't be due until 40s in, so no third call should
-		// appear yet — proof the heartbeat stopped exactly when the run did,
-		// rather than lingering for its own already-armed wait.
-		await vi.advanceTimersByTimeAsync( 10_000 );
-		expect( onBehaviorRun ).toHaveBeenCalledTimes( 2 );
-	} );
-
-	it( 'fires onBehaviorRun only once for a run shorter than the heartbeat interval', async () => {
-		vi.useFakeTimers();
-
-		class ShortBehavior implements Behavior {
-			readonly key = 'shortBehavior';
-			bid(): number {
-				return 1;
-			}
-			run(): Promise< void > {
-				return new Promise( ( resolve ) =>
-					setTimeout( resolve, 5000 )
-				);
-			}
-		}
-
-		const onBehaviorRun = vi.fn();
-		const loop = new SurfLoop( {
-			behaviors: [ new ShortBehavior() ],
-			motor: new FakeMotor(),
-			clock: new RealClock(),
-			rng: neutralRng,
-			traits: [ 0, 0, 0, 0, 0 ],
-			senseAffordances: () => openAffordances,
-			speed: 1,
-			onPageDone: vi.fn(),
-			onBehaviorRun,
-		} );
-
-		loop.start();
-
-		await vi.advanceTimersByTimeAsync( SETTLE_MS );
-		expect( onBehaviorRun ).toHaveBeenCalledTimes( 1 );
-
-		// The run resolves well before the 20s heartbeat interval elapses.
-		await vi.advanceTimersByTimeAsync( 5000 );
-		expect( onBehaviorRun ).toHaveBeenCalledTimes( 1 );
-	} );
-
-	it( 'never heartbeats MoveOn — it has no run() to be pending', async () => {
-		// MoveOn's short-circuit (SurfLoop halts and fires onPageDone) is
-		// taken before runWithHeartbeat is ever called, so this needs no real
-		// relative timing — FakeClock and the existing waitFor idiom are
-		// enough, matching the rest of this file's MoveOn-only tests.
-		const onBehaviorRun = vi.fn();
-		const onPageDone = vi.fn();
-		const loop = new SurfLoop( {
-			behaviors: [ new MoveOn() ],
-			motor: new FakeMotor(),
-			clock: new FakeClock(),
-			rng: neutralRng,
-			traits: [ 0, 0, 0, 0, 0 ],
-			senseAffordances: () => openAffordances,
-			speed: 1,
-			onPageDone,
-			onBehaviorRun,
-		} );
-
-		loop.start();
-		await vi.waitFor( () =>
-			expect( onPageDone ).toHaveBeenCalledTimes( 1 )
-		);
-
-		// Give any (incorrect) heartbeat re-fire a chance to land before asserting.
-		await new Promise( ( resolve ) => setTimeout( resolve, 10 ) );
-
-		expect( onBehaviorRun ).toHaveBeenCalledTimes( 1 );
-		expect( onBehaviorRun ).toHaveBeenCalledWith( MOVE_ON_KEY );
 	} );
 } );
