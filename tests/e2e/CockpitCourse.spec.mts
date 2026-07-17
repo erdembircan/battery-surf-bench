@@ -166,8 +166,7 @@ test.describe( 'Video course page (native YouTube embed)', () => {
 		// subscription is what drives the auto-replay) is covered entirely by
 		// unit tests (`VideoControl.test.ts`, `Motor.test.ts`,
 		// `WatchVideo.test.ts`), verified in turn against a real, live
-		// YouTube embed while implementing it (see
-		// `docs/plans/native-youtube-embed-playback-plan.md`).
+		// YouTube embed while implementing it.
 		const src = await iframe.getAttribute( 'src' );
 		expect( src ).toMatch( /enablejsapi=1/ );
 		expect( src ).toMatch( /mute=1/ );

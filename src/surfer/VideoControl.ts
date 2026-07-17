@@ -15,7 +15,8 @@
  * messages for the transition INTO `ended` (not every `ended` message —
  * `infoDelivery` repeats it — so `onEnded` fires exactly once per genuine
  * end, not once per heartbeat). This was verified against a real, live
- * embed (see `docs/plans/native-youtube-embed-playback-plan.md`): posting
+ * embed while the feature was planned (plan retired with the merge, per
+ * `docs/plans/` lifecycle; recoverable from git history): posting
  * `{event:'listening'}` (no `id` field — a real embed echoes back any `id`
  * it's given but never requires or validates one) immediately triggers an
  * `initialDelivery` (plus `onReady`) carrying the current `info.playerState`,

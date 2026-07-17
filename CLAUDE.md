@@ -25,7 +25,9 @@ Its value is historical: it contains integration details and key insights about 
 
 ## Implementation Plans
 
-`docs/plans/` holds the implementation plans for larger features. **Whenever a task, prompt, or discussion mentions a plan** — "the plan", "the dev-tools plan", "implement the plan" — check `docs/plans/` first and read the matching plan document in full before doing anything else. It is the authoritative design for that work: don't ask where the plan is, and don't re-derive or re-litigate decisions the plan already settles.
+`docs/plans/` holds the implementation plans for features **currently being planned or built**. **Whenever a task, prompt, or discussion mentions a plan** — "the plan", "the dev-tools plan", "implement the plan" — check `docs/plans/` first and read the matching plan document in full before doing anything else. It is the authoritative design for that work: don't ask where the plan is, and don't re-derive or re-litigate decisions the plan already settles.
+
+**A plan lives only until its feature merges.** Up to the merge, the plan is the source of truth and must be kept in sync with the work; once the feature is implemented and merged, **the code is the source of truth** and the plan file must be **deleted in that same PR** (or immediately after the merge). Never keep a plan for a shipped feature — a lingering plan invites future agents to treat a stale document as authoritative. Past plans remain recoverable through git history if ever needed.
 
 ## Architectural Charts
 
