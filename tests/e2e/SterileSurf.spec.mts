@@ -92,6 +92,29 @@ test.describe( 'Dev-tools Surf group', () => {
 		expect( await page.content() ).not.toMatch( PHP_NOTICE );
 	} );
 
+	test( 'a natural run keeps the topbar sterile chip hidden', async ( {
+		page,
+	} ) => {
+		await page.goto( '/?bsbSession=cockpit' );
+
+		await forceDischarging( page );
+		await page.locator( '.bsb-devtools__card-close' ).click();
+
+		await startFastRun( page );
+
+		// The Surf seg was never touched, so this run is natural: the topbar's
+		// sterile chip must stay hidden. `.bsb-deck__sterile-chip` sets its own
+		// `display`, which — absent an `&[hidden]` guard — silently overrides
+		// the `hidden` attribute the state binding correctly applies, so
+		// `toBeHidden()` (computed-visibility aware, unlike an attribute check)
+		// is the assertion that actually catches the regression.
+		await expect(
+			page.locator( '.bsb-cockpit__topbar .bsb-deck__sterile-chip' )
+		).toBeHidden();
+
+		expect( await page.content() ).not.toMatch( PHP_NOTICE );
+	} );
+
 	test( 'a sterile run shows the topbar chip, enables chips once affordances arrive, gates a chip lacking its affordance, steers a behavior (bark + disables while running), and the page stepper navigates', async ( {
 		page,
 	} ) => {
