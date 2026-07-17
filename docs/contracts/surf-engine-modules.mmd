@@ -117,7 +117,7 @@ classDiagram
         +playVideo() Promise
         +stopVideo() Promise
         +lingerImage(ms) Promise
-        +readTrace(ms) Promise
+        +read(ms) Promise
         +idle(ms) Promise
     }
 
@@ -129,7 +129,7 @@ classDiagram
         +playVideo() Promise
         +stopVideo() Promise
         +lingerImage(ms) Promise
-        +readTrace(ms) Promise
+        +read(ms) Promise
         +idle(ms) Promise
     }
 
@@ -285,7 +285,7 @@ classDiagram
     EngineBoot --> RealClock : creates
     EngineBoot --> Rng : seeds the one PRNG instance
     EngineBoot --> Affordances : provides senseAffordances
-    DomMotor --> Affordances : shares contentRoot & VIDEO_EMBED_SELECTOR (lingerImage, playVideo)
+    DomMotor --> Affordances : shares contentRoot & VIDEO_EMBED_SELECTOR (lingerImage, playVideo, read, selectSnippet)
     DomMotor --> VideoControl : builds via createVideoControl, subscribes onEnded to auto-replay, keeps the active one (+ unsubscribe) for stopVideo
     EngineBoot --> SurferStats : normalizeTraits
     EngineBoot --> RunConfig : normalizeSpeed

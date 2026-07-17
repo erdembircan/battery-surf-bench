@@ -43,11 +43,14 @@ export interface Motor {
 	 */
 	lingerImage: ( ms: number ) => Promise< void >;
 	/**
-	 * Follows the prose with the cursor like a reader tracking lines: sweeps
-	 * across a visible text block line by line for up to `ms`, then rests.
-	 * Falls back to a still idle when no readable block is in view.
+	 * Reads the page's prose for `ms`, passage by passage: picks a readable
+	 * block, brings it into view when it sits off-screen, dwells on it in
+	 * proportion to its own length — sometimes tracking its lines with the
+	 * cursor, sometimes resting beside them — then moves to the next, with
+	 * an occasional slow creep of the page in between. Falls back to a
+	 * still idle when the page offers nothing readable.
 	 */
-	readTrace: ( ms: number ) => Promise< void >;
+	read: ( ms: number ) => Promise< void >;
 	/** Waits `ms` without acting — the surfer's own idle/reading time. */
 	idle: ( ms: number ) => Promise< void >;
 }
@@ -170,27 +173,27 @@ const MIN_IMAGE_SIZE_PX = 40;
 const TARGET_JITTER_FRACTION = 0.2;
 
 /**
- * Fallback line height, in px, for `readTrace`'s line-count estimate when the
+ * Fallback line height, in px, for `traceBlock`'s line-count estimate when the
  * computed style isn't a resolved pixel length (e.g. jsdom's default
  * `"normal"`, which carries no usable number).
  */
 const DEFAULT_LINE_HEIGHT_PX = 24;
 
 /**
- * Nominal duration a single line's left-to-right sweep takes in `readTrace`,
+ * Nominal duration a single line's left-to-right sweep takes in `traceBlock`,
  * jittered per line by {@link TRACE_LINE_JITTER_FRACTION} — a reading pace,
  * distinctly slower than `selectSnippet`'s quick sweep.
  */
 const TRACE_LINE_MS = 1500;
 
-/** Fractional jitter band applied to each line's sweep duration in `readTrace`. */
+/** Fractional jitter band applied to each line's sweep duration in `traceBlock`. */
 const TRACE_LINE_JITTER_FRACTION = 0.2;
 
-/** Small jitter, in px, on `readTrace`'s approach point to the first line's start. */
+/** Small jitter, in px, on `traceBlock`'s approach point to the first line's start. */
 const TRACE_START_JITTER_PX = 6;
 
 /**
- * The line height `readTrace` paces its sweep by: the computed style's
+ * The line height `traceBlock` paces its sweep by: the computed style's
  * `line-height` when it resolved to a plain pixel length, else
  * {@link DEFAULT_LINE_HEIGHT_PX}. The DOM has no line-count API, so this
  * (rect height ÷ line height) is the cheapest signal available to estimate
@@ -202,6 +205,47 @@ const lineHeightOf = ( el: Element ): number => {
 
 	return raw.endsWith( 'px' ) ? parseFloat( raw ) : DEFAULT_LINE_HEIGHT_PX;
 };
+
+/**
+ * Reading pace a passage's dwell is derived from: ~250 words per minute (an
+ * adult silent-reading average) at ~6 characters per word — the passage's
+ * character count at this rate, clamped to the band below and jittered per
+ * passage.
+ */
+const SEGMENT_MS_PER_CHAR = 33;
+
+/** Clamp band for a single passage's dwell, in ms — a caption never flashes by, a wall of text never eats the whole session. */
+const SEGMENT_DWELL_MS_MIN = 1500;
+const SEGMENT_DWELL_MS_MAX = 7000;
+
+/** Fractional jitter band applied to each passage's derived dwell. */
+const SEGMENT_DWELL_JITTER_FRACTION = 0.2;
+
+/** Fraction of passages read with the cursor tracking the lines; the rest are eyes-only, the cursor resting on the passage. */
+const TRACE_CHANCE = 0.35;
+
+/** Chance, drawn once per traced line and once per dwell slot, that the page creeps down a few px — the slow, intermittent scroll of a reader mid-passage. */
+const READING_CREEP_CHANCE = 0.25;
+
+/** Pixel band of a single reading creep, always downward. */
+const READING_CREEP_PX_MIN = 10;
+const READING_CREEP_PX_MAX = 30;
+
+/** Duration band of a single reading creep, in ms — far slower than any deliberate scroll. */
+const READING_CREEP_MS_MIN = 600;
+const READING_CREEP_MS_MAX = 1200;
+
+/** An eyes-only dwell is sliced into slots of this length, each ending in a creep opportunity. */
+const DWELL_SLOT_MS = 1200;
+
+/** Viewport fraction a passage's top is scrolled to before reading it — a reader holds their text in the upper third, not dead centre. */
+const READ_ANCHOR_FRACTION = 1 / 3;
+
+/** How long scrolling a passage to the reading anchor takes, in ms. */
+const SCROLL_TO_READ_MS = 700;
+
+/** How many of the nearest off-screen passages the next reading target is drawn from. */
+const NEXT_TARGET_POOL_SIZE = 3;
 
 /** Production motor: performs real, eased DOM motion. */
 export class DomMotor implements Motor {
@@ -282,8 +326,9 @@ export class DomMotor implements Motor {
 	}
 
 	async selectSnippet(): Promise< void > {
+		const root = contentRoot( document );
 		const candidates = Array.from(
-			document.querySelectorAll( 'p, li, blockquote' )
+			root.querySelectorAll( 'p, li, blockquote' )
 		).filter(
 			( el ) =>
 				( el.textContent ?? '' ).trim().length > 20 &&
@@ -346,7 +391,7 @@ export class DomMotor implements Motor {
 		const root = contentRoot( document );
 		// One combined query preserves DOM order across both real <video>
 		// elements and recognized embed iframes — the same pool-then-pick
-		// pattern lingerImage/readTrace/selectSnippet already use, so other
+		// pattern lingerImage/read/selectSnippet already use, so other
 		// videos on a multi-video page genuinely get watched across wins
 		// instead of the first one forever.
 		const candidates = Array.from(
@@ -455,66 +500,78 @@ export class DomMotor implements Motor {
 		}
 	}
 
-	async readTrace( ms: number ): Promise< void > {
+	/**
+	 * A reading session over the page's prose. Segments the content into
+	 * readable passages (the same p/li/blockquote pool the other text verbs
+	 * draw from), then works through them until the budget runs out: the
+	 * first passage is taken from the viewport, every later one preferably
+	 * from outside it — below the fold first — so the session scrolls
+	 * through the page the way a reader's eyes pull it along. Each passage
+	 * is dwelled on in proportion to its own length, a fraction of them
+	 * traced with the cursor, and the page creeps down a few px from time
+	 * to time throughout. With every passage read and budget still left,
+	 * the reader rests; with nothing readable at all, falls back to a
+	 * still idle.
+	 * @param ms
+	 */
+	async read( ms: number ): Promise< void > {
 		const root = contentRoot( document );
-		const candidates = Array.from(
+		const pool = Array.from(
 			root.querySelectorAll( 'p, li, blockquote' )
-		).filter(
-			( el ) =>
-				( el.textContent ?? '' ).trim().length > 20 &&
-				isInViewport( el )
-		);
+		).filter( ( el ) => ( el.textContent ?? '' ).trim().length > 20 );
 
-		if ( candidates.length === 0 ) {
+		if ( pool.length === 0 ) {
 			await this.idle( ms );
 			return;
 		}
 
-		const el = candidates[ Math.floor( this.rng() * candidates.length ) ];
-		const rect = el.getBoundingClientRect();
-		const lineHeight = lineHeightOf( el );
-		// The block's rect height is the only signal cheap enough to sample
-		// every tick without laying out its text runs by hand — see
-		// lineHeightOf's doc for why a resolved pixel line height matters here.
-		const lines = Math.max( 1, Math.round( rect.height / lineHeight ) );
-
-		await this.cursor.travelTo(
-			{
-				x: rect.left + ( this.rng() * 2 - 1 ) * TRACE_START_JITTER_PX,
-				y:
-					rect.top +
-					lineHeight / 2 +
-					( this.rng() * 2 - 1 ) * TRACE_START_JITTER_PX,
-			},
-			this.rng
-		);
-
 		let framesLeft = msToFrames( ms );
+		const readSet = new Set< Element >();
+		let first = true;
 
-		for ( let line = 0; line < lines && framesLeft > 0; line++ ) {
-			const y = rect.top + lineHeight * ( line + 0.5 );
-			const lineMs =
-				TRACE_LINE_MS *
-				( 1 + ( this.rng() * 2 - 1 ) * TRACE_LINE_JITTER_FRACTION );
-			// `t` is a fraction of the line's full nominal duration, not of
-			// however many frames the remaining budget actually grants — so
-			// a line cut short by the budget stops partway across its width
-			// instead of always reaching the far edge in fewer, larger jumps.
-			const nominalLineFrames = msToFrames( lineMs );
-			const lineFrames = Math.min( framesLeft, nominalLineFrames );
+		while ( framesLeft > 0 ) {
+			const target = this.pickReadTarget( pool, readSet, first );
 
-			for ( let i = 1; i <= lineFrames; i++ ) {
-				const t = i / nominalLineFrames;
-				this.cursor.moveTo( { x: rect.left + rect.width * t, y } );
-				await this.nextFrameFn();
+			if ( null === target ) {
+				break;
 			}
 
-			framesLeft -= lineFrames;
+			readSet.add( target );
+			first = false;
+
+			if ( ! hasViewportOverlap( target ) ) {
+				const scrollFrames = Math.min(
+					framesLeft,
+					msToFrames( SCROLL_TO_READ_MS )
+				);
+				await this.scrollToReadAnchor( target.getBoundingClientRect() );
+				framesLeft -= scrollFrames;
+			}
+
+			const chars = ( target.textContent ?? '' ).trim().length;
+			const desiredMs =
+				Math.min(
+					SEGMENT_DWELL_MS_MAX,
+					Math.max(
+						SEGMENT_DWELL_MS_MIN,
+						chars * SEGMENT_MS_PER_CHAR
+					)
+				) *
+				( 1 + ( this.rng() * 2 - 1 ) * SEGMENT_DWELL_JITTER_FRACTION );
+			const segmentFrames = Math.min(
+				framesLeft,
+				msToFrames( desiredMs )
+			);
+
+			if ( this.rng() < TRACE_CHANCE ) {
+				framesLeft -= await this.traceBlock( target, segmentFrames );
+			} else {
+				framesLeft -= await this.dwellBlock( target, segmentFrames );
+			}
 		}
 
-		// The visible block ran out before the time budget did — the reader
-		// finished it and is resting/thinking; hold position for whatever
-		// budget remains rather than sweeping nothing.
+		// Every passage has been read (or none was left to pick) with budget
+		// still remaining — the reader rests rather than re-reading.
 		for ( let i = 0; i < framesLeft; i++ ) {
 			await this.nextFrameFn();
 		}
@@ -555,5 +612,210 @@ export class DomMotor implements Motor {
 				rect.height / 2 +
 				( this.rng() * 2 - 1 ) * rect.height * TARGET_JITTER_FRACTION,
 		};
+	}
+
+	/**
+	 * The next passage `read` should attend, from `pool` minus `readSet`, or
+	 * `null` once nothing is left unread. The first pick prefers whatever's
+	 * already in view; every later pick prefers off-screen passages instead
+	 * — below the fold first, then above — so a session that keeps reading
+	 * pulls the page down like a real reader's eyes, rather than bouncing
+	 * between whatever's already on screen. Off-screen tiers are narrowed to
+	 * the nearest {@link NEXT_TARGET_POOL_SIZE} candidates before the pick.
+	 * Always draws exactly one rng value when it returns a target.
+	 * @param pool
+	 * @param readSet
+	 * @param first
+	 */
+	private pickReadTarget(
+		pool: Element[],
+		readSet: Set< Element >,
+		first: boolean
+	): Element | null {
+		const unread = pool.filter( ( el ) => ! readSet.has( el ) );
+
+		if ( unread.length === 0 ) {
+			return null;
+		}
+
+		const inView = unread.filter( hasViewportOverlap );
+		const below = unread
+			.filter(
+				( el ) => el.getBoundingClientRect().top >= window.innerHeight
+			)
+			.sort(
+				( a, b ) =>
+					a.getBoundingClientRect().top -
+					b.getBoundingClientRect().top
+			)
+			.slice( 0, NEXT_TARGET_POOL_SIZE );
+		const above = unread
+			.filter( ( el ) => el.getBoundingClientRect().bottom <= 0 )
+			.sort(
+				( a, b ) =>
+					b.getBoundingClientRect().bottom -
+					a.getBoundingClientRect().bottom
+			)
+			.slice( 0, NEXT_TARGET_POOL_SIZE );
+		const tiers = first
+			? [ inView, below, above ]
+			: [ below, above, inView ];
+		const tier = tiers.find( ( candidates ) => candidates.length > 0 );
+
+		if ( ! tier ) {
+			return null;
+		}
+
+		return tier[ Math.floor( this.rng() * tier.length ) ];
+	}
+
+	/**
+	 * Scrolls `rect`'s top to {@link READ_ANCHOR_FRACTION} of the viewport
+	 * height — the upper-third resting spot `read` brings an off-screen
+	 * passage to before dwelling on it.
+	 * @param rect
+	 */
+	private scrollToReadAnchor( rect: DOMRect ): Promise< void > {
+		const delta = rect.top - window.innerHeight * READ_ANCHOR_FRACTION;
+
+		return this.scrollBy( delta, SCROLL_TO_READ_MS );
+	}
+
+	/**
+	 * Sweeps the cursor across `el` line by line, within `budgetFrames`,
+	 * returning the frames it actually spent so `read` can move on to the
+	 * next passage the moment this one's lines run out. Re-reads `el`'s rect
+	 * at the start of every line so a creep between lines never detaches the
+	 * cursor from the passage; after each line, a creep chance is drawn from
+	 * whatever budget remains.
+	 * @param el
+	 * @param budgetFrames
+	 */
+	private async traceBlock(
+		el: Element,
+		budgetFrames: number
+	): Promise< number > {
+		const initialRect = el.getBoundingClientRect();
+		const lineHeight = lineHeightOf( el );
+		const lines = Math.max(
+			1,
+			Math.round( initialRect.height / lineHeight )
+		);
+		const approachTarget = {
+			x:
+				initialRect.left +
+				( this.rng() * 2 - 1 ) * TRACE_START_JITTER_PX,
+			y:
+				initialRect.top +
+				lineHeight / 2 +
+				( this.rng() * 2 - 1 ) * TRACE_START_JITTER_PX,
+		};
+		const distance = Math.hypot(
+			approachTarget.x - this.cursor.position.x,
+			approachTarget.y - this.cursor.position.y
+		);
+		const travelFrames = Math.min(
+			budgetFrames,
+			framesForDistance( distance )
+		);
+		await this.cursor.travelTo( approachTarget, this.rng, travelFrames );
+
+		let framesLeft = budgetFrames - travelFrames;
+		let consumed = travelFrames;
+
+		for ( let line = 0; line < lines && framesLeft > 0; line++ ) {
+			const rect = el.getBoundingClientRect();
+			const y = rect.top + lineHeight * ( line + 0.5 );
+			const lineMs =
+				TRACE_LINE_MS *
+				( 1 + ( this.rng() * 2 - 1 ) * TRACE_LINE_JITTER_FRACTION );
+			const nominalLineFrames = msToFrames( lineMs );
+			const lineFrames = Math.min( framesLeft, nominalLineFrames );
+
+			for ( let i = 1; i <= lineFrames; i++ ) {
+				const t = i / nominalLineFrames;
+				this.cursor.moveTo( { x: rect.left + rect.width * t, y } );
+				await this.nextFrameFn();
+			}
+
+			framesLeft -= lineFrames;
+			consumed += lineFrames;
+
+			if ( framesLeft > 0 && this.rng() < READING_CREEP_CHANCE ) {
+				const creepFrames = await this.creepStep( framesLeft );
+				framesLeft -= creepFrames;
+				consumed += creepFrames;
+			}
+		}
+
+		return consumed;
+	}
+
+	/**
+	 * An eyes-only read of `el`: travels the cursor onto it once, then holds
+	 * it there for `budgetFrames` in slots of {@link DWELL_SLOT_MS}, each
+	 * slot ending in a creep chance drawn from whatever budget remains.
+	 * Always consumes exactly `budgetFrames`, whatever mix of holding and
+	 * creeping filled it.
+	 * @param el
+	 * @param budgetFrames
+	 */
+	private async dwellBlock(
+		el: Element,
+		budgetFrames: number
+	): Promise< number > {
+		const rect = el.getBoundingClientRect();
+		const target = this.jitteredPointOn( rect );
+		const distance = Math.hypot(
+			target.x - this.cursor.position.x,
+			target.y - this.cursor.position.y
+		);
+		const travelFrames = Math.min(
+			budgetFrames,
+			framesForDistance( distance )
+		);
+		await this.cursor.travelTo( target, this.rng, travelFrames );
+
+		let framesLeft = budgetFrames - travelFrames;
+
+		while ( framesLeft > 0 ) {
+			const slotFrames = Math.min(
+				framesLeft,
+				msToFrames( DWELL_SLOT_MS )
+			);
+
+			for ( let i = 0; i < slotFrames; i++ ) {
+				await this.nextFrameFn();
+			}
+
+			framesLeft -= slotFrames;
+
+			if ( framesLeft > 0 && this.rng() < READING_CREEP_CHANCE ) {
+				framesLeft -= await this.creepStep( framesLeft );
+			}
+		}
+
+		return budgetFrames;
+	}
+
+	/**
+	 * A single slow, downward creep of the page — {@link READING_CREEP_PX_MIN}
+	 * to {@link READING_CREEP_PX_MAX} over {@link READING_CREEP_MS_MIN} to
+	 * {@link READING_CREEP_MS_MAX} — capped to `remainingFrames`, returning
+	 * the frames it spent.
+	 * @param remainingFrames
+	 */
+	private async creepStep( remainingFrames: number ): Promise< number > {
+		const px =
+			READING_CREEP_PX_MIN +
+			this.rng() * ( READING_CREEP_PX_MAX - READING_CREEP_PX_MIN );
+		const ms =
+			READING_CREEP_MS_MIN +
+			this.rng() * ( READING_CREEP_MS_MAX - READING_CREEP_MS_MIN );
+		const frames = Math.min( remainingFrames, msToFrames( ms ) );
+
+		await this.scrollBy( px, ms );
+
+		return frames;
 	}
 }

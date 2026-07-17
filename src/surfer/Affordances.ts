@@ -47,9 +47,9 @@ export const VIDEO_EMBED_SELECTOR =
  * The page's content root: `<main>` where the theme renders one, else
  * `<body>`. Block themes render page content inside `<main>`; the admin bar
  * and theme header/footer chrome live outside it. The single source of this
- * rule — {@link ./Motor}'s `DomMotor.lingerImage` and `.playVideo` also scope
- * their candidate search through this, so the root a behavior is bid on is
- * exactly the root its motor verb searches.
+ * rule — {@link ./Motor}'s `DomMotor` scopes every candidate search through
+ * this (`lingerImage`, `playVideo`, `read`, `selectSnippet`), so the root a
+ * behavior is bid on is exactly the root its motor verbs search.
  * @param doc
  */
 export const contentRoot = ( doc: Document ): Element =>
