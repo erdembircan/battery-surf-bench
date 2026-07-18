@@ -9,7 +9,7 @@
  * component rather than a port of that Interactivity-bound machinery — but it
  * renders the exact same visual shape and plays the exact same enter/leave
  * motion, both extended/sourced from the shared `%bsb-toast` placeholder
- * (`src/styles/foundation/_toast.scss`) the cockpit toast also extends, so the two are
+ * (`src/styles/theme/_toast.scss`) the cockpit toast also extends, so the two are
  * pixel- and motion-identical.
  *
  * Every kind gets its own colour + icon "shape" (never a bare, unstyled

@@ -3,7 +3,7 @@
 // stylesheet masks or backgrounds onto an element, as a url-encoded SVG
 // data-URI `$icon-*` variable (or, where a glyph needs theme colours baked
 // in, an `@function` helper). `_theme.scss` forwards this partial, so any
-// stylesheet that does `@use '../foundation/theme' as theme` gets `theme.$icon-*`
+// stylesheet that does `@use '../theme/theme' as theme` gets `theme.$icon-*`
 // automatically — import the theme, get the icons.
 //
 // This is the governance point for the approved icon set, but it isn't the

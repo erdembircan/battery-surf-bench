@@ -1,14 +1,14 @@
 @use "sass:color";
-// Icons only, not the whole theme partial: `@use`-ing `../foundation/theme`
+// Icons only, not the whole theme partial: `@use`-ing `../theme/theme`
 // itself would also emit its `@font-face` rules (Anton, Hanken Grotesk,
 // Space Mono, Pacifico, Caveat) into this stylesheet, which doesn't use any
 // of those fonts. Aliased to `theme` so the call below reads the same as
 // every other `theme.$icon-*`/`theme.icon-*()` consumer.
-@use '../foundation/icons' as theme;
+@use '../theme/icons' as theme;
 // Pure variables, no CSS of its own — safe to `@use` here for the same
 // reason the icons partial is, without pulling in the theme's @font-face
 // output.
-@use '../foundation/palette' as palette;
+@use '../theme/palette' as palette;
 
 // Typography
 $font-serif: georgia, "Times New Roman", times, serif;

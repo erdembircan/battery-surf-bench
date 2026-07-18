@@ -13,8 +13,8 @@
 @use 'sass:color';
 @use 'sass:math';
 @use 'sass:list';
-@use '../foundation/theme' as theme;
-@use '../foundation/toast';
+@use '../theme/theme' as theme;
+@use '../theme/toast';
 
 $deck-width: clamp(300px, 28vw, 372px);
 $ease: cubic-bezier(0.22, 1, 0.36, 1);
@@ -1250,7 +1250,7 @@ body.bsb-cockpit-dashboard {
 
 // Both the resting shape (padding, radius, border, shadow, colours) AND the
 // enter/hold/leave phase animation come from the shared `%bsb-toast`
-// placeholder (`../foundation/toast`) — the same one the admin `<Notice>`
+// placeholder (`../theme/toast`) — the same one the admin `<Notice>`
 // extends, so the two render and animate pixel- and motion-identical. This
 // rule only supplies what stays genuinely cockpit-local: the pill's own font
 // and its single-line layout.

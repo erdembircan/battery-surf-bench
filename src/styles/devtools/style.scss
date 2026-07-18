@@ -20,7 +20,7 @@
  * did not already load the cockpit stylesheet.
  */
 
-@use '../foundation/theme';
+@use '../theme/theme';
 
 $ease: cubic-bezier(0.22, 1, 0.36, 1);
 

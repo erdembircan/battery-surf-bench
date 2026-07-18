@@ -18,8 +18,8 @@
  * Hanken Grotesk and Space Mono load on the admin screen.
  */
 
-@use '../foundation/theme' as theme;
-@use '../foundation/admin-chrome';
+@use '../theme/theme' as theme;
+@use '../theme/admin-chrome';
 
 // ── The deck shell ───────────────────────────────────────────────────────────
 .bsb-settings {

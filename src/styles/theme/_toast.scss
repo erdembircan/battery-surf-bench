@@ -8,7 +8,7 @@
 // the rules.
 //
 // Deliberately holds no palette or icon knowledge of its own (no
-// `@use '../foundation/theme'`): `theme.scss` already forwards the icon partial,
+// `@use '../theme/theme'`): `theme.scss` already forwards the icon partial,
 // and a `toast → theme → toast` loop is not expressible in Sass's module
 // graph, so this partial cannot depend on theme and still be `@use`d from
 // files that use theme. Each caller supplies its own severity's colours/icon
