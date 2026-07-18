@@ -7,7 +7,7 @@
 
 namespace ErdemBircan\BatterySurfBench\Support;
 
-use ErdemBircan\BatterySurfBench\Assets;
+use ErdemBircan\BatterySurfBench\Core\Assets;
 use WP_Scripts;
 use WP_Styles;
 

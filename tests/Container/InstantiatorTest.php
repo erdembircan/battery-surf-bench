@@ -7,14 +7,14 @@
 
 declare( strict_types=1 );
 
-namespace ErdemBircan\BatterySurfBench\Tests;
+namespace ErdemBircan\BatterySurfBench\Tests\Container;
 
 use Brain\Monkey\Functions;
-use ErdemBircan\BatterySurfBench\Definitions;
-use ErdemBircan\BatterySurfBench\InstanceStore;
-use ErdemBircan\BatterySurfBench\Instantiator;
-use ErdemBircan\BatterySurfBench\Paths;
-use ErdemBircan\BatterySurfBench\Registry;
+use ErdemBircan\BatterySurfBench\Container\Definitions;
+use ErdemBircan\BatterySurfBench\Container\InstanceStore;
+use ErdemBircan\BatterySurfBench\Container\Instantiator;
+use ErdemBircan\BatterySurfBench\Container\Registry;
+use ErdemBircan\BatterySurfBench\Core\Paths;
 use ErdemBircan\BatterySurfBench\Tests\Fixtures\FixtureBundle;
 use ErdemBircan\BatterySurfBench\Tests\Fixtures\FixtureCar;
 use ErdemBircan\BatterySurfBench\Tests\Fixtures\FixtureConsoleLogger;
@@ -25,6 +25,7 @@ use ErdemBircan\BatterySurfBench\Tests\Fixtures\FixtureListing;
 use ErdemBircan\BatterySurfBench\Tests\Fixtures\FixtureLoggerConsumer;
 use ErdemBircan\BatterySurfBench\Tests\Fixtures\FixtureNamed;
 use ErdemBircan\BatterySurfBench\Tests\Fixtures\FixtureVehicle;
+use ErdemBircan\BatterySurfBench\Tests\TestCase;
 use RuntimeException;
 
 /**

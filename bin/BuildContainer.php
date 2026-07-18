@@ -1,9 +1,9 @@
 <?php
 /**
- * Build-time CLI: validates `includes/Services.php` against the registry
- * built from `includes/Config.php`, then — unless run with `--check` —
- * compiles it into `build/Services.compiled.php`, pre-resolving every
- * `%token%` and precomputing each class's build plan.
+ * Build-time CLI: validates `includes/Container/Services.php` against the
+ * registry built from `includes/Core/Config.php`, then — unless run with
+ * `--check` — compiles it into `build/Services.compiled.php`, pre-resolving
+ * every `%token%` and precomputing each class's build plan.
  *
  * Run as:
  * - `php bin/BuildContainer.php` — validates, then compiles and writes the
@@ -15,13 +15,13 @@
  *
  * This script never bootstraps WordPress. It defines a dummy `ABSPATH` so
  * the plugin's `defined( 'ABSPATH' ) || exit;` guards let its classes and
- * the `Config.php`/`Services.php` sources load outside WordPress. When
- * validation finds problems, the full list is printed to STDERR and nothing
- * is written: a broken recipe never reaches a compiled artifact, whether
- * checking or building. On a real (non-`--check`) build, the freshly
- * written artifact is `require`d back in this same process and asserted to
- * return an array — the builder owning its own output's validity, rather
- * than relying on an external `php -l` step.
+ * the `Core/Config.php`/`Container/Services.php` sources load outside
+ * WordPress. When validation finds problems, the full list is printed to
+ * STDERR and nothing is written: a broken recipe never reaches a compiled
+ * artifact, whether checking or building. On a real (non-`--check`) build,
+ * the freshly written artifact is `require`d back in this same process and
+ * asserted to return an array — the builder owning its own output's
+ * validity, rather than relying on an external `php -l` step.
  *
  * This file lives outside `includes/`, `src/` and `tests/` — the plugin's
  * shipped/tested source roots — so it is build tooling, not runtime code:
@@ -33,9 +33,9 @@
  * @package ErdemBircan\BatterySurfBench
  */
 
-use ErdemBircan\BatterySurfBench\ContainerCompiler;
-use ErdemBircan\BatterySurfBench\ContainerValidator;
-use ErdemBircan\BatterySurfBench\Registry;
+use ErdemBircan\BatterySurfBench\Container\ContainerCompiler;
+use ErdemBircan\BatterySurfBench\Container\ContainerValidator;
+use ErdemBircan\BatterySurfBench\Container\Registry;
 
 define( 'ABSPATH', __DIR__ . '/' );
 
@@ -44,8 +44,8 @@ $check_only = in_array( '--check', $argv, true );
 
 require $root . '/vendor/autoload.php';
 
-$registry = new Registry( require $root . '/includes/Config.php' );
-$services = require $root . '/includes/Services.php';
+$registry = new Registry( require $root . '/includes/Core/Config.php' );
+$services = require $root . '/includes/Container/Services.php';
 
 $errors = ( new ContainerValidator() )->validate( $services, $registry );
 
@@ -78,7 +78,7 @@ $contents = "<?php\n"
 	. "/**\n"
 	. " * Generated container definitions — DO NOT EDIT.\n"
 	. " *\n"
-	. " * Produced by bin/BuildContainer.php from includes/Services.php with\n"
+	. " * Produced by bin/BuildContainer.php from includes/Container/Services.php with\n"
 	. " * %token% specs flattened to their configuration values. Regenerated on\n"
 	. " * build.\n"
 	. " *\n"

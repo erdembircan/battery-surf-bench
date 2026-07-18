@@ -8,7 +8,7 @@
 namespace ErdemBircan\BatterySurfBench\Admin;
 
 use ErdemBircan\BatterySurfBench\Admin\Views\StartBenchmarkView;
-use ErdemBircan\BatterySurfBench\Assets;
+use ErdemBircan\BatterySurfBench\Core\Assets;
 use ErdemBircan\BatterySurfBench\Support\CapabilityInterface;
 use ErdemBircan\BatterySurfBench\Support\Manager;
 use WP_Admin_Bar;

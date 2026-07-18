@@ -2,12 +2,14 @@
 /**
  * Service-definition source.
  *
- * Returns the service-recipe map loaded into a {@see Definitions} container
- * at bootstrap. {@see Instantiator} consults a class's recipe — its
- * constructor argument specs and sharing behaviour — when building it, so
- * this file is the single source of how the plugin's managers and shared
- * building blocks are wired together. Sibling to `Config.php`, which is the
- * single source of the plugin's configuration values.
+ * Returns the service-recipe map loaded into a
+ * {@see \ErdemBircan\BatterySurfBench\Container\Definitions} container at
+ * bootstrap. {@see \ErdemBircan\BatterySurfBench\Container\Instantiator}
+ * consults a class's recipe — its constructor argument specs and sharing
+ * behaviour — when building it, so this file is the single source of how the
+ * plugin's managers and shared building blocks are wired together. Paired
+ * with `Config.php`, which is the single source of the plugin's
+ * configuration values.
  *
  * @package ErdemBircan\BatterySurfBench
  */
@@ -22,6 +24,9 @@ use ErdemBircan\BatterySurfBench\Content\SessionDetail;
 use ErdemBircan\BatterySurfBench\Content\SessionRestQuery;
 use ErdemBircan\BatterySurfBench\Content\SessionSchema;
 use ErdemBircan\BatterySurfBench\Content\SessionType;
+use ErdemBircan\BatterySurfBench\Core\Assets;
+use ErdemBircan\BatterySurfBench\Core\I18n;
+use ErdemBircan\BatterySurfBench\Core\Paths;
 use ErdemBircan\BatterySurfBench\Course\CourseCatalog;
 use ErdemBircan\BatterySurfBench\Course\CourseOrderOption;
 use ErdemBircan\BatterySurfBench\Course\CourseOrderSanitizer;

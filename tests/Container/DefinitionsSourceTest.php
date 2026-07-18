@@ -7,9 +7,10 @@
 
 declare( strict_types=1 );
 
-namespace ErdemBircan\BatterySurfBench\Tests;
+namespace ErdemBircan\BatterySurfBench\Tests\Container;
 
-use ErdemBircan\BatterySurfBench\DefinitionsSource;
+use ErdemBircan\BatterySurfBench\Container\DefinitionsSource;
+use ErdemBircan\BatterySurfBench\Tests\TestCase;
 
 /**
  * Behavioral tests for the gate's public contract: a pure boolean decision

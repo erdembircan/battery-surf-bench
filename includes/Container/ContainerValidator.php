@@ -2,10 +2,10 @@
 /**
  * Build-time container-definition validator.
  *
- * @package ErdemBircan\BatterySurfBench
+ * @package ErdemBircan\BatterySurfBench\Container
  */
 
-namespace ErdemBircan\BatterySurfBench;
+namespace ErdemBircan\BatterySurfBench\Container;
 
 use ReflectionClass;
 use ReflectionIntersectionType;

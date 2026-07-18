@@ -7,11 +7,12 @@
 
 declare( strict_types=1 );
 
-namespace ErdemBircan\BatterySurfBench\Tests;
+namespace ErdemBircan\BatterySurfBench\Tests\Container;
 
-use ErdemBircan\BatterySurfBench\Definitions;
+use ErdemBircan\BatterySurfBench\Container\Definitions;
 use ErdemBircan\BatterySurfBench\Tests\Fixtures\FixtureEngine;
 use ErdemBircan\BatterySurfBench\Tests\Fixtures\FixtureNamed;
+use ErdemBircan\BatterySurfBench\Tests\TestCase;
 use Psr\Container\ContainerInterface;
 use Psr\Container\NotFoundExceptionInterface;
 

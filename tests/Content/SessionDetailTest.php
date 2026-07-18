@@ -10,9 +10,9 @@ declare( strict_types=1 );
 namespace ErdemBircan\BatterySurfBench\Tests\Content;
 
 use Brain\Monkey\Functions;
-use ErdemBircan\BatterySurfBench\Assets;
 use ErdemBircan\BatterySurfBench\Cockpit\Views\SessionDetailView;
 use ErdemBircan\BatterySurfBench\Content\SessionDetail;
+use ErdemBircan\BatterySurfBench\Core\Assets;
 use ErdemBircan\BatterySurfBench\Support\Manager;
 use ErdemBircan\BatterySurfBench\Tests\Support\FakeCapability;
 use ErdemBircan\BatterySurfBench\Tests\TestCase;

@@ -2,10 +2,10 @@
 /**
  * Plugin path and URL resolver.
  *
- * @package ErdemBircan\BatterySurfBench
+ * @package ErdemBircan\BatterySurfBench\Core
  */
 
-namespace ErdemBircan\BatterySurfBench;
+namespace ErdemBircan\BatterySurfBench\Core;
 
 use function plugin_dir_path;
 use function plugins_url;

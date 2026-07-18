@@ -7,17 +7,18 @@
 
 declare( strict_types=1 );
 
-namespace ErdemBircan\BatterySurfBench\Tests;
+namespace ErdemBircan\BatterySurfBench\Tests\Container;
 
-use ErdemBircan\BatterySurfBench\ContainerCompiler;
-use ErdemBircan\BatterySurfBench\Paths;
-use ErdemBircan\BatterySurfBench\Registry;
+use ErdemBircan\BatterySurfBench\Container\ContainerCompiler;
+use ErdemBircan\BatterySurfBench\Container\Registry;
+use ErdemBircan\BatterySurfBench\Core\Paths;
 use ErdemBircan\BatterySurfBench\Tests\Fixtures\FixtureBundle;
 use ErdemBircan\BatterySurfBench\Tests\Fixtures\FixtureCar;
 use ErdemBircan\BatterySurfBench\Tests\Fixtures\FixtureConsoleLogger;
 use ErdemBircan\BatterySurfBench\Tests\Fixtures\FixtureEngine;
 use ErdemBircan\BatterySurfBench\Tests\Fixtures\FixtureListing;
 use ErdemBircan\BatterySurfBench\Tests\Fixtures\FixtureNamed;
+use ErdemBircan\BatterySurfBench\Tests\TestCase;
 
 /**
  * Behavioral tests for the compiler's public contract: `compile()` as a

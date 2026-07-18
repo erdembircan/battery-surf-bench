@@ -2,10 +2,10 @@
 /**
  * Service-recipe container.
  *
- * @package ErdemBircan\BatterySurfBench
+ * @package ErdemBircan\BatterySurfBench\Container
  */
 
-namespace ErdemBircan\BatterySurfBench;
+namespace ErdemBircan\BatterySurfBench\Container;
 
 use ErdemBircan\BatterySurfBench\Exception\NotFoundException;
 use Psr\Container\ContainerInterface;

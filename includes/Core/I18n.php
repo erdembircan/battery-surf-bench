@@ -2,10 +2,10 @@
 /**
  * Translation loader.
  *
- * @package ErdemBircan\BatterySurfBench
+ * @package ErdemBircan\BatterySurfBench\Core
  */
 
-namespace ErdemBircan\BatterySurfBench;
+namespace ErdemBircan\BatterySurfBench\Core;
 
 use ErdemBircan\BatterySurfBench\Support\Manager;
 

@@ -7,10 +7,10 @@
 
 declare( strict_types=1 );
 
-namespace ErdemBircan\BatterySurfBench\Tests;
+namespace ErdemBircan\BatterySurfBench\Tests\Container;
 
-use ErdemBircan\BatterySurfBench\ContainerValidator;
-use ErdemBircan\BatterySurfBench\Registry;
+use ErdemBircan\BatterySurfBench\Container\ContainerValidator;
+use ErdemBircan\BatterySurfBench\Container\Registry;
 use ErdemBircan\BatterySurfBench\Tests\Fixtures\FixtureBundle;
 use ErdemBircan\BatterySurfBench\Tests\Fixtures\FixtureConsoleLogger;
 use ErdemBircan\BatterySurfBench\Tests\Fixtures\FixtureEngine;
@@ -21,6 +21,7 @@ use ErdemBircan\BatterySurfBench\Tests\Fixtures\FixtureNamed;
 use ErdemBircan\BatterySurfBench\Tests\Fixtures\FixtureUnionParam;
 use ErdemBircan\BatterySurfBench\Tests\Fixtures\FixtureVehicle;
 use ErdemBircan\BatterySurfBench\Tests\Fixtures\FixtureWrapsNamed;
+use ErdemBircan\BatterySurfBench\Tests\TestCase;
 
 /**
  * Behavioral tests for the validator's public contract: `validate()` as a

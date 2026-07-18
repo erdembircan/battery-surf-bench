@@ -7,11 +7,12 @@
 
 declare( strict_types=1 );
 
-namespace ErdemBircan\BatterySurfBench\Tests;
+namespace ErdemBircan\BatterySurfBench\Tests\Core;
 
 use Brain\Monkey\Functions;
-use ErdemBircan\BatterySurfBench\I18n;
+use ErdemBircan\BatterySurfBench\Core\I18n;
 use ErdemBircan\BatterySurfBench\Support\Manager;
+use ErdemBircan\BatterySurfBench\Tests\TestCase;
 
 use function has_action;
 

@@ -2,11 +2,12 @@
 /**
  * Reflection-based service builder.
  *
- * @package ErdemBircan\BatterySurfBench
+ * @package ErdemBircan\BatterySurfBench\Container
  */
 
-namespace ErdemBircan\BatterySurfBench;
+namespace ErdemBircan\BatterySurfBench\Container;
 
+use ErdemBircan\BatterySurfBench\Core\Paths;
 use ReflectionClass;
 use ReflectionIntersectionType;
 use ReflectionNamedType;

@@ -2,10 +2,10 @@
 /**
  * Asset enqueuing service.
  *
- * @package ErdemBircan\BatterySurfBench
+ * @package ErdemBircan\BatterySurfBench\Core
  */
 
-namespace ErdemBircan\BatterySurfBench;
+namespace ErdemBircan\BatterySurfBench\Core;
 
 use InvalidArgumentException;
 

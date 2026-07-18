@@ -12,7 +12,7 @@ namespace ErdemBircan\BatterySurfBench\Tests\Admin;
 use Brain\Monkey\Functions;
 use ErdemBircan\BatterySurfBench\Admin\StartBenchmark;
 use ErdemBircan\BatterySurfBench\Admin\Views\StartBenchmarkView;
-use ErdemBircan\BatterySurfBench\Assets;
+use ErdemBircan\BatterySurfBench\Core\Assets;
 use ErdemBircan\BatterySurfBench\Support\Manager;
 use ErdemBircan\BatterySurfBench\Tests\Support\FakeCapability;
 use ErdemBircan\BatterySurfBench\Tests\TestCase;

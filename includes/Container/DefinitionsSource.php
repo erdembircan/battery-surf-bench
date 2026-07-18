@@ -2,10 +2,10 @@
 /**
  * Compiled-vs-live container definitions source gate.
  *
- * @package ErdemBircan\BatterySurfBench
+ * @package ErdemBircan\BatterySurfBench\Container
  */
 
-namespace ErdemBircan\BatterySurfBench;
+namespace ErdemBircan\BatterySurfBench\Container;
 
 use function in_array;
 

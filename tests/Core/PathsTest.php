@@ -7,10 +7,11 @@
 
 declare( strict_types=1 );
 
-namespace ErdemBircan\BatterySurfBench\Tests;
+namespace ErdemBircan\BatterySurfBench\Tests\Core;
 
 use Brain\Monkey\Functions;
-use ErdemBircan\BatterySurfBench\Paths;
+use ErdemBircan\BatterySurfBench\Core\Paths;
+use ErdemBircan\BatterySurfBench\Tests\TestCase;
 
 /**
  * Behavioral tests for the path resolver's public contract.

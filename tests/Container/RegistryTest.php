@@ -7,9 +7,10 @@
 
 declare( strict_types=1 );
 
-namespace ErdemBircan\BatterySurfBench\Tests;
+namespace ErdemBircan\BatterySurfBench\Tests\Container;
 
-use ErdemBircan\BatterySurfBench\Registry;
+use ErdemBircan\BatterySurfBench\Container\Registry;
+use ErdemBircan\BatterySurfBench\Tests\TestCase;
 use Psr\Container\ContainerInterface;
 use Psr\Container\NotFoundExceptionInterface;
 use stdClass;

@@ -8,8 +8,8 @@
 namespace ErdemBircan\BatterySurfBench\Admin;
 
 use ErdemBircan\BatterySurfBench\Admin\Views\SessionsScreenView;
-use ErdemBircan\BatterySurfBench\Assets;
 use ErdemBircan\BatterySurfBench\Content\SessionSchema;
+use ErdemBircan\BatterySurfBench\Core\Assets;
 use ErdemBircan\BatterySurfBench\Support\CapabilityInterface;
 use ErdemBircan\BatterySurfBench\Support\Manager;
 
