@@ -134,4 +134,30 @@ test.describe( 'Shark-fin Easter egg', () => {
 
 		expect( await page.content() ).not.toMatch( PHP_NOTICE );
 	} );
+
+	test( "the dev-tools panel's shark button releases the fin on demand, disabled outside the launch window", async ( {
+		page,
+	} ) => {
+		await page.goto( '/?bsbSession=cockpit' );
+
+		await page.locator( '.bsb-devtools__pill' ).click();
+
+		const sharkButton = page.locator( '.bsb-devtools__card-shark' );
+		await expect( sharkButton ).toBeVisible();
+		await expect( sharkButton ).toBeDisabled();
+
+		await page.locator( '.bsb-devtools__card-close' ).click();
+
+		await startFastRun( page );
+
+		await page.locator( '.bsb-devtools__pill' ).click();
+		await expect( sharkButton ).toBeEnabled();
+
+		await sharkButton.click();
+
+		const topbarFin = page.locator( '.bsb-cockpit__topbar .bsb-fin' );
+		await expect( topbarFin ).toBeVisible();
+
+		expect( await page.content() ).not.toMatch( PHP_NOTICE );
+	} );
 } );

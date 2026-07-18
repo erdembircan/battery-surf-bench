@@ -97,7 +97,7 @@ classDiagram
     class SharkStore {
         <<module>>
         state: hasShark, sharkStartCss/sharkEndCss/sharkTotalCss (CSS projections of the planned swim), sharkBobCss (the bob's own √speed-scaled swing period)
-        callbacks: initShark (document-level Konami listener, armed only while running && compact; each key must land within KONAMI_TIMEOUT_MS of the previous or the sequence restarts), syncSharkCompact (clears a live swim once the topbar stops showing it)
+        callbacks: initShark (document-level Konami listener, armed only while running && compact; each key must land within KONAMI_TIMEOUT_MS of the previous or the sequence restarts), syncSharkCompact (clears a live swim once the topbar stops showing it), syncDevtoolsShark (mirrors state.devtools.shark.launchable = running && compact and consumes the panel's stamped launch command exactly once, launching the swim from inside the block's own scope; clears a command pending outside the launch window — only ever touches state.devtools when it exists)
     }
 
     %% --- Shared seam between slices.
@@ -440,6 +440,9 @@ classDiagram
     %% RunLifecycle clears a live swim on every cause of a run ending, and
     %% SharkStore's own watch clears one the instant the topbar stops showing it
     %% (the deck expands) even mid-run.
+    %% The dev-tools panel's shark button releases a swim on demand through the same
+    %% lifecycle: SharkStore.syncDevtoolsShark consumes the panel's stamped launch
+    %% command and mirrors the launch window back for the button's disabled binding.
     SharkStore --> Shark : launches / clears the swim
     SharkStore --> KonamiCode : advances the sequence
     Shark ..> CockpitContext : writes the planned swim
@@ -511,12 +514,12 @@ classDiagram
     %% written to or restored from storage.
     class DevToolsView {
         <<module>>
-        store('bsb/cockpit', mergeStoreParts(DevtoolsShellStore, BatteryOverrideStore, DischargeSimStore, SurfSteerStore, ResetStore))
+        store('bsb/cockpit', mergeStoreParts(DevtoolsShellStore, BatteryOverrideStore, DischargeSimStore, SurfSteerStore, SharkReleaseStore, ResetStore))
     }
 
     class DevtoolsStore {
         <<module>>
-        state: devtools.open, devtools.battery, devtools.sim, devtools.surf
+        state: devtools.open, devtools.battery, devtools.sim, devtools.surf, devtools.shark
         actions: devtoolsToggleOpen
         callbacks: devtoolsPersist
         +current() DevtoolsState
@@ -562,6 +565,23 @@ classDiagram
         +SURF_BEHAVIOR_KEYS, CAUTION_KEY, DEFAULT_SURF
     }
 
+    %% The shark-release sub-tool: the panel header's shark button. Writes a
+    %% monotonic-seq launch command onto the shared slice — the panel has no
+    %% cockpit context of its own, so it can never call the swim lifecycle
+    %% directly — and reads back the launchability the cockpit's own
+    %% SharkStore.syncDevtoolsShark mirrors onto it (a run live, the deck
+    %% compact — the Konami egg's own arming window).
+    class SharkReleaseStore {
+        <<module>>
+        state: devtoolsSharkDisabled (the launchability mirror, inverted)
+        actions: devtoolsReleaseShark (writes a monotonic-seq launch command; no-op outside the launch window)
+    }
+
+    class SharkRelease {
+        <<module>>
+        +SharkLaunchCommand, SharkReleaseState, DEFAULT_SHARK_RELEASE
+    }
+
     class EffectiveBatteryOverride {
         <<module>>
         +effectiveBatteryOverride(devtools) BatteryOverrideState
@@ -593,6 +613,7 @@ classDiagram
     DevToolsView --> BatteryOverrideStore : composes
     DevToolsView --> DischargeSimStore : composes
     DevToolsView --> SurfSteerStore : composes
+    DevToolsView --> SharkReleaseStore : composes
     DevToolsView --> ResetStore : composes
     BatteryOverrideStore --> DevtoolsStore : reads/writes the shared devtools slice
     DischargeSimStore --> DevtoolsStore : reads/writes the shared devtools slice
@@ -603,6 +624,8 @@ classDiagram
     SurfSteerStore --> BehaviorEnd : recognizes bsb:behaviorEnd to clear the running key
     SurfSteerStore --> PageAffordances : recognizes bsb:pageAffordances to store the live page's flags
     SurfSteerStore --> SteerBehavior : posts bsb:steerBehavior to the viewport iframe's contentWindow
+    SharkReleaseStore --> DevtoolsStore : reads/writes the shared devtools slice
+    SharkReleaseStore --> SharkRelease : the pure model behind its state
 
     %% The discharge sim writes only its own `sim.currentLevel`/`remainingMs`/
     %% `running` fields — never `devtools.battery`, which BatteryOverrideStore's manual
@@ -625,3 +648,5 @@ classDiagram
     BatteryStore ..> DevtoolsStore : reads state.devtools.battery (undefined in production)
     DevtoolsStore ..> RunStore : joins bsb/cockpit store (state.devtools.surf)
     RunStore ..> DevtoolsStore : reads/writes state.devtools.surf (undefined in production)
+    DevtoolsStore ..> SharkStore : joins bsb/cockpit store (state.devtools.shark)
+    SharkStore ..> DevtoolsStore : reads/writes state.devtools.shark (undefined in production)

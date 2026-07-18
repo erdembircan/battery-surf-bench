@@ -55,7 +55,14 @@ defined( 'ABSPATH' ) || exit;
  *
  * The card header divides into exactly three zones: the title (the eyebrow),
  * the override status (the armed indicator), and a panel-buttons container
- * (`.bsb-devtools__card-actions`) holding Reset then Close. Reset is the
+ * (`.bsb-devtools__card-actions`) holding Reset, then Shark, then Close —
+ * Reset's visibility is dynamic (it only appears once an override is armed),
+ * so it keeps the cluster's outer edge and the two always-present controls
+ * hold their ground beside it. Shark releases the cockpit's dorsal-fin Easter
+ * egg on demand — an icon-only control like its neighbours, enabled only
+ * while a shark could actually surface (a run live, the topbar compact: the
+ * same window the Konami code arms in), which the cockpit mirrors onto the
+ * shared slice for the button's disabled binding to read. Reset is the
  * panel's one cross-cutting escape hatch — it clears every override at once,
  * including stopping a running sim and disarming the sterile override —
  * rendered as an icon-only control (its accessible name lives in
@@ -84,6 +91,7 @@ class DevToolsPanelView implements View {
 	 *     @type string $armed_label             Raw "override active" header text.
 	 *     @type string $reset_label             Raw accessible label for the panel-wide reset control.
 	 *     @type string $close_label             Raw accessible label for the close control.
+	 *     @type string $shark_label             Raw accessible label for the shark-release control.
 	 *     @type string $battery_label           Raw battery group heading.
 	 *     @type string $charging_group_label    Raw accessible group label for the charging tri-state.
 	 *     @type string $system_label            Raw label for the "follow system" choice, reused by both the charging tri-state and the level row.
@@ -122,6 +130,7 @@ class DevToolsPanelView implements View {
 		$armed             = esc_html( (string) ( $data['armed_label'] ?? '' ) );
 		$reset             = esc_attr( (string) ( $data['reset_label'] ?? '' ) );
 		$close             = esc_attr( (string) ( $data['close_label'] ?? '' ) );
+		$shark             = esc_attr( (string) ( $data['shark_label'] ?? '' ) );
 		$battery           = esc_html( (string) ( $data['battery_label'] ?? '' ) );
 		$charging_group    = esc_attr( (string) ( $data['charging_group_label'] ?? '' ) );
 		$system            = esc_html( (string) ( $data['system_label'] ?? '' ) );
@@ -187,6 +196,7 @@ CHIP;
 				<span class="bsb-devtools__card-armed" hidden data-wp-bind--hidden="!state.devtoolsIsArmed">{$armed}</span>
 				<div class="bsb-devtools__card-actions">
 					<button type="button" class="bsb-devtools__card-reset" hidden data-wp-bind--hidden="!state.devtoolsIsArmed" data-wp-on--click="actions.devtoolsReset" aria-label="{$reset}"><span class="bsb-devtools__card-reset-icon" aria-hidden="true"></span></button>
+					<button type="button" class="bsb-devtools__card-shark" data-wp-on--click="actions.devtoolsReleaseShark" data-wp-bind--disabled="state.devtoolsSharkDisabled" aria-label="{$shark}"><span class="bsb-devtools__card-shark-icon" aria-hidden="true"></span></button>
 					<button type="button" class="bsb-devtools__card-close" data-wp-on--click="actions.devtoolsToggleOpen" aria-label="{$close}">&times;</button>
 				</div>
 			</div>

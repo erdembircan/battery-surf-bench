@@ -22,18 +22,32 @@ interface FakeContext {
 
 interface FakeInstance {
 	sharkTimer: number | null;
+	sharkLaunchSeq: number | null;
 	konamiProgress: number;
 	konamiLastKeyAt: number | null;
+}
+
+interface FakeSharkSlice {
+	launch: { seq: number } | null;
+	launchable: boolean;
+}
+
+interface FakeSharedState {
+	devtools?: {
+		shark?: FakeSharkSlice;
+	};
 }
 
 const mocks = vi.hoisted( () => ( {
 	context: undefined as unknown as FakeContext,
 	instance: undefined as unknown as FakeInstance,
+	sharedState: undefined as unknown as FakeSharedState,
 	now: 0,
 } ) );
 
 vi.mock( '@wordpress/interactivity', () => ( {
 	getContext: () => mocks.context,
+	store: () => ( { state: mocks.sharedState } ),
 } ) );
 
 vi.mock( './RunInstance', () => ( {
@@ -48,6 +62,7 @@ const state = sharkStore.state as Record< string, unknown >;
 const callbacks = sharkStore.callbacks as {
 	initShark: () => () => void;
 	syncSharkCompact: () => void;
+	syncDevtoolsShark: () => void;
 };
 
 /**
@@ -89,8 +104,14 @@ beforeEach( () => {
 	};
 	mocks.instance = {
 		sharkTimer: null,
+		sharkLaunchSeq: null,
 		konamiProgress: 0,
 		konamiLastKeyAt: null,
+	};
+	mocks.sharedState = {
+		devtools: {
+			shark: { launch: null, launchable: false },
+		},
 	};
 	mocks.now = 0;
 } );
@@ -306,6 +327,75 @@ describe( 'shark store slice', () => {
 
 		it( 'no-ops while no shark is swimming', () => {
 			expect( () => callbacks.syncSharkCompact() ).not.toThrow();
+			expect( mocks.context.sharkSwimming ).toBe( false );
+		} );
+	} );
+
+	describe( 'syncDevtoolsShark', () => {
+		it( 'does not throw and touches nothing when no devtools slice is on shared state', () => {
+			mocks.sharedState = {};
+
+			expect( () => callbacks.syncDevtoolsShark() ).not.toThrow();
+			expect( mocks.context.sharkSwimming ).toBe( false );
+		} );
+
+		it( 'mirrors launchable true when running && compact', () => {
+			mocks.context.running = true;
+			mocks.context.compact = true;
+
+			callbacks.syncDevtoolsShark();
+
+			expect( mocks.sharedState.devtools?.shark?.launchable ).toBe(
+				true
+			);
+		} );
+
+		it( 'mirrors launchable false when not running or not compact', () => {
+			mocks.context.running = true;
+			mocks.context.compact = false;
+
+			callbacks.syncDevtoolsShark();
+
+			expect( mocks.sharedState.devtools?.shark?.launchable ).toBe(
+				false
+			);
+		} );
+
+		it( 'launches the swim from a fresh launch.seq while launchable', () => {
+			mocks.context.running = true;
+			mocks.context.compact = true;
+			mocks.sharedState.devtools!.shark!.launch = { seq: 1 };
+
+			callbacks.syncDevtoolsShark();
+
+			expect( mocks.context.sharkSwimming ).toBe( true );
+		} );
+
+		it( 'does not re-launch on a later re-run of the same already-consumed seq', () => {
+			mocks.context.running = true;
+			mocks.context.compact = true;
+			mocks.sharedState.devtools!.shark!.launch = { seq: 1 };
+
+			callbacks.syncDevtoolsShark();
+			expect( mocks.context.sharkSwimming ).toBe( true );
+
+			// The swim ends (as if its clear timer fired) and the same command
+			// (still seq 1) is still sitting on shared state on a later,
+			// unrelated re-run of the watch.
+			mocks.context.sharkSwimming = false;
+			callbacks.syncDevtoolsShark();
+
+			expect( mocks.context.sharkSwimming ).toBe( false );
+		} );
+
+		it( 'clears a pending command and does not launch while not launchable', () => {
+			mocks.context.running = false;
+			mocks.context.compact = false;
+			mocks.sharedState.devtools!.shark!.launch = { seq: 1 };
+
+			callbacks.syncDevtoolsShark();
+
+			expect( mocks.sharedState.devtools?.shark?.launch ).toBeNull();
 			expect( mocks.context.sharkSwimming ).toBe( false );
 		} );
 	} );

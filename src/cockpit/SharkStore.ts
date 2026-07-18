@@ -7,6 +7,11 @@
  * fin's CSS custom properties; listens for the Konami sequence at the
  * document level and releases a shark once it completes while the topbar is
  * armed.
+ * The dev-tools panel's shark button releases one on demand through the same
+ * lifecycle: `syncDevtoolsShark` consumes the panel's stamped launch command
+ * from inside the block's own scope — the one place `getContext()` reaches
+ * the real cockpit context — and mirrors the launch window back for the
+ * button to gate on.
  *
  * Store-authoritative, mirroring {@link ./BarkStore}: the swim's clear timer
  * is owned by {@link ./Shark}, never by the fin's own CSS animation ending.
@@ -18,12 +23,34 @@
  * No actions — the fin is decorative and non-interactive.
  */
 
-import { getContext } from '@wordpress/interactivity';
+import { getContext, store } from '@wordpress/interactivity';
 import { type CockpitContext } from './CockpitContext';
 import { type StorePart } from './StoreParts';
 import { instanceFor, now } from './RunInstance';
 import { launchShark, clearShark } from './Shark';
 import { nextKonamiProgress, isKonamiComplete } from './KonamiCode';
+
+/**
+ * The slice of the merged `bsb/cockpit` state the shark-release dev-tool
+ * contributes, read defensively (production reads `state.devtools`
+ * optionally, exactly as {@link ./RunStore}'s `syncDevtoolsSurf` precedent
+ * requires — it may not exist at all with no dev-tools module loaded).
+ */
+interface SharedDevtoolsSharkState {
+	devtools?: {
+		shark?: {
+			/** A pending launch command from the panel's shark button, or null. */
+			launch: { seq: number } | null;
+			/** Whether a shark could launch right now — mirrored here every watch run, so the panel can disable its button outside the launch window. */
+			launchable: boolean;
+		};
+	};
+}
+
+/** The merged store shape the `syncDevtoolsShark` callback re-fetches by namespace. */
+interface SharedDevtoolsSharkStore {
+	state: SharedDevtoolsSharkState;
+}
 
 /** The shark-fin slice of the `bsb/cockpit` store. */
 export const sharkStore: StorePart = {
@@ -130,6 +157,51 @@ export const sharkStore: StorePart = {
 				! ( context.running && context.compact )
 			) {
 				clearShark( context, instanceFor() );
+			}
+		},
+
+		/**
+		 * The dev-tools panel's side door into the swim lifecycle. Mirrors
+		 * launchability (a run live and the deck compact — the same window
+		 * the Konami egg arms in) onto `state.devtools.shark.launchable` for
+		 * the panel's button to gate on, and consumes a pending launch
+		 * command exactly once (tracked by its monotonic `seq`, so a repeat
+		 * release still applies and a command already acted on never
+		 * re-fires on an unrelated re-run). A command pending outside the
+		 * launch window is cleared instead, so a release forced before a run
+		 * (or after one ends) can never surface a fin later once some future
+		 * run goes live. Only ever touches `state.devtools` when the
+		 * dev-tools module has actually joined the store.
+		 */
+		syncDevtoolsShark(): void {
+			const { state: sharedState } =
+				store< SharedDevtoolsSharkStore >( 'bsb/cockpit' );
+			const shark = sharedState.devtools?.shark;
+
+			if ( ! shark ) {
+				return;
+			}
+
+			const context = getContext< CockpitContext >();
+			const launchable = context.running && context.compact;
+			shark.launchable = launchable;
+
+			const { launch } = shark;
+
+			if ( ! launch ) {
+				return;
+			}
+
+			if ( ! launchable ) {
+				shark.launch = null;
+				return;
+			}
+
+			const instance = instanceFor();
+
+			if ( launch.seq !== instance.sharkLaunchSeq ) {
+				instance.sharkLaunchSeq = launch.seq;
+				launchShark( context, instance, context.speed );
 			}
 		},
 	},
