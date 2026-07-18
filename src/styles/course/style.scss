@@ -1,5 +1,5 @@
 @use "sass:color";
-// Icons only, not the whole theme partial: `@use`-ing `../styles/theme`
+// Icons only, not the whole theme partial: `@use`-ing `../foundation/theme`
 // itself would also emit its `@font-face` rules (Anton, Hanken Grotesk,
 // Space Mono, Pacifico, Caveat) into this stylesheet, which doesn't use any
 // of those fonts. Aliased to `theme` so the call below reads the same as
