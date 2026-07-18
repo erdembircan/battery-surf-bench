@@ -144,6 +144,7 @@ final class CockpitViewTest extends TestCase {
 		$this->assertStringContainsString( 'data-wp-style----fin-start="state.sharkStartCss"', $markup );
 		$this->assertStringContainsString( 'data-wp-style----fin-end="state.sharkEndCss"', $markup );
 		$this->assertStringContainsString( 'data-wp-style----fin-total="state.sharkTotalCss"', $markup );
+		$this->assertStringContainsString( 'data-wp-style----fin-bob="state.sharkBobCss"', $markup );
 
 		// The fin lane sits between the mid and front wave layers in DOM order.
 		$mid_pos      = strpos( $markup, 'bsb-deck__wave--mid' );
@@ -187,6 +188,20 @@ final class CockpitViewTest extends TestCase {
 		// The splash appears twice (deck pill + compact topbar), same as the
 		// rest of the readouts pill.
 		$this->assertSame( 2, substr_count( $markup, 'bsb-fin__splash' ) );
+	}
+
+	/**
+	 * The fin's silhouette is filled with a vertical gradient defined inline
+	 * in its own SVG (an SVG `fill` referencing a gradient by id can't be set
+	 * from the stylesheet), matching the approved motion mock.
+	 */
+	public function test_render_wires_the_shark_fin_gradient_fill(): void {
+		$markup = $this->render();
+
+		$this->assertStringContainsString( '<linearGradient id="bsb-fin-grad" x1="0" y1="0" x2="0" y2="1">', $markup );
+		$this->assertStringContainsString( '<stop offset="0" stop-color="#1d5f78"/>', $markup );
+		$this->assertStringContainsString( '<stop offset="1" stop-color="#0b2d3c"/>', $markup );
+		$this->assertStringContainsString( 'fill="url(#bsb-fin-grad)"', $markup );
 	}
 
 	/**

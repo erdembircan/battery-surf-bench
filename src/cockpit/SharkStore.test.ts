@@ -110,6 +110,17 @@ describe( 'shark store slice', () => {
 			expect( state.sharkEndCss ).toBe( '88%' );
 			expect( state.sharkTotalCss ).toBe( '6400ms' );
 		} );
+
+		it( 'scales the bob’s swing period by the inverse square root of run speed', () => {
+			mocks.context.speed = 1;
+			expect( state.sharkBobCss ).toBe( '1700ms' );
+
+			mocks.context.speed = 4;
+			expect( state.sharkBobCss ).toBe( '850ms' );
+
+			mocks.context.speed = 10;
+			expect( state.sharkBobCss ).toBe( '538ms' );
+		} );
 	} );
 
 	describe( 'initShark', () => {

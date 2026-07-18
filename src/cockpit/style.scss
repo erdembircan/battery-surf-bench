@@ -400,7 +400,11 @@ body.bsb-cockpit-dashboard {
 	bottom: 0;
 	width: 38px;
 	height: 26px;
-	animation: bsb-fin-bob 1.7s ease-in-out var(--fin-delay) infinite;
+	// `--fin-bob` is the store's own √speed-scaled swing period
+	// (SharkStore.sharkBobCss); the 1.7s fallback below is that getter's own
+	// 1× value, so an unhydrated or store-less render still bobs correctly.
+	animation: bsb-fin-bob var(--fin-bob, 1.7s) ease-in-out var(--fin-delay)
+		infinite;
 }
 
 .bsb-fin__riser {
@@ -424,12 +428,14 @@ body.bsb-cockpit-dashboard {
 	will-change: transform, opacity;
 }
 
+// Positional only — the fill is a gradient (`bsb-fin-grad`) defined inline in
+// the SVG markup itself (see CockpitView), not here: an SVG `fill` referencing
+// a gradient by id isn't settable from CSS.
 .bsb-fin__body {
 	position: absolute;
 	inset: 0;
 	width: 100%;
 	height: 100%;
-	fill: #123c4d;
 }
 
 .bsb-fin__foam {

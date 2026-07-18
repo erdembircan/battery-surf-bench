@@ -96,7 +96,7 @@ classDiagram
 
     class SharkStore {
         <<module>>
-        state: hasShark, sharkStartCss/sharkEndCss/sharkTotalCss (CSS projections of the planned swim)
+        state: hasShark, sharkStartCss/sharkEndCss/sharkTotalCss (CSS projections of the planned swim), sharkBobCss (the bob's own √speed-scaled swing period)
         callbacks: initShark (document-level Konami listener, armed only while running && compact; each key must land within KONAMI_TIMEOUT_MS of the previous or the sequence restarts), syncSharkCompact (clears a live swim once the topbar stops showing it)
     }
 

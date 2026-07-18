@@ -254,7 +254,16 @@ CELLS;
 		// the fin's waterline by DOM order alone (absolute siblings stack by
 		// source position) — no z-index is added to the wave structure. The fin
 		// is only ever visible while this same pill renders as the compact
-		// topbar, since that is the only state the Easter egg arms in.
+		// topbar, since that is the only state the Easter egg arms in. The
+		// fin's gradient fill is defined inline in its own SVG (`bsb-fin-grad`)
+		// rather than in the stylesheet, since SVG gradients aren't settable
+		// from CSS; because this same pill body renders twice (deck pill +
+		// compact topbar), that id appears twice in the document too — `url(#…)`
+		// resolves to the first match, so both fins reference one definition,
+		// which is exactly the intent. The target browsers (the Chromium
+		// family — the only ones exposing the Battery Status API this cockpit
+		// depends on) resolve a gradient reference out of a `display: none`
+		// subtree fine.
 		$status_head = <<<HEAD
 <div class="bsb-deck__status-head">
 				<span class="bsb-deck__status-dot" aria-hidden="true" data-wp-class--is-sterile="state.isSterileRun"></span>
@@ -290,8 +299,8 @@ HEAD;
 				<span class="bsb-deck__wave bsb-deck__wave--back"></span>
 				<span class="bsb-deck__wave bsb-deck__wave--mid"></span>
 				<span class="bsb-deck__fin-lane" aria-hidden="true">
-					<span class="bsb-fin" hidden data-wp-bind--hidden="!state.hasShark" data-wp-style----fin-start="state.sharkStartCss" data-wp-style----fin-end="state.sharkEndCss" data-wp-style----fin-total="state.sharkTotalCss">
-						<span class="bsb-fin__swimmer"><span class="bsb-fin__bob"><span class="bsb-fin__riser"><svg class="bsb-fin__body" viewBox="0 0 72 44" preserveAspectRatio="none"><path d="M60 44 C55 28 46 13 27 3 C30 15 28 30 19 44 Z"/></svg><span class="bsb-fin__foam"></span><span class="bsb-fin__splash"></span></span></span></span>
+					<span class="bsb-fin" hidden data-wp-bind--hidden="!state.hasShark" data-wp-style----fin-start="state.sharkStartCss" data-wp-style----fin-end="state.sharkEndCss" data-wp-style----fin-total="state.sharkTotalCss" data-wp-style----fin-bob="state.sharkBobCss">
+						<span class="bsb-fin__swimmer"><span class="bsb-fin__bob"><span class="bsb-fin__riser"><svg class="bsb-fin__body" viewBox="0 0 72 44" preserveAspectRatio="none"><defs><linearGradient id="bsb-fin-grad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1d5f78"/><stop offset="1" stop-color="#0b2d3c"/></linearGradient></defs><path d="M60 44 C55 28 46 13 27 3 C30 15 28 30 19 44 Z" fill="url(#bsb-fin-grad)"/></svg><span class="bsb-fin__foam"></span><span class="bsb-fin__splash"></span></span></span></span>
 						<span class="bsb-fin__swimmer bsb-fin__swimmer--ghost1"><span class="bsb-fin__bob"><span class="bsb-fin__riser"><span class="bsb-fin__droplet"></span></span></span></span>
 						<span class="bsb-fin__swimmer bsb-fin__swimmer--ghost2"><span class="bsb-fin__bob"><span class="bsb-fin__riser"><span class="bsb-fin__droplet"></span></span></span></span>
 						<span class="bsb-fin__swimmer bsb-fin__swimmer--ghost3"><span class="bsb-fin__bob"><span class="bsb-fin__riser"><span class="bsb-fin__droplet"></span></span></span></span>

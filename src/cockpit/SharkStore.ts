@@ -3,9 +3,10 @@
  * releases a dorsal fin into the compact topbar's wave strip while a run is
  * live. Reads the swim currently playing off the reactive context (whether
  * one is swimming, its surfacing/diving points and its total duration) and
- * projects them onto the fin's CSS custom properties; listens for the Konami
- * sequence at the document level and releases a shark once it completes
- * while the topbar is armed.
+ * projects them — plus the bob's own √speed-scaled swing period — onto the
+ * fin's CSS custom properties; listens for the Konami sequence at the
+ * document level and releases a shark once it completes while the topbar is
+ * armed.
  *
  * Store-authoritative, mirroring {@link ./BarkStore}: the swim's clear timer
  * is owned by {@link ./Shark}, never by the fin's own CSS animation ending.
@@ -45,6 +46,18 @@ export const sharkStore: StorePart = {
 		/** The swim's full duration, as a CSS time value. */
 		get sharkTotalCss(): string {
 			return `${ getContext< CockpitContext >().sharkTotalMs }ms`;
+		},
+
+		/**
+		 * The bob's own swing period, as a CSS time value — faster on faster
+		 * demo speeds, √-scaled the same way the swim's own cruise is.
+		 */
+		get sharkBobCss(): string {
+			const speed = getContext< CockpitContext >().speed;
+
+			return `${ Math.round(
+				1700 / Math.sqrt( Math.max( 1, speed ) )
+			) }ms`;
 		},
 	},
 	callbacks: {
