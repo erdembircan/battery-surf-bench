@@ -295,7 +295,7 @@ final class DevToolsPanelViewTest extends TestCase {
 	/**
 	 * The card header's action cluster holds Shark between Reset and Close:
 	 * an icon-only control, its accessible name in `aria-label`, its glyph an
-	 * `aria-hidden` masked icon span (`$icon-shark-fin`), wired to
+	 * `aria-hidden` masked icon span (`$icon-fish-fins`), wired to
 	 * `devtoolsReleaseShark` and disabled via `devtoolsSharkDisabled` — the
 	 * cockpit's own mirror of whether a shark could actually launch right
 	 * now. Unlike Reset it carries no `hidden` binding of its own: it is
