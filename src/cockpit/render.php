@@ -131,6 +131,14 @@ $bsb_context = array(
 	// (mirroring the engine's exported `*_KEY` constants, which PHP cannot
 	// import) and their wording.
 	'barkStrings'         => BarkStrings::text(),
+	// The Konami-code Easter egg: whether a shark fin is currently swimming
+	// the compact topbar's wave strip, and the swim's surfacing/diving
+	// points and full duration. Always false/zero server-side — the egg only
+	// ever arms client-side, while a run is live and the deck is compact.
+	'sharkSwimming'       => false,
+	'sharkStartPct'       => 0,
+	'sharkEndPct'         => 0,
+	'sharkTotalMs'        => 0,
 );
 
 // The viewport's `src` is owned by the Interactivity API: `data-wp-bind--src`

@@ -59,6 +59,10 @@ const context = (): CockpitContext =>
 		barkDurationMs: 0,
 		barkPhase: '',
 		barkStrings: {},
+		sharkSwimming: false,
+		sharkStartPct: 0,
+		sharkEndPct: 0,
+		sharkTotalMs: 0,
 	} ) as unknown as CockpitContext;
 
 /**
@@ -85,6 +89,9 @@ const instance = ( session: RunSession ): InstanceState =>
 		barkLeaveTimer: null,
 		loadWatchdog: null,
 		sterilePageStepSeq: null,
+		sharkTimer: null,
+		konamiProgress: 0,
+		konamiLastKeyAt: null,
 	} ) as InstanceState;
 
 describe( 'stopRun persistence', () => {
@@ -204,6 +211,30 @@ describe( 'stopRun persistence', () => {
 		expect( inst.pendingDurationMs ).toBeNull();
 		expect( inst.barkDurationTimer ).toBeNull();
 		expect( inst.barkLeaveTimer ).toBeNull();
+	} );
+
+	it( 'clears a swimming shark (and its timer/Konami progress) when the run stops', () => {
+		const ctx = context();
+		ctx.sharkSwimming = true;
+		ctx.sharkStartPct = 12;
+		ctx.sharkEndPct = 88;
+		ctx.sharkTotalMs = 5000;
+		const inst = instance( new RunSession() );
+		inst.konamiProgress = 4;
+		inst.konamiLastKeyAt = 1000;
+		inst.sharkTimer = setTimeout( () => undefined, 5000 ) as unknown as
+			| number
+			| null;
+
+		stopRun( ctx, inst, 'stopped' );
+
+		expect( ctx.sharkSwimming ).toBe( false );
+		expect( ctx.sharkStartPct ).toBe( 0 );
+		expect( ctx.sharkEndPct ).toBe( 0 );
+		expect( ctx.sharkTotalMs ).toBe( 0 );
+		expect( inst.sharkTimer ).toBeNull();
+		expect( inst.konamiProgress ).toBe( 0 );
+		expect( inst.konamiLastKeyAt ).toBeNull();
 	} );
 
 	it( 'does not toast when the upload succeeds', async () => {

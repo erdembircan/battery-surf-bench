@@ -94,6 +94,12 @@ classDiagram
         callbacks: initBark (raises a bark, held for its announced duration, from the surf engine's behaviorStart message, while running)
     }
 
+    class SharkStore {
+        <<module>>
+        state: hasShark, sharkStartCss/sharkEndCss/sharkTotalCss (CSS projections of the planned swim)
+        callbacks: initShark (document-level Konami listener, armed only while running && compact; each key must land within KONAMI_TIMEOUT_MS of the previous or the sequence restarts), syncSharkCompact (clears a live swim once the topbar stops showing it)
+    }
+
     %% --- Shared seam between slices.
     class CockpitContext {
         <<types>>
@@ -136,6 +142,21 @@ classDiagram
         +isBehaviorStartMessage(MessageEvent, string) boolean
         +behaviorKeyOf(MessageEvent) string
         +durationOf(MessageEvent) number
+    }
+
+    class Shark {
+        <<module>>
+        +planSwim(speed, rng?) SwimPlan
+        +launchShark(ctx, instance, speed, rng?) void
+        +clearShark(ctx, instance) void
+        +SHARK_SURFACE_MS, SHARK_DIVE_MS, SHARK_FULL_CROSS_MS, SHARK_TRAIL_MAX_DELAY_MS
+    }
+
+    class KonamiCode {
+        <<module>>
+        +nextKonamiProgress(progress, key, elapsedMs) number
+        +isKonamiComplete(progress) boolean
+        +KONAMI_SEQUENCE, KONAMI_TIMEOUT_MS
     }
 
     %% Sterile-run iframe<->cockpit protocol seam (see surf-engine-modules.mmd
@@ -351,6 +372,7 @@ classDiagram
     CockpitView --> StartupStore : composes
     CockpitView --> ToastStore : composes
     CockpitView --> BarkStore : composes
+    CockpitView --> SharkStore : composes
 
     %% Slices share the run state, lifecycle seam and reactive context.
     RunStore ..> CockpitContext : reads/writes
@@ -364,6 +386,7 @@ classDiagram
     StartupStore ..> CockpitContext : reads/writes
     ToastStore ..> CockpitContext : reads/writes
     BarkStore ..> CockpitContext : reads/writes
+    SharkStore ..> CockpitContext : reads/writes
 
     RunStore --> RunLifecycle : ends runs
     BatteryStore --> RunLifecycle : ends runs (charger/target)
@@ -375,6 +398,7 @@ classDiagram
     ToastStore --> RunInstance : toast queue & timer
     RunStore --> RunInstance : re-arms notice on run start
     BarkStore --> RunInstance : reads/writes the pending slot & timers
+    SharkStore --> RunInstance : reads/writes Konami progress, its last-key timestamp & the clear timer
 
     %% Toast queue & lifecycle.
     ToastStore --> Toasts : enqueues / advances
@@ -401,6 +425,25 @@ classDiagram
     BarkStore --> BehaviorStart : recognizes the message, reads the key & duration
     Barks ..> CockpitContext : writes the showing bark
     RunLifecycle --> Barks : clears the showing bark & its timers on stop
+
+    %% Shark-fin Easter egg: store-authoritative, one swim at a time. SharkStore
+    %% recognizes the Konami sequence at the document level (armed only while
+    %% running && compact, keyed against KonamiCode — each key must land within
+    %% KONAMI_TIMEOUT_MS of the previous or the sequence restarts) and hands a
+    %% completed sequence to Shark, which plans a swim (random surfacing/diving
+    %% points, a duration scaled by the run speed) and owns its single clear
+    %% timer (held off-context in RunInstance, alongside the Konami progress and
+    %% its last-key timestamp). The fin's CSS animations are a pure reactive
+    %% projection of the plan and never feed back; being `hidden` between swims
+    %% is itself the restart guarantee (un-hiding it restarts its animations
+    %% fresh), so unlike the bark's ebbing tide no generation counter is needed.
+    %% RunLifecycle clears a live swim on every cause of a run ending, and
+    %% SharkStore's own watch clears one the instant the topbar stops showing it
+    %% (the deck expands) even mid-run.
+    SharkStore --> Shark : launches / clears the swim
+    SharkStore --> KonamiCode : advances the sequence
+    Shark ..> CockpitContext : writes the planned swim
+    RunLifecycle --> Shark : clears the swim on stop
 
     %% Slice → focused domain delegation.
     RunStore --> RunConfig : normalizes config

@@ -249,6 +249,12 @@ CELLS;
 		// metrics + parallax waves so the compact bar can pair it with the project
 		// wordmark in a left-hand lockup, while the deck pill stacks them as before.
 		// Both bind to the same store getters, so the readings stay in lock-step.
+		// The waves also carry the Konami-code shark fin's lane, sandwiched
+		// between the mid and front wave layers so the front foam sheet occludes
+		// the fin's waterline by DOM order alone (absolute siblings stack by
+		// source position) — no z-index is added to the wave structure. The fin
+		// is only ever visible while this same pill renders as the compact
+		// topbar, since that is the only state the Easter egg arms in.
 		$status_head = <<<HEAD
 <div class="bsb-deck__status-head">
 				<span class="bsb-deck__status-dot" aria-hidden="true" data-wp-class--is-sterile="state.isSterileRun"></span>
@@ -283,6 +289,14 @@ HEAD;
 			<span class="bsb-deck__waves" aria-hidden="true" data-wp-style----bsb-wave-speed="context.speed">
 				<span class="bsb-deck__wave bsb-deck__wave--back"></span>
 				<span class="bsb-deck__wave bsb-deck__wave--mid"></span>
+				<span class="bsb-deck__fin-lane" aria-hidden="true">
+					<span class="bsb-fin" hidden data-wp-bind--hidden="!state.hasShark" data-wp-style----fin-start="state.sharkStartCss" data-wp-style----fin-end="state.sharkEndCss" data-wp-style----fin-total="state.sharkTotalCss">
+						<span class="bsb-fin__swimmer"><span class="bsb-fin__bob"><span class="bsb-fin__riser"><svg class="bsb-fin__body" viewBox="0 0 72 44" preserveAspectRatio="none"><path d="M60 44 C55 28 46 13 27 3 C30 15 28 30 19 44 Z"/></svg><span class="bsb-fin__foam"></span></span></span></span>
+						<span class="bsb-fin__swimmer bsb-fin__swimmer--ghost1"><span class="bsb-fin__bob"><span class="bsb-fin__riser"><span class="bsb-fin__droplet"></span></span></span></span>
+						<span class="bsb-fin__swimmer bsb-fin__swimmer--ghost2"><span class="bsb-fin__bob"><span class="bsb-fin__riser"><span class="bsb-fin__droplet"></span></span></span></span>
+						<span class="bsb-fin__swimmer bsb-fin__swimmer--ghost3"><span class="bsb-fin__bob"><span class="bsb-fin__riser"><span class="bsb-fin__droplet"></span></span></span></span>
+					</span>
+				</span>
 				<span class="bsb-deck__wave bsb-deck__wave--front"></span>
 			</span>
 BODY;
@@ -416,7 +430,7 @@ ROW;
 HTML;
 
 		return <<<HTML
-<div {$wrapper} data-wp-interactive="bsb/cockpit" {$context} data-wp-init---battery="callbacks.initBattery" data-wp-init---wake-lock="callbacks.initWakeLock" data-wp-init---sound="callbacks.initSound" data-wp-init---page-advance="callbacks.initPageAdvance" data-wp-init---exit-guard="callbacks.initExitGuard" data-wp-init---bark="callbacks.initBark" data-wp-watch---run-activity="callbacks.syncRunActivity" data-wp-watch---viewport-watchdog="callbacks.syncViewportWatchdog" data-wp-watch---devtools-battery="callbacks.syncBatteryOverride" data-wp-watch---devtools-surf="callbacks.syncDevtoolsSurf" data-wp-class--is-compact="state.isCompact" data-wp-class--is-deck-shown="state.isDeckShown">
+<div {$wrapper} data-wp-interactive="bsb/cockpit" {$context} data-wp-init---battery="callbacks.initBattery" data-wp-init---wake-lock="callbacks.initWakeLock" data-wp-init---sound="callbacks.initSound" data-wp-init---page-advance="callbacks.initPageAdvance" data-wp-init---exit-guard="callbacks.initExitGuard" data-wp-init---bark="callbacks.initBark" data-wp-init---shark="callbacks.initShark" data-wp-watch---run-activity="callbacks.syncRunActivity" data-wp-watch---viewport-watchdog="callbacks.syncViewportWatchdog" data-wp-watch---devtools-battery="callbacks.syncBatteryOverride" data-wp-watch---devtools-surf="callbacks.syncDevtoolsSurf" data-wp-watch---shark-compact="callbacks.syncSharkCompact" data-wp-class--is-compact="state.isCompact" data-wp-class--is-deck-shown="state.isDeckShown">
 	<aside class="bsb-cockpit__deck">
 		<header class="bsb-deck__brand">
 			<span class="bsb-deck__mark" aria-hidden="true"></span>

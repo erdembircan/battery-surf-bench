@@ -13,6 +13,7 @@ import { buildGraph, type GraphViewport, type GraphModel } from './DrainGraph';
 import { buildSessionPayload, postSession } from './SessionUpload';
 import { enqueueToast } from './Toasts';
 import { clearBark } from './Barks';
+import { clearShark } from './Shark';
 import { parseUserAgent } from './UserAgent';
 
 /**
@@ -163,7 +164,8 @@ const persistSession = (
  *
  * Ending also clears any behavior-start bark immediately (the showing bark,
  * any pending one, and its timers alike) so a stopped run never leaves a quip
- * hanging over the idle viewport.
+ * hanging over the idle viewport, and clears any live shark-fin swim the same
+ * way, so no shark outlives the run that armed its Easter egg.
  *
  * @param context  The reactive cockpit context to mark ended.
  * @param instance The per-instance run state to wind up.
@@ -179,6 +181,7 @@ export const stopRun = (
 		persistSession( context, instance, reason );
 	}
 	clearBark( context, instance );
+	clearShark( context, instance );
 	context.running = false;
 	context.ended = true;
 	context.endReason = reason;

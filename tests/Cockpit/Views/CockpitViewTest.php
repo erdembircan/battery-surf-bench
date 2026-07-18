@@ -127,6 +127,40 @@ final class CockpitViewTest extends TestCase {
 	}
 
 	/**
+	 * The Konami-code shark fin lives in the wave strip, between the mid and
+	 * front wave layers — the front foam sheet occludes its waterline by DOM
+	 * order alone, so no z-index is added. It ships hidden, bound to the
+	 * store's swim state, with its lane marked `aria-hidden` (purely
+	 * decorative). The wrapper also carries the sequence listener and the
+	 * watch that clears a live swim once the topbar stops showing it.
+	 */
+	public function test_render_includes_the_shark_fin(): void {
+		$markup = $this->render();
+
+		$this->assertStringContainsString( 'data-wp-init---shark="callbacks.initShark"', $markup );
+		$this->assertStringContainsString( 'data-wp-watch---shark-compact="callbacks.syncSharkCompact"', $markup );
+		$this->assertStringContainsString( 'class="bsb-deck__fin-lane" aria-hidden="true"', $markup );
+		$this->assertStringContainsString( 'class="bsb-fin" hidden data-wp-bind--hidden="!state.hasShark"', $markup );
+		$this->assertStringContainsString( 'data-wp-style----fin-start="state.sharkStartCss"', $markup );
+		$this->assertStringContainsString( 'data-wp-style----fin-end="state.sharkEndCss"', $markup );
+		$this->assertStringContainsString( 'data-wp-style----fin-total="state.sharkTotalCss"', $markup );
+
+		// The fin lane sits between the mid and front wave layers in DOM order.
+		$mid_pos      = strpos( $markup, 'bsb-deck__wave--mid' );
+		$fin_lane_pos = strpos( $markup, 'bsb-deck__fin-lane' );
+		$front_pos    = strpos( $markup, 'bsb-deck__wave--front' );
+		$this->assertNotFalse( $mid_pos );
+		$this->assertNotFalse( $fin_lane_pos );
+		$this->assertNotFalse( $front_pos );
+		$this->assertTrue( $mid_pos < $fin_lane_pos );
+		$this->assertTrue( $fin_lane_pos < $front_pos );
+
+		// The readouts pill (and so the fin lane) renders twice — the deck's
+		// own pill and the compact topbar — so the fin markup appears twice.
+		$this->assertSame( 2, substr_count( $markup, 'class="bsb-fin" hidden' ) );
+	}
+
+	/**
 	 * Before a run the stage shows the startup postcard, not the iframe: the idle
 	 * screen is hidden while running and the viewport-wrap (shipped hidden) is
 	 * hidden while idle, so the benchmarked page never loads on the idle screen.

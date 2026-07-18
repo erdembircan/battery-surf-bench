@@ -143,4 +143,18 @@ export interface CockpitContext {
 	// server cannot precompute it). Absent in the live cockpit, which builds the
 	// graph from its own run log at run end.
 	detailSamples?: Sample[];
+	// The Konami-code Easter egg's shark fin: whether one is currently swimming,
+	// and the swim's surfacing/diving points and full duration (as plain numbers
+	// the store's CSS-projection getters format). Store-authoritative: the swim
+	// is cleared by its own timer (see Shark.ts), and by syncSharkCompact the
+	// instant the topbar stops showing it — expanding the deck or ending the run
+	// never leaves a shark to resume mid-swim. The CSS animations these drive are
+	// a pure projection and never feed back here; unlike the bark's ebbing tide,
+	// no generation/keyframe-name alternation is needed, because the fin is
+	// `hidden` between swims and only one swim ever shows at a time — un-hiding
+	// it is itself what restarts its CSS animations fresh.
+	sharkSwimming: boolean;
+	sharkStartPct: number;
+	sharkEndPct: number;
+	sharkTotalMs: number;
 }
