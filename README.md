@@ -17,7 +17,7 @@ Battery Surf Bench is a WordPress plugin that measures your device's real-world 
 
 No lab hardware. No external services. Just your browser, your battery, and a surfer that never gets tired.
 
-## ✨ Highlights
+## Highlights
 
 - **A surfer, not a script.** The simulated visitor makes its own decisions as it browses. No two runs play out the same.
 - **A live cockpit.** A dedicated dashboard shows the whole run as it happens: battery readouts, projections, and the surfer itself browsing in a live viewport.
@@ -25,7 +25,7 @@ No lab hardware. No external services. Just your browser, your battery, and a su
 - **Every run remembered.** Each benchmark is saved as a session you can browse, reopen, and compare.
 - **Yours to shape.** Choose the workload, the surfer's personality, the run mode, and the pace.
 
-## 🏄 A benchmark that browses like a person
+## A benchmark that browses like a person
 
 The surfer is not a scripted macro. At every moment, its possible behaviors compete for its attention, weighted by its personality and by what the current page actually offers, and the winner plays out. The behavior profile is tuned from published battery-benchmark methodologies and real-user browsing telemetry, and it shows:
 
@@ -43,7 +43,7 @@ Ready-made surfer personalities cover the spectrum, from a patient, text-hungry 
 
 Five bundled pages give the surfer a balanced, realistic workload out of the box: a long-form article, an image gallery, a skimmable listicle, a video feature, and a link hub. Each carries its own self-contained design, so the workload stays consistent no matter which theme the site runs. Prefer your own content? The settings screen lets you build a custom course from any of your site's posts and pages (those render through your theme, exactly as visitors see them), reorder it freely, and mix in the bundled pages wherever you like.
 
-## 🎛️ The Cockpit
+## The Cockpit
 
 Every run happens in the Cockpit, a purpose-built dashboard that stays out of the data's way:
 
@@ -54,14 +54,14 @@ Every run happens in the Cockpit, a purpose-built dashboard that stays out of th
 - **Run protection built in:** a screen wake-lock keeps the display from sleeping mid-run, a leave-confirmation guard saves you from an accidental tab close, and a finish chime announces a run that completes on its own (mutable, and it remembers your choice).
 - **Charger-aware:** a benchmark won't start while you're plugged in. If the charger connects mid-run, the run pauses automatically and resumes when you unplug, with the plugged-in time excluded from the math.
 
-## 📈 Numbers you can trust
+## Numbers you can trust
 
 - **Regression, not guesswork.** Battery level is sampled continuously and fitted with least-squares regression, so a brief plateau or a noisy reading doesn't skew the verdict.
 - **No premature verdicts.** The plugin waits for enough distinct battery steps before quoting a rate. It would rather say "calibrating" than make something up.
 - **Clear projections.** Time-to-empty is projected live and drawn on the summary chart: the measured drain staircase against a dashed full-discharge projection.
 - **The postcard.** Every finished run flips over a franked, stamped summary postcard with the verdict, the drain chart, and stat tiles for elapsed time, battery levels at start and end, points dropped, both drain rates, and time-to-empty.
 
-## 🗂️ A session log that keeps score
+## A session log that keeps score
 
 Every run, whether it finished, was stopped early, or got interrupted, is stored as a benchmark session:
 
@@ -70,18 +70,18 @@ Every run, whether it finished, was stopped early, or got interrupted, is stored
 - **Portable data:** each session keeps the browser and OS it ran on, the exact run configuration, and the complete sample log, all available over the site's own REST API for your own analysis.
 - **One-click start:** launch a fresh benchmark straight from the admin bar, anywhere in wp-admin.
 
-## 🔒 Private by design
+## Private by design
 
 - **Operator-only, everywhere.** The cockpit, the surf pages, the sessions, the settings: all gated behind a dedicated capability. Public visitors can't reach any of it.
 - **No footprint.** Course pages are served as ephemeral, in-memory pages. Nothing is written to your database and nothing new appears on your site.
 - **No telemetry.** All sampling and math happen locally in your browser; the only network traffic is your session saving to your own site.
 - **Self-healing configuration.** If a page you added to the course is later removed or unpublished, it quietly drops out of the rotation instead of breaking the run.
 
-## 🌍 Speaks your language
+## Speaks your language
 
 Fully translation-ready, with German, Spanish, French, Brazilian Portuguese, and Turkish shipped out of the box.
 
-## 🚀 Getting started
+## Getting started
 
 1. Install the plugin and activate it.
 2. Unplug your laptop.
@@ -92,10 +92,10 @@ Fully translation-ready, with German, Spanish, French, Brazilian Portuguese, and
 
 **Requirements:** WordPress 7.0+, PHP 8.1+, a Chromium-based browser, and a device with a battery.
 
-## 🦈 One more thing
+## One more thing
 
 The Cockpit keeps at least one secret. Old-school gamers will feel right at home.
 
-## 📄 License
+## License
 
 [GPLv2 or later](LICENSE).
