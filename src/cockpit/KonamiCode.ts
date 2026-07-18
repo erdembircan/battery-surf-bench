@@ -29,15 +29,16 @@ export const KONAMI_SEQUENCE: readonly string[] = [
 export const KONAMI_TIMEOUT_MS = 300;
 
 /**
- * Advances (or resets) the sequence progress for one keypress. A gap since
- * the previous key longer than {@link KONAMI_TIMEOUT_MS} starts the sequence
- * over first — but a stale gap doesn't just fail the match outright: the key
- * just pressed is still free to BEGIN a fresh sequence, e.g. an `ArrowUp`
- * arriving after a long pause yields progress `1`, same as any other fresh
- * start. A match at the (possibly reset) position moves the progress forward
- * by one; a mismatch resets to a fresh start (`1`) when the key itself
- * matches the sequence's first element, or all the way back to `0`
- * otherwise.
+ * Advances (or resets) the sequence progress for one keypress. Strictly
+ * all-or-nothing: one wrong key resets progress all the way back to `0`, with
+ * no exception for a mismatched key that happens to equal the sequence's own
+ * first element — the only way to make progress is entering the sequence
+ * correctly from the start. A gap since the previous key longer than
+ * {@link KONAMI_TIMEOUT_MS} resets the effective progress to `0` before
+ * matching, so a correct first key pressed after a long pause still yields
+ * `1` — that is simply a fresh attempt entered correctly from the top, not a
+ * mismatch credit. A match at the (possibly reset) position moves the
+ * progress forward by one; anything else is `0`.
  *
  * @param progress  How many leading keys of the sequence have matched so far.
  * @param key       The key just pressed, matched case-insensitively.
@@ -52,11 +53,7 @@ export const nextKonamiProgress = (
 	const lowered = key.toLowerCase();
 	const effective = elapsedMs > KONAMI_TIMEOUT_MS ? 0 : progress;
 
-	if ( lowered === KONAMI_SEQUENCE[ effective ] ) {
-		return effective + 1;
-	}
-
-	return lowered === KONAMI_SEQUENCE[ 0 ] ? 1 : 0;
+	return lowered === KONAMI_SEQUENCE[ effective ] ? effective + 1 : 0;
 };
 
 /**

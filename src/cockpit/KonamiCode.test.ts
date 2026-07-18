@@ -57,17 +57,24 @@ describe( 'nextKonamiProgress', () => {
 		expect( nextKonamiProgress( 3, 'x', 0 ) ).toBe( 0 );
 	} );
 
-	it( 'resets to a fresh start of 1 when the mismatched key is the sequence’s first element', () => {
-		expect( nextKonamiProgress( 3, 'ArrowUp', 0 ) ).toBe( 1 );
+	it( 'resets all the way to 0 even when the mismatched key equals the sequence’s first element — strictly all-or-nothing, no credit', () => {
+		expect( nextKonamiProgress( 3, 'ArrowUp', 0 ) ).toBe( 0 );
 	} );
 
-	it( 'has nothing left to match once past the sequence length, so any key resets it', () => {
+	it( 'the key right after a mismatch-reset can still begin a fresh sequence, evaluated fresh at progress 0', () => {
+		const afterMismatch = nextKonamiProgress( 3, 'x', 0 );
+		expect( afterMismatch ).toBe( 0 );
+
+		expect( nextKonamiProgress( afterMismatch, 'ArrowUp', 0 ) ).toBe( 1 );
+	} );
+
+	it( 'has nothing left to match once past the sequence length, so any key resets it — including the sequence’s own first element', () => {
 		expect( nextKonamiProgress( KONAMI_SEQUENCE.length, 'x', 0 ) ).toBe(
 			0
 		);
 		expect(
 			nextKonamiProgress( KONAMI_SEQUENCE.length, 'arrowup', 0 )
-		).toBe( 1 );
+		).toBe( 0 );
 	} );
 
 	describe( 'the inter-key timeout', () => {
