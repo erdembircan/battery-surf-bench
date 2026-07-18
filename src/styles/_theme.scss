@@ -22,6 +22,12 @@
 // canonical, approved UI glyph set.
 @forward 'icons';
 
+// Forwards the palette partial (split out so palette colours are reachable
+// without the theme's @font-face output) and uses it unprefixed, so the
+// token definitions below keep reading `$coastal-*`/`$dusk-*` bare.
+@forward 'palette';
+@use 'palette' as *;
+
 // ── Typography ──────────────────────────────────────────────────────────────
 @font-face {
 	font-family: 'Anton';
@@ -93,38 +99,6 @@ $font-ui: 'Hanken Grotesk', ui-sans-serif, system-ui, -apple-system, sans-serif;
 $font-mono: 'Space Mono', ui-monospace, 'SFMono-Regular', menlo, monospace;
 $font-script: 'Pacifico', ui-rounded, cursive;
 $font-hand: 'Caveat', ui-rounded, cursive;
-
-// ── Palette ─────────────────────────────────────────────────────────────────
-// Coastal Daybreak (light).
-$coastal-sky-0: #f3fafd;
-$coastal-sky-1: #e7f6ff;
-$coastal-aqua: #9ad9ea;
-$coastal-teal: #2f9bb3;
-$coastal-teal-deep: #1c7e96;
-$coastal-navy: #1f3a5f;
-$coastal-ink-soft: #5b7488;
-$coastal-coral: #ff7a5c;
-$coastal-coral-deep: #ef5a3a;
-$coastal-sun: #ffce5c;
-$coastal-surface: #f1f7fa;
-$coastal-line: #e1edf2;
-// A success green, distinct from the teal accent — used only by the admin
-// `<Notice>`'s success severity (e.g. a completed save). No dark-mode
-// counterpart: the admin screens this severity appears on are light-only.
-$coastal-green: #2e9e6b;
-$coastal-green-deep: #1f7d54;
-
-// Dusk Lineup (dark).
-$dusk-deep: #062b3d;
-$dusk-deep-2: #0a3a4f;
-$dusk-teal: #0f5e72;
-$dusk-amber: #ffb24a;
-$dusk-amber-2: #ff8a3d;
-$dusk-coral: #ff6a52;
-$dusk-coral-deep: #ef4f38;
-$dusk-aqua: #46d6c4;
-$dusk-sun: #ffcf6b;
-$dusk-foam: #e6f7fb;
 
 // ── Helpers used by the tokens ──────────────────────────────────────────────
 // A horizontally-tileable wave (one fill colour + opacity), used by the foam.

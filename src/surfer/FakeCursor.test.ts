@@ -6,6 +6,19 @@ import {
 	type Point,
 } from './FakeCursor';
 
+/**
+ * A frame source that resolves instantly after invoking `onFrame` first, so a
+ * test can sample DOM state mid-flight — the same pattern `Motor.test.ts`
+ * uses for its own recording frame sources.
+ * @param onFrame
+ */
+const sampledFrames = ( onFrame: () => void ): ( () => Promise< void > ) => {
+	return () => {
+		onFrame();
+		return Promise.resolve();
+	};
+};
+
 /** A fake frame source that resolves instantly and counts how often it's called. */
 const countingFrames = (): {
 	next: () => Promise< void >;
@@ -258,5 +271,123 @@ describe( 'FakeCursor viewport clamping', () => {
 			expect( position.y ).toBeGreaterThanOrEqual( 0 );
 			expect( position.y ).toBeLessThanOrEqual( 800 );
 		}
+	} );
+} );
+
+describe( 'FakeCursor.mode / setMode', () => {
+	it( 'starts in arrow mode', () => {
+		const cursor = new FakeCursor( document, { x: 0, y: 0 }, () =>
+			Promise.resolve()
+		);
+
+		expect( cursor.mode ).toBe( 'arrow' );
+	} );
+
+	it( "setMode('caret') adds the caret class and reports the mode", () => {
+		const cursor = new FakeCursor( document, { x: 0, y: 0 }, () =>
+			Promise.resolve()
+		);
+
+		cursor.setMode( 'caret' );
+
+		const el = document.querySelector< HTMLElement >( '.bsb-surf-cursor' );
+		expect( el?.classList.contains( 'bsb-surf-cursor--caret' ) ).toBe(
+			true
+		);
+		expect( cursor.mode ).toBe( 'caret' );
+	} );
+
+	it( "setMode('arrow') removes any modifier class", () => {
+		const cursor = new FakeCursor( document, { x: 0, y: 0 }, () =>
+			Promise.resolve()
+		);
+		const el = document.querySelector< HTMLElement >( '.bsb-surf-cursor' );
+
+		cursor.setMode( 'caret' );
+		cursor.setMode( 'arrow' );
+
+		expect( el?.classList.contains( 'bsb-surf-cursor--caret' ) ).toBe(
+			false
+		);
+		expect( el?.classList.contains( 'bsb-surf-cursor--hand' ) ).toBe(
+			false
+		);
+		expect( cursor.mode ).toBe( 'arrow' );
+	} );
+
+	it( 'switching from caret to hand never leaves both classes on', () => {
+		const cursor = new FakeCursor( document, { x: 0, y: 0 }, () =>
+			Promise.resolve()
+		);
+		const el = document.querySelector< HTMLElement >( '.bsb-surf-cursor' );
+
+		cursor.setMode( 'caret' );
+		cursor.setMode( 'hand' );
+
+		expect( el?.classList.contains( 'bsb-surf-cursor--caret' ) ).toBe(
+			false
+		);
+		expect( el?.classList.contains( 'bsb-surf-cursor--hand' ) ).toBe(
+			true
+		);
+		expect( cursor.mode ).toBe( 'hand' );
+	} );
+} );
+
+describe( 'FakeCursor.click', () => {
+	it( 'carries the pressing class and a single ripple while pending, and clears both once resolved', async () => {
+		const samples: {
+			pressing: boolean;
+			ripples: number;
+		}[] = [];
+		const cursor = new FakeCursor(
+			document,
+			{ x: 0, y: 0 },
+			sampledFrames( () => {
+				const el = document.querySelector( '.bsb-surf-cursor' );
+				samples.push( {
+					pressing:
+						el?.classList.contains( 'bsb-surf-cursor--pressing' ) ??
+						false,
+					ripples: document.querySelectorAll(
+						'.bsb-surf-click-ripple'
+					).length,
+				} );
+			} )
+		);
+
+		await cursor.click();
+
+		expect( samples.length ).toBeGreaterThan( 0 );
+		for ( const sample of samples ) {
+			expect( sample.pressing ).toBe( true );
+			expect( sample.ripples ).toBe( 1 );
+		}
+
+		const el = document.querySelector< HTMLElement >( '.bsb-surf-cursor' );
+		expect( el?.classList.contains( 'bsb-surf-cursor--pressing' ) ).toBe(
+			false
+		);
+		expect(
+			document.querySelectorAll( '.bsb-surf-click-ripple' )
+		).toHaveLength( 0 );
+	} );
+
+	it( "positions the ripple at the cursor's current point", async () => {
+		let ripple: HTMLElement | null = null;
+		const sampling = sampledFrames( () => {
+			if ( null === ripple ) {
+				ripple = document.querySelector< HTMLElement >(
+					'.bsb-surf-click-ripple'
+				);
+			}
+		} );
+		const cursor = new FakeCursor( document, { x: 42, y: 77 }, sampling );
+
+		await cursor.click();
+
+		expect( ripple ).not.toBeNull();
+		expect( ( ripple as HTMLElement | null )?.style.left ).toBe( '42px' );
+		expect( ( ripple as HTMLElement | null )?.style.top ).toBe( '77px' );
 	} );
 } );

@@ -1199,3 +1199,241 @@ describe( 'DomMotor.read', () => {
 		moveToSpy.mockRestore();
 	} );
 } );
+
+describe( 'DomMotor cursor glyph modes', () => {
+	/**
+	 * Samples the fake cursor's className and the live ripple count on every
+	 * frame, so a mode/ripple that only wears for part of a run — not just
+	 * its state at the very end — can be asserted on.
+	 */
+	const sampleCursor = (): {
+		next: () => Promise< void >;
+		classes: string[];
+		ripples: number[];
+	} => {
+		const classes: string[] = [];
+		const ripples: number[] = [];
+		return {
+			next: () => {
+				classes.push(
+					document.querySelector( '.bsb-surf-cursor' )?.className ??
+						''
+				);
+				ripples.push(
+					document.querySelectorAll( '.bsb-surf-click-ripple' ).length
+				);
+				return Promise.resolve();
+			},
+			classes,
+			ripples,
+		};
+	};
+
+	it( 'selectSnippet wears the caret mode mid-sweep and drops every modifier once cleared', async () => {
+		document.body.innerHTML = `<p>${ 'word '.repeat( 20 ) }</p>`;
+		const sampler = sampleCursor();
+
+		await new DomMotor( () => 0.1, sampler.next ).selectSnippet();
+
+		expect(
+			sampler.classes.some( ( c ) =>
+				c.includes( 'bsb-surf-cursor--caret' )
+			)
+		).toBe( true );
+
+		const cursorEl =
+			document.querySelector< HTMLElement >( '.bsb-surf-cursor' );
+		expect( cursorEl?.classList.contains( 'bsb-surf-cursor--caret' ) ).toBe(
+			false
+		);
+		expect( cursorEl?.classList.contains( 'bsb-surf-cursor--hand' ) ).toBe(
+			false
+		);
+	} );
+
+	it( 'read wears the caret mode during a traced passage and drops it once the session ends', async () => {
+		document.body.innerHTML = `<p>${ 'word '.repeat( 20 ) }</p>`;
+		const p = document.querySelector( 'p' )!;
+		p.getBoundingClientRect = () =>
+			( {
+				top: 100,
+				bottom: 200,
+				left: 50,
+				right: 450,
+				width: 400,
+				height: 100,
+			} ) as DOMRect;
+		const scrollBySpy = vi
+			.spyOn( window, 'scrollBy' )
+			.mockImplementation( () => undefined );
+		const sampler = sampleCursor();
+
+		// rng() = 0.1 always selects trace mode (0.1 < TRACE_CHANCE 0.35).
+		await new DomMotor( () => 0.1, sampler.next ).read( 5000 );
+
+		expect(
+			sampler.classes.some( ( c ) =>
+				c.includes( 'bsb-surf-cursor--caret' )
+			)
+		).toBe( true );
+
+		const cursorEl =
+			document.querySelector< HTMLElement >( '.bsb-surf-cursor' );
+		expect( cursorEl?.classList.contains( 'bsb-surf-cursor--caret' ) ).toBe(
+			false
+		);
+
+		scrollBySpy.mockRestore();
+	} );
+
+	it( 'playVideo wears the hand mode and plays a click ripple, staying in hand mode once it resolves', async () => {
+		document.body.innerHTML = '<video></video>';
+		const video = document.querySelector( 'video' ) as HTMLVideoElement;
+		video.play = vi.fn().mockResolvedValue( undefined );
+		const sampler = sampleCursor();
+
+		await new DomMotor( () => 0.5, sampler.next ).playVideo();
+
+		expect( sampler.ripples.some( ( n ) => n > 0 ) ).toBe( true );
+		const cursorEl =
+			document.querySelector< HTMLElement >( '.bsb-surf-cursor' );
+		expect( cursorEl?.classList.contains( 'bsb-surf-cursor--hand' ) ).toBe(
+			true
+		);
+	} );
+
+	it( 'stopVideo clicks a second time when the video is in-viewport, then drops the hand mode and any ripple', async () => {
+		document.body.innerHTML = '<video></video>';
+		const video = document.querySelector( 'video' ) as HTMLVideoElement;
+		video.getBoundingClientRect = () =>
+			( {
+				top: 100,
+				bottom: 300,
+				left: 50,
+				right: 450,
+				width: 400,
+				height: 200,
+			} ) as DOMRect;
+		video.play = vi.fn().mockResolvedValue( undefined );
+		video.pause = vi.fn();
+		const sampler = sampleCursor();
+		const motor = new DomMotor( () => 0.5, sampler.next );
+		// The cursor is already hovering the player at stop time (rng()=0.5
+		// draws the same jittered point both times), so stopVideo's own
+		// click clicks in place — no travel gap separates the two ripples,
+		// so counting them requires spying on the click itself rather than
+		// inferring two blocks from a 0-to-positive transition in samples.
+		const clickSpy = vi.spyOn( FakeCursor.prototype, 'click' );
+
+		await motor.playVideo();
+		await motor.stopVideo();
+
+		expect( clickSpy ).toHaveBeenCalledTimes( 2 );
+
+		const cursorEl =
+			document.querySelector< HTMLElement >( '.bsb-surf-cursor' );
+		expect( cursorEl?.classList.contains( 'bsb-surf-cursor--hand' ) ).toBe(
+			false
+		);
+		expect(
+			document.querySelectorAll( '.bsb-surf-click-ripple' )
+		).toHaveLength( 0 );
+
+		clickSpy.mockRestore();
+	} );
+
+	it( 'stopVideo clicks in place, without moving the cursor, when already hovering the player', async () => {
+		document.body.innerHTML = '<video></video>';
+		const video = document.querySelector( 'video' ) as HTMLVideoElement;
+		video.getBoundingClientRect = () =>
+			( {
+				top: 100,
+				bottom: 300,
+				left: 50,
+				right: 450,
+				width: 400,
+				height: 200,
+			} ) as DOMRect;
+		video.play = vi.fn().mockResolvedValue( undefined );
+		video.pause = vi.fn();
+		const cursorTransform = (): string =>
+			document.querySelector< HTMLElement >( '.bsb-surf-cursor' )?.style
+				.transform ?? '';
+		const rippleTransforms: string[] = [];
+		const next = (): Promise< void > => {
+			if (
+				document.querySelectorAll( '.bsb-surf-click-ripple' ).length > 0
+			) {
+				rippleTransforms.push( cursorTransform() );
+			}
+			return Promise.resolve();
+		};
+		const motor = new DomMotor( () => 0.5, next );
+
+		await motor.playVideo();
+		const transformAfterPlay = cursorTransform();
+		// Only the stop's own click window matters from here.
+		rippleTransforms.length = 0;
+
+		await motor.stopVideo();
+
+		expect( rippleTransforms.length ).toBeGreaterThan( 0 );
+		expect(
+			rippleTransforms.every( ( t ) => t === transformAfterPlay )
+		).toBe( true );
+	} );
+
+	it( 'stopVideo still travels back to the player when the cursor was moved off it since play started', async () => {
+		document.body.innerHTML = '<video></video><img src="a.jpg">';
+		const video = document.querySelector( 'video' ) as HTMLVideoElement;
+		const img = document.querySelector( 'img' )!;
+		video.getBoundingClientRect = () =>
+			( {
+				top: 100,
+				bottom: 300,
+				left: 50,
+				right: 450,
+				width: 400,
+				height: 200,
+			} ) as DOMRect;
+		img.getBoundingClientRect = () =>
+			( {
+				top: 100,
+				bottom: 200,
+				left: 600,
+				right: 700,
+				width: 100,
+				height: 100,
+			} ) as DOMRect;
+		video.play = vi.fn().mockResolvedValue( undefined );
+		video.pause = vi.fn();
+		const motor = new DomMotor( () => 0.5, instantFrames );
+
+		await motor.playVideo();
+		// Move the cursor off the player, onto the unrelated image, before
+		// stopping.
+		await motor.lingerImage( 20 );
+
+		const travelToSpy = vi.spyOn( FakeCursor.prototype, 'travelTo' );
+
+		await motor.stopVideo();
+
+		expect( travelToSpy ).toHaveBeenCalled();
+
+		travelToSpy.mockRestore();
+	} );
+
+	it( 'stopVideo is a cursor-silent no-op when nothing was started', async () => {
+		document.body.innerHTML = '<video></video>';
+		const sampler = sampleCursor();
+		const motor = new DomMotor( () => 0.5, sampler.next );
+		const cursorEl =
+			document.querySelector< HTMLElement >( '.bsb-surf-cursor' );
+		const initialClass = cursorEl?.className;
+
+		await expect( motor.stopVideo() ).resolves.toBeUndefined();
+
+		expect( cursorEl?.className ).toBe( initialClass );
+		expect( sampler.ripples.every( ( n ) => n === 0 ) ).toBe( true );
+	} );
+} );

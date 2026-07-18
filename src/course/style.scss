@@ -5,6 +5,10 @@
 // of those fonts. Aliased to `theme` so the call below reads the same as
 // every other `theme.$icon-*`/`theme.icon-*()` consumer.
 @use '../styles/icons' as theme;
+// Pure variables, no CSS of its own — safe to `@use` here for the same
+// reason the icons partial is, without pulling in the theme's @font-face
+// output.
+@use '../styles/palette' as palette;
 
 // Typography
 $font-serif: georgia, "Times New Roman", times, serif;
@@ -717,7 +721,89 @@ $tag-bg: #eef3f8; // light-blue tag chip
 	pointer-events: none;
 	z-index: 999999;
 	will-change: transform;
+}
+
+// The glyph layer, split from the positioned wrapper so the click squash can
+// animate a transform of its own: on the wrapper, either `transform: scale()`
+// keyframes (they override the engine's inline translate) or the standalone
+// `scale` property (it composes OUTSIDE the transform property, so it
+// multiplies the translate and drags the cursor toward the viewport origin)
+// would visibly yank the cursor away mid-click.
+.bsb-surf-cursor__glyph {
+	width: 100%;
+	height: 100%;
 	background-image: theme.icon-cursor($ink, $white);
 	background-size: 100% 100%;
 	background-repeat: no-repeat;
+}
+
+// Glyph modes the engine swaps onto the cursor (see FakeCursor.setMode).
+// Each mode carries its own hotspot as a margin offset on the wrapper: the
+// caret's stem centre and the hand's index fingertip sit exactly on the
+// cursor's point, the way the OS positions the real equivalents. The hand
+// keeps its source aspect via `contain` instead of stretching to the square
+// box.
+.bsb-surf-cursor--caret {
+	margin: -12px 0 0 -12px;
+}
+
+.bsb-surf-cursor--caret .bsb-surf-cursor__glyph {
+	background-image: theme.icon-cursor-caret($ink, $white);
+}
+
+.bsb-surf-cursor--hand {
+	margin: -1px 0 0 -9px;
+}
+
+.bsb-surf-cursor--hand .bsb-surf-cursor__glyph {
+	background-image: theme.icon-cursor-hand($ink, $white);
+	background-size: contain;
+	background-position: center;
+}
+
+// The click moment (FakeCursor.click): the glyph squashes toward the
+// fingertip while a ring expands from the point and fades. The squash lives
+// on the inner glyph layer, which carries no translate — see the layer's
+// own comment above for why the wrapper must never scale.
+.bsb-surf-cursor--pressing .bsb-surf-cursor__glyph {
+	transform-origin: 9px 1px;
+	animation: bsb-cursor-press 0.28s ease-out;
+}
+
+@keyframes bsb-cursor-press {
+	0% {
+		transform: scale(1);
+	}
+
+	40% {
+		transform: scale(0.8);
+	}
+
+	100% {
+		transform: scale(1);
+	}
+}
+
+.bsb-surf-click-ripple {
+	position: fixed;
+	width: 12px;
+	height: 12px;
+	margin: -6px 0 0 -6px;
+	border: 2.5px solid palette.$coastal-teal-deep;
+	border-radius: 50%;
+	pointer-events: none;
+	z-index: 999999;
+	animation: bsb-click-ripple 0.4s ease-out forwards;
+}
+
+@keyframes bsb-click-ripple {
+	0% {
+		transform: scale(0.5);
+		opacity: 0.9;
+	}
+
+	100% {
+		transform: scale(3.2);
+		opacity: 0;
+	}
 }
