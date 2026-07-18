@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-07-18T02:15:53+00:00\n"
+"POT-Creation-Date: 2026-07-18T16:34:35+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: battery-surf-bench\n"
@@ -245,7 +245,7 @@ msgid "Rate · 10 min"
 msgstr ""
 
 #: includes/Content/SessionDetail.php:170
-#: includes/DevTools/DevTools.php:157
+#: includes/DevTools/DevTools.php:158
 #: src/cockpit/render.php:228
 msgid "Battery"
 msgstr ""
@@ -317,7 +317,7 @@ msgstr ""
 #: includes/Content/SessionSchema.php:267
 #: includes/Content/SessionSchema.php:423
 #: includes/Content/SessionSchema.php:433
-#: includes/DevTools/DevTools.php:170
+#: includes/DevTools/DevTools.php:171
 #: src/cockpit/render.php:163
 msgid "Duration"
 msgstr ""
@@ -398,109 +398,113 @@ msgstr ""
 msgid "Close"
 msgstr ""
 
-#: includes/DevTools/DevTools.php:158
-msgid "Charging state"
+#: includes/DevTools/DevTools.php:157
+msgid "Release the shark"
 msgstr ""
 
 #: includes/DevTools/DevTools.php:159
-msgid "System"
+msgid "Charging state"
 msgstr ""
 
 #: includes/DevTools/DevTools.php:160
-msgid "Charging"
+msgid "System"
 msgstr ""
 
 #: includes/DevTools/DevTools.php:161
-msgid "Discharging"
+msgid "Charging"
 msgstr ""
 
 #: includes/DevTools/DevTools.php:162
-msgid "Battery level override"
+msgid "Discharging"
 msgstr ""
 
 #: includes/DevTools/DevTools.php:163
-msgid "Discharge"
+msgid "Battery level override"
 msgstr ""
 
 #: includes/DevTools/DevTools.php:164
-msgid "From"
+msgid "Discharge"
 msgstr ""
 
 #: includes/DevTools/DevTools.php:165
-msgid "Decrease start percentage"
+msgid "From"
 msgstr ""
 
 #: includes/DevTools/DevTools.php:166
-msgid "Increase start percentage"
+msgid "Decrease start percentage"
 msgstr ""
 
 #: includes/DevTools/DevTools.php:167
-msgid "To"
+msgid "Increase start percentage"
 msgstr ""
 
 #: includes/DevTools/DevTools.php:168
-msgid "Decrease end percentage"
+msgid "To"
 msgstr ""
 
 #: includes/DevTools/DevTools.php:169
+msgid "Decrease end percentage"
+msgstr ""
+
+#: includes/DevTools/DevTools.php:170
 msgid "Increase end percentage"
 msgstr ""
 
-#: includes/DevTools/DevTools.php:171
+#: includes/DevTools/DevTools.php:172
 #: src/cockpit/render.php:167
 msgid "Decrease duration"
 msgstr ""
 
-#: includes/DevTools/DevTools.php:172
+#: includes/DevTools/DevTools.php:173
 #: src/cockpit/render.php:168
 msgid "Increase duration"
 msgstr ""
 
-#: includes/DevTools/DevTools.php:173
+#: includes/DevTools/DevTools.php:174
 msgid "%"
 msgstr ""
 
-#: includes/DevTools/DevTools.php:174
+#: includes/DevTools/DevTools.php:175
 #: src/cockpit/render.php:166
 msgid "min"
 msgstr ""
 
-#: includes/DevTools/DevTools.php:175
+#: includes/DevTools/DevTools.php:176
 #: src/cockpit/render.php:237
 msgid "Start"
 msgstr ""
 
-#: includes/DevTools/DevTools.php:176
+#: includes/DevTools/DevTools.php:177
 #: src/cockpit/render.php:238
 msgid "Stop"
 msgstr ""
 
-#: includes/DevTools/DevTools.php:177
+#: includes/DevTools/DevTools.php:178
 msgid "Surf"
 msgstr ""
 
-#: includes/DevTools/DevTools.php:178
+#: includes/DevTools/DevTools.php:179
 msgid "Natural"
 msgstr ""
 
-#: includes/DevTools/DevTools.php:179
+#: includes/DevTools/DevTools.php:180
 #: src/cockpit/render.php:234
 msgid "Sterile"
 msgstr ""
 
-#: includes/DevTools/DevTools.php:180
+#: includes/DevTools/DevTools.php:181
 msgid "Auction override"
 msgstr ""
 
-#: includes/DevTools/DevTools.php:181
+#: includes/DevTools/DevTools.php:182
 msgid "Page"
 msgstr ""
 
-#: includes/DevTools/DevTools.php:182
+#: includes/DevTools/DevTools.php:183
 msgid "Previous course page"
 msgstr ""
 
-#: includes/DevTools/DevTools.php:183
+#: includes/DevTools/DevTools.php:184
 msgid "Next course page"
 msgstr ""
 
