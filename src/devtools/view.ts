@@ -18,6 +18,7 @@ import { devtoolsShellStore, hydrateDevtools } from './DevtoolsStore';
 import { batteryOverrideStore } from './BatteryOverrideStore';
 import { dischargeSimStore } from './DischargeSimStore';
 import { surfSteerStore } from './SurfSteerStore';
+import { sharkReleaseStore } from './SharkReleaseStore';
 import { resetStore } from './ResetStore';
 
 store(
@@ -27,6 +28,7 @@ store(
 		batteryOverrideStore,
 		dischargeSimStore,
 		surfSteerStore,
+		sharkReleaseStore,
 		resetStore
 	)
 );

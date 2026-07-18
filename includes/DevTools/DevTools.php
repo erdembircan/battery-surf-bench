@@ -154,6 +154,7 @@ class DevTools implements Manager {
 				'armed_label'             => __( 'Override active', 'battery-surf-bench' ),
 				'reset_label'             => __( 'Reset', 'battery-surf-bench' ),
 				'close_label'             => __( 'Close', 'battery-surf-bench' ),
+				'shark_label'             => __( 'Release the shark', 'battery-surf-bench' ),
 				'battery_label'           => __( 'Battery', 'battery-surf-bench' ),
 				'charging_group_label'    => __( 'Charging state', 'battery-surf-bench' ),
 				'system_label'            => __( 'System', 'battery-surf-bench' ),

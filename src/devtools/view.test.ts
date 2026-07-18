@@ -19,6 +19,7 @@ interface CapturedConfig {
 			battery: object;
 			sim: object;
 			surf: object;
+			shark: object;
 		};
 	};
 	actions: Record< string, unknown >;
@@ -72,6 +73,10 @@ describe( 'devtools view', () => {
 				runLive: false,
 				pageIndex: null,
 			},
+			shark: {
+				launch: null,
+				launchable: false,
+			},
 		} );
 		expect( mocks.config?.actions ).toMatchObject( {
 			devtoolsToggleOpen: expect.any( Function ),
@@ -83,6 +88,7 @@ describe( 'devtools view', () => {
 			devtoolsSurfSetMode: expect.any( Function ),
 			devtoolsSurfSteer: expect.any( Function ),
 			devtoolsSurfStep: expect.any( Function ),
+			devtoolsReleaseShark: expect.any( Function ),
 			devtoolsReset: expect.any( Function ),
 		} );
 		expect( mocks.config?.callbacks ).toMatchObject( {

@@ -139,6 +139,11 @@ final class CockpitViewTest extends TestCase {
 
 		$this->assertStringContainsString( 'data-wp-init---shark="callbacks.initShark"', $markup );
 		$this->assertStringContainsString( 'data-wp-watch---shark-compact="callbacks.syncSharkCompact"', $markup );
+		// The dev-tools panel's shark-release seam: same "inert but present"
+		// contract as the battery/surf watches above — the panel's shark
+		// button has no cockpit context of its own, so this watch is what
+		// consumes its stamped launch command and mirrors launchability back.
+		$this->assertStringContainsString( 'data-wp-watch---devtools-shark="callbacks.syncDevtoolsShark"', $markup );
 		$this->assertStringContainsString( 'class="bsb-deck__fin-lane" aria-hidden="true"', $markup );
 		$this->assertStringContainsString( 'class="bsb-fin" hidden data-wp-bind--hidden="!state.hasShark"', $markup );
 		$this->assertStringContainsString( 'data-wp-style----fin-start="state.sharkStartCss"', $markup );

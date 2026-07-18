@@ -74,6 +74,13 @@ export interface InstanceState {
 	 */
 	sterilePageStepSeq: number | null;
 	/**
+	 * The last `state.devtools.shark.launch` sequence this cockpit has
+	 * already consumed (launching its swim), or null before any has been.
+	 * Lets `SharkStore.syncDevtoolsShark` tell a fresh release from one it
+	 * already acted on, even across unrelated re-runs of the watch.
+	 */
+	sharkLaunchSeq: number | null;
+	/**
 	 * The live shark swim's clear timeout id — armed for the swim's total
 	 * duration plus the trail's longest delay, firing the clear — or null
 	 * when no shark is swimming.
@@ -114,6 +121,7 @@ const runInstance: InstanceState = {
 	barkLeaveTimer: null,
 	loadWatchdog: null,
 	sterilePageStepSeq: null,
+	sharkLaunchSeq: null,
 	sharkTimer: null,
 	konamiProgress: 0,
 	konamiLastKeyAt: null,
@@ -145,6 +153,7 @@ export const __resetInstance = (): void => {
 	runInstance.barkLeaveTimer = null;
 	runInstance.loadWatchdog = null;
 	runInstance.sterilePageStepSeq = null;
+	runInstance.sharkLaunchSeq = null;
 	runInstance.sharkTimer = null;
 	runInstance.konamiProgress = 0;
 	runInstance.konamiLastKeyAt = null;

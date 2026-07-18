@@ -244,6 +244,54 @@ $ease: cubic-bezier(0.22, 1, 0.36, 1);
 	-webkit-mask: theme.$icon-reset center / contain no-repeat;
 }
 
+// The shark release: the icon-only control between Reset and Close,
+// releasing the cockpit's dorsal-fin Easter egg on demand. Same
+// footprint/alignment as its neighbours so the trio reads as one cluster.
+// Unlike Reset (which only appears once an override is armed) it is always
+// in the row, but only enabled while a shark could actually surface (a run
+// live, the topbar compact — the cockpit mirrors that window onto the
+// shared slice); disabled it sits as faded chrome, a quiet hint that
+// something lives in the water.
+.bsb-devtools__card-shark {
+	flex: 0 0 auto;
+	appearance: none;
+	display: grid;
+	place-items: center;
+	width: 1.6rem;
+	height: 1.6rem;
+	border: 0;
+	border-radius: 50%;
+	background: transparent;
+	color: theme.$coastal-ink-soft;
+	cursor: pointer;
+	transition:
+		color 0.16s ease,
+		background 0.16s ease;
+
+	&:hover:not(:disabled) {
+		color: theme.$coastal-navy;
+		background: rgba(31, 58, 95, 0.08);
+	}
+
+	&:focus-visible {
+		outline: 2px solid theme.$coastal-teal;
+		outline-offset: 2px;
+	}
+
+	&:disabled {
+		opacity: 0.35;
+		cursor: default;
+	}
+}
+
+.bsb-devtools__card-shark-icon {
+	width: 14px;
+	height: 14px;
+	background: currentColor;
+	mask: theme.$icon-shark-fin center / contain no-repeat;
+	-webkit-mask: theme.$icon-shark-fin center / contain no-repeat;
+}
+
 .bsb-devtools__card-close {
 	flex: 0 0 auto;
 	display: grid;

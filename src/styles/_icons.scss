@@ -91,6 +91,13 @@ $icon-save: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' vi
 // settings screen's "Reset changes" pill.
 $icon-reset: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='1 4 1 10 7 10'/%3E%3Cpath d='M3.51 15a9 9 0 1 0 2.13-9.36L1 10'/%3E%3C/svg%3E");
 
+// A dorsal fin cutting a wavy waterline, masked onto the dev-tools panel's
+// shark button (the on-demand release of the cockpit's shark-fin Easter
+// egg). The fin silhouette is the cockpit's own `.bsb-fin__body` path
+// (CockpitView), rescaled into the 24-box; Font Awesome's free tier has no
+// shark, so the button wears the very fin it releases.
+$icon-shark-fin: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M21 19C18.8 12 14.9 5.4 6.5 1C7.8 6.3 7 12.9 3 19Z'/%3E%3Cpath fill='none' stroke='black' stroke-width='2' stroke-linecap='round' d='M1 20.5q2.75-4.4 5.5 0t5.5 0 5.5 0 5.5 0'/%3E%3C/svg%3E");
+
 // An open book, masked onto the behavior-start bark when the surfer settles in
 // to read (readPause).
 $icon-book: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 6.5C10.2 5 7.8 4.3 5 4.2V17c2.8.1 5.2.8 7 2.3 1.8-1.5 4.2-2.2 7-2.3V4.2c-2.8.1-5.2.8-7 2.3z'/%3E%3Cpath d='M12 6.5V19.3'/%3E%3C/svg%3E");

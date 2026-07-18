@@ -13,6 +13,7 @@ import { type StorePart } from '../cockpit/StoreParts';
 import { type BatteryOverrideState } from '../cockpit/BatteryOverride';
 import { type DischargeSimState, DEFAULT_SIM } from './DischargeSim';
 import { type SurfSteerState, DEFAULT_SURF } from './SurfSteer';
+import { type SharkReleaseState, DEFAULT_SHARK_RELEASE } from './SharkRelease';
 
 /** The dev-tools slice of the shared `bsb/cockpit` state. */
 export interface DevtoolsState {
@@ -24,6 +25,8 @@ export interface DevtoolsState {
 	sim: DischargeSimState;
 	/** The Surf sub-tool's state: the armed sterile override, plus its live-run runtime fields. */
 	surf: SurfSteerState;
+	/** The shark-release sub-tool's state: the pending launch command plus its launchability mirror. */
+	shark: SharkReleaseState;
 }
 
 /**
@@ -36,6 +39,9 @@ export interface DevtoolsState {
  * never silently survive a reload or a later session and start a run sterile
  * without the user re-choosing it. `open` and `battery` are the only fields a
  * returning session should see again.
+ * The shark-release tool never persists either: a released shark is a
+ * moment, not a setting — there is nothing a reload could meaningfully
+ * resume.
  */
 type PersistedDevtoolsState = Pick< DevtoolsState, 'open' | 'battery' >;
 
@@ -65,6 +71,7 @@ const DEFAULT_STATE: DevtoolsState = {
 	battery: { charging: null, level: null },
 	sim: { ...DEFAULT_SIM },
 	surf: { ...DEFAULT_SURF },
+	shark: { ...DEFAULT_SHARK_RELEASE },
 };
 
 /**

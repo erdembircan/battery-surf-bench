@@ -293,6 +293,44 @@ final class DevToolsPanelViewTest extends TestCase {
 	}
 
 	/**
+	 * The card header's action cluster holds Shark between Reset and Close:
+	 * an icon-only control, its accessible name in `aria-label`, its glyph an
+	 * `aria-hidden` masked icon span (`$icon-shark-fin`), wired to
+	 * `devtoolsReleaseShark` and disabled via `devtoolsSharkDisabled` — the
+	 * cockpit's own mirror of whether a shark could actually launch right
+	 * now. Unlike Reset it carries no `hidden` binding of its own: it is
+	 * always in the row, just disabled outside the launch window. Reset's
+	 * visibility is dynamic (only appears once an override is armed), so it
+	 * keeps the cluster's outer edge, with Shark and Close — the two
+	 * always-present controls — holding their ground beside it.
+	 */
+	public function test_render_wires_the_shark_control(): void {
+		$markup = ( new DevToolsPanelView() )->render();
+
+		$button_tag_start = strpos( $markup, '<button type="button" class="bsb-devtools__card-shark"' );
+		$this->assertNotFalse( $button_tag_start );
+		$button_tag_end = strpos( $markup, '</button>', $button_tag_start );
+		$button_tag     = substr( $markup, $button_tag_start, $button_tag_end - $button_tag_start );
+
+		$this->assertStringContainsString( 'data-wp-on--click="actions.devtoolsReleaseShark"', $button_tag );
+		$this->assertStringContainsString( 'data-wp-bind--disabled="state.devtoolsSharkDisabled"', $button_tag );
+		$this->assertStringContainsString( 'aria-label="', $button_tag );
+		$this->assertStringContainsString( '<span class="bsb-devtools__card-shark-icon"', $button_tag );
+		$this->assertStringContainsString( 'aria-hidden="true"', $button_tag );
+		$this->assertStringNotContainsString( '<svg', $button_tag );
+
+		// DOM order: Reset, then Shark, then Close.
+		$reset_position = strpos( $markup, 'bsb-devtools__card-reset' );
+		$shark_position = strpos( $markup, 'bsb-devtools__card-shark' );
+		$close_position = strpos( $markup, 'bsb-devtools__card-close' );
+		$this->assertNotFalse( $reset_position );
+		$this->assertNotFalse( $shark_position );
+		$this->assertNotFalse( $close_position );
+		$this->assertTrue( $reset_position < $shark_position );
+		$this->assertTrue( $shark_position < $close_position );
+	}
+
+	/**
 	 * The Surf group: the Natural/Sterile seg (with the Sterile option's coral
 	 * modifier class — no hint line underneath it, the seg speaks for itself —
 	 * and both options locked for the whole duration of any live run), the
@@ -469,6 +507,7 @@ final class DevToolsPanelViewTest extends TestCase {
 				'armed_label'            => '<i>Override active</i>',
 				'reset_label'            => '"Reset"',
 				'close_label'            => '"Close"',
+				'shark_label'            => '"Release the shark"',
 				'level_label'            => '"Battery level override"',
 				'surf_label'             => '<b>Surf</b>',
 				'auction_override_label' => '"Auction override"',
@@ -484,6 +523,7 @@ final class DevToolsPanelViewTest extends TestCase {
 		$this->assertStringContainsString( '&lt;i&gt;Override active&lt;/i&gt;', $markup );
 		$this->assertStringContainsString( 'aria-label="&quot;Reset&quot;"', $markup );
 		$this->assertStringContainsString( 'aria-label="&quot;Close&quot;"', $markup );
+		$this->assertStringContainsString( 'aria-label="&quot;Release the shark&quot;"', $markup );
 		$this->assertStringContainsString( 'aria-label="&quot;Battery level override&quot;"', $markup );
 		$this->assertStringNotContainsString( '<b>Surf</b>', $markup );
 		$this->assertStringContainsString( '&lt;b&gt;Surf&lt;/b&gt;', $markup );
