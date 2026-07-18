@@ -291,10 +291,12 @@ HEAD;
 				<span class="bsb-deck__wave bsb-deck__wave--mid"></span>
 				<span class="bsb-deck__fin-lane" aria-hidden="true">
 					<span class="bsb-fin" hidden data-wp-bind--hidden="!state.hasShark" data-wp-style----fin-start="state.sharkStartCss" data-wp-style----fin-end="state.sharkEndCss" data-wp-style----fin-total="state.sharkTotalCss">
-						<span class="bsb-fin__swimmer"><span class="bsb-fin__bob"><span class="bsb-fin__riser"><svg class="bsb-fin__body" viewBox="0 0 72 44" preserveAspectRatio="none"><path d="M60 44 C55 28 46 13 27 3 C30 15 28 30 19 44 Z"/></svg><span class="bsb-fin__foam"></span></span></span></span>
+						<span class="bsb-fin__swimmer"><span class="bsb-fin__bob"><span class="bsb-fin__riser"><svg class="bsb-fin__body" viewBox="0 0 72 44" preserveAspectRatio="none"><path d="M60 44 C55 28 46 13 27 3 C30 15 28 30 19 44 Z"/></svg><span class="bsb-fin__foam"></span><span class="bsb-fin__splash"></span></span></span></span>
 						<span class="bsb-fin__swimmer bsb-fin__swimmer--ghost1"><span class="bsb-fin__bob"><span class="bsb-fin__riser"><span class="bsb-fin__droplet"></span></span></span></span>
 						<span class="bsb-fin__swimmer bsb-fin__swimmer--ghost2"><span class="bsb-fin__bob"><span class="bsb-fin__riser"><span class="bsb-fin__droplet"></span></span></span></span>
 						<span class="bsb-fin__swimmer bsb-fin__swimmer--ghost3"><span class="bsb-fin__bob"><span class="bsb-fin__riser"><span class="bsb-fin__droplet"></span></span></span></span>
+						<span class="bsb-fin__swimmer bsb-fin__swimmer--ghost4"><span class="bsb-fin__bob"><span class="bsb-fin__riser"><span class="bsb-fin__droplet"></span></span></span></span>
+						<span class="bsb-fin__swimmer bsb-fin__swimmer--ghost5"><span class="bsb-fin__bob"><span class="bsb-fin__riser"><span class="bsb-fin__droplet"></span></span></span></span>
 					</span>
 				</span>
 				<span class="bsb-deck__wave bsb-deck__wave--front"></span>

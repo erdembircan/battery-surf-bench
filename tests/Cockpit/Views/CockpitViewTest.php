@@ -161,6 +161,35 @@ final class CockpitViewTest extends TestCase {
 	}
 
 	/**
+	 * The lead swimmer carries a one-shot splash ring (dive-only, matching
+	 * the approved motion mock) placed inside its riser after the foam, and
+	 * the trail is five ghost swimmers — matching the mock's decaying-wake
+	 * effect — each replaying the lead's own swim/bob/rise animations.
+	 */
+	public function test_render_wires_the_shark_fin_splash_and_five_ghost_trail(): void {
+		$markup = $this->render();
+
+		// The splash lives inside the LEAD swimmer's riser, after the foam —
+		// the ghosts carry no splash of their own.
+		$this->assertStringContainsString( '<span class="bsb-fin__foam"></span><span class="bsb-fin__splash"></span>', $markup );
+
+		foreach ( array( 'ghost1', 'ghost2', 'ghost3', 'ghost4', 'ghost5' ) as $ghost ) {
+			$this->assertStringContainsString(
+				'class="bsb-fin__swimmer bsb-fin__swimmer--' . $ghost . '"',
+				$markup
+			);
+		}
+
+		// No more than five ghosts — a sixth would silently exceed the mock's
+		// decaying-wake design.
+		$this->assertStringNotContainsString( 'bsb-fin__swimmer--ghost6', $markup );
+
+		// The splash appears twice (deck pill + compact topbar), same as the
+		// rest of the readouts pill.
+		$this->assertSame( 2, substr_count( $markup, 'bsb-fin__splash' ) );
+	}
+
+	/**
 	 * Before a run the stage shows the startup postcard, not the iframe: the idle
 	 * screen is hidden while running and the viewport-wrap (shipped hidden) is
 	 * hidden while idle, so the benchmarked page never loads on the idle screen.

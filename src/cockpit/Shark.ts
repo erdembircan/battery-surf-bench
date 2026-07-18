@@ -33,11 +33,12 @@ export const SHARK_DIVE_MS = 750;
 export const SHARK_FULL_CROSS_MS = 15000;
 
 /**
- * The last trail ghost's animation delay. The clear timer waits this long
- * past the swim's own total duration so the trailing ghost's replay of the
- * swim (surface, cruise and dive alike) has time to finish too.
+ * The last trail ghost's animation delay (the fifth of five). The clear
+ * timer waits this long past the swim's own total duration so the trailing
+ * ghost's replay of the swim (surface, cruise and dive alike) has time to
+ * finish too.
  */
-export const SHARK_TRAIL_MAX_DELAY_MS = 420;
+export const SHARK_TRAIL_MAX_DELAY_MS = 450;
 
 /** A planned swim: where the fin surfaces, where it dives, and how long. */
 export interface SwimPlan {

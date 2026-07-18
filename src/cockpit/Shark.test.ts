@@ -44,8 +44,8 @@ describe( 'the shark’s fixed timings', () => {
 		expect( SHARK_FULL_CROSS_MS ).toBe( 15000 );
 	} );
 
-	it( 'SHARK_TRAIL_MAX_DELAY_MS matches the last trail ghost’s delay', () => {
-		expect( SHARK_TRAIL_MAX_DELAY_MS ).toBe( 420 );
+	it( 'SHARK_TRAIL_MAX_DELAY_MS matches the last (fifth) trail ghost’s delay', () => {
+		expect( SHARK_TRAIL_MAX_DELAY_MS ).toBe( 450 );
 	} );
 } );
 

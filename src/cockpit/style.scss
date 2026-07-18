@@ -303,11 +303,19 @@ body.bsb-cockpit-dashboard {
 // alternation is needed the way the bark's ebbing tide needs one, because
 // only one swim ever shows at a time.
 //
-// The trail is pure CSS, sampling nothing in JS: `--ghost1/2/3` replay the
-// IDENTICAL swim/bob/rise animations as the lead fin, each with its own
-// positive `animation-delay`. At any instant a ghost is simply wherever the
-// lead fin itself was that many milliseconds ago, so the trail traces the
-// TRUE swim path — bob and dive included — with zero sampling logic.
+// The trail is pure CSS, sampling nothing in JS: `--ghost1` through
+// `--ghost5` replay the IDENTICAL swim/bob/rise animations as the lead fin,
+// each with its own positive `animation-delay`. At any instant a ghost is
+// simply wherever the lead fin itself was that many milliseconds ago, so the
+// trail traces the TRUE swim path — bob and dive included — with zero
+// sampling logic. Each ghost is also fainter and smaller than the last (set
+// on the ghost root, which is what makes the fixed-lag ghosts read as a
+// decaying wake rather than a row of identical beads), and its droplet plays
+// a shared churn flicker phase-offset by the same delay — the ghost's own
+// opacity (decay) and the churn's opacity (flicker) sit on different
+// elements, so they multiply visually rather than fighting over one value.
+// The lead fin also fires a one-shot splash ring at the waterline on the
+// dive only (never on surfacing) — see `.bsb-fin__splash` below.
 .bsb-deck__fin-lane {
 	position: absolute;
 	inset: 0;
@@ -337,16 +345,53 @@ body.bsb-cockpit-dashboard {
 	will-change: transform;
 }
 
+// Decay by lag: each ghost's own opacity fades further the longer ago the
+// lead fin was actually there. Ghost1's droplet keeps the base
+// `.bsb-fin__droplet` size below (7×5px) — only ghosts 2–5 need a size
+// override, since they're all smaller than that base.
 .bsb-fin__swimmer--ghost1 {
-	--fin-delay: 140ms;
+	--fin-delay: 90ms;
+	opacity: 0.65;
 }
 
 .bsb-fin__swimmer--ghost2 {
-	--fin-delay: 280ms;
+	--fin-delay: 180ms;
+	opacity: 0.5;
+}
+
+.bsb-fin__swimmer--ghost2 .bsb-fin__droplet {
+	width: 6px;
+	height: 5px;
 }
 
 .bsb-fin__swimmer--ghost3 {
-	--fin-delay: 420ms;
+	--fin-delay: 270ms;
+	opacity: 0.38;
+}
+
+.bsb-fin__swimmer--ghost3 .bsb-fin__droplet {
+	width: 6px;
+	height: 4px;
+}
+
+.bsb-fin__swimmer--ghost4 {
+	--fin-delay: 360ms;
+	opacity: 0.28;
+}
+
+.bsb-fin__swimmer--ghost4 .bsb-fin__droplet {
+	width: 5px;
+	height: 4px;
+}
+
+.bsb-fin__swimmer--ghost5 {
+	--fin-delay: 450ms;
+	opacity: 0.2;
+}
+
+.bsb-fin__swimmer--ghost5 .bsb-fin__droplet {
+	width: 4px;
+	height: 3px;
 }
 
 .bsb-fin__bob {
@@ -402,6 +447,27 @@ body.bsb-cockpit-dashboard {
 	animation: bsb-fin-foam 1.1s ease-in-out infinite;
 }
 
+// A one-shot ring at the waterline, fired only on the dive — the maintainer
+// explicitly removed the equivalent surfacing ping during mock review, so
+// there is deliberately no counterpart animation here for the rise. Lead
+// swimmer only; the ghosts carry no splash of their own. The 750ms in the
+// delay calc below MUST equal SHARK_DIVE_MS in Shark.ts, the same pairing
+// note as `.bsb-fin__riser`'s own dive animation above — both fire at the
+// instant the dive begins.
+.bsb-fin__splash {
+	position: absolute;
+	left: 50%;
+	bottom: -3px;
+	width: 30px;
+	height: 13px;
+	margin-left: -15px;
+	border: 2px solid rgba(255, 255, 255, 0.9);
+	border-radius: 50%;
+	opacity: 0;
+	animation: bsb-fin-splash 520ms ease-out
+		calc(var(--fin-total, 10000ms) - 750ms) forwards;
+}
+
 .bsb-fin__droplet {
 	position: absolute;
 	left: 8px;
@@ -414,6 +480,15 @@ body.bsb-cockpit-dashboard {
 		rgba(255, 255, 255, 0.9),
 		rgba(255, 255, 255, 0)
 	);
+	// A churn flicker shared byte-for-byte across every ghost — only its
+	// `animation-delay` differs, reusing the same `--fin-delay` custom
+	// property the ghost's own swim/bob/rise already key off, so the five
+	// droplets churn out of phase with each other instead of pulsing in
+	// lockstep. This is deliberately identical to the decay-by-lag opacity
+	// set on the ghost root above: the two are separate elements, so their
+	// opacities multiply visually rather than one overwriting the other.
+	animation: bsb-fin-droplet-churn 0.9s ease-in-out var(--fin-delay)
+		infinite;
 }
 
 @keyframes bsb-fin-swim {
@@ -471,6 +546,31 @@ body.bsb-cockpit-dashboard {
 	50% {
 		transform: scaleX(1.18);
 		opacity: 1;
+	}
+}
+
+@keyframes bsb-fin-splash {
+	from {
+		opacity: 0.9;
+		transform: scale(0.35);
+	}
+
+	to {
+		opacity: 0;
+		transform: scale(1.5);
+	}
+}
+
+@keyframes bsb-fin-droplet-churn {
+	0%,
+	100% {
+		opacity: 0.7;
+		transform: scaleX(1);
+	}
+
+	50% {
+		opacity: 1;
+		transform: scaleX(1.2);
 	}
 }
 
