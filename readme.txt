@@ -105,9 +105,9 @@ Yes. The settings screen lets you compose the surf course from your own posts an
 
 The plugin itself performs no telemetry, analytics or phone-home requests of its own. The one external contact is the bundled simulated-surf YouTube embed described above: WordPress's own real oEmbed handling contacts YouTube's oEmbed endpoint to resolve it, exactly as it would for any YouTube URL on any WordPress site. That request is part of the measured workload (real video-page browsing genuinely does this) and is only made while the operator-gated benchmark page is being rendered to the operator running a benchmark.
 
-= Why does it use the core embed block for the YouTube video? =
+= Why is there a YouTube video in the surf course? =
 
-Battery Surf Bench renders YouTube video the same way any WordPress site author would: through the native `core/embed` block, resolved by WordPress's own real oEmbed handling, which the plugin never replaces or short-circuits. The plugin only makes the minimal adjustment needed for the simulation to start and stop playback itself and to keep the video from autoplaying on page load; everything else about the embed is left exactly as WordPress produced it. This is a deliberate, ecosystem-native choice: it works the same way on any user-selected surf page containing a YouTube embed, not just the bundled video page.
+Because real-world browsing includes video, and video is one of the heaviest things a browser asks of a battery; leaving it out would understate the drain. The video plays the same way WordPress plays any embedded video: it never autoplays, it stays muted, and the surfer decides when to watch and when to move on. It is only ever shown to the operator running a benchmark, and a YouTube embed on your own selected surf pages behaves the same way during a run.
 
 == Changelog ==
 
