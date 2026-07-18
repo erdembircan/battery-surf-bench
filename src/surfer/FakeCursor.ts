@@ -18,7 +18,7 @@ export interface Point {
 /** Class the document root carries while the engine drives, hiding the real cursor. */
 export const SURFING_CLASS = 'bsb-surfing';
 
-/** Stylesheet hook for the cursor element itself (styled in `src/course/style.scss`). */
+/** Stylesheet hook for the cursor element itself (styled in `src/styles/course/style.scss`). */
 const CURSOR_CLASS = 'bsb-surf-cursor';
 
 /** Stylesheet hook for the cursor's inner glyph layer — the element the click squash animates, kept free of the positioning transform. */

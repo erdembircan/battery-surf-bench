@@ -13,8 +13,8 @@
 @use 'sass:color';
 @use 'sass:math';
 @use 'sass:list';
-@use '../styles/theme' as theme;
-@use '../styles/toast';
+@use '../foundation/theme' as theme;
+@use '../foundation/toast';
 
 $deck-width: clamp(300px, 28vw, 372px);
 $ease: cubic-bezier(0.22, 1, 0.36, 1);
@@ -615,11 +615,11 @@ body.bsb-cockpit-dashboard {
 	aspect-ratio: 1;
 	min-height: 0;
 	background: var(--subtitle-ink);
-	mask-image: url('../../assets/images/menu-icon.svg');
+	mask-image: url('../../../assets/images/menu-icon.svg');
 	mask-repeat: no-repeat;
 	mask-position: center;
 	mask-size: contain;
-	-webkit-mask-image: url('../../assets/images/menu-icon.svg');
+	-webkit-mask-image: url('../../../assets/images/menu-icon.svg');
 	-webkit-mask-repeat: no-repeat;
 	-webkit-mask-position: center;
 	-webkit-mask-size: contain;
@@ -1816,11 +1816,11 @@ $bark-water-deep: color.mix(theme.$coastal-teal, white, 42%); // ≈ #a8d5df
 	z-index: 3;
 	background: linear-gradient(155deg, #0a4f8f 0%, #1c83c9 48%, #5fc7f0 100%);
 	filter: drop-shadow(0 6px 14px rgba(6, 40, 70, 0.4));
-	mask-image: url('../../assets/images/icon.svg');
+	mask-image: url('../../../assets/images/icon.svg');
 	mask-repeat: no-repeat;
 	mask-position: center;
 	mask-size: 74%;
-	-webkit-mask-image: url('../../assets/images/icon.svg');
+	-webkit-mask-image: url('../../../assets/images/icon.svg');
 	-webkit-mask-repeat: no-repeat;
 	-webkit-mask-position: center;
 	-webkit-mask-size: 74%;

@@ -2,7 +2,7 @@
 // Shared palette, typography and the light/dark token set behind the surf-deck
 // look. Reuse anywhere:
 //
-//   @use '../styles/theme' as theme;
+//   @use '../foundation/theme' as theme;
 //
 //   .my-panel {
 //     @include theme.tokens;          // sets the --* custom properties (+ dark)

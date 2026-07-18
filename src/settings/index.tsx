@@ -10,7 +10,7 @@
 import { createRoot } from '@wordpress/element';
 import { ErrorBoundary } from '@/shared/ErrorBoundary';
 import { SettingsApp } from '@/settings/App';
-import '@/settings/style.scss';
+import '@/styles/settings/style.scss';
 
 const container = document.getElementById( 'bsb-settings-app' );
 

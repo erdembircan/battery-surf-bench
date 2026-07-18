@@ -4,11 +4,11 @@
 // Space Mono, Pacifico, Caveat) into this stylesheet, which doesn't use any
 // of those fonts. Aliased to `theme` so the call below reads the same as
 // every other `theme.$icon-*`/`theme.icon-*()` consumer.
-@use '../styles/icons' as theme;
+@use '../foundation/icons' as theme;
 // Pure variables, no CSS of its own — safe to `@use` here for the same
 // reason the icons partial is, without pulling in the theme's @font-face
 // output.
-@use '../styles/palette' as palette;
+@use '../foundation/palette' as palette;
 
 // Typography
 $font-serif: georgia, "Times New Roman", times, serif;

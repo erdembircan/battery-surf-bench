@@ -27,8 +27,8 @@
 	width: 36px;
 	height: 34px;
 	background-color: currentColor;
-	-webkit-mask: url("../../assets/images/menu-icon.svg") no-repeat center / 30px auto;
-	mask: url("../../assets/images/menu-icon.svg") no-repeat center / 30px auto;
+	-webkit-mask: url("../../../assets/images/menu-icon.svg") no-repeat center / 30px auto;
+	mask: url("../../../assets/images/menu-icon.svg") no-repeat center / 30px auto;
 	transition: background-color .1s ease-in-out;
 }
 
@@ -45,6 +45,6 @@
 	margin-right: 5px;
 	vertical-align: middle;
 	background-color: currentColor;
-	-webkit-mask: url("../../assets/images/menu-icon.svg") no-repeat center / contain;
-	mask: url("../../assets/images/menu-icon.svg") no-repeat center / contain;
+	-webkit-mask: url("../../../assets/images/menu-icon.svg") no-repeat center / contain;
+	mask: url("../../../assets/images/menu-icon.svg") no-repeat center / contain;
 }

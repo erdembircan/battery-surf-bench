@@ -8,15 +8,15 @@
 // DataViews retint + its live count slot; Settings: the picker panes) — one
 // edit here restyles every admin screen at once.
 //
-//   @use '../styles/admin-chrome';
+//   @use '../foundation/admin-chrome';
 //
 //   .bsb-my-screen {
 //     @include admin-chrome.deck;
 //     // screen-specific rules only
 //   }
 
-@use '../styles/theme';
-@use '../styles/toast';
+@use 'theme';
+@use 'toast';
 
 // ── Full-bleed: drop the wp-admin chrome around the deck ─────────────────────
 // Every screen that `@use`s this partial loads its compiled stylesheet only on
@@ -88,8 +88,8 @@
 	height: 2.9rem;
 	aspect-ratio: 1;
 	background: theme.$coastal-teal;
-	mask: url('../../assets/images/menu-icon.svg') center / contain no-repeat;
-	-webkit-mask: url('../../assets/images/menu-icon.svg') center / contain no-repeat;
+	mask: url('../../../assets/images/menu-icon.svg') center / contain no-repeat;
+	-webkit-mask: url('../../../assets/images/menu-icon.svg') center / contain no-repeat;
 }
 
 .bsb-admin-head__wordmark {

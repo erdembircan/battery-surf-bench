@@ -23,8 +23,8 @@
  * Hanken Grotesk and Space Mono load on the admin screen.
  */
 
-@use '../styles/theme' as theme;
-@use '../styles/admin-chrome';
+@use '../foundation/theme' as theme;
+@use '../foundation/admin-chrome';
 
 // The shared theme ships only Space Mono 700 (all the cockpit needs); this
 // screen also shows it at a regular weight, so the numeric readouts read as
@@ -202,8 +202,8 @@
 			height: 4.5rem;
 			background: theme.$coastal-aqua;
 			opacity: 0.7;
-			mask: url('../../assets/images/menu-icon.svg') center / contain no-repeat;
-			-webkit-mask: url('../../assets/images/menu-icon.svg') center / contain no-repeat;
+			mask: url('../../../assets/images/menu-icon.svg') center / contain no-repeat;
+			-webkit-mask: url('../../../assets/images/menu-icon.svg') center / contain no-repeat;
 		}
 	}
 }

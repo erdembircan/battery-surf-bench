@@ -23,7 +23,7 @@ return array(
 		// paint it: the admin-menu style renders the surfer-battery SVG as a
 		// `currentColor` mask, letting the icon inherit each colour scheme's
 		// menu-icon colours instead of showing a fixed-grey bitmap. Built from
-		// `src/admin/style.scss`.
+		// `src/styles/admin/style.scss`.
 		'icon'       => 'none',
 		'icon_style' => 'build/style-admin-menu.css',
 		// Slug of the "Start Benchmark" submenu page, which redirects straight
@@ -77,7 +77,7 @@ return array(
 		'nonce_action' => 'bsb_surf',
 		// Stylesheet that styles the course content, scoped to its
 		// `.bsb-course-content` wrapper, enqueued only on course pages. Built
-		// from `src/course/style.scss`.
+		// from `src/styles/course/style.scss`.
 		'style'        => 'build/style-course.css',
 		// The headless surf engine, enqueued only on course pages alongside the
 		// stylesheet above. Boots itself only when the traits URL param is
@@ -102,7 +102,7 @@ return array(
 		'block_name' => 'bsb/cockpit',
 		// Stylesheet for the stripped dashboard, enqueued on the cockpit route
 		// and exempted from the dashboard's asset strip so it is the one style
-		// that survives. Built from `src/cockpit/style.scss`.
+		// that survives. Built from `src/styles/cockpit/style.scss`.
 		'style'      => 'build/style-cockpit-dashboard.css',
 	),
 	'container'  => array(
@@ -124,7 +124,7 @@ return array(
 		'module'       => 'build/devtools/view.js',
 		// Stylesheet for the floating dev-tools panel, spared from the cockpit
 		// dashboard's asset strip via the dev-tooling style filter. Built from
-		// `src/devtools/style.scss`.
+		// `src/styles/devtools/style.scss`.
 		'style'        => 'build/style-devtools.css',
 	),
 );

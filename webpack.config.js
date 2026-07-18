@@ -52,6 +52,7 @@ const customScriptConfig = {
 		'admin-menu': path.resolve(
 			process.cwd(),
 			'src',
+			'styles',
 			'admin',
 			'style.scss'
 		),
@@ -61,17 +62,25 @@ const customScriptConfig = {
 			'admin',
 			'StartBenchmarkLink.ts'
 		),
-		course: path.resolve( process.cwd(), 'src', 'course', 'style.scss' ),
+		course: path.resolve(
+			process.cwd(),
+			'src',
+			'styles',
+			'course',
+			'style.scss'
+		),
 		surfer: path.resolve( process.cwd(), 'src', 'surfer', 'index.ts' ),
 		'cockpit-dashboard': path.resolve(
 			process.cwd(),
 			'src',
+			'styles',
 			'cockpit',
 			'style.scss'
 		),
 		devtools: path.resolve(
 			process.cwd(),
 			'src',
+			'styles',
 			'devtools',
 			'style.scss'
 		),
