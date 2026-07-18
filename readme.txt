@@ -8,39 +8,78 @@ Stable tag: 1.0.0-dev
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Measures real-world battery drain by driving a human-like simulated surfer through real pages — live cockpit, honest math, saved sessions.
+Find out how fast web surfing really drains your battery, with a benchmark that browses like a human instead of a script.
 
 == Description ==
 
-Battery Surf Bench measures how fast a device's battery drains under a realistic web-browsing workload. Instead of a synthetic loop, it unleashes a research-derived simulated "surfer" on a sequence of real content pages — reading articles, lingering on images, watching video, scrolling, fidgeting, moving on — while continuously sampling battery state, then projects an honest drain rate from the captured samples.
+Battery Surf Bench is a WordPress plugin that measures your device's real-world battery drain. It unleashes a simulated web surfer on a course of content pages, samples your battery for the whole run, and projects an honest drain rate from what it actually measured.
 
-Everything runs inside your own WordPress site: no lab hardware, no external measurement services, no telemetry.
+No lab hardware. No external services. Just your browser, your battery, and a surfer that never gets tired.
 
-= A surfer, not a script =
+= Highlights =
 
-The simulated visitor is not a scripted macro. Each moment, competing behaviors — reading, watching, scrolling, glancing back to re-read, idle fidgeting, leaving the page — bid against each other based on the surfer's personality and what the current page actually offers, and the winner plays out. Pick a ready-made surfer class (Scholar, Binge-Watcher, Doomscroller, Skimmer, Jitterbug, Balanced) or build your own by spending a point budget across five personality stats. Its behavior profile is tuned from published battery-benchmark methodologies and real-user browsing telemetry.
+* **A surfer, not a script.** The simulated visitor makes its own decisions as it browses. No two runs play out the same.
+* **A live cockpit.** A dedicated dashboard shows the whole run as it happens: battery readouts, projections, and the surfer itself browsing in a live viewport.
+* **Honest math.** Drain rates come from regression over the sampled battery curve, and no number is reported before the data can support one.
+* **Every run remembered.** Each benchmark is saved as a session you can browse, reopen, and compare.
+* **Yours to shape.** Choose the workload, the surfer's personality, the run mode, and the pace.
 
-= A live cockpit =
+= A benchmark that browses like a person =
 
-Every run happens in a dedicated dashboard: live battery level, a responsive 10-minute drain rate, a stable whole-session rate, projected time-to-empty, and a viewport where you can watch the surfer browse in real time. Benchmark for a fixed duration (5 minutes to 4 hours) or until the battery drops a chosen number of percentage points, at 1x, 4x, or 10x speed. A screen wake-lock keeps the display awake for the whole run, a leave-confirmation guard protects an in-progress benchmark, and the run refuses to start — and automatically pauses — while the charger is connected, excluding plugged-in time from the math.
+The surfer is not a scripted macro. At every moment, its possible behaviors compete for its attention, weighted by its personality and by what the current page actually offers, and the winner plays out. The behavior profile is tuned from published battery-benchmark methodologies and real-user browsing telemetry, and it shows:
+
+* **It reads.** Genuine reading pauses on text-dense pages, with occasional scroll-backs to re-read something it passed.
+* **It watches.** Video pages get real watch time through the actual embedded player, started, watched, and paused by the surfer itself.
+* **It admires.** Content images earn a lingering dwell, cursor and all.
+* **It fidgets.** Idle cursor drift, micro-scrolls, even the occasional absent-minded text selection.
+* **It gets bored.** Leaving a page is a decision the surfer makes, not a timer expiring.
+
+Ready-made surfer personalities cover the spectrum, from a patient, text-hungry scholar to a restless doomscroller. Want something more specific? Open the customizer and shape your own visitor against a fixed budget: how briskly it moves, how long it stays put, how strongly text pulls at it, how strongly images and video do, and how twitchy it gets when idle.
+
+= A course worth surfing =
+
+Five bundled pages give the surfer a balanced, realistic workload out of the box: a long-form article, an image gallery, a skimmable listicle, a video feature, and a link hub. Each carries its own self-contained design, so the workload stays consistent no matter which theme the site runs. Prefer your own content? The settings screen lets you build a custom course from any of your site's posts and pages (those render through your theme, exactly as visitors see them), reorder it freely, and mix in the bundled pages wherever you like. Pages later removed or unpublished quietly drop out of the rotation without breaking your saved configuration.
+
+= The cockpit =
+
+Every run happens in the cockpit, a purpose-built dashboard that stays out of the data's way:
+
+* **Two run modes:** benchmark for a fixed duration (5 minutes to 4 hours), or until the battery drops a chosen number of percentage points.
+* **Three speeds:** run at true-to-life 1x, or compress time at 4x or 10x for demos and quick checks.
+* **Live readouts:** battery level, a responsive 10-minute drain rate, a stable whole-session rate, and projected time-to-empty, all updating as the samples come in.
+* **A watchable run:** the surfer browses inside a live viewport, with playful captions narrating what it's up to.
+* **Run protection built in:** a screen wake-lock keeps the display from sleeping mid-run, a leave-confirmation guard saves you from an accidental tab close, and a finish chime announces a run that completes on its own (mutable, and it remembers your choice).
+* **Charger-aware:** a benchmark won't start while you're plugged in. If the charger connects mid-run, the run pauses automatically and resumes when you unplug, with the plugged-in time excluded from the math.
 
 = Numbers you can trust =
 
-Drain rates come from least-squares regression over the sampled battery curve, not a naive start-minus-end delta. The plugin will not quote a rate before it has observed enough distinct battery steps to support one, and it blocks the run outright — with a clear warning — if the browser cannot provide battery readings, rather than reporting a fake number. Battery measurement uses the Battery Status API, currently available in Chromium-based browsers on battery-powered devices.
+* **Regression, not guesswork.** Battery level is sampled continuously and fitted with least-squares regression, so a brief plateau or a noisy reading doesn't skew the verdict.
+* **No premature verdicts.** The plugin waits for enough distinct battery steps before quoting a rate. It would rather say "calibrating" than make something up.
+* **Clear projections.** Time-to-empty is projected live and drawn on the summary chart: the measured drain staircase against a dashed full-discharge projection.
+* **A summary worth keeping.** Every finished run produces an illustrated postcard-style summary with the verdict, the drain chart, and stat tiles for elapsed time, battery levels at start and end, points dropped, both drain rates, and time-to-empty.
 
 = Every run remembered =
 
-Each benchmark is stored as a session: a sortable admin grid lists every past run (status, mode, browser, battery span, drain rates, duration), and reopening a session rebuilds its full illustrated summary — verdict, drain chart with a projected full-discharge line, and stat tiles — from the stored samples. Sessions keep the browser, OS, run configuration, and complete sample log, available over the site's own REST API for further analysis.
+Every run, whether it finished, was stopped early, or got interrupted, is stored as a benchmark session:
 
-= Your content, your course =
-
-Five bundled pages provide a balanced workload out of the box — a long-form article, an image gallery, a skimmable listicle, a video feature, and a link hub — all rendered through your active theme exactly as a visitor would see them. The settings screen lets you build a custom surf course from your own posts and pages, reorder it freely, and mix in the bundled pages wherever you like. Pages later removed or unpublished quietly drop out of the rotation.
+* **Sessions screen:** a sortable admin grid of every past run with status, mode, browser, battery span, drain rates, and duration.
+* **Session detail:** reopen any session to its full summary, rebuilt from the stored samples.
+* **Portable data:** each session keeps the browser and OS it ran on, the exact run configuration, and the complete sample log, all available over the site's own REST API for your own analysis.
+* **One-click start:** launch a fresh benchmark straight from the admin bar, anywhere in wp-admin.
 
 = Private by design =
 
-Only users with the plugin's operator capability can reach the cockpit, the surf pages, the recorded sessions, or the settings. Course pages are served as ephemeral in-memory pages — nothing is written to the database and nothing new appears on the public site. The plugin performs no telemetry or phone-home requests; the only network traffic is the session saving to your own site's REST API. Translation-ready, with German, Spanish, French, Brazilian Portuguese, and Turkish shipped out of the box.
+* **Operator-only, everywhere.** The cockpit, the surf pages, the sessions, the settings: all gated behind a dedicated capability. Public visitors can't reach any of it.
+* **No footprint.** Course pages are served as ephemeral, in-memory pages. Nothing is written to your database and nothing new appears on your site.
+* **No telemetry.** All sampling and math happen locally in your browser; the only network traffic is your session saving to your own site.
 
-**External content note:** the bundled video-feature page embeds a YouTube video through WordPress's own native `core/embed` block, resolved by WordPress's own real oEmbed handling exactly as it would be on any WordPress site — including the outbound request that handling makes to YouTube's oEmbed endpoint to resolve the embed. The plugin does not replace or short-circuit that handling; it only amends the returned iframe's parameters (`enablejsapi`, `mute`, `playsinline`, `rel`, `origin`) so the simulation can start and stop playback itself — the surfer starts the video (muted) when it decides to watch and pauses it again when its dwell ends, rather than the embed autoplaying on page load. This embed is only rendered on the operator-gated benchmark page — it requires the operator's capability plus a valid nonce — and is never output on the public-facing site. It is a deliberate part of the battery-drain workload, not tracking or advertising. The same handling applies automatically to any YouTube embed on a site owner's own selected surf pages.
+= Speaks your language =
+
+Fully translation-ready, with German, Spanish, French, Brazilian Portuguese, and Turkish shipped out of the box.
+
+= External content note =
+
+The bundled video-feature page embeds a YouTube video through WordPress's own native `core/embed` block, resolved by WordPress's own real oEmbed handling exactly as it would be on any WordPress site, including the outbound request that handling makes to YouTube's oEmbed endpoint to resolve the embed. The plugin does not replace or short-circuit that handling; it only amends the returned iframe's parameters (`enablejsapi`, `mute`, `playsinline`, `rel`, `origin`) so the simulation can start and stop playback itself. The surfer starts the video (muted) when it decides to watch and pauses it again when its dwell ends, rather than the embed autoplaying on page load. This embed is only rendered on the operator-gated benchmark page (it requires the operator's capability plus a valid nonce) and is never output on the public-facing site. It is a deliberate part of the battery-drain workload, not tracking or advertising. The same handling applies automatically to any YouTube embed on a site owner's own selected surf pages.
 
 == Installation ==
 
@@ -56,7 +95,7 @@ Only users with the plugin's operator capability. The cockpit, the simulated sur
 
 = Which browsers are supported? =
 
-Battery measurement relies on the Battery Status API, currently available in Chromium-based browsers (Chrome, Edge, Opera and others) on battery-powered devices. The cockpit detects support up front and blocks the run with a clear warning — instead of reporting a fabricated rate — if the browser cannot provide battery readings.
+Battery measurement relies on the Battery Status API, currently available in Chromium-based browsers (Chrome, Edge, Opera and others) on battery-powered devices. The cockpit detects support up front and blocks the run with a clear warning, instead of reporting a fabricated rate, if the browser cannot provide battery readings.
 
 = Can I benchmark my own pages instead of the bundled ones? =
 
@@ -68,7 +107,7 @@ The plugin itself performs no telemetry, analytics or phone-home requests of its
 
 = Why does it use the core embed block for the YouTube video? =
 
-Battery Surf Bench renders YouTube video the same way any WordPress site author would: through the native `core/embed` block, resolved by WordPress's own real oEmbed handling — the plugin never replaces or short-circuits it. A dedicated service (`YouTubeEmbed`) makes exactly one surgical amend to the iframe oEmbed already produced: it merges the query params (`enablejsapi`, `mute`, `playsinline`, `rel`, `origin`) the surf simulation needs to start and stop playback through YouTube's JS API, and strips any `autoplay` param, leaving everything else — the host, the path, every other param oEmbed set — untouched. This is a deliberate, ecosystem-native choice: it works the same way on any user-selected surf page containing a YouTube embed, not just the bundled video page.
+Battery Surf Bench renders YouTube video the same way any WordPress site author would: through the native `core/embed` block, resolved by WordPress's own real oEmbed handling, which the plugin never replaces or short-circuits. A dedicated service (`YouTubeEmbed`) makes exactly one surgical amend to the iframe oEmbed already produced: it merges the query params (`enablejsapi`, `mute`, `playsinline`, `rel`, `origin`) the surf simulation needs to start and stop playback through YouTube's JS API, and strips any `autoplay` param, leaving everything else (the host, the path, every other param oEmbed set) untouched. This is a deliberate, ecosystem-native choice: it works the same way on any user-selected surf page containing a YouTube embed, not just the bundled video page.
 
 == Changelog ==
 
