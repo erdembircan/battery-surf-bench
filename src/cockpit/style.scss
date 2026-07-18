@@ -287,6 +287,308 @@ body.bsb-cockpit-dashboard {
 	background-image: var(--wave-front);
 }
 
+// ── Shark-fin Easter egg ─────────────────────────────────────────────────────
+// The Konami-code shark, cruising the compact topbar's wave strip. The fin
+// lane sits between the `--mid` and `--front` wave layers IN THE MARKUP (see
+// CockpitView), so the front foam sheet naturally occludes the fin's
+// waterline by DOM order alone — absolute siblings stack by source position,
+// so no z-index is needed here either.
+//
+// The store (SharkStore/Shark) plans a swim — a random surfacing point, a
+// random diving point, a total duration — and writes it onto the context as
+// three plain values the state getters format into `--fin-start`/`--fin-end`/
+// `--fin-total`; this stylesheet never measures anything. `.bsb-fin` is
+// `hidden` between swims, and un-hiding it is itself what restarts its CSS
+// animations from their first frame — no generation/keyframe-name
+// alternation is needed the way the bark's ebbing tide needs one, because
+// only one swim ever shows at a time.
+//
+// The trail is pure CSS, sampling nothing in JS: `--ghost1` through
+// `--ghost5` replay the IDENTICAL swim/bob/rise animations as the lead fin,
+// each with its own positive `animation-delay`. At any instant a ghost is
+// simply wherever the lead fin itself was that many milliseconds ago, so the
+// trail traces the TRUE swim path — bob and dive included — with zero
+// sampling logic. Each ghost is also fainter and smaller than the last (set
+// on the ghost root, which is what makes the fixed-lag ghosts read as a
+// decaying wake rather than a row of identical beads), and its droplet plays
+// a shared churn flicker phase-offset by the same delay — the ghost's own
+// opacity (decay) and the churn's opacity (flicker) sit on different
+// elements, so they multiply visually rather than fighting over one value.
+// The lead fin also fires a one-shot splash ring at the waterline on the
+// dive only (never on surfacing) — see `.bsb-fin__splash` below.
+.bsb-deck__fin-lane {
+	position: absolute;
+	inset: 0;
+}
+
+.bsb-fin {
+	position: absolute;
+	inset: 0;
+	display: block;
+
+	&[hidden] {
+		display: none;
+	}
+}
+
+.bsb-fin__swimmer {
+	--fin-delay: 0ms;
+
+	position: absolute;
+	inset-inline: 0;
+	bottom: 7px;
+	height: 26px;
+	// Spans the full lane width so the swim's translateX percentages resolve
+	// against the lane itself — the store never measures the DOM.
+	animation: bsb-fin-swim var(--fin-total, 10000ms) linear var(--fin-delay)
+		forwards;
+	will-change: transform;
+}
+
+// Decay by lag: each ghost's own opacity fades further the longer ago the
+// lead fin was actually there. Ghost1's droplet keeps the base
+// `.bsb-fin__droplet` size below (7×5px) — only ghosts 2–5 need a size
+// override, since they're all smaller than that base.
+.bsb-fin__swimmer--ghost1 {
+	--fin-delay: 90ms;
+	opacity: 0.65;
+}
+
+.bsb-fin__swimmer--ghost2 {
+	--fin-delay: 180ms;
+	opacity: 0.5;
+}
+
+.bsb-fin__swimmer--ghost2 .bsb-fin__droplet {
+	width: 6px;
+	height: 5px;
+}
+
+.bsb-fin__swimmer--ghost3 {
+	--fin-delay: 270ms;
+	opacity: 0.38;
+}
+
+.bsb-fin__swimmer--ghost3 .bsb-fin__droplet {
+	width: 6px;
+	height: 4px;
+}
+
+.bsb-fin__swimmer--ghost4 {
+	--fin-delay: 360ms;
+	opacity: 0.28;
+}
+
+.bsb-fin__swimmer--ghost4 .bsb-fin__droplet {
+	width: 5px;
+	height: 4px;
+}
+
+.bsb-fin__swimmer--ghost5 {
+	--fin-delay: 450ms;
+	opacity: 0.2;
+}
+
+.bsb-fin__swimmer--ghost5 .bsb-fin__droplet {
+	width: 4px;
+	height: 3px;
+}
+
+.bsb-fin__bob {
+	position: absolute;
+	left: 0;
+	bottom: 0;
+	width: 38px;
+	height: 26px;
+	// `--fin-bob` is the store's own √speed-scaled swing period
+	// (SharkStore.sharkBobCss); the 1.7s fallback below is that getter's own
+	// 1× value, so an unhydrated or store-less render still bobs correctly.
+	animation: bsb-fin-bob var(--fin-bob, 1.7s) ease-in-out var(--fin-delay)
+		infinite;
+}
+
+.bsb-fin__riser {
+	position: absolute;
+	inset: 0;
+	opacity: 0;
+	// bsb-fin-surface/bsb-fin-dive's 950ms/750ms here MUST equal
+	// SHARK_SURFACE_MS/SHARK_DIVE_MS in Shark.ts — the store's clear timer is
+	// armed off those same constants, so the swim's teardown and the fin's
+	// dive-out finish together.
+	//
+	// The dive is `forwards` only, deliberately NOT `both`: a backwards fill
+	// would apply its from-frame during the delay before it starts, masking
+	// the surface animation that is still playing at that point (later
+	// animations in the list win when both target the same properties).
+	animation:
+		bsb-fin-surface 950ms cubic-bezier(0.22, 1, 0.36, 1) var(--fin-delay)
+			both,
+		bsb-fin-dive 750ms cubic-bezier(0.5, 0, 0.8, 0.4)
+			calc(var(--fin-total, 10000ms) - 750ms + var(--fin-delay)) forwards;
+	will-change: transform, opacity;
+}
+
+// Positional only — the fill is a gradient (`bsb-fin-grad`) defined inline in
+// the SVG markup itself (see CockpitView), not here: an SVG `fill` referencing
+// a gradient by id isn't settable from CSS.
+.bsb-fin__body {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+}
+
+.bsb-fin__foam {
+	position: absolute;
+	left: -12%;
+	right: -14%;
+	bottom: -3px;
+	height: 8px;
+	border-radius: 50%;
+	background: radial-gradient(
+		closest-side,
+		rgba(255, 255, 255, 0.95),
+		rgba(255, 255, 255, 0)
+	);
+	animation: bsb-fin-foam 1.1s ease-in-out infinite;
+}
+
+// A one-shot ring at the waterline, fired only on the dive — the maintainer
+// explicitly removed the equivalent surfacing ping during mock review, so
+// there is deliberately no counterpart animation here for the rise. Lead
+// swimmer only; the ghosts carry no splash of their own. The 750ms in the
+// delay calc below MUST equal SHARK_DIVE_MS in Shark.ts, the same pairing
+// note as `.bsb-fin__riser`'s own dive animation above — both fire at the
+// instant the dive begins.
+.bsb-fin__splash {
+	position: absolute;
+	left: 50%;
+	bottom: -3px;
+	width: 30px;
+	height: 13px;
+	margin-left: -15px;
+	border: 2px solid rgba(255, 255, 255, 0.9);
+	border-radius: 50%;
+	opacity: 0;
+	animation: bsb-fin-splash 520ms ease-out
+		calc(var(--fin-total, 10000ms) - 750ms) forwards;
+}
+
+.bsb-fin__droplet {
+	position: absolute;
+	left: 8px;
+	bottom: -2px;
+	width: 7px;
+	height: 5px;
+	border-radius: 50%;
+	background: radial-gradient(
+		closest-side,
+		rgba(255, 255, 255, 0.9),
+		rgba(255, 255, 255, 0)
+	);
+	// A churn flicker shared byte-for-byte across every ghost — only its
+	// `animation-delay` differs, reusing the same `--fin-delay` custom
+	// property the ghost's own swim/bob/rise already key off, so the five
+	// droplets churn out of phase with each other instead of pulsing in
+	// lockstep. This is deliberately identical to the decay-by-lag opacity
+	// set on the ghost root above: the two are separate elements, so their
+	// opacities multiply visually rather than one overwriting the other.
+	animation: bsb-fin-droplet-churn 0.9s ease-in-out var(--fin-delay)
+		infinite;
+}
+
+@keyframes bsb-fin-swim {
+	from {
+		transform: translateX(var(--fin-start, 0%));
+	}
+
+	to {
+		transform: translateX(var(--fin-end, 80%));
+	}
+}
+
+@keyframes bsb-fin-bob {
+	0%,
+	100% {
+		transform: translateY(1.5px) rotate(-2.2deg);
+	}
+
+	50% {
+		transform: translateY(-2.5px) rotate(2.6deg);
+	}
+}
+
+@keyframes bsb-fin-surface {
+	from {
+		opacity: 0;
+		transform: translateY(130%) rotate(-14deg) scale(0.85);
+	}
+
+	to {
+		opacity: 1;
+		transform: translateY(0) rotate(0deg) scale(1);
+	}
+}
+
+@keyframes bsb-fin-dive {
+	from {
+		opacity: 1;
+		transform: translateY(0) rotate(0deg) scale(1);
+	}
+
+	to {
+		opacity: 0;
+		transform: translateY(140%) rotate(16deg) scale(0.9);
+	}
+}
+
+@keyframes bsb-fin-foam {
+	0%,
+	100% {
+		transform: scaleX(1);
+		opacity: 0.85;
+	}
+
+	50% {
+		transform: scaleX(1.18);
+		opacity: 1;
+	}
+}
+
+@keyframes bsb-fin-splash {
+	from {
+		opacity: 0.9;
+		transform: scale(0.35);
+	}
+
+	to {
+		opacity: 0;
+		transform: scale(1.5);
+	}
+}
+
+@keyframes bsb-fin-droplet-churn {
+	0%,
+	100% {
+		opacity: 0.7;
+		transform: scaleX(1);
+	}
+
+	50% {
+		opacity: 1;
+		transform: scaleX(1.2);
+	}
+}
+
+// Pure decoration: the store's timer still runs and clears the swim on its
+// own schedule regardless, so hiding the fin outright costs nothing but the
+// visual flourish.
+@media (prefers-reduced-motion: reduce) {
+	.bsb-fin {
+		display: none;
+	}
+}
+
 // ── Brand + theme toggle ─────────────────────────────────────────────────────
 // Two-row grid: [mark] [title] [actions] on row 1, the subtitle on row 2 under
 // the title. The mark shares the title's row, so it sizes to the TITLE height

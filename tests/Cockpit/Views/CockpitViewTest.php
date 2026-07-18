@@ -127,6 +127,84 @@ final class CockpitViewTest extends TestCase {
 	}
 
 	/**
+	 * The Konami-code shark fin lives in the wave strip, between the mid and
+	 * front wave layers — the front foam sheet occludes its waterline by DOM
+	 * order alone, so no z-index is added. It ships hidden, bound to the
+	 * store's swim state, with its lane marked `aria-hidden` (purely
+	 * decorative). The wrapper also carries the sequence listener and the
+	 * watch that clears a live swim once the topbar stops showing it.
+	 */
+	public function test_render_includes_the_shark_fin(): void {
+		$markup = $this->render();
+
+		$this->assertStringContainsString( 'data-wp-init---shark="callbacks.initShark"', $markup );
+		$this->assertStringContainsString( 'data-wp-watch---shark-compact="callbacks.syncSharkCompact"', $markup );
+		$this->assertStringContainsString( 'class="bsb-deck__fin-lane" aria-hidden="true"', $markup );
+		$this->assertStringContainsString( 'class="bsb-fin" hidden data-wp-bind--hidden="!state.hasShark"', $markup );
+		$this->assertStringContainsString( 'data-wp-style----fin-start="state.sharkStartCss"', $markup );
+		$this->assertStringContainsString( 'data-wp-style----fin-end="state.sharkEndCss"', $markup );
+		$this->assertStringContainsString( 'data-wp-style----fin-total="state.sharkTotalCss"', $markup );
+		$this->assertStringContainsString( 'data-wp-style----fin-bob="state.sharkBobCss"', $markup );
+
+		// The fin lane sits between the mid and front wave layers in DOM order.
+		$mid_pos      = strpos( $markup, 'bsb-deck__wave--mid' );
+		$fin_lane_pos = strpos( $markup, 'bsb-deck__fin-lane' );
+		$front_pos    = strpos( $markup, 'bsb-deck__wave--front' );
+		$this->assertNotFalse( $mid_pos );
+		$this->assertNotFalse( $fin_lane_pos );
+		$this->assertNotFalse( $front_pos );
+		$this->assertTrue( $mid_pos < $fin_lane_pos );
+		$this->assertTrue( $fin_lane_pos < $front_pos );
+
+		// The readouts pill (and so the fin lane) renders twice — the deck's
+		// own pill and the compact topbar — so the fin markup appears twice.
+		$this->assertSame( 2, substr_count( $markup, 'class="bsb-fin" hidden' ) );
+	}
+
+	/**
+	 * The lead swimmer carries a one-shot splash ring (dive-only, matching
+	 * the approved motion mock) placed inside its riser after the foam, and
+	 * the trail is five ghost swimmers — matching the mock's decaying-wake
+	 * effect — each replaying the lead's own swim/bob/rise animations.
+	 */
+	public function test_render_wires_the_shark_fin_splash_and_five_ghost_trail(): void {
+		$markup = $this->render();
+
+		// The splash lives inside the LEAD swimmer's riser, after the foam —
+		// the ghosts carry no splash of their own.
+		$this->assertStringContainsString( '<span class="bsb-fin__foam"></span><span class="bsb-fin__splash"></span>', $markup );
+
+		foreach ( array( 'ghost1', 'ghost2', 'ghost3', 'ghost4', 'ghost5' ) as $ghost ) {
+			$this->assertStringContainsString(
+				'class="bsb-fin__swimmer bsb-fin__swimmer--' . $ghost . '"',
+				$markup
+			);
+		}
+
+		// No more than five ghosts — a sixth would silently exceed the mock's
+		// decaying-wake design.
+		$this->assertStringNotContainsString( 'bsb-fin__swimmer--ghost6', $markup );
+
+		// The splash appears twice (deck pill + compact topbar), same as the
+		// rest of the readouts pill.
+		$this->assertSame( 2, substr_count( $markup, 'bsb-fin__splash' ) );
+	}
+
+	/**
+	 * The fin's silhouette is filled with a vertical gradient defined inline
+	 * in its own SVG (an SVG `fill` referencing a gradient by id can't be set
+	 * from the stylesheet), matching the approved motion mock.
+	 */
+	public function test_render_wires_the_shark_fin_gradient_fill(): void {
+		$markup = $this->render();
+
+		$this->assertStringContainsString( '<linearGradient id="bsb-fin-grad" x1="0" y1="0" x2="0" y2="1">', $markup );
+		$this->assertStringContainsString( '<stop offset="0" stop-color="#1d5f78"/>', $markup );
+		$this->assertStringContainsString( '<stop offset="1" stop-color="#0b2d3c"/>', $markup );
+		$this->assertStringContainsString( 'fill="url(#bsb-fin-grad)"', $markup );
+	}
+
+	/**
 	 * Before a run the stage shows the startup postcard, not the iframe: the idle
 	 * screen is hidden while running and the viewport-wrap (shipped hidden) is
 	 * hidden while idle, so the benchmarked page never loads on the idle screen.

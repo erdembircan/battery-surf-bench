@@ -73,6 +73,20 @@ export interface InstanceState {
 	 * it already acted on, even a repeat of the same delta.
 	 */
 	sterilePageStepSeq: number | null;
+	/**
+	 * The live shark swim's clear timeout id — armed for the swim's total
+	 * duration plus the trail's longest delay, firing the clear — or null
+	 * when no shark is swimming.
+	 */
+	sharkTimer: number | null;
+	/** How many leading keys of the Konami sequence have matched so far. */
+	konamiProgress: number;
+	/**
+	 * The monotonic timestamp (from {@link now}) of the last Konami
+	 * keystroke, or null before any — a gap since this longer than
+	 * `KONAMI_TIMEOUT_MS` starts the sequence over.
+	 */
+	konamiLastKeyAt: number | null;
 }
 
 /**
@@ -100,6 +114,9 @@ const runInstance: InstanceState = {
 	barkLeaveTimer: null,
 	loadWatchdog: null,
 	sterilePageStepSeq: null,
+	sharkTimer: null,
+	konamiProgress: 0,
+	konamiLastKeyAt: null,
 };
 
 /**
@@ -128,6 +145,9 @@ export const __resetInstance = (): void => {
 	runInstance.barkLeaveTimer = null;
 	runInstance.loadWatchdog = null;
 	runInstance.sterilePageStepSeq = null;
+	runInstance.sharkTimer = null;
+	runInstance.konamiProgress = 0;
+	runInstance.konamiLastKeyAt = null;
 };
 
 /**

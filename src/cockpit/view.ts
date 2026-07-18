@@ -25,6 +25,8 @@
  *   view-only notice), its queue and lifecycle.
  * - {@link ./BarkStore}     — the playful pill shown over the top of the
  *   running viewport when the surf engine starts a novelty behavior.
+ * - {@link ./SharkStore}    — the Konami-code Easter egg: a dorsal fin that
+ *   swims across the compact topbar's wave strip.
  *
  * The heavy lifting lives below the slices in dedicated, unit-tested domains
  * (theme, target maths, config normalization, formatting, battery acquisition,
@@ -48,6 +50,7 @@ import { summaryStore } from './SummaryStore';
 import { startupStore } from './StartupStore';
 import { toastStore } from './ToastStore';
 import { barkStore } from './BarkStore';
+import { sharkStore } from './SharkStore';
 
 // Re-exported so the run-state singleton can be reset between tests through the
 // store's entry module, without the tests reaching into its private home.
@@ -65,6 +68,7 @@ store(
 		summaryStore,
 		startupStore,
 		toastStore,
-		barkStore
+		barkStore,
+		sharkStore
 	)
 );
