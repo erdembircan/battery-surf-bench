@@ -9,8 +9,8 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { buildGraph, type GraphViewport } from './DrainGraph';
-import type { Sample } from './DrainRate';
+import { buildGraph, type GraphViewport } from '@/cockpit/DrainGraph';
+import type { Sample } from '@/cockpit/DrainRate';
 
 const VP: GraphViewport = {
 	width: 480,

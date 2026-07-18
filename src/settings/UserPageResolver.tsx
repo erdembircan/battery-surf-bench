@@ -23,7 +23,7 @@
 
 import { useEntityRecords } from '@wordpress/core-data';
 import { useEffect } from '@wordpress/element';
-import type { ContentRecord, ResolvedUserPage } from './Types';
+import type { ContentRecord, ResolvedUserPage } from '@/settings/Types';
 
 /** Largest `include` list a single REST request is allowed. */
 const CHUNK_SIZE = 100;

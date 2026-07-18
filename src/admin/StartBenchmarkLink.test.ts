@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { upgradeStartBenchmarkLink } from './StartBenchmarkLink';
+import { upgradeStartBenchmarkLink } from '@/admin/StartBenchmarkLink';
 
 const config = {
 	menuSlug: 'bsb-start-benchmark',

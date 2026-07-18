@@ -1,20 +1,24 @@
 import { describe, it, expect, vi } from 'vitest';
-import { SurfLoop, MOVE_ON_DISPLAY_MS } from './SurfLoop';
-import type { Behavior, BehaviorContext, BehaviorAnnounce } from './Behavior';
-import type { Motor } from './Motor';
-import { FakeMotor } from './FakeMotor';
-import { FakeClock } from './FakeClock';
-import { mulberry32 } from './Rng';
-import { ScrollBurst } from './Behaviors/ScrollBurst';
-import { ReadPause } from './Behaviors/ReadPause';
-import { GlanceBack } from './Behaviors/GlanceBack';
-import { WatchVideo } from './Behaviors/WatchVideo';
-import { LingerImage } from './Behaviors/LingerImage';
-import { FidgetWiggle } from './Behaviors/FidgetWiggle';
-import { MicroScroll } from './Behaviors/MicroScroll';
-import { SelectSnippet } from './Behaviors/SelectSnippet';
-import { MoveOn, MIN_DWELL_MS, MOVE_ON_KEY } from './Behaviors/MoveOn';
-import { openAffordances } from './TestFixtures';
+import { SurfLoop, MOVE_ON_DISPLAY_MS } from '@/surfer/SurfLoop';
+import type {
+	Behavior,
+	BehaviorContext,
+	BehaviorAnnounce,
+} from '@/surfer/Behavior';
+import type { Motor } from '@/surfer/Motor';
+import { FakeMotor } from '@/surfer/FakeMotor';
+import { FakeClock } from '@/surfer/FakeClock';
+import { mulberry32 } from '@/surfer/Rng';
+import { ScrollBurst } from '@/surfer/Behaviors/ScrollBurst';
+import { ReadPause } from '@/surfer/Behaviors/ReadPause';
+import { GlanceBack } from '@/surfer/Behaviors/GlanceBack';
+import { WatchVideo } from '@/surfer/Behaviors/WatchVideo';
+import { LingerImage } from '@/surfer/Behaviors/LingerImage';
+import { FidgetWiggle } from '@/surfer/Behaviors/FidgetWiggle';
+import { MicroScroll } from '@/surfer/Behaviors/MicroScroll';
+import { SelectSnippet } from '@/surfer/Behaviors/SelectSnippet';
+import { MoveOn, MIN_DWELL_MS, MOVE_ON_KEY } from '@/surfer/Behaviors/MoveOn';
+import { openAffordances } from '@/surfer/TestFixtures';
 
 const neutralRng = () => 0.5;
 

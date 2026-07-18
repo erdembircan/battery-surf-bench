@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { whenDocumentLoaded } from './PageLoad';
+import { whenDocumentLoaded } from '@/surfer/PageLoad';
 
 /**
  * jsdom's `document.readyState` is a getter with no setter; redefining the

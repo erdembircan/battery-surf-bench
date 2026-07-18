@@ -1,4 +1,4 @@
-import { type BatteryOverrideState } from '../cockpit/BatteryOverride';
+import { type BatteryOverrideState } from '@/cockpit/BatteryOverride';
 
 export interface EffectiveOverrideSource {
 	battery: BatteryOverrideState;

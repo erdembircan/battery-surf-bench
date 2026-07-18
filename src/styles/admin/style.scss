@@ -1,0 +1,50 @@
+/*
+ * Paints the plugin's admin-menu icon, and the admin-bar "Start Benchmark"
+ * button's icon.
+ *
+ * The menu is registered with the icon set to `none` (see `admin_menu.icon` in
+ * Config.php), so WordPress leaves `div.wp-menu-image` empty and lets the icon
+ * be supplied with CSS. We render the surfer-battery SVG here as a CSS mask
+ * tinted with `currentColor`.
+ *
+ * WordPress already sets the colour of `div.wp-menu-image:before` for every
+ * admin colour scheme and menu state (default, hover, current). By drawing the
+ * icon through that same pseudo-element and filling it with `currentColor`, the
+ * icon inherits those exact colours and behaves like a native Dashicon —
+ * matching the neighbouring menu icons instead of showing a fixed grey bitmap.
+ *
+ * The slug-derived id (`#toplevel_page_{slug}`, from `admin_menu.slug` in
+ * Config.php) must stay in sync with the menu slug.
+ *
+ * The icon is drawn at 30px rather than the 20px of a stock Dashicon: the
+ * surfer-battery mark carries more detail than a single-glyph Dashicon, so it
+ * needs the extra size to stay legible in the sidebar. Its `viewBox` is
+ * cropped to the artwork's bounds so the figure fills that space.
+ */
+#toplevel_page_battery-surf-bench .wp-menu-image::before {
+	content: "";
+	display: block;
+	width: 36px;
+	height: 34px;
+	background-color: currentColor;
+	-webkit-mask: url("../../../assets/images/menu-icon.svg") no-repeat center / 30px auto;
+	mask: url("../../../assets/images/menu-icon.svg") no-repeat center / 30px auto;
+	transition: background-color .1s ease-in-out;
+}
+
+// The admin-bar "Start Benchmark" launcher: the same surfer-battery mark as the
+// sidebar menu, painted before the toolbar label so the button reads as this
+// plugin's benchmark launcher rather than a bare text link. currentColor makes
+// it inherit the toolbar's text colour (and its hover/focus brightening) exactly
+// like a native toolbar icon.
+#wpadminbar #wp-admin-bar-bsb-start-benchmark > .ab-item::before {
+	content: "";
+	display: inline-block;
+	width: 20px;
+	height: 20px;
+	margin-right: 5px;
+	vertical-align: middle;
+	background-color: currentColor;
+	-webkit-mask: url("../../../assets/images/menu-icon.svg") no-repeat center / contain;
+	mask: url("../../../assets/images/menu-icon.svg") no-repeat center / contain;
+}

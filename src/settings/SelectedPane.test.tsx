@@ -11,7 +11,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import type { SequenceRow } from './Types';
+import type { SequenceRow } from '@/settings/Types';
 
 // `isDragging` only ever flips true from inside a real pointer/keyboard drag
 // gesture, which jsdom cannot meaningfully simulate (dnd-kit's sensors lean on
@@ -43,7 +43,7 @@ vi.mock( '@dnd-kit/sortable', async () => {
 	};
 } );
 
-const { SelectedPane } = await import( './SelectedPane' );
+const { SelectedPane } = await import( '@/settings/SelectedPane' );
 
 const bundledRow: SequenceRow = {
 	key: 'bundled:article-1',

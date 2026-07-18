@@ -53,6 +53,10 @@ export default defineConfig( {
 				find: /^@wordpress\/dataviews$/,
 				replacement: dataviewsSelfContained,
 			},
+			{
+				find: /^@\//,
+				replacement: path.resolve( process.cwd(), 'src' ) + '/',
+			},
 		],
 	},
 	test: {

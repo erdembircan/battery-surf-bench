@@ -2,7 +2,7 @@
  * The discharge-simulation sub-tool's pure model: linearly interpolates a
  * battery level between a start and end percentage over a chosen duration.
  * Kept free of any store/DOM dependency so the maths can be unit-tested in
- * isolation — the store slice ({@link ./DischargeSimStore}) only evaluates
+ * isolation — the store slice ({@link ./store/DischargeSimStore}) only evaluates
  * this against a live clock and writes the result into the battery-override
  * seam; it holds no simulation logic of its own.
  *

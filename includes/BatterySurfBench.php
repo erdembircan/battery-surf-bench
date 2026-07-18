@@ -11,9 +11,15 @@ use ErdemBircan\BatterySurfBench\Admin\SessionsScreen;
 use ErdemBircan\BatterySurfBench\Admin\SettingsScreen;
 use ErdemBircan\BatterySurfBench\Admin\StartBenchmark;
 use ErdemBircan\BatterySurfBench\Cockpit\Cockpit;
+use ErdemBircan\BatterySurfBench\Container\Definitions;
+use ErdemBircan\BatterySurfBench\Container\DefinitionsSource;
+use ErdemBircan\BatterySurfBench\Container\InstanceStore;
+use ErdemBircan\BatterySurfBench\Container\Instantiator;
+use ErdemBircan\BatterySurfBench\Container\Registry;
 use ErdemBircan\BatterySurfBench\Content\SessionDetail;
 use ErdemBircan\BatterySurfBench\Content\SessionRestQuery;
 use ErdemBircan\BatterySurfBench\Content\SessionType;
+use ErdemBircan\BatterySurfBench\Core\I18n;
 use ErdemBircan\BatterySurfBench\Course\CourseRouter;
 use ErdemBircan\BatterySurfBench\DevTools\DevTools;
 use ErdemBircan\BatterySurfBench\Settings\OptionRegistry;
@@ -63,22 +69,24 @@ class BatterySurfBench {
 	 * manager through the instantiator.
 	 *
 	 * The service recipes load from the build-time compiled artifact —
-	 * {@see ContainerCompiler}, run by `bin/BuildContainer.php`, pre-resolves
-	 * every `%token%` recipe value against the registry so the runtime never
-	 * has to — only outside a development environment, gated via
-	 * {@see DefinitionsSource} against `wp_get_environment_type()` the same
-	 * way {@see \ErdemBircan\BatterySurfBench\DevTools\DevTools} gates
-	 * itself; a stale compiled artifact left on disk in `local`/`development`
-	 * would otherwise silently shadow live edits to `Services.php`. Anywhere
-	 * else the compiled artifact is used when readable, the same
-	 * `is_readable()`-guarded pattern {@see Assets::manifest()} uses for its
-	 * own generated build artifact — falling back to the live, token-bearing
-	 * `Services.php` otherwise.
+	 * {@see \ErdemBircan\BatterySurfBench\Container\ContainerCompiler}, run by
+	 * `bin/BuildContainer.php`, pre-resolves every `%token%` recipe value
+	 * against the registry so the runtime never has to — only outside a
+	 * development environment, gated via {@see DefinitionsSource} against
+	 * `wp_get_environment_type()` the same way
+	 * {@see \ErdemBircan\BatterySurfBench\DevTools\DevTools} gates itself; a
+	 * stale compiled artifact left on disk in `local`/`development` would
+	 * otherwise silently shadow live edits to `Services.php`. Anywhere else
+	 * the compiled artifact is used when readable, the same
+	 * `is_readable()`-guarded pattern
+	 * {@see \ErdemBircan\BatterySurfBench\Core\Assets::manifest()} uses for
+	 * its own generated build artifact — falling back to the live,
+	 * token-bearing `Services.php` otherwise.
 	 */
 	public function init(): void {
-		$registry = new Registry( require __DIR__ . '/Config.php' );
+		$registry = new Registry( require __DIR__ . '/Core/Config.php' );
 		$compiled = __DIR__ . '/../build/Services.compiled.php';
-		$live     = __DIR__ . '/Services.php';
+		$live     = __DIR__ . '/Container/Services.php';
 
 		$use_compiled = ( new DefinitionsSource() )->prefers_compiled(
 			wp_get_environment_type(),

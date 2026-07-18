@@ -6,11 +6,11 @@
  * treat every behavior identically regardless of what it does when it wins.
  */
 
-import type { Rng } from './Rng';
-import type { Clock } from './Clock';
-import type { Affordances } from './Affordances';
-import type { Motor } from './Motor';
-import { STATS, type StatKey } from '../shared/SurferStats';
+import type { Rng } from '@/surfer/Rng';
+import type { Clock } from '@/surfer/Clock';
+import type { Affordances } from '@/surfer/Affordances';
+import type { Motor } from '@/surfer/Motor';
+import { STATS, type StatKey } from '@/shared/SurferStats';
 
 /**
  * Index of each stat within the trait vector, derived from the shared

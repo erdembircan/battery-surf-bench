@@ -10,7 +10,8 @@
  * config builds the cockpit's Interactivity API view as an ES module with
  * `@wordpress/interactivity` externalized. Both are returned untouched apart
  * from the script config's explicit entry points, the module config's added
- * dev-tools entry, and the DataViews stylesheet alias, so blocks, modules and
+ * dev-tools entry, the DataViews stylesheet alias, and the `@` → `src` path
+ * alias (mirroring the TypeScript/Vitest configs), so blocks, modules and
  * bundles all bind to WordPress's own packages.
  *
  * The dev-tools view module (`src/devtools/view.ts`) is not tied to a
@@ -51,6 +52,7 @@ const customScriptConfig = {
 		'admin-menu': path.resolve(
 			process.cwd(),
 			'src',
+			'styles',
 			'admin',
 			'style.scss'
 		),
@@ -60,17 +62,25 @@ const customScriptConfig = {
 			'admin',
 			'StartBenchmarkLink.ts'
 		),
-		course: path.resolve( process.cwd(), 'src', 'course', 'style.scss' ),
+		course: path.resolve(
+			process.cwd(),
+			'src',
+			'styles',
+			'course',
+			'style.scss'
+		),
 		surfer: path.resolve( process.cwd(), 'src', 'surfer', 'index.ts' ),
 		'cockpit-dashboard': path.resolve(
 			process.cwd(),
 			'src',
+			'styles',
 			'cockpit',
 			'style.scss'
 		),
 		devtools: path.resolve(
 			process.cwd(),
 			'src',
+			'styles',
 			'devtools',
 			'style.scss'
 		),
@@ -80,6 +90,7 @@ const customScriptConfig = {
 		alias: {
 			...scriptConfig.resolve?.alias,
 			'dataviews-style.css': dataviewsStyle,
+			'@': path.resolve( process.cwd(), 'src' ),
 		},
 	},
 	module: {
@@ -109,14 +120,25 @@ const devtoolsViewEntry = path.resolve(
 // would silently discard that function and, with it, every block-derived entry
 // it would have found, so it is called through instead and its result merged.
 const customModuleConfigs = moduleConfigs.map( ( moduleConfig, index ) => {
+	const withAlias = {
+		...moduleConfig,
+		resolve: {
+			...moduleConfig.resolve,
+			alias: {
+				...moduleConfig.resolve?.alias,
+				'@': path.resolve( process.cwd(), 'src' ),
+			},
+		},
+	};
+
 	if ( index !== 0 ) {
-		return moduleConfig;
+		return withAlias;
 	}
 
 	const originalEntry = moduleConfig.entry;
 
 	return {
-		...moduleConfig,
+		...withAlias,
 		entry: async () => {
 			const resolved =
 				typeof originalEntry === 'function'

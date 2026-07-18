@@ -10,7 +10,7 @@ declare( strict_types=1 );
 namespace ErdemBircan\BatterySurfBench\Tests\Support;
 
 use Brain\Monkey\Functions;
-use ErdemBircan\BatterySurfBench\Assets;
+use ErdemBircan\BatterySurfBench\Core\Assets;
 use ErdemBircan\BatterySurfBench\Support\StandaloneChrome;
 use ErdemBircan\BatterySurfBench\Tests\TestCase;
 use Mockery;

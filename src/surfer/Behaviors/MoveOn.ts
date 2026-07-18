@@ -10,8 +10,8 @@
  * ends the page session instead of calling `run`.
  */
 
-import type { Behavior } from '../Behavior';
-import { clamp01 } from '../Bid';
+import type { Behavior } from '@/surfer/Behavior';
+import { clamp01 } from '@/surfer/Bid';
 
 /** The key `SurfLoop` watches for to know the page session is over. */
 export const MOVE_ON_KEY = 'moveOn';

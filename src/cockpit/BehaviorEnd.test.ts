@@ -3,7 +3,7 @@ import {
 	isBehaviorEndMessage,
 	behaviorEndKeyOf,
 	BEHAVIOR_END_TYPE,
-} from './BehaviorEnd';
+} from '@/cockpit/BehaviorEnd';
 
 const ORIGIN = 'https://example.test';
 

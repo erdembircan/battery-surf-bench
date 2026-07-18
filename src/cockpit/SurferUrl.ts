@@ -5,8 +5,8 @@
  * the iframe.
  */
 
-import { normalizeTraits } from '../shared/SurferStats';
-import { normalizeSpeed } from './RunConfig';
+import { normalizeTraits } from '@/shared/SurferStats';
+import { normalizeSpeed } from '@/cockpit/RunConfig';
 
 /** URL param carrying the comma-separated trait vector. */
 export const TRAITS_PARAM = 'bsbTraits';

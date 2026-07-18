@@ -12,12 +12,12 @@ import { describe, it, expect } from 'vitest';
 import { render, screen, cleanup } from '@testing-library/react';
 import { createElement } from 'react';
 import type { Field } from '@wordpress/dataviews';
-import { buildFields } from './Fields';
+import { buildFields } from '@/sessions/Fields';
 import type {
 	SessionFieldDescriptor,
 	SessionFieldFormat,
 	SessionRecord,
-} from './Types';
+} from '@/sessions/Types';
 
 /**
  * Builds a single-descriptor field set and returns the descriptor's field

@@ -16,7 +16,7 @@
 
 import apiFetch from '@wordpress/api-fetch';
 import { useEffect, useRef, useState } from '@wordpress/element';
-import type { SearchRecord } from './Types';
+import type { SearchRecord } from '@/settings/Types';
 
 /** The args a Browse pane query is built from. */
 export interface SearchQueryArgs {

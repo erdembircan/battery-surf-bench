@@ -6,7 +6,7 @@ import {
 	pageSlugAt,
 	SURF_BEHAVIOR_KEYS,
 	CAUTION_KEY,
-} from './SurfSteer';
+} from '@/devtools/SurfSteer';
 
 describe( 'SURF_BEHAVIOR_KEYS', () => {
 	it( 'lists the nine behaviors in EngineBoot’s own boot order', () => {

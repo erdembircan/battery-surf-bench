@@ -8,7 +8,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { SampleLog } from './SampleLog';
+import { SampleLog } from '@/cockpit/SampleLog';
 
 describe( 'SampleLog', () => {
 	it( 'collapses a repeated level into one record at its leading edge', () => {

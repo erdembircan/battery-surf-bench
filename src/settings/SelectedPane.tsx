@@ -34,7 +34,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { Spinner } from '@wordpress/components';
 import { useEffect, useRef, useState } from '@wordpress/element';
 import { __, sprintf } from '@wordpress/i18n';
-import type { OrderEntry, RowBadge, SequenceRow } from './Types';
+import type { OrderEntry, RowBadge, SequenceRow } from '@/settings/Types';
 
 /** How long the collapse animation runs before the row is actually removed — matches {@link COLLAPSE_TRANSITION}. */
 const REMOVE_ANIMATION_MS = 190;

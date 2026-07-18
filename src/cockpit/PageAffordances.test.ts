@@ -3,7 +3,7 @@ import {
 	isPageAffordancesMessage,
 	affordancesOf,
 	PAGE_AFFORDANCES_TYPE,
-} from './PageAffordances';
+} from '@/cockpit/PageAffordances';
 
 const ORIGIN = 'https://example.test';
 

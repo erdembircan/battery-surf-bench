@@ -4,10 +4,14 @@
  * be text on the page to select in the first place.
  */
 
-import type { Behavior, BehaviorContext, BehaviorAnnounce } from '../Behavior';
-import { FIDGET } from '../Behavior';
-import type { Motor } from '../Motor';
-import { drive, noise } from '../Bid';
+import type {
+	Behavior,
+	BehaviorContext,
+	BehaviorAnnounce,
+} from '@/surfer/Behavior';
+import { FIDGET } from '@/surfer/Behavior';
+import type { Motor } from '@/surfer/Motor';
+import { drive, noise } from '@/surfer/Bid';
 
 export const SELECT_SNIPPET_KEY = 'selectSnippet';
 

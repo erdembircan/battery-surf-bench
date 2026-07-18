@@ -14,8 +14,8 @@
  */
 
 import type { Field } from '@wordpress/dataviews';
-import type { SessionFieldDescriptor, SessionRecord } from './Types';
-import { formatUserAgent } from './UserAgent';
+import type { SessionFieldDescriptor, SessionRecord } from '@/sessions/Types';
+import { formatUserAgent } from '@/sessions/UserAgent';
 
 /**
  * Reads a session's raw meta value for a descriptor.

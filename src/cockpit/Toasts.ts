@@ -8,14 +8,14 @@
  * This module owns the data, not the animation: it writes the current toast and
  * its phase onto the reactive context (so the bound pill renders and the CSS
  * plays the enter/leave animation) and holds the pending queue off-context in
- * the per-instance state. The store slice ({@link ./ToastStore}) drives the
+ * the per-instance state. The store slice ({@link ./store/ToastStore}) drives the
  * phase transitions from the pill's `animationend`. Keeping the queue logic here
  * — pure over an injected context and queue — lets it be unit-tested without the
  * Interactivity runtime or the DOM.
  */
 
-import { type CockpitContext, type ToastKind } from './CockpitContext';
-import { type InstanceState } from './RunInstance';
+import { type CockpitContext, type ToastKind } from '@/cockpit/CockpitContext';
+import { type InstanceState } from '@/cockpit/RunInstance';
 
 /**
  * How long a toast rests on screen, in milliseconds, before it leaves on its

@@ -20,10 +20,10 @@
  */
 
 import { getConfig } from '@wordpress/interactivity';
-import { type RunSummary } from './RunSession';
-import { type RleSample } from './SampleLog';
-import { type RunEndReason } from './CockpitContext';
-import { type RunMode } from './RunConfig';
+import { type RunSummary } from '@/cockpit/RunSession';
+import { type RleSample } from '@/cockpit/SampleLog';
+import { type RunEndReason } from '@/cockpit/CockpitContext';
+import { type RunMode } from '@/cockpit/RunConfig';
 
 /**
  * The session meta keys, mirroring the prefixed keys `SessionSchema` registers

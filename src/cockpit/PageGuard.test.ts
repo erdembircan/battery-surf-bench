@@ -14,7 +14,7 @@ import {
 	isBlankFrame,
 	isCoursePageLoaded,
 	viewportFailed,
-} from './PageGuard';
+} from '@/cockpit/PageGuard';
 
 /**
  * A fake `Document` exposing only what the guard reads: `querySelector` (for

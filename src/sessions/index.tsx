@@ -12,10 +12,10 @@
  */
 
 import { createRoot } from '@wordpress/element';
-import { ErrorBoundary } from '../shared/ErrorBoundary';
-import { SessionsApp } from './App';
+import { ErrorBoundary } from '@/shared/ErrorBoundary';
+import { SessionsApp } from '@/sessions/App';
 import 'dataviews-style.css';
-import './style.scss';
+import '@/styles/sessions/style.scss';
 
 const container = document.getElementById( 'bsb-sessions-app' );
 

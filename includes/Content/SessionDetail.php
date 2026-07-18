@@ -7,9 +7,9 @@
 
 namespace ErdemBircan\BatterySurfBench\Content;
 
-use ErdemBircan\BatterySurfBench\Assets;
 use ErdemBircan\BatterySurfBench\Cockpit\SummaryReasons;
 use ErdemBircan\BatterySurfBench\Cockpit\Views\SessionDetailView;
+use ErdemBircan\BatterySurfBench\Core\Assets;
 use ErdemBircan\BatterySurfBench\Support\CapabilityInterface;
 use ErdemBircan\BatterySurfBench\Support\Manager;
 use WP_Post;

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { DomMotor } from './Motor';
-import { FakeCursor, SURFING_CLASS, type Point } from './FakeCursor';
-import { mulberry32 } from './Rng';
+import { DomMotor } from '@/surfer/Motor';
+import { FakeCursor, SURFING_CLASS, type Point } from '@/surfer/FakeCursor';
+import { mulberry32 } from '@/surfer/Rng';
 
 /** An instant frame source, for tests that would otherwise wait on real rAF ticks. */
 const instantFrames = (): Promise< void > => Promise.resolve();

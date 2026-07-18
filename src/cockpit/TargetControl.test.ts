@@ -14,7 +14,7 @@ import {
 	targetFromPointer,
 	targetColor,
 	TARGET_MAX,
-} from './TargetControl';
+} from '@/cockpit/TargetControl';
 
 describe( 'targetCap', () => {
 	it( 'falls back to the nominal max until the level is known', () => {

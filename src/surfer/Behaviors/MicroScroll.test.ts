@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { MicroScroll } from './MicroScroll';
-import { makeContext } from '../TestFixtures';
-import { FakeMotor } from '../FakeMotor';
-import { DRIVE_FLOOR } from '../Bid';
-import { MAX } from '../../shared/SurferStats';
+import { MicroScroll } from '@/surfer/Behaviors/MicroScroll';
+import { makeContext } from '@/surfer/TestFixtures';
+import { FakeMotor } from '@/surfer/FakeMotor';
+import { DRIVE_FLOOR } from '@/surfer/Bid';
+import { MAX } from '@/shared/SurferStats';
 
 describe( 'MicroScroll.bid', () => {
 	it( 'still bids a small, nonzero floor at fidget 0', () => {

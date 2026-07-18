@@ -1,0 +1,3102 @@
+/*
+ * Cockpit dashboard styles.
+ *
+ * A two-pane control deck: a sidebar of run controls on the left, a surf stage
+ * holding the viewport iframe on the right. The deck ships two themes — Coastal
+ * Daybreak (light, default) and Dusk Lineup (dark) — selectable with the deck's
+ * light/dark toggle. Every colour is a CSS custom property set per theme on the
+ * block wrapper (`[data-theme]`), so the components below are theme-agnostic.
+ * This is the only stylesheet the stripped dashboard route loads, so it carries
+ * its own reset and web fonts (via @font-face, adding no extra stylesheet link).
+ */
+
+@use 'sass:color';
+@use 'sass:math';
+@use 'sass:list';
+@use '../theme/theme' as theme;
+@use '../theme/toast';
+
+$deck-width: clamp(300px, 28vw, 372px);
+$ease: cubic-bezier(0.22, 1, 0.36, 1);
+$compact-dur: 0.42s;
+
+// The cockpit dashboard is served as a standalone document, so its own body
+// drops the default margin and fills the viewport. Scoped to that body's class
+// (set by the dashboard view) rather than a bare `html, body` reset, so the same
+// stylesheet can also dress the session detail screen inside wp-admin without
+// disturbing the admin's own body layout.
+body.bsb-cockpit-dashboard {
+	margin: 0;
+	min-height: 100vh;
+}
+
+// ── Theme tokens ─────────────────────────────────────────────────────────────
+// Default = Coastal Daybreak (light). `[data-theme='dark']` = Dusk Lineup.
+.wp-block-bsb-cockpit {
+	@include theme.tokens;
+
+	display: grid;
+	// Deck hidden by default so a freshly rendered cockpit — always the startup
+	// front — paints with the deck tucked away and no hydration flash. The client
+	// adds `is-deck-shown` once a run is live or the startup card is flipped.
+	grid-template-columns: 0 1fr;
+	height: 100vh;
+	overflow: hidden;
+	position: relative;
+	font-family: theme.$font-ui;
+	color: var(--text);
+	-webkit-font-smoothing: antialiased;
+	transition: grid-template-columns $compact-dur $ease;
+
+	// Shown: the deck takes its column back (startup card flipped, or a run live).
+	&.is-deck-shown {
+		grid-template-columns: $deck-width 1fr;
+	}
+
+	// Compact re-collapses the deck mid-run even though it is "shown" (the
+	// readouts move to the top pill); the extra class wins on specificity.
+	&.is-deck-shown.is-compact {
+		grid-template-columns: 0 1fr;
+	}
+
+	*,
+	*::before,
+	*::after {
+		box-sizing: border-box;
+	}
+}
+
+// ── Control deck (left) ──────────────────────────────────────────────────────
+.bsb-cockpit__deck {
+	position: relative;
+	// Lift the deck above the stage so its right-edge shadow falls onto the
+	// viewport/idle screen, keeping the sidebar visually separate from a light
+	// page being benchmarked (which would otherwise blend into the light deck).
+	z-index: 2;
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+	// Hold the deck at full width so its content never reflows (the brand text
+	// re-wrapping word by word) while the grid column animates to zero — it
+	// slides out as a whole instead of being squeezed.
+	min-width: $deck-width;
+	padding: 1.6rem 1.5rem 1.4rem;
+	overflow: hidden;
+	color: var(--text);
+	background: var(--deck-bg);
+	box-shadow: 2px 0 8px -5px rgba(0, 20, 40, 0.14);
+	// Tucked off-screen by default (see the grid note above), so the startup
+	// front paints with no deck and no slide-out flash on load.
+	transform: translateX(-100%);
+	pointer-events: none;
+	transition: transform $compact-dur $ease;
+
+	// Shown: slide in, in step with the column expanding. The translation
+	// magnitude tracks the column width, so the deck's right edge stays flush
+	// with the stage's left edge — no gap, no overlap, no reflow.
+	.wp-block-bsb-cockpit.is-deck-shown & {
+		transform: translateX(0);
+		pointer-events: auto;
+	}
+
+	// Compact re-tucks the deck mid-run even while shown (extra class wins).
+	.wp-block-bsb-cockpit.is-deck-shown.is-compact & {
+		transform: translateX(-100%);
+		pointer-events: none;
+	}
+}
+
+// ── Readouts pill — the deck's live "it's working" panel (shown while running) ─
+.bsb-deck__status {
+	position: relative;
+	z-index: 1;
+	overflow: hidden;
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+	padding: 1rem 1.1rem 1.5rem;
+	border-radius: 16px;
+	color: var(--status-ink);
+	background: var(--status-grad);
+	// A soft, lifted glow rather than a tight blocky drop. Negative spread keeps
+	// the lateral reach (~20px) inside the deck's available padding so it fades
+	// out smoothly instead of being clipped flush at the edge.
+	box-shadow:
+		0 18px 36px -16px var(--status-cast),
+		0 6px 14px -8px rgba(0, 0, 0, 0.2),
+		inset 0 0 0 1px var(--status-ring);
+}
+
+.bsb-deck__status-head {
+	position: relative;
+	z-index: 1;
+	display: flex;
+	align-items: center;
+	gap: 0.55rem;
+}
+
+.bsb-deck__status-dot {
+	flex: 0 0 auto;
+	width: 0.55rem;
+	height: 0.55rem;
+	border-radius: 50%;
+	background: var(--status-dot);
+	box-shadow: 0 0 12px var(--status-dot);
+	animation: bsb-pulse 1.4s ease-in-out infinite;
+
+	// Sterile: the dot turns coral instead of the default amber/sun — the one
+	// visible departure on the status head besides the chip itself.
+	&.is-sterile {
+		background: theme.$coastal-coral;
+		box-shadow: 0 0 12px theme.$coastal-coral;
+	}
+}
+
+.bsb-deck__status-text {
+	font-size: 0.7rem;
+	font-weight: 700;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+}
+
+// The "Sterile" flag riding the status text — a small uppercase tag, coral
+// tinted on the teal status-head pill. Shown only while the live run is
+// sterile; appears identically in both the deck's own pill and the compact
+// topbar, since both interpolate the same status-head snippet.
+.bsb-deck__sterile-chip {
+	display: inline-block;
+	margin-left: 0.45rem;
+	padding: 0.1rem 0.4rem 0.12rem;
+	border-radius: 4px;
+	background: rgba(255, 122, 92, 0.25);
+	box-shadow: inset 0 0 0 1px rgba(255, 200, 185, 0.55);
+	color: #ffe3da;
+	letter-spacing: 0.14em;
+
+	// This selector sets its own `display`, which overrides the user-agent
+	// `display: none` that `[hidden]` would otherwise apply on its own — the
+	// same trap as `.bsb-devtools__card-reset`'s guard. Re-assert
+	// `display: none` explicitly so `[hidden]` wins.
+	&[hidden] {
+		display: none;
+	}
+}
+
+.bsb-deck__clock {
+	font-family: theme.$font-mono;
+	font-variant-numeric: tabular-nums;
+}
+
+// readouts grid inside the pill
+.bsb-deck__readouts {
+	position: relative;
+	z-index: 1;
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 0.5rem 1rem;
+}
+
+.bsb-stat__label {
+	display: block;
+	font-size: 0.56rem;
+	font-weight: 700;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	color: var(--status-ink);
+	opacity: 0.62;
+}
+
+.bsb-stat__value {
+	display: block;
+	margin-top: 0.15rem;
+	font-family: theme.$font-mono;
+	font-size: 1.45rem;
+	font-weight: 700;
+	line-height: 1.05;
+	color: var(--status-ink);
+	font-variant-numeric: tabular-nums;
+}
+
+.bsb-stat__value--lg {
+	display: flex;
+	align-items: center;
+	gap: 0.4rem;
+	font-size: 1.9rem;
+}
+
+.bsb-stat__unit {
+	font-size: 0.72rem;
+	opacity: 0.7;
+}
+
+// charging bolt — shown beside the battery % only while charging
+.bsb-stat__bolt {
+	width: 0.7rem;
+	height: 1rem;
+	display: none;
+	background: var(--status-dot);
+	filter: drop-shadow(0 0 5px var(--status-dot));
+	clip-path: polygon(55% 0, 0 58%, 42% 58%, 30% 100%, 100% 38%, 55% 38%);
+}
+
+.bsb-stat--battery.is-charging .bsb-stat__bolt {
+	display: block;
+}
+
+// ── Parallax waves inside the surfing indicator ─────────────────────────────
+// Three layers scroll at different speeds, heights and opacities for depth. The
+// scroll rate is divided by `--bsb-wave-speed` (the run's demo-speed multiplier,
+// bound from the store), so a 4×/10× run visibly churns the water faster.
+.bsb-deck__waves {
+	position: absolute;
+	inset-inline: 0;
+	bottom: 0;
+	height: 46px;
+	overflow: hidden;
+	pointer-events: none;
+	z-index: 0;
+}
+
+.bsb-deck__wave {
+	position: absolute;
+	inset-inline: 0;
+	bottom: 0;
+	background-repeat: repeat-x;
+	background-position: bottom;
+	background-size: 200px 100%;
+	animation: bsb-wave 12s linear infinite;
+}
+
+.bsb-deck__wave--back {
+	height: 44px;
+	opacity: 0.7;
+	animation-duration: calc(20s / var(--bsb-wave-speed, 1));
+	background-image: var(--wave-back);
+}
+
+.bsb-deck__wave--mid {
+	height: 34px;
+	animation-duration: calc(13s / var(--bsb-wave-speed, 1));
+	animation-direction: reverse;
+	background-image: var(--wave-mid);
+}
+
+.bsb-deck__wave--front {
+	height: 24px;
+	animation-duration: calc(8s / var(--bsb-wave-speed, 1));
+	background-image: var(--wave-front);
+}
+
+// ── Shark-fin Easter egg ─────────────────────────────────────────────────────
+// The Konami-code shark, cruising the compact topbar's wave strip. The fin
+// lane sits between the `--mid` and `--front` wave layers IN THE MARKUP (see
+// CockpitView), so the front foam sheet naturally occludes the fin's
+// waterline by DOM order alone — absolute siblings stack by source position,
+// so no z-index is needed here either.
+//
+// The store (SharkStore/Shark) plans a swim — a random surfacing point, a
+// random diving point, a total duration — and writes it onto the context as
+// three plain values the state getters format into `--fin-start`/`--fin-end`/
+// `--fin-total`; this stylesheet never measures anything. `.bsb-fin` is
+// `hidden` between swims, and un-hiding it is itself what restarts its CSS
+// animations from their first frame — no generation/keyframe-name
+// alternation is needed the way the bark's ebbing tide needs one, because
+// only one swim ever shows at a time.
+//
+// The trail is pure CSS, sampling nothing in JS: `--ghost1` through
+// `--ghost5` replay the IDENTICAL swim/bob/rise animations as the lead fin,
+// each with its own positive `animation-delay`. At any instant a ghost is
+// simply wherever the lead fin itself was that many milliseconds ago, so the
+// trail traces the TRUE swim path — bob and dive included — with zero
+// sampling logic. Each ghost is also fainter and smaller than the last (set
+// on the ghost root, which is what makes the fixed-lag ghosts read as a
+// decaying wake rather than a row of identical beads), and its droplet plays
+// a shared churn flicker phase-offset by the same delay — the ghost's own
+// opacity (decay) and the churn's opacity (flicker) sit on different
+// elements, so they multiply visually rather than fighting over one value.
+// The lead fin also fires a one-shot splash ring at the waterline on the
+// dive only (never on surfacing) — see `.bsb-fin__splash` below.
+.bsb-deck__fin-lane {
+	position: absolute;
+	inset: 0;
+}
+
+.bsb-fin {
+	position: absolute;
+	inset: 0;
+	display: block;
+
+	&[hidden] {
+		display: none;
+	}
+}
+
+.bsb-fin__swimmer {
+	--fin-delay: 0ms;
+
+	position: absolute;
+	inset-inline: 0;
+	bottom: 7px;
+	height: 26px;
+	// Spans the full lane width so the swim's translateX percentages resolve
+	// against the lane itself — the store never measures the DOM.
+	animation: bsb-fin-swim var(--fin-total, 10000ms) linear var(--fin-delay)
+		forwards;
+	will-change: transform;
+}
+
+// Decay by lag: each ghost's own opacity fades further the longer ago the
+// lead fin was actually there. Ghost1's droplet keeps the base
+// `.bsb-fin__droplet` size below (7×5px) — only ghosts 2–5 need a size
+// override, since they're all smaller than that base.
+.bsb-fin__swimmer--ghost1 {
+	--fin-delay: 90ms;
+	opacity: 0.65;
+}
+
+.bsb-fin__swimmer--ghost2 {
+	--fin-delay: 180ms;
+	opacity: 0.5;
+}
+
+.bsb-fin__swimmer--ghost2 .bsb-fin__droplet {
+	width: 6px;
+	height: 5px;
+}
+
+.bsb-fin__swimmer--ghost3 {
+	--fin-delay: 270ms;
+	opacity: 0.38;
+}
+
+.bsb-fin__swimmer--ghost3 .bsb-fin__droplet {
+	width: 6px;
+	height: 4px;
+}
+
+.bsb-fin__swimmer--ghost4 {
+	--fin-delay: 360ms;
+	opacity: 0.28;
+}
+
+.bsb-fin__swimmer--ghost4 .bsb-fin__droplet {
+	width: 5px;
+	height: 4px;
+}
+
+.bsb-fin__swimmer--ghost5 {
+	--fin-delay: 450ms;
+	opacity: 0.2;
+}
+
+.bsb-fin__swimmer--ghost5 .bsb-fin__droplet {
+	width: 4px;
+	height: 3px;
+}
+
+.bsb-fin__bob {
+	position: absolute;
+	left: 0;
+	bottom: 0;
+	width: 38px;
+	height: 26px;
+	// `--fin-bob` is the store's own √speed-scaled swing period
+	// (SharkStore.sharkBobCss); the 1.7s fallback below is that getter's own
+	// 1× value, so an unhydrated or store-less render still bobs correctly.
+	animation: bsb-fin-bob var(--fin-bob, 1.7s) ease-in-out var(--fin-delay)
+		infinite;
+}
+
+.bsb-fin__riser {
+	position: absolute;
+	inset: 0;
+	opacity: 0;
+	// bsb-fin-surface/bsb-fin-dive's 950ms/750ms here MUST equal
+	// SHARK_SURFACE_MS/SHARK_DIVE_MS in Shark.ts — the store's clear timer is
+	// armed off those same constants, so the swim's teardown and the fin's
+	// dive-out finish together.
+	//
+	// The dive is `forwards` only, deliberately NOT `both`: a backwards fill
+	// would apply its from-frame during the delay before it starts, masking
+	// the surface animation that is still playing at that point (later
+	// animations in the list win when both target the same properties).
+	animation:
+		bsb-fin-surface 950ms cubic-bezier(0.22, 1, 0.36, 1) var(--fin-delay)
+			both,
+		bsb-fin-dive 750ms cubic-bezier(0.5, 0, 0.8, 0.4)
+			calc(var(--fin-total, 10000ms) - 750ms + var(--fin-delay)) forwards;
+	will-change: transform, opacity;
+}
+
+// Positional only — the fill is a gradient (`bsb-fin-grad`) defined inline in
+// the SVG markup itself (see CockpitView), not here: an SVG `fill` referencing
+// a gradient by id isn't settable from CSS.
+.bsb-fin__body {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+}
+
+.bsb-fin__foam {
+	position: absolute;
+	left: -12%;
+	right: -14%;
+	bottom: -3px;
+	height: 8px;
+	border-radius: 50%;
+	background: radial-gradient(
+		closest-side,
+		rgba(255, 255, 255, 0.95),
+		rgba(255, 255, 255, 0)
+	);
+	animation: bsb-fin-foam 1.1s ease-in-out infinite;
+}
+
+// A one-shot ring at the waterline, fired only on the dive — the maintainer
+// explicitly removed the equivalent surfacing ping during mock review, so
+// there is deliberately no counterpart animation here for the rise. Lead
+// swimmer only; the ghosts carry no splash of their own. The 750ms in the
+// delay calc below MUST equal SHARK_DIVE_MS in Shark.ts, the same pairing
+// note as `.bsb-fin__riser`'s own dive animation above — both fire at the
+// instant the dive begins.
+.bsb-fin__splash {
+	position: absolute;
+	left: 50%;
+	bottom: -3px;
+	width: 30px;
+	height: 13px;
+	margin-left: -15px;
+	border: 2px solid rgba(255, 255, 255, 0.9);
+	border-radius: 50%;
+	opacity: 0;
+	animation: bsb-fin-splash 520ms ease-out
+		calc(var(--fin-total, 10000ms) - 750ms) forwards;
+}
+
+.bsb-fin__droplet {
+	position: absolute;
+	left: 8px;
+	bottom: -2px;
+	width: 7px;
+	height: 5px;
+	border-radius: 50%;
+	background: radial-gradient(
+		closest-side,
+		rgba(255, 255, 255, 0.9),
+		rgba(255, 255, 255, 0)
+	);
+	// A churn flicker shared byte-for-byte across every ghost — only its
+	// `animation-delay` differs, reusing the same `--fin-delay` custom
+	// property the ghost's own swim/bob/rise already key off, so the five
+	// droplets churn out of phase with each other instead of pulsing in
+	// lockstep. This is deliberately identical to the decay-by-lag opacity
+	// set on the ghost root above: the two are separate elements, so their
+	// opacities multiply visually rather than one overwriting the other.
+	animation: bsb-fin-droplet-churn 0.9s ease-in-out var(--fin-delay)
+		infinite;
+}
+
+@keyframes bsb-fin-swim {
+	from {
+		transform: translateX(var(--fin-start, 0%));
+	}
+
+	to {
+		transform: translateX(var(--fin-end, 80%));
+	}
+}
+
+@keyframes bsb-fin-bob {
+	0%,
+	100% {
+		transform: translateY(1.5px) rotate(-2.2deg);
+	}
+
+	50% {
+		transform: translateY(-2.5px) rotate(2.6deg);
+	}
+}
+
+@keyframes bsb-fin-surface {
+	from {
+		opacity: 0;
+		transform: translateY(130%) rotate(-14deg) scale(0.85);
+	}
+
+	to {
+		opacity: 1;
+		transform: translateY(0) rotate(0deg) scale(1);
+	}
+}
+
+@keyframes bsb-fin-dive {
+	from {
+		opacity: 1;
+		transform: translateY(0) rotate(0deg) scale(1);
+	}
+
+	to {
+		opacity: 0;
+		transform: translateY(140%) rotate(16deg) scale(0.9);
+	}
+}
+
+@keyframes bsb-fin-foam {
+	0%,
+	100% {
+		transform: scaleX(1);
+		opacity: 0.85;
+	}
+
+	50% {
+		transform: scaleX(1.18);
+		opacity: 1;
+	}
+}
+
+@keyframes bsb-fin-splash {
+	from {
+		opacity: 0.9;
+		transform: scale(0.35);
+	}
+
+	to {
+		opacity: 0;
+		transform: scale(1.5);
+	}
+}
+
+@keyframes bsb-fin-droplet-churn {
+	0%,
+	100% {
+		opacity: 0.7;
+		transform: scaleX(1);
+	}
+
+	50% {
+		opacity: 1;
+		transform: scaleX(1.2);
+	}
+}
+
+// Pure decoration: the store's timer still runs and clears the swim on its
+// own schedule regardless, so hiding the fin outright costs nothing but the
+// visual flourish.
+@media (prefers-reduced-motion: reduce) {
+	.bsb-fin {
+		display: none;
+	}
+}
+
+// ── Brand + theme toggle ─────────────────────────────────────────────────────
+// Two-row grid: [mark] [title] [actions] on row 1, the subtitle on row 2 under
+// the title. The mark shares the title's row, so it sizes to the TITLE height
+// only (not the subtitle) and tracks it when the title wraps.
+.bsb-deck__brand {
+	display: grid;
+	grid-template-columns: auto 1fr auto;
+	grid-template-rows: auto auto;
+	align-items: stretch;
+	column-gap: 1rem;
+	row-gap: 0.15rem;
+	padding-top: 0.5rem;
+	padding-bottom: 1.5rem;
+	margin-bottom: 1.4rem;
+	border-bottom: 1px solid var(--line);
+}
+
+// Brand mark — a solid surfer tinted to the brand accent. It stretches to the
+// title row's height, and the square aspect-ratio sizes its width to match — so
+// it grows with the title (one line or two). No fixed dimensions to drift.
+.bsb-deck__mark {
+	grid-area: 1 / 1;
+	align-self: stretch;
+	aspect-ratio: 1;
+	min-height: 0;
+	background: var(--subtitle-ink);
+	mask-image: url('../../../assets/images/menu-icon.svg');
+	mask-repeat: no-repeat;
+	mask-position: center;
+	mask-size: contain;
+	-webkit-mask-image: url('../../../assets/images/menu-icon.svg');
+	-webkit-mask-repeat: no-repeat;
+	-webkit-mask-position: center;
+	-webkit-mask-size: contain;
+}
+
+.bsb-deck__title {
+	grid-area: 1 / 2;
+	min-width: 0;
+	align-self: center;
+	font-family: theme.$font-display;
+	font-size: 1.5rem;
+	letter-spacing: 0.01em;
+	line-height: 0.98;
+	text-transform: uppercase;
+	color: var(--title-ink);
+}
+
+.bsb-deck__subtitle {
+	grid-area: 2 / 2;
+	font-size: 0.62rem;
+	font-weight: 700;
+	letter-spacing: 0.42em;
+	text-transform: uppercase;
+	color: var(--subtitle-ink);
+}
+
+// Deck header actions — the finish-sound and compact toggles, grouped on the right.
+.bsb-deck__actions {
+	grid-area: 1 / 3;
+	align-self: center;
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+// Shared header icon-button shape — a square, masked-glyph control. The compact
+// and finish-sound toggles each extend it and supply their own glyph and states.
+%bsb-deck-iconbtn {
+	position: relative;
+	z-index: 1;
+	flex: 0 0 auto;
+	width: 2.2rem;
+	height: 2.2rem;
+	cursor: pointer;
+	border: 1px solid var(--line);
+	border-radius: 10px;
+	background: var(--accent-soft);
+	display: grid;
+	place-items: center;
+	transition:
+		background 0.18s ease,
+		transform 0.12s ease;
+
+	&:hover {
+		background: var(--surface);
+	}
+
+	&:active {
+		transform: scale(0.94);
+	}
+
+	&:focus-visible {
+		@extend %focus-ring;
+	}
+
+	&::before {
+		content: '';
+		width: 1.05rem;
+		height: 1.05rem;
+		background: var(--text-soft);
+		mask-repeat: no-repeat;
+		mask-position: center;
+		mask-size: contain;
+		-webkit-mask-repeat: no-repeat;
+		-webkit-mask-position: center;
+		-webkit-mask-size: contain;
+	}
+}
+
+// Finish-sound toggle — a speaker that mutes/sounds the end-of-run chime. Unlike
+// the compact toggle it shows whether idle or running; on state is accent-tinted
+// with sound waves, off state a muted speaker.
+.bsb-deck__sound {
+	@extend %bsb-deck-iconbtn;
+
+	&::before {
+		mask-image: theme.$icon-speaker-off;
+		-webkit-mask-image: theme.$icon-speaker-off;
+	}
+
+	&.is-on {
+		background: var(--surface);
+
+		&::before {
+			background: var(--paper-accent);
+			mask-image: theme.$icon-speaker-on;
+			-webkit-mask-image: theme.$icon-speaker-on;
+		}
+	}
+}
+
+// Compact toggle — a chevron pointing up (send the readouts to the top pill).
+.bsb-deck__compact {
+	@extend %bsb-deck-iconbtn;
+	transition: opacity 0.2s ease;
+
+	// Hidden while idle, but keep its slot in the header so starting a run reveals
+	// it in place instead of popping in and reflowing the brand row.
+	&.is-hidden {
+		visibility: hidden;
+		opacity: 0;
+	}
+
+	&::before {
+		mask-image: theme.$icon-chevron-down;
+		-webkit-mask-image: theme.$icon-chevron-down;
+		transform: rotate(180deg);
+	}
+}
+
+.bsb-deck__body {
+	position: relative;
+	z-index: 1;
+	display: flex;
+	flex-direction: column;
+	gap: 1.55rem;
+	flex: 1 1 auto;
+	min-height: 0;
+	// Vertical scroll forces `overflow-x` to compute to `auto`, which would clip
+	// the pill's soft side shadows flush at the body edge (the "blocky" look).
+	// Pad the scroll viewport and pull it back out with a matching negative
+	// margin so the shadow has lateral room while the content stays put. The
+	// inset stays within the deck's 1.5rem padding so the deck doesn't re-clip.
+	padding-inline: 20px;
+	margin-inline: -20px;
+	overflow-y: auto;
+}
+
+// The config controls and the readouts pill share one grid cell, stacked, and
+// slide past each other on run start/stop: config exits left as the pill enters
+// from the right (and the reverse on stop). Both stay mounted; `visibility`
+// keeps the off-screen one out of the tab and accessibility trees. Sizing to the
+// taller panel (config) keeps the run button from jumping between states.
+.bsb-deck__swap {
+	display: grid;
+	// Top-align so the shorter pill keeps its own height instead of stretching
+	// to fill the cell (which the taller config panel sizes).
+	align-items: start;
+
+	> .bsb-deck__config,
+	> .bsb-deck__status {
+		grid-area: 1 / 1;
+		transition:
+			opacity 0.34s cubic-bezier(0.22, 1, 0.36, 1),
+			transform 0.34s cubic-bezier(0.22, 1, 0.36, 1),
+			visibility 0.34s;
+	}
+
+	// Idle: config in place, pill parked off to the right.
+	> .bsb-deck__status {
+		opacity: 0;
+		visibility: hidden;
+		transform: translateX(34px);
+	}
+
+	// Running: config slides out left, pill slides in.
+	&.is-running > .bsb-deck__config {
+		opacity: 0;
+		visibility: hidden;
+		transform: translateX(-34px);
+	}
+
+	&.is-running > .bsb-deck__status {
+		opacity: 1;
+		visibility: visible;
+		transform: none;
+	}
+}
+
+.bsb-deck__config {
+	display: flex;
+	flex-direction: column;
+	gap: 1.55rem;
+}
+
+// Staggered rise of each control as the deck hydrates.
+.bsb-field {
+	display: flex;
+	flex-direction: column;
+	gap: 0.6rem;
+	animation: bsb-rise 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+
+	@for $i from 1 through 5 {
+		&:nth-child(#{$i}) {
+			animation-delay: #{0.06s * $i};
+		}
+	}
+
+	&[hidden] {
+		display: none;
+	}
+}
+
+.bsb-field__label {
+	font-size: 0.66rem;
+	font-weight: 700;
+	letter-spacing: 0.22em;
+	text-transform: uppercase;
+	color: var(--label);
+}
+
+// ── Segmented control (mode + speed) ────────────────────────────────────────
+.bsb-seg {
+	@extend %inset-surface;
+
+	display: grid;
+	grid-auto-flow: column;
+	grid-auto-columns: 1fr;
+	gap: 0.3rem;
+	padding: 0.3rem;
+}
+
+.bsb-seg__option {
+	appearance: none;
+	cursor: pointer;
+	padding: 0.62rem 0.4rem;
+	border: 0;
+	border-radius: 9px;
+	background: transparent;
+	color: var(--text-soft);
+	font-family: theme.$font-ui;
+	font-size: 0.86rem;
+	font-weight: 700;
+	letter-spacing: 0.02em;
+	transition:
+		background 0.2s ease,
+		color 0.2s ease,
+		transform 0.12s ease,
+		box-shadow 0.2s ease;
+
+	&:hover {
+		color: var(--text-strong);
+		background: var(--accent-soft);
+	}
+
+	&:active {
+		transform: translateY(1px);
+	}
+
+	&.is-active {
+		color: var(--accent-ink);
+		background: var(--accent-grad);
+		box-shadow:
+			0 4px 12px var(--accent-shadow),
+			inset 0 1px 0 rgba(255, 255, 255, 0.4);
+	}
+}
+
+.bsb-seg--speed .bsb-seg__option {
+	font-family: theme.$font-mono;
+	letter-spacing: 0;
+}
+
+// ── Duration stepper ────────────────────────────────────────────────────────
+.bsb-stepper {
+	@extend %inset-surface;
+
+	display: grid;
+	grid-template-columns: auto 1fr auto;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.45rem;
+}
+
+.bsb-stepper__btn {
+	cursor: pointer;
+	width: 2.4rem;
+	height: 2.4rem;
+	border: 0;
+	border-radius: 10px;
+	background: var(--stepper-btn-bg);
+	color: var(--stepper-btn-ink);
+	font-size: 1.4rem;
+	line-height: 1;
+	box-shadow: 0 1px 4px var(--stepper-btn-shadow);
+	transition:
+		background 0.18s ease,
+		transform 0.12s ease,
+		color 0.18s ease;
+
+	&:hover {
+		background: var(--stepper-btn-hover-bg);
+		color: var(--stepper-btn-hover-ink);
+	}
+
+	&:active {
+		transform: scale(0.92);
+	}
+}
+
+.bsb-stepper__readout {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.35rem;
+}
+
+// ── Run-duration odometer ───────────────────────────────────────────────────
+// The duration readout as analog rolling wheels. Each digit sits on a vertical
+// strip of 0–9 (repeated, so a 9⇄0 wrap rolls seamlessly); the store's
+// `rollDuration` watch slides each strip — increase rolls up, decrease down —
+// with an overshoot ease for a mechanical-counter snap. Leading wheels collapse
+// so there are no leading zeros.
+.bsb-odometer {
+	--bsb-od-cell: 2rem;
+
+	display: inline-flex;
+	height: var(--bsb-od-cell);
+	font-family: theme.$font-mono;
+	font-size: 1.7rem;
+	font-weight: 700;
+	line-height: 1;
+	color: var(--readout-ink);
+}
+
+.bsb-odometer__wheel {
+	width: 0.62em;
+	height: var(--bsb-od-cell);
+	overflow: hidden;
+
+	&.is-collapsed {
+		width: 0;
+	}
+}
+
+// Leading wheels expand/collapse as digits come and go.
+.bsb-odometer__wheel--lead {
+	transition: width 0.3s ease;
+}
+
+.bsb-odometer__strip {
+	display: flex;
+	flex-direction: column;
+	// Rest on the middle 0–9 set (offset 10 cells); the watch sets the exact
+	// transform. This default keeps SSR / no-JS showing a single 0.
+	transform: translateY(calc(var(--bsb-od-cell) * -10));
+	transition: transform 0.36s cubic-bezier(0.34, 1.56, 0.64, 1);
+	will-change: transform;
+}
+
+.bsb-odometer__cell {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	height: var(--bsb-od-cell);
+	font-variant-numeric: tabular-nums;
+}
+
+// Visually hidden, but read by assistive tech (the wheels are aria-hidden).
+.bsb-stepper__sr {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
+	border: 0;
+}
+
+.bsb-stepper__value {
+	font-family: theme.$font-mono;
+	font-size: 1.7rem;
+	font-weight: 700;
+	color: var(--readout-ink);
+	font-variant-numeric: tabular-nums;
+}
+
+.bsb-stepper__unit {
+	font-size: 0.7rem;
+	font-weight: 700;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	color: var(--unit-ink);
+}
+
+// ── Target-drop: the battery IS the slider ──────────────────────────────────
+.bsb-target {
+	display: flex;
+	align-items: center;
+	gap: 1.1rem;
+	padding: 0.3rem 0.2rem;
+}
+
+.bsb-target__gauge {
+	display: inline-flex;
+	align-items: center;
+	gap: 3px;
+	flex: 0 0 auto;
+}
+
+// Horizontal battery whose fill is a draggable slider. Its level + colour are
+// set by the store; click/drag inside it or use the arrow keys to change it.
+.bsb-target__battery {
+	position: relative;
+	width: 7.4rem;
+	height: 3.4rem;
+	border: 3px solid var(--text-soft);
+	border-radius: 10px;
+	overflow: hidden;
+	background: var(--surface);
+	box-shadow: inset 0 1px 3px var(--surface-shadow);
+	cursor: ew-resize;
+	touch-action: none;
+
+	// faint cell ticks
+	&::after {
+		content: '';
+		position: absolute;
+		inset: 0;
+		background: repeating-linear-gradient(
+			90deg,
+			transparent 0,
+			transparent 1.74rem,
+			rgba(127, 127, 127, 0.13) 1.74rem,
+			rgba(127, 127, 127, 0.13) calc(1.74rem + 1px)
+		);
+		pointer-events: none;
+	}
+
+	&:focus-visible {
+		@extend %focus-ring;
+	}
+}
+
+.bsb-target__fill {
+	position: absolute;
+	inset-block: 0;
+	left: 0;
+	transition:
+		width 0.12s ease,
+		background 0.12s ease;
+}
+
+.bsb-target__handle {
+	position: absolute;
+	top: 50%;
+	width: 9px;
+	height: 64%;
+	transform: translate(-50%, -50%);
+	border-radius: 5px;
+	background: #fff;
+	box-shadow: 0 1px 5px rgba(0, 0, 0, 0.4);
+	transition: left 0.12s ease;
+	pointer-events: none;
+}
+
+.bsb-target__cap {
+	flex: 0 0 auto;
+	width: 6px;
+	height: 1.3rem;
+	border-radius: 0 3px 3px 0;
+	background: var(--text-soft);
+}
+
+.bsb-target__value {
+	margin-left: auto;
+	font-family: theme.$font-mono;
+	font-size: 1.7rem;
+	font-weight: 700;
+	line-height: 1;
+	font-variant-numeric: tabular-nums;
+}
+
+// ── Stop button ─────────────────────────────────────────────────────────────
+.bsb-deck__foot {
+	position: relative;
+	z-index: 1;
+	padding-top: 1.4rem;
+	margin-top: 1.2rem;
+	border-top: 1px solid var(--line);
+}
+
+// Run control. Three states, selected by store-bound classes:
+//   (default)     idle & on battery → green "Start" go-button (play glyph)
+//   .is-running   a run is live      → coral "Stop" button (pulsing square)
+//   .is-blocked   plugged in & idle  → disabled "Plugged in" (plug glyph)
+.bsb-run {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.7rem;
+	width: 100%;
+	padding: 1rem;
+	cursor: pointer;
+	border: 0;
+	border-radius: 14px;
+	background: var(--accent-grad);
+	color: var(--accent-ink);
+	font-family: theme.$font-display;
+	font-size: 1.18rem;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	box-shadow:
+		0 8px 20px var(--accent-shadow),
+		inset 0 1px 0 rgba(255, 255, 255, 0.3);
+	transition:
+		transform 0.14s ease,
+		box-shadow 0.2s ease,
+		filter 0.2s ease;
+
+	&:not(.is-blocked):hover {
+		transform: translateY(-2px);
+		filter: saturate(1.1);
+	}
+
+	&:active {
+		transform: translateY(0);
+	}
+
+	&:focus-visible {
+		@extend %focus-ring;
+
+		outline-offset: 3px;
+	}
+
+	&.is-running {
+		background: var(--stop-grad);
+		color: #fff;
+		box-shadow:
+			0 8px 20px var(--stop-shadow),
+			inset 0 1px 0 rgba(255, 255, 255, 0.3);
+	}
+
+	&.is-blocked {
+		background: var(--run-disabled-bg);
+		color: var(--run-disabled-ink);
+		box-shadow: none;
+		cursor: not-allowed;
+	}
+}
+
+// One label per state; the active class decides which shows.
+.bsb-run__text {
+	display: none;
+}
+
+.bsb-run:not(.is-running):not(.is-blocked) .bsb-run__text--start,
+.bsb-run.is-running .bsb-run__text--stop,
+.bsb-run.is-blocked .bsb-run__text--blocked {
+	display: inline;
+}
+
+// Idle: a "play" triangle. Running: the pulsing stop square. Blocked: a plug.
+.bsb-run__glyph {
+	width: 0.9rem;
+	height: 0.9rem;
+	background: currentColor;
+	clip-path: polygon(12% 0%, 100% 50%, 12% 100%);
+
+	.bsb-run.is-running & {
+		clip-path: none;
+		border-radius: 3px;
+		box-shadow: 0 0 12px rgba(255, 255, 255, 0.65);
+		animation: bsb-pulse 1.8s ease-in-out infinite;
+	}
+
+	.bsb-run.is-blocked & {
+		width: 1rem;
+		height: 1rem;
+		clip-path: none;
+		mask-image: theme.$icon-plug;
+		mask-repeat: no-repeat;
+		mask-position: center;
+		mask-size: contain;
+		-webkit-mask-image: theme.$icon-plug;
+		-webkit-mask-repeat: no-repeat;
+		-webkit-mask-position: center;
+		-webkit-mask-size: contain;
+	}
+}
+
+// ── Surf stage (right) ──────────────────────────────────────────────────────
+.bsb-cockpit__stage {
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+	background: var(--stage-bg);
+}
+
+// The iframe and its interaction shield share one positioned box so the shield
+// covers exactly the viewport (never the top pill).
+.bsb-cockpit__viewport-wrap {
+	position: relative;
+	flex: 1 1 auto;
+	min-height: 0;
+	display: flex;
+}
+
+.bsb-cockpit__viewport {
+	flex: 1 1 auto;
+	display: block;
+	width: 100%;
+	min-height: 0;
+	border: 0;
+	background: var(--viewport-bg);
+}
+
+// Transparent overlay that swallows pointer input so the benchmarked page can be
+// shown but never interacted with — the run drives the page, not the user. The
+// not-allowed cursor signals it the moment the pointer reaches the page.
+.bsb-cockpit__shield {
+	position: absolute;
+	inset: 0;
+	z-index: 1;
+	cursor: not-allowed;
+}
+
+// The bottom notification toast: a small frosted pill that rises from the
+// bottom of the dashboard, above everything, to surface an event the run would
+// otherwise swallow — a failed session upload (error) or the view-only state of
+// the running viewport (notice). One shows at a time; the store queues the rest
+// and drives the enter/leave animation through the pill's `animationend`.
+.bsb-cockpit__toast-layer {
+	@extend %bsb-toast-layer;
+}
+
+// Both the resting shape (padding, radius, border, shadow, colours) AND the
+// enter/hold/leave phase animation come from the shared `%bsb-toast`
+// placeholder (`../theme/toast`) — the same one the admin `<Notice>`
+// extends, so the two render and animate pixel- and motion-identical. This
+// rule only supplies what stays genuinely cockpit-local: the pill's own font
+// and its single-line layout.
+.bsb-cockpit__toast {
+	@extend %bsb-toast;
+
+	font-family: theme.$font-ui;
+	white-space: nowrap;
+
+	&[hidden] {
+		display: none;
+	}
+
+	// Per-kind accent: coral warning for an error, teal padlock for the notice —
+	// the exact same tokens the shared admin `<Notice>` draws its `is-error`/
+	// `is-info` severities from.
+	&.is-error {
+		@include toast.toast-severity(
+			theme.$coastal-coral,
+			theme.$coastal-coral-deep,
+			rgba(theme.$coastal-coral-deep, 0.45),
+			rgba(theme.$coastal-coral, 0.1),
+			theme.$icon-warning
+		);
+	}
+
+	&.is-notice {
+		@include toast.toast-severity(
+			theme.$coastal-teal,
+			theme.$coastal-teal-deep,
+			rgba(theme.$coastal-teal-deep, 0.4),
+			rgba(theme.$coastal-teal, 0.12),
+			theme.$icon-lock
+		);
+	}
+}
+
+.bsb-cockpit__toast-icon {
+	@extend %bsb-toast-icon;
+}
+
+.bsb-cockpit__toast-msg {
+	@extend %bsb-toast-msg;
+}
+
+.bsb-cockpit__toast-close {
+	@extend %bsb-toast-close;
+
+	&:hover {
+		background: #{rgba(theme.$coastal-navy, 0.08)};
+	}
+}
+
+// The behavior-start bark: a small pill dropped in from the top of the running
+// viewport whenever the surf engine starts a novelty behavior — ambient flavor
+// text, not actionable information, so the layer is `aria-hidden` and swallows
+// no pointer input. Store-authoritative and duration-tied: the pill holds for
+// the behavior's full wall-clock dwell and a newer bark always replaces the
+// showing one immediately, at any phase (the model in Barks.ts owns that
+// lifecycle; this is presentation only — no animation here ever drives a
+// state transition). The countdown is a pure visual "ebbing tide" fill with no
+// numeric readout; see .bsb-cockpit__bark-tide below. Anchored inside the
+// already-`position: relative` .bsb-cockpit__viewport-wrap, so it reads as
+// "inside" the simulated page rather than the dashboard chrome.
+.bsb-cockpit__bark-layer {
+	position: absolute;
+	inset-inline: 0;
+	inset-block-start: 0.9rem;
+	display: flex;
+	justify-content: center;
+	padding-inline: 1rem;
+	pointer-events: none;
+	z-index: 5;
+}
+
+// Same frosted-pill construction as .bsb-cockpit__toast above (radius,
+// background, border, blur, typography) — duplicated here rather than shared
+// through a mixin so an edit to the bark can never drift the toast's compiled
+// CSS (the toast's visual identity and its e2e are load-bearing). The
+// entrance/exit direction and the single teal accent differ, and — unlike the
+// toast, which needs it for its clickable dismiss button — this pill carries
+// no `pointer-events: auto`: it is purely decorative and must stay inert
+// inside the `pointer-events: none` layer, or it would swallow pointer input
+// over the viewport and mask the shield's not-allowed cursor. Icon selection
+// is by the `[data-bark]` attribute rather than a per-kind class, since every
+// bark shares one accent.
+.bsb-cockpit__bark {
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	gap: 0.55rem;
+	max-width: min(28rem, 100%);
+	padding: 0.5rem 0.7rem 0.5rem 0.6rem;
+	border-radius: 999px;
+	// Clips the ebbing-tide fill to the pill's rounded shape.
+	overflow: hidden;
+	background: var(--toast-bg);
+	border: 1px solid var(--bark-accent-line);
+	box-shadow:
+		0 10px 26px var(--toast-shadow),
+		0 0 0 4px var(--bark-accent-halo);
+	backdrop-filter: blur(8px);
+	color: var(--toast-ink);
+	font-family: theme.$font-ui;
+	font-size: 0.82rem;
+	font-weight: 600;
+	letter-spacing: 0.01em;
+	white-space: nowrap;
+	opacity: 0;
+
+	// One accent for every bark — the teal family, same as the toast's notice
+	// variant — set here (not per-kind) since only the icon varies by behavior.
+	--bark-accent: #{theme.$coastal-teal};
+	--bark-accent-deep: #{theme.$coastal-teal-deep};
+	--bark-accent-line: #{rgba(theme.$coastal-teal-deep, 0.4)};
+	--bark-accent-halo: #{rgba(theme.$coastal-teal, 0.12)};
+
+	&[hidden] {
+		display: none;
+	}
+
+	// `both` keeps the animation's end state (opacity: 1) applied for the
+	// pill's entire visible life — there is no separate "holding" phase or
+	// class; the store's duration timer (not this animation) owns when the
+	// pill actually leaves.
+	&.is-entering {
+		opacity: 1;
+		animation: bsb-bark-in 460ms cubic-bezier(0.16, 1, 0.3, 1) both;
+	}
+
+	&.is-leaving {
+		animation: bsb-bark-out 320ms cubic-bezier(0.5, 0, 1, 0.5) both;
+	}
+
+	// Icon selection by the raw behavior key bound onto the attribute, rather
+	// than a per-kind class + getter (there are six of these, not two).
+	&[data-bark='readPause'] {
+		--bark-icon: #{theme.$icon-book};
+	}
+
+	&[data-bark='glanceBack'] {
+		--bark-icon: #{theme.$icon-glance-back};
+	}
+
+	&[data-bark='watchVideo'] {
+		--bark-icon: #{theme.$icon-play};
+	}
+
+	&[data-bark='lingerImage'] {
+		--bark-icon: #{theme.$icon-picture};
+	}
+
+	&[data-bark='selectSnippet'] {
+		--bark-icon: #{theme.$icon-text-cursor};
+	}
+
+	&[data-bark='moveOn'] {
+		--bark-icon: #{theme.$icon-wave};
+	}
+}
+
+// The "ebbing tide" countdown — a layered water fill that starts covering the
+// ENTIRE pill (top edge flush with the pill's own top) and drains, top down,
+// to empty over the behavior's announced duration. Pure styling: no
+// numeric/text readout, and the drain never drives any state — the store's
+// own duration timer independently owns the actual dismiss timing (see
+// BarkStore/Barks), fed the same duration so both finish together. Sits
+// behind the icon/message (z-index 1 vs. their 2) and is clipped to the
+// pill's rounded shape by the parent's `overflow: hidden`.
+//
+// Two independent animations layer here, never coupled to each other:
+//   - the DRAIN (`bsb-bark-ebb-a`/`-b`, on this element): a one-shot downward
+//     `translateY`, timed to `--bark-dur`. This is the countdown. It is a
+//     TRANSLATE, not a scale: the water body's own size never changes, so
+//     the wave-layer children keep their exact height and never squish —
+//     the pill's `overflow: hidden` clips whatever portion has slid below
+//     the pill's bottom edge, and that clipping is what makes the visible
+//     water level appear to drop. At `translateY(50%)` the box has moved
+//     down by half its own height, so the pill's top half is empty and its
+//     bottom half shows the water body's own top edge (waves at constant
+//     size) — that's the surface descending.
+//   - the RIPPLE (`bsb-wave`, on the `-wave` children below): a constant,
+//     looping horizontal scroll of the wavy surface texture, exactly the
+//     deck's own wave treatment (same keyframe, same `--bsb-wave-speed`
+//     link) — it never stops or re-times itself off the drain, and the
+//     drain never resizes it.
+//
+// No forced resting `transform` here — the base rule carries none (identity,
+// `translateY(0)`), which is only ever visible for a single frame at the
+// drain's own 0% keyframe (itself `translateY(0)`), so there is no flash.
+// The drain animation is applied through BOTH `.is-entering` AND
+// `.is-leaving` below, specifically so that removing `.is-entering` at the
+// entering -> leaving transition never strips the animation off the
+// element: if it did, `animation-fill-mode: forwards` would have nothing
+// left to hold, and the element would fall back to a forced base value —
+// snapping either to full or to empty regardless of where the drain
+// actually was. Keeping the animation applied across both phases means a
+// drain that completed naturally holds at `translateY(100%)` via `forwards`
+// (no forced value needed), and a drain cut short by an early leave (a
+// different key's arrival, which begins the leave immediately) simply
+// continues uninterrupted from wherever it actually was — the pill slides
+// out from its real water level, never snapping to either end.
+.bsb-cockpit__bark-tide {
+	position: absolute;
+	inset: 0;
+	z-index: 1;
+}
+
+// Longhand (not the `animation` shorthand): `animation-name` is bound to
+// `--bark-ebb-name`, which the store (BarkStore.barkEbbName) alternates
+// between two byte-identical keyframes on every fresh bark. A change in
+// duration/custom-property alone is NOT a guaranteed CSS restart trigger
+// (two consecutive barks that share the same key can share the exact same
+// `--bark-dur` too, e.g. two `moveOn` or two `selectSnippet` barks in a
+// row), but a change in `animation-name`'s own computed value always is —
+// this is what makes the restart deterministic rather than incidental.
+.bsb-cockpit__bark.is-entering .bsb-cockpit__bark-tide,
+.bsb-cockpit__bark.is-leaving .bsb-cockpit__bark-tide {
+	animation-name: var(--bark-ebb-name, bsb-bark-ebb-a);
+	animation-duration: var(--bark-dur, 6000ms);
+	animation-timing-function: linear;
+	animation-fill-mode: forwards;
+}
+
+// The water body: the waves ARE the water, not a decal pasted on top of it —
+// and, critically, the FRONT sheet alone decides the body's colour; the back
+// and mid sheets are surface texture only, never accumulation.
+//
+// Each of the three layers (`.bsb-cockpit__bark-tide-wave--back/--mid/
+// --front`) is a full-height water sheet: two stacked backgrounds on one
+// element — a tileable wavy crest (fixed 100px × 12px) at its own top offset,
+// and beneath it that same layer's own solid fill running to the tide's
+// bottom. `background-repeat: repeat-x` applies to BOTH layers (a single
+// value, not a per-layer pair): `bsb-wave` animates `background-position-x`
+// on every background layer it touches, so the fill must tile too, or the
+// x-shift would slide a `no-repeat` rect sideways and expose unpainted
+// element at its trailing edge. Being horizontally uniform, a repeat-x-tiled
+// fill is coverage-complete at any x offset in either direction, so its
+// motion is genuinely invisible — no gap can open. The fill starts 1px above
+// the tile's bottom edge (11px) so anti-aliasing can never open a hairline
+// gap. Fixed tile height + translate-only drain (`bsb-bark-ebb-a`/`-b`,
+// above, which only ever translates the whole `.bsb-cockpit__bark-tide` box)
+// = the crests can never deform; the pill's own `overflow: hidden` is what
+// clips the drained portion from view.
+//
+// Stacking translucent layers would accumulate alpha — back .25 ⊕ mid .35 ⊕
+// front .55 compositing to a body darker than any one layer's own colour,
+// with visible banding wherever the layer count changes (back-only vs.
+// back+mid vs. back+mid+front zones). To prevent that, only the FRONT sheet
+// is opaque, precomputed as if its old translucent stop were already
+// composited over the pill's white background — `$bark-water-surface` /
+// `$bark-water-deep` below — so it fully masks everything beneath its own
+// crest line and stacking cannot darken it further. The back and mid sheets
+// stay translucent, but since the opaque front sheet covers everything below
+// its crest, their fills are only ever visible as distant crest TIPS peeking
+// above the front wave's own crest — never as a contribution to the body
+// colour. Concretely, at any x position: below the front sheet's own crest
+// line, the paint is the front sheet's opaque colour alone (no back/mid
+// contribution reaches the eye); between the mid and front crest lines, a
+// back/mid translucent tip may show over white; there is no depth at which
+// more than one sheet's colour composites into what reads as "the body".
+//
+// The front sheet's fill grades from `$bark-water-surface` (matching its own
+// crest tile exactly, so tile meets fill invisibly) down to `$bark-water-deep`,
+// giving the body a touch of depth without introducing any layer that isn't
+// also present at the surface.
+
+// The front sheet's precomputed opaque stops: the old translucent colours
+// (coastal aqua at 0.55, coastal teal at 0.42) composited over the pill's
+// white background ahead of time, so the front sheet can be fully opaque —
+// masking every layer beneath it — without changing its intended appearance.
+// `color.mix($fg, white, $weight)` at `$weight` reproduces exactly what
+// `rgba($fg, $weight / 100%)` looks like painted over solid white (both are
+// the same linear blend), so these constants are the same colours the old
+// translucent stops rendered as, just baked in as solid paint.
+$bark-water-surface: color.mix(theme.$coastal-aqua, white, 55%); // ≈ #c7eaf3
+$bark-water-deep: color.mix(theme.$coastal-teal, white, 42%); // ≈ #a8d5df
+
+// Converts a Sass colour to a `%23rrggbb`-encoded hex string for embedding in
+// the `wave()` SVG data-URI (the `#` would otherwise truncate the URI as a
+// fragment delimiter — see `_url-encode-color` in `_icons.scss`, which this
+// mirrors, but that helper only accepts a literal hex colour already in `#…`
+// form; a computed `color.mix()` result serializes as `rgb(…)`, not hex, so it
+// needs its channels re-encoded directly). Keeps the front tile's fill
+// mathematically locked to `$bark-water-surface` — they can never drift out
+// of sync — rather than a hand-copied literal.
+@function _hex-byte($n) {
+	$n: math.round($n);
+	$hi: math.floor(math.div($n, 16));
+	$lo: $n - ($hi * 16);
+	$digits: '0' '1' '2' '3' '4' '5' '6' '7' '8' '9' 'a' 'b' 'c' 'd' 'e' 'f';
+	@return list.nth($digits, $hi + 1) + list.nth($digits, $lo + 1);
+}
+
+@function _url-encode-hex($color) {
+	$r: color.channel($color, 'red', $space: rgb);
+	$g: color.channel($color, 'green', $space: rgb);
+	$b: color.channel($color, 'blue', $space: rgb);
+	@return '%23' + _hex-byte($r) + _hex-byte($g) + _hex-byte($b);
+}
+
+.bsb-cockpit__bark-tide-wave {
+	position: absolute;
+	inset-inline: 0;
+	bottom: 0;
+	background-repeat: repeat-x;
+	background-size:
+		100px 12px,
+		100% calc(100% - 11px);
+	background-position:
+		0 0,
+		0 11px;
+	animation: bsb-wave 12s linear infinite;
+}
+
+// Stays translucent: covered by the opaque front sheet below its crest line,
+// so this only ever reads as a distant crest tip over white, never as a
+// contribution to the body colour.
+.bsb-cockpit__bark-tide-wave--back {
+	top: 0;
+	background-image:
+		theme.wave('%231c7e96', 0.25),
+		linear-gradient(#{rgba(theme.$coastal-teal-deep, 0.25)}, #{rgba(theme.$coastal-teal-deep, 0.25)});
+	animation-duration: calc(20s / var(--bsb-wave-speed, 1));
+}
+
+// Stays translucent, for the same reason as `--back` above.
+.bsb-cockpit__bark-tide-wave--mid {
+	top: 2px;
+	background-image:
+		theme.wave('%232f9bb3', 0.35),
+		linear-gradient(#{rgba(theme.$coastal-teal, 0.35)}, #{rgba(theme.$coastal-teal, 0.35)});
+	animation-duration: calc(13s / var(--bsb-wave-speed, 1));
+	animation-direction: reverse;
+}
+
+// The only sheet that decides the body's colour: fully opaque (fill-opacity
+// 1 on the tile, solid stops on the gradient — no alpha at all), so no sheet
+// beneath it can ever show through and darken it via accumulation. The tile's
+// fill is `_url-encode-hex($bark-water-surface)`, not a literal, specifically
+// so it can never drift from the gradient's own top stop.
+.bsb-cockpit__bark-tide-wave--front {
+	top: 5px;
+	background-image:
+		theme.wave(_url-encode-hex($bark-water-surface), 1),
+		linear-gradient(180deg, $bark-water-surface, $bark-water-deep);
+	animation-duration: calc(8s / var(--bsb-wave-speed, 1));
+}
+
+// A small accent circle carrying the white masked glyph — same construction as
+// .bsb-cockpit__toast-icon, selecting its glyph from the `--bark-icon` custom
+// property the `[data-bark]` rules above set.
+.bsb-cockpit__bark-icon {
+	position: relative;
+	z-index: 2;
+	flex: none;
+	width: 1.25rem;
+	height: 1.25rem;
+	border-radius: 50%;
+	background: radial-gradient(
+		circle at 30% 30%,
+		var(--bark-accent),
+		var(--bark-accent-deep)
+	);
+	box-shadow: 0 2px 6px var(--bark-accent-halo);
+
+	&::before {
+		content: '';
+		position: absolute;
+		inset: 0;
+		margin: auto;
+		width: 0.72rem;
+		height: 0.72rem;
+		background: #fff;
+		mask: var(--bark-icon) center / contain no-repeat;
+		-webkit-mask: var(--bark-icon) center / contain no-repeat;
+	}
+}
+
+.bsb-cockpit__bark-msg {
+	position: relative;
+	z-index: 2;
+	padding-block: 1px;
+}
+
+// Drops down from the top (unlike the toast, which rises from the bottom) —
+// same duration, easing and blur treatment as bsb-toast-in/out.
+@keyframes bsb-bark-in {
+	0% {
+		opacity: 0;
+		transform: translateY(-140%);
+		filter: blur(6px);
+	}
+
+	100% {
+		opacity: 1;
+		transform: translateY(0);
+		filter: blur(0);
+	}
+}
+
+@keyframes bsb-bark-out {
+	0% {
+		opacity: 1;
+		transform: translateY(0);
+		filter: blur(0);
+	}
+
+	100% {
+		opacity: 0;
+		transform: translateY(-140%);
+		filter: blur(5px);
+	}
+}
+
+// The ebbing tide itself: a downward translate from full to empty, timed by
+// the store-set `--bark-dur` custom property. A translate, not a scale, so
+// the water body's own size (and its wave-layer children) never changes —
+// only its position does; the pill's `overflow: hidden` clips the portion
+// that slides below the bottom edge, and that's what reads as the water
+// level dropping. Defined TWICE under different names, byte-identical, so
+// the store can alternate `animation-name` between them (via
+// `--bark-ebb-name`) on every fresh bark — a genuine restart trigger a mere
+// duration change is not guaranteed to be. See `.bsb-cockpit__bark-tide`'s
+// rule above and `BarkStore.barkEbbName`.
+@keyframes bsb-bark-ebb-a {
+	from {
+		transform: translateY(0);
+	}
+
+	to {
+		transform: translateY(100%);
+	}
+}
+
+@keyframes bsb-bark-ebb-b {
+	from {
+		transform: translateY(0);
+	}
+
+	to {
+		transform: translateY(100%);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.bsb-cockpit__bark.is-entering,
+	.bsb-cockpit__bark.is-leaving {
+		animation-duration: 1ms;
+	}
+
+	// No smooth drain and no ripple under reduced motion — the tide shows a
+	// static, full fill instead of a countdown; the store timer still runs
+	// the full duration underneath, so dismiss timing is unaffected, only the
+	// visual glide. Forcing `transform: translateY(0)` here (the water body
+	// at its resting, undisplaced position — full) rather than just dropping
+	// the animation is what keeps it a static FULL fill.
+	//
+	// Both `.bsb-cockpit__bark.is-entering .bsb-cockpit__bark-tide` AND
+	// `.bsb-cockpit__bark.is-leaving .bsb-cockpit__bark-tide` MUST be
+	// repeated here (not just the bare `.bsb-cockpit__bark-tide`): the drain
+	// rule outside this media block is scoped to those two selectors, each at
+	// specificity (0,3,0), while a media query adds no specificity of its
+	// own — a bare `.bsb-cockpit__bark-tide` override in here is only
+	// (0,1,0) and the higher-specificity `.is-entering`/`.is-leaving` rule
+	// wins regardless of source order, silently keeping the drain animation
+	// running (in both phases) under reduced motion. Matching those
+	// selectors' specificity is what lets this override actually take
+	// effect, in either phase.
+	.bsb-cockpit__bark.is-entering .bsb-cockpit__bark-tide,
+	.bsb-cockpit__bark.is-leaving .bsb-cockpit__bark-tide,
+	.bsb-cockpit__bark-tide {
+		animation: none;
+		transform: translateY(0);
+	}
+
+	.bsb-cockpit__bark-tide-wave {
+		animation: none;
+	}
+}
+
+// ── Idle "ready" screen ──────────────────────────────────────────────────────
+// Before a run the stage shows a postcard instead of the iframe: an illustrated
+// front (the surfer mark on a sun-faded gradient) with the run's "how it works"
+// written on the back. The viewport loads only once running; each side is hidden
+// by the store via the `hidden` attribute, so guard the flex/grid displays.
+.bsb-cockpit__idle[hidden],
+.bsb-cockpit__viewport-wrap[hidden] {
+	display: none;
+}
+
+.bsb-cockpit__idle {
+	flex: 1 1 auto;
+	min-height: 0;
+	display: grid;
+	place-items: center;
+	padding: 2.2rem;
+	background: var(--idle-sky);
+	// The 3D perspective lives on the card wrapper itself (.bsb-flipcard); this
+	// element only centres the card.
+}
+
+// The card sails up and settles into its tilt when it appears — the startup card
+// as the stage opens, the summary card when it is raised at run end (it animates
+// each time its host un-hides from display:none). Fill mode `backwards` so the
+// resting transform reverts to the card's own (the base tilt, or the flipped
+// rotateY) — the entrance never pins the flip transform.
+.bsb-flipcard--idle,
+.bsb-flipcard--summary {
+	animation: bsb-postcard-in 0.8s cubic-bezier(0.2, 0.8, 0.25, 1) backwards;
+}
+
+@keyframes bsb-postcard-in {
+	0% {
+		opacity: 0;
+		transform: translateY(46px) scale(0.9) rotate(2deg);
+	}
+	100% {
+		opacity: 1;
+		// Ends at identity — the resting tilt lives on .bsb-flipcard__inner now, so
+		// the entrance only carries the sail-up, not the tilt.
+		transform: translateY(0) scale(1) rotate(0deg);
+	}
+}
+
+// front: the illustrated picture side
+.bsb-photo {
+	position: relative;
+	min-height: 360px;
+	overflow: hidden;
+	background: linear-gradient(180deg, #ffbf86 0%, #ffd778 35%, #9fe0d2 70%, #5cc0ca 100%);
+
+	// sun-bleached corners + greeting/edge scrim, above the wash, below the mark
+	&::after {
+		content: '';
+		position: absolute;
+		inset: 0;
+		z-index: 3;
+		pointer-events: none;
+		box-shadow: inset 0 0 70px rgba(70, 46, 20, 0.28);
+	}
+
+	&::before {
+		content: '';
+		position: absolute;
+		inset: 0;
+		z-index: 3;
+		pointer-events: none;
+		background: linear-gradient(
+			180deg,
+			rgba(0, 0, 0, 0.34) 0%,
+			rgba(0, 0, 0, 0) 34%,
+			rgba(0, 0, 0, 0) 70%,
+			rgba(0, 0, 0, 0.22) 100%
+		);
+	}
+}
+
+// the surfer mark, tinted ocean-blue, lifted above the sun-faded wash
+.bsb-photo__mark {
+	position: absolute;
+	inset: 0;
+	z-index: 3;
+	background: linear-gradient(155deg, #0a4f8f 0%, #1c83c9 48%, #5fc7f0 100%);
+	filter: drop-shadow(0 6px 14px rgba(6, 40, 70, 0.4));
+	mask-image: url('../../../assets/images/icon.svg');
+	mask-repeat: no-repeat;
+	mask-position: center;
+	mask-size: 74%;
+	-webkit-mask-image: url('../../../assets/images/icon.svg');
+	-webkit-mask-repeat: no-repeat;
+	-webkit-mask-position: center;
+	-webkit-mask-size: 74%;
+}
+
+// the warm "left in the sun" wash over the gradient
+.bsb-photo__wash {
+	position: absolute;
+	inset: 0;
+	z-index: 1;
+	pointer-events: none;
+	mix-blend-mode: soft-light;
+	background: radial-gradient(
+		130% 120% at 50% 0%,
+		rgba(255, 236, 205, 0.22),
+		rgba(255, 196, 150, 0.14)
+	);
+}
+
+// fine print grain
+.bsb-photo__grain {
+	position: absolute;
+	inset: 0;
+	z-index: 2;
+	pointer-events: none;
+	mix-blend-mode: overlay;
+	opacity: 0.2;
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+	background-size: 160px 160px;
+}
+
+.bsb-photo__greet {
+	position: absolute;
+	z-index: 4;
+	top: 2.1rem;
+	left: 1.5rem;
+	margin: 0;
+	font-family: theme.$font-script;
+	font-size: 1.85rem;
+	line-height: 1.02;
+	letter-spacing: 0.01em;
+	color: #ffffff;
+	text-shadow:
+		0 2px 10px rgba(0, 0, 0, 0.5),
+		0 1px 0 rgba(0, 0, 0, 0.25);
+	transform: rotate(-7deg);
+	transform-origin: left center;
+
+	span {
+		display: block;
+		margin-top: 0.1em;
+		padding-left: 1.4em;
+		font-size: 0.62em;
+		opacity: 0.92;
+	}
+}
+
+// back: the written note, filling the flip card's back face
+.bsb-cockpit__postcard-note {
+	position: absolute;
+	inset: 0;
+	padding: 1.5rem 1.7rem;
+	color: var(--paper-ink);
+}
+
+.bsb-cockpit__postcard-heading {
+	margin: 0.2rem 0 0.1rem;
+	font-family: theme.$font-hand;
+	font-weight: 700;
+	font-size: 2.1rem;
+	line-height: 0.9;
+	color: var(--paper-ink);
+}
+
+.bsb-cockpit__postcard-subtitle {
+	margin: 0;
+	font-family: theme.$font-hand;
+	font-size: 1.15rem;
+	color: var(--paper-accent);
+}
+
+.bsb-cockpit__postcard-divide {
+	display: block;
+	height: 1px;
+	margin: 0.8rem 0 0.9rem;
+	background: repeating-linear-gradient(90deg, var(--paper-line) 0 8px, transparent 8px 14px);
+}
+
+.bsb-cockpit__postcard-steps {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+
+	li {
+		display: flex;
+		gap: 0.7rem;
+		align-items: flex-start;
+		margin: 0.55rem 0;
+	}
+}
+
+.bsb-cockpit__postcard-num {
+	flex: none;
+	width: 1.5rem;
+	height: 1.5rem;
+	display: grid;
+	place-items: center;
+	border-radius: 50%;
+	background: linear-gradient(150deg, #2f9bb3, #1f7d93);
+	color: #ffffff;
+	font-family: theme.$font-ui;
+	font-weight: 700;
+	font-size: 0.78rem;
+}
+
+.bsb-cockpit__postcard-step {
+	font-family: theme.$font-ui;
+	font-size: 0.82rem;
+	line-height: 1.4;
+	color: var(--paper-ink);
+
+	b {
+		display: block;
+	}
+}
+
+// A quiet heads-up under the steps: the run keeps the screen on, but the OS can
+// still sleep the machine, so the user should leave the lid open.
+.bsb-cockpit__postcard-notice {
+	margin-top: 0.85rem;
+	padding-top: 0.7rem;
+	border-top: 1px dashed color-mix(in srgb, var(--paper-ink) 28%, transparent);
+	font-family: theme.$font-ui;
+	font-size: 0.72rem;
+	line-height: 1.45;
+	color: var(--paper-ink);
+	opacity: 0.78;
+
+	b {
+		display: block;
+		font-weight: 700;
+	}
+}
+
+// The postcard back holds two sides — the how-it-works guide and the
+// unsupported-browser warning — each filling the face; the client shows one and
+// hides the other on the Battery Status API check (the guide ships visible).
+.bsb-cockpit__postcard-side {
+	position: absolute;
+	inset: 0;
+}
+
+// The warning side: same paper, coral accents, replacing the guide where the
+// Battery Status API is missing and no run can be benchmarked.
+.bsb-cockpit__postcard-note--warning .bsb-cockpit__postcard-subtitle {
+	color: theme.$coastal-coral-deep;
+}
+
+.bsb-cockpit__postcard-body {
+	margin: 0;
+	font-family: theme.$font-ui;
+	font-size: 0.9rem;
+	line-height: 1.5;
+	color: var(--paper-ink);
+
+	b {
+		color: theme.$coastal-coral-deep;
+		font-weight: 700;
+	}
+}
+
+// The supporting-browser hint, sat right under the body: a soft coral pill with
+// a globe glyph pointing the visitor to Chrome or Edge.
+.bsb-cockpit__postcard-browsers {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	margin: 0.9rem 0 0;
+	padding: 0.7rem 0.9rem;
+	border-radius: 11px;
+	background: rgba(theme.$coastal-coral, 0.12);
+	border: 1px solid rgba(theme.$coastal-coral-deep, 0.3);
+	font-family: theme.$font-ui;
+	font-size: 0.82rem;
+	font-weight: 600;
+	color: var(--paper-ink);
+}
+
+.bsb-cockpit__postcard-globe {
+	flex: none;
+	width: 1.1rem;
+	height: 1.1rem;
+	background: theme.$coastal-coral-deep;
+	-webkit-mask: theme.$icon-globe center / contain no-repeat;
+	mask: theme.$icon-globe center / contain no-repeat;
+}
+
+// a blank, light, hand-stuck postage stamp: just a perforated (scalloped) edge
+// cut by a four-way radial-gradient mask, with the interior knocked back to the
+// paper colour so only the outline shows.
+// A perforated postage stamp: the scalloped edge cut by a four-way radial mask,
+// with a paper interior and a thin inner rule. Shared by the idle postcard stamp
+// and the run-summary franked stamp so the cut never drifts between them.
+%postage-stamp {
+	background: var(--stamp-edge);
+	mask:
+		radial-gradient(3.4px at 50% 0, #0000 96%, #000) repeat-x 50% 0 / 11px 100%,
+		radial-gradient(3.4px at 50% 100%, #0000 96%, #000) repeat-x 50% 100% / 11px 100%,
+		radial-gradient(3.4px at 0 50%, #0000 96%, #000) repeat-y 0 50% / 100% 11px,
+		radial-gradient(3.4px at 100% 50%, #0000 96%, #000) repeat-y 100% 50% / 100% 11px;
+	mask-composite: intersect;
+	-webkit-mask:
+		radial-gradient(3.4px at 50% 0, #0000 96%, #000) repeat-x 50% 0 / 11px 100%,
+		radial-gradient(3.4px at 50% 100%, #0000 96%, #000) repeat-x 50% 100% / 11px 100%,
+		radial-gradient(3.4px at 0 50%, #0000 96%, #000) repeat-y 0 50% / 100% 11px,
+		radial-gradient(3.4px at 100% 50%, #0000 96%, #000) repeat-y 100% 50% / 100% 11px;
+	-webkit-mask-composite: source-in, source-in, source-in;
+
+	&::before {
+		content: '';
+		position: absolute;
+		inset: 3px;
+		border: 1px solid var(--stamp-rule);
+		border-radius: 2px;
+		background: var(--paper);
+	}
+}
+
+// ── Compact top pill ─────────────────────────────────────────────────────────
+// While compact, the live readouts move to a horizontal pill at the top of the
+// stage — the SAME pill (gradient, type, waves) as the deck, just wide with the
+// info on one line. Only the middle readouts column wraps to extra rows when the
+// bar narrows; the surfing line (left) and the buttons (right) hold their place.
+.bsb-cockpit__topbar {
+	height: 0;
+	opacity: 0;
+	overflow: hidden;
+	transition: opacity calc(#{$compact-dur} * 0.7) $ease calc(#{$compact-dur} * 0.3);
+
+	.wp-block-bsb-cockpit.is-compact & {
+		height: auto;
+		opacity: 1;
+		overflow: visible;
+	}
+
+	// The pill, laid out as three columns. Flush and square at the top of the
+	// page — no margin or corner radius, so the page never peeks in behind it.
+	.bsb-deck__status {
+		flex-direction: row;
+		align-items: center;
+		gap: 1.2rem;
+		min-height: 5.5rem;
+		padding: 0.6rem 1.3rem;
+		border-radius: 0;
+	}
+
+	// Left column — the project wordmark over the live status line, paired as one
+	// lockup so the name costs no horizontal room of its own (it reuses the column
+	// the status line already occupies).
+	.bsb-cockpit__lockup {
+		flex: 0 0 auto;
+		display: flex;
+		flex-direction: column;
+		gap: 0.2rem;
+	}
+
+	.bsb-cockpit__brandmark {
+		font-family: theme.$font-display;
+		font-size: 1.25rem;
+		line-height: 0.92;
+		letter-spacing: 0.01em;
+		text-transform: uppercase;
+		white-space: nowrap;
+		color: var(--status-ink);
+	}
+
+	// The status line drops to a small eyebrow beneath the wordmark.
+	.bsb-deck__status-head {
+		flex: 0 0 auto;
+	}
+
+	.bsb-deck__status-text {
+		font-size: 0.58rem;
+		opacity: 0.85;
+	}
+
+	.bsb-deck__status-dot {
+		width: 0.42rem;
+		height: 0.42rem;
+	}
+
+	// Middle column: centred as a group; the only part that wraps when squeezed.
+	// Top-aligned so every label shares one line despite the larger battery value.
+	.bsb-deck__readouts {
+		display: flex;
+		flex: 1 1 auto;
+		flex-wrap: wrap;
+		justify-content: center;
+		align-items: flex-start;
+		gap: 0.8rem 2.2rem;
+		min-width: 0;
+	}
+
+	.bsb-stat {
+		text-align: center;
+	}
+
+	.bsb-stat__value {
+		font-size: 1.05rem;
+	}
+
+	.bsb-stat__value--lg {
+		font-size: 1.5rem;
+	}
+}
+
+// Right column — the stop and expand (chevron-down) controls.
+.bsb-deck__readout-ctrl {
+	position: relative;
+	z-index: 1;
+	flex: 0 0 auto;
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.bsb-deck__readout-stop {
+	cursor: pointer;
+	border: 0;
+	border-radius: 9px;
+	padding: 0.5rem 1rem;
+	background: var(--stop-grad);
+	color: #fff;
+	font-family: theme.$font-display;
+	font-size: 0.82rem;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+
+	&:focus-visible {
+		@extend %focus-ring;
+	}
+}
+
+// Shared pill icon-button shape — a translucent-on-teal masked-glyph control in
+// the compact top pill. The expand and finish-sound toggles each extend it and
+// supply their own glyph and states.
+%bsb-pill-iconbtn {
+	width: 2.1rem;
+	height: 2.1rem;
+	cursor: pointer;
+	border: 0;
+	border-radius: 8px;
+	background: rgba(255, 255, 255, 0.16);
+	display: grid;
+	place-items: center;
+
+	&::before {
+		content: '';
+		width: 1.15rem;
+		height: 1.15rem;
+		background: var(--status-ink);
+		mask-repeat: no-repeat;
+		mask-position: center;
+		mask-size: contain;
+		-webkit-mask-repeat: no-repeat;
+		-webkit-mask-position: center;
+		-webkit-mask-size: contain;
+	}
+
+	&:focus-visible {
+		@extend %focus-ring;
+	}
+}
+
+.bsb-deck__expand {
+	@extend %bsb-pill-iconbtn;
+
+	&::before {
+		mask-image: theme.$icon-chevron-down;
+		-webkit-mask-image: theme.$icon-chevron-down;
+	}
+}
+
+// Finish-sound toggle in the compact pill — the deck toggle's twin, tinted for
+// the teal pill: a muted speaker when off, sounding speaker on a brighter, ringed
+// face when on.
+.bsb-deck__readout-sound {
+	@extend %bsb-pill-iconbtn;
+	transition: background 0.18s ease;
+
+	&::before {
+		mask-image: theme.$icon-speaker-off;
+		-webkit-mask-image: theme.$icon-speaker-off;
+	}
+
+	&.is-on {
+		background: rgba(255, 255, 255, 0.34);
+		box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+
+		&::before {
+			mask-image: theme.$icon-speaker-on;
+			-webkit-mask-image: theme.$icon-speaker-on;
+		}
+	}
+}
+
+// ── Motion ──────────────────────────────────────────────────────────────────
+@keyframes bsb-rise {
+	from {
+		opacity: 0;
+		transform: translateY(12px);
+	}
+
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+@keyframes bsb-wave {
+	from {
+		background-position-x: 0;
+	}
+
+	to {
+		background-position-x: -200px;
+	}
+}
+
+@keyframes bsb-pulse {
+	0%,
+	100% {
+		opacity: 1;
+		transform: scale(1);
+	}
+
+	50% {
+		opacity: 0.5;
+		transform: scale(0.82);
+	}
+}
+
+// Respect reduced-motion: hold everything still.
+@media (prefers-reduced-motion: reduce) {
+	.wp-block-bsb-cockpit *,
+	.wp-block-bsb-cockpit *::before,
+	.wp-block-bsb-cockpit *::after {
+		animation: none !important;
+		transition: none !important;
+	}
+}
+
+// ── Narrow viewports: stack deck over stage ─────────────────────────────────
+@media (max-width: 720px) {
+	.wp-block-bsb-cockpit {
+		grid-template-columns: 1fr;
+		grid-template-rows: auto 1fr;
+		height: 100vh;
+	}
+
+	.bsb-cockpit__deck {
+		overflow-y: auto;
+	}
+}
+
+// ── Session detail screen ─────────────────────────────────────────────────────
+// The custom display that replaces the editor on a session's native admin edit
+// screen. It hosts only the run-summary overlay (no deck or stage), so it just
+// carries the theme tokens and gives the `.bsb-summary` overlay below a bounded,
+// positioned panel to paint its sky and centre the postcard within — sized as a
+// tall card inside the admin column rather than the whole viewport (the admin
+// chrome renders around it). The cockpit's own wrapper provides these on the
+// live dashboard; here this wrapper does.
+.bsb-session-detail {
+	@include theme.tokens;
+
+	// Fill the admin content panel exactly — the area right of the menu and below
+	// the toolbar — by pinning to the viewport rather than flowing inside
+	// `#wpbody-content` (whose gutters and the trailing footer otherwise leave
+	// gaps and make the page scroll). The left offset tracks the admin menu width
+	// across its states (expanded, folded, off-canvas); the top uses WordPress's
+	// own admin-bar-height custom property, which already switches 32→46px.
+	position: fixed;
+	top: var(--wp-admin--admin-bar--height, 32px);
+	right: 0;
+	bottom: 0;
+	left: 160px;
+	overflow: hidden;
+	font-family: theme.$font-ui;
+	// Reset the line-height wp-admin imposes (`1.4em`, a fixed ~18px length at its
+	// 13px base) back to the browser default the postcard is built against. The
+	// live cockpit renders on the front end with every theme/WP stylesheet
+	// dequeued — a clean slate — so its small-font rows (the stat labels, legend)
+	// get compact `normal` line boxes. In wp-admin that global line-height can't be
+	// dequeued (the admin chrome needs it), and the card would otherwise inherit
+	// it, inflating the stats grid until it collides with the flip/back corner.
+	line-height: normal;
+	color: var(--text);
+	-webkit-font-smoothing: antialiased;
+
+	*,
+	*::before,
+	*::after {
+		box-sizing: border-box;
+	}
+}
+
+// Menu collapsed by hand (any width).
+.folded .bsb-session-detail {
+	left: 36px;
+}
+
+// WordPress auto-folds the menu to icons between the two admin breakpoints.
+@media screen and (max-width: 960px) {
+	.auto-fold .bsb-session-detail {
+		left: 36px;
+	}
+}
+
+// Below the lower breakpoint the menu slides off-canvas; the panel takes the
+// full width.
+@media screen and (max-width: 782px) {
+	.bsb-session-detail {
+		left: 0;
+	}
+}
+
+// ── Run summary — the flip-card report shown when a run ends ──────────────────
+// Overlays the whole cockpit (deck + stage) once `ended` is set, and is the sole
+// content of the session detail page. The card flips in 3D between its picture
+// front and its written report back. Built on the same foundations as the
+// stamp/cancellation: a 3D context with two backface-hidden faces, and a franked
+// stamp whose cancellation is centred on the stamp by a shared anchor.
+.bsb-summary {
+	position: absolute;
+	inset: 0;
+	z-index: 30;
+	display: grid;
+	place-items: center;
+	padding: 2.4rem;
+	// Same sunlit sky as the idle screen (no waves — those live on the info pill).
+	background: var(--idle-sky);
+	// The 3D perspective lives on the card wrapper itself (.bsb-flipcard); this
+	// overlay only centres the card.
+
+	&[hidden] {
+		display: none;
+	}
+}
+
+// ── Flip postcard — the shared two-faced card (startup + summary) ─────────────
+// The 3D card turns between its picture front and its written back. Sized and
+// wired once here; the startup postcard (inside .bsb-cockpit__idle) and the run
+// summary (overlaid by .bsb-summary) both reuse this shell — only the face
+// contents and the bound store field (idleFlipped vs flipped) differ.
+// The outer card sizes the postcard and owns the 3D perspective on a card-sized
+// wrapper (not a larger ancestor); the inner element is the one that turns.
+.bsb-flipcard {
+	position: relative;
+	width: min(680px, 94%);
+	aspect-ratio: 1.62 / 1;
+	perspective: 1800px;
+}
+
+.bsb-flipcard__inner {
+	position: relative;
+	width: 100%;
+	height: 100%;
+	transform: rotate(-1.4deg);
+	transform-style: preserve-3d;
+	transition: transform 0.75s cubic-bezier(0.2, 0.7, 0.2, 1);
+
+	.bsb-flipcard.is-flipped & {
+		transform: rotate(-1.4deg) rotateY(180deg);
+	}
+}
+
+.bsb-flipcard__face {
+	position: absolute;
+	inset: 0;
+	overflow: hidden;
+	border-radius: 14px;
+	border: 1px solid var(--paper-line);
+	background: var(--paper);
+	box-shadow: 0 26px 60px rgba(0, 0, 0, 0.32);
+	backface-visibility: hidden;
+	-webkit-backface-visibility: hidden;
+	// Isolate each face into its own stacking context so the z-index'd / blended
+	// descendants inside it (the photo's scrim + vignette + mark, the glassy flip
+	// badge) are contained and culled WITH the face when it turns away. Without
+	// this, Safari paints those descendant stacking contexts independently of the
+	// backface-hidden face, so they bleed through the other side (Chrome culls them
+	// with the face regardless, so the bug only showed in Safari).
+	isolation: isolate;
+
+	&--back {
+		transform: rotateY(180deg);
+	}
+}
+
+// Only the face turned toward the viewer is interactive — the away-facing face
+// is invisible (backface-hidden) but would otherwise sit over the visible one
+// and swallow clicks meant for its buttons.
+.bsb-flipcard:not(.is-flipped) .bsb-flipcard__face--back,
+.bsb-flipcard.is-flipped .bsb-flipcard__face--front {
+	pointer-events: none;
+}
+
+// The photo fills a flip face (instead of sizing itself as a standalone block).
+.bsb-photo--fill {
+	position: absolute;
+	inset: 0;
+	min-height: 0;
+}
+
+// Both flip badges — and any extra back-face actions beside them — cluster in
+// this absolutely-placed corner so they share one baseline in the same spot on
+// every face.
+.bsb-flipcard__corner {
+	position: absolute;
+	right: 1rem;
+	bottom: 1rem;
+	z-index: 4;
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+// the discreet flip indicator, on both faces in the same corner
+.bsb-flipcard__flip {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.4rem;
+	padding: 0.38rem 0.7rem;
+	border: 1px solid rgba(255, 255, 255, 0.32);
+	border-radius: 999px;
+	background: rgba(255, 255, 255, 0.15);
+	backdrop-filter: blur(5px);
+	-webkit-backdrop-filter: blur(5px);
+	color: #fff;
+	font:
+		700 0.7rem/1 theme.$font-ui;
+	letter-spacing: 0.04em;
+	text-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+	cursor: pointer;
+
+	// on the paper back, ink-toned instead of glassy-on-photo
+	&--paper {
+		color: var(--paper-ink);
+		background: color-mix(in srgb, var(--paper-ink) 8%, transparent);
+		border-color: color-mix(in srgb, var(--paper-ink) 22%, transparent);
+		backdrop-filter: none;
+		-webkit-backdrop-filter: none;
+		text-shadow: none;
+	}
+}
+
+.bsb-flipcard__flip-icon {
+	width: 0.95rem;
+	height: 0.95rem;
+	background: currentColor;
+	mask: theme.$icon-flip center / contain no-repeat;
+	-webkit-mask: theme.$icon-flip center / contain no-repeat;
+	animation: bsb-flipcard-nudge 3s ease-in-out infinite;
+}
+
+@keyframes bsb-flipcard-nudge {
+	0%,
+	86%,
+	100% {
+		transform: rotate(0);
+	}
+	93% {
+		transform: rotate(-32deg);
+	}
+}
+
+// the report back
+.bsb-summary__report {
+	position: absolute;
+	inset: 0;
+	padding: 1.4rem 1.6rem 1.3rem;
+	display: flex;
+	flex-direction: column;
+}
+
+.bsb-summary__head {
+	margin: 0.1rem 0 0.1rem;
+	max-width: 64%;
+	font:
+		700 1.95rem/0.9 theme.$font-hand;
+	color: var(--paper-ink);
+}
+
+.bsb-summary__sig {
+	margin: 0;
+	font:
+		400 1.12rem/1.1 theme.$font-hand;
+	color: var(--paper-accent);
+}
+
+.bsb-summary__divide {
+	height: 1px;
+	margin: 0.7rem 0;
+	background: repeating-linear-gradient(
+		90deg,
+		var(--paper-line) 0 8px,
+		transparent 8px 14px
+	);
+}
+
+// the drain graph
+.bsb-summary__graph {
+	margin-bottom: 0.2rem;
+
+	&[hidden] {
+		display: none;
+	}
+}
+
+// The chart scales uniformly (its viewBox aspect is honoured) and strokes stay
+// crisp at any size via non-scaling-stroke — no preserveAspectRatio stretching.
+.bsb-summary__chart {
+	display: block;
+	width: 100%;
+	height: auto;
+}
+
+.bsb-summary__chart-grid {
+	stroke: var(--paper-line);
+	stroke-width: 1;
+	vector-effect: non-scaling-stroke;
+}
+
+.bsb-summary__chart-base {
+	stroke: color-mix(in srgb, var(--paper-ink) 38%, transparent);
+	stroke-width: 1.2;
+	vector-effect: non-scaling-stroke;
+}
+
+.bsb-summary__chart-label {
+	fill: var(--text-soft);
+	font-family: theme.$font-mono;
+	font-size: 9px;
+
+	&--y {
+		text-anchor: end;
+	}
+
+	&--x {
+		text-anchor: middle;
+	}
+}
+
+.bsb-summary__chart-area {
+	fill: color-mix(in srgb, var(--paper-accent) 16%, transparent);
+	stroke: none;
+}
+
+.bsb-summary__chart-fit {
+	fill: none;
+	stroke: var(--coral, #ef8f3c);
+	stroke-width: 1.6;
+	stroke-dasharray: 5 5;
+	vector-effect: non-scaling-stroke;
+}
+
+.bsb-summary__chart-line {
+	fill: none;
+	stroke: var(--paper-accent);
+	stroke-width: 2.4;
+	stroke-linejoin: round;
+	stroke-linecap: round;
+	vector-effect: non-scaling-stroke;
+}
+
+.bsb-summary__chart-dot {
+	fill: var(--paper-accent);
+}
+
+.bsb-summary__legend {
+	display: flex;
+	gap: 1.1rem;
+	margin-top: 0.35rem;
+	font-family: theme.$font-mono;
+	font-size: 0.56rem;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: var(--text-soft);
+}
+
+.bsb-summary__legend-item {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.35rem;
+}
+
+.bsb-summary__legend-swatch {
+	width: 16px;
+	border-top: 2.4px solid var(--paper-accent);
+
+	&--fit {
+		border-top: 1.6px dashed var(--coral, #ef8f3c);
+	}
+}
+
+// the stat tiles
+.bsb-summary__stats {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: 1rem 0.5rem;
+	margin-top: 0.7rem;
+
+	// Cells: contents centred horizontally, anchored to the top so a taller
+	// neighbour does not drag the rest of the row down.
+	.bsb-stat {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: flex-start;
+		text-align: center;
+		gap: 0.18rem;
+	}
+
+	.bsb-stat__label {
+		font-size: 0.54rem;
+		letter-spacing: 0.13em;
+		color: var(--text-soft);
+	}
+
+	.bsb-stat__value {
+		font:
+			400 1.4rem/1 theme.$font-display;
+		color: var(--paper-ink);
+	}
+
+	.bsb-stat__unit {
+		margin-left: 0.16rem;
+		font:
+			700 0.58rem/1 theme.$font-mono;
+		color: var(--paper-accent);
+	}
+}
+
+// The battery start→end value: a masked SVG arrow glyph (currentColor), flex-
+// centred between the two numbers, instead of a unicode → that renders
+// misshapen and baseline-off in the display font.
+.bsb-stat__value--arrow {
+	display: inline-flex;
+	align-items: center;
+}
+
+.bsb-stat__arrow {
+	width: 0.72em;
+	height: 0.72em;
+	margin: 0 0.12em;
+	background: var(--paper-accent);
+	mask: theme.$icon-arrow-right center / contain no-repeat;
+	-webkit-mask: theme.$icon-arrow-right center / contain no-repeat;
+}
+
+.bsb-summary__actions {
+	display: flex;
+	margin-top: auto;
+	padding-top: 0.8rem;
+}
+
+// The live cockpit's "New run" control mirrors the flip badge's paper pill — a
+// small ink-toned ghost pill with a leading glyph — rather than the solid accent
+// slab, and it is placed alongside the Flip badge in the shared `.bsb-flipcard__corner`
+// so the two read as a quiet, aligned pair on the report face. The stored-session
+// detail page's "back to listing" link reuses this same pill (with its own
+// back-arrow glyph) in the same corner, so the two cards read identically.
+.bsb-summary__newrun {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.4rem;
+	padding: 0.38rem 0.7rem;
+	border: 1px solid color-mix(in srgb, var(--paper-ink) 22%, transparent);
+	border-radius: 999px;
+	background: color-mix(in srgb, var(--paper-ink) 8%, transparent);
+	color: var(--paper-ink);
+	font:
+		700 0.7rem/1 theme.$font-ui;
+	letter-spacing: 0.04em;
+	cursor: pointer;
+}
+
+.bsb-summary__newrun-icon {
+	width: 0.9rem;
+	height: 0.9rem;
+	background: currentColor;
+	mask: theme.$icon-plus center / contain no-repeat;
+	-webkit-mask: theme.$icon-plus center / contain no-repeat;
+}
+
+// The detail page's back-to-listing link wears the shared `.bsb-summary__newrun`
+// pill but leads with a back-arrow (the mirror of the stat arrow) rather than the
+// "New run" plus, so the glyph reads as "return to the listing".
+.bsb-summary__back-icon {
+	width: 0.9rem;
+	height: 0.9rem;
+	background: currentColor;
+	mask: theme.$icon-arrow-left center / contain no-repeat;
+	-webkit-mask: theme.$icon-arrow-left center / contain no-repeat;
+}
+
+// The detail page's back-to-listing link wears the shared `.bsb-summary__newrun`
+// ghost pill. It is an <a>, so wp-admin's global anchor styles tint and underline
+// it on hover and ring it with a box-shadow + outline on focus/click. Scope under
+// the detail wrapper to outweigh those admin rules and pin every interactive state
+// to the resting ghost-pill look — same ink, no underline, the pill's own rounded
+// corners, no focus ring — so it behaves exactly like the cockpit's "New run" pill.
+.bsb-summary__back {
+	display: inline-flex;
+	align-items: center;
+	text-decoration: none;
+}
+
+.bsb-session-detail .bsb-summary__back {
+	&:hover,
+	&:focus,
+	&:focus-visible,
+	&:active {
+		color: var(--paper-ink);
+		text-decoration: none;
+		// Re-assert the ghost pill's own rounded corners and drop the admin ring:
+		// wp-admin's `a:focus` otherwise squares the corners to 2px and adds a
+		// box-shadow focus ring, which read as a border on click.
+		border-radius: 999px;
+		box-shadow: none;
+		outline: none;
+	}
+}
+
+// ── Franked stamp — a postage stamp with an askew grey cancellation over it ───
+// A reusable component: absolutely positioned (it never pushes its host), with
+// the cancellation sized by tokens and offset askew so it overhangs naturally.
+.bsb-frank {
+	--stamp-w: 50px;
+	--stamp-h: 60px;
+	--cancel-d: 72px;
+	--cancel-ink: rgba(96, 110, 120, 0.72);
+
+	position: absolute;
+	top: 1.2rem;
+	right: 1.4rem;
+	z-index: 3;
+	width: var(--stamp-w);
+	height: var(--stamp-h);
+}
+
+.bsb-frank__stamp {
+	@extend %postage-stamp;
+
+	position: relative;
+	display: block;
+	width: 100%;
+	height: 100%;
+}
+
+.bsb-frank__cancel {
+	position: absolute;
+	top: calc((var(--stamp-h) - var(--cancel-d)) / 2 - 8px);
+	left: calc((var(--stamp-w) - var(--cancel-d)) / 2 + 7px);
+	width: var(--cancel-d);
+	height: var(--cancel-d);
+	transform: rotate(-12deg);
+}
+
+.bsb-frank__pm {
+	display: block;
+	width: 100%;
+	height: 100%;
+	overflow: visible;
+
+	text {
+		fill: var(--cancel-ink);
+		font-family: theme.$font-mono;
+		font-weight: 700;
+	}
+}
+
+.bsb-frank__ring {
+	fill: none;
+	stroke: var(--cancel-ink);
+
+	&:first-of-type {
+		stroke-width: 2.2;
+	}
+	&:last-of-type {
+		stroke-width: 1;
+	}
+}
+
+.bsb-frank__bar {
+	fill: none;
+	stroke: var(--cancel-ink);
+	stroke-width: 2.2;
+	stroke-linecap: round;
+	opacity: 0.85;
+}
+
+.bsb-frank__arc {
+	font-size: 8px;
+	letter-spacing: 0.4px;
+}
+
+.bsb-frank__val {
+	font-family: theme.$font-display;
+	font-weight: 400;
+	font-size: 17px;
+}
+
+.bsb-frank__unit {
+	font-size: 6.4px;
+	letter-spacing: 2px;
+}
+
+// The unsupported-browser warning franks its back with a red postmark (the grey
+// summary cancellation recoloured) so the blocked state reads at a glance.
+.bsb-frank--warning {
+	--cancel-ink: #{rgba(theme.$coastal-coral-deep, 0.9)};
+}
+
+// ── Surfer profile field ────────────────────────────────────────────────────
+// The RPG "Surfer" stat field in the config column: class-preset chips, a
+// Customize disclosure, and the six point-buy stat sliders with a derived
+// archetype cover-name. Reuses the deck's field/inset language.
+
+// The Surfer field label carries the derived archetype name, pushed to the
+// right edge of the row.
+.bsb-field--surfer .bsb-field__label {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 0.5rem;
+}
+
+// The derived archetype name, right-aligned in the field label.
+.bsb-surfer__build {
+	margin-left: auto;
+	font-family: theme.$font-mono;
+	font-size: 0.78rem;
+	font-weight: 700;
+	color: var(--subtitle-ink);
+}
+
+// Class chips — wrapping pills that load a preset vector.
+.bsb-chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.34rem;
+}
+
+.bsb-chip {
+	appearance: none;
+	cursor: pointer;
+	padding: 0.4rem 0.66rem;
+	border: 1.5px solid var(--line);
+	border-radius: 999px;
+	background: var(--surface);
+	color: var(--text-soft);
+	font-family: theme.$font-ui;
+	font-size: 0.76rem;
+	font-weight: 700;
+	transition:
+		background 0.15s ease,
+		color 0.15s ease,
+		border-color 0.15s ease;
+
+	&:hover {
+		border-color: var(--accent);
+		color: var(--text-strong);
+	}
+
+	&:focus-visible {
+		@extend %focus-ring;
+	}
+
+	&.is-active {
+		background: var(--accent-grad);
+		border-color: transparent;
+		color: var(--accent-ink);
+		box-shadow: 0 4px 12px var(--accent-shadow);
+	}
+}
+
+// Customize disclosure — a text button with a chevron that rotates when open.
+.bsb-surfer__customize {
+	align-self: flex-start;
+	margin-top: 0.1rem;
+	padding: 0.1rem 0;
+	border: 0;
+	background: none;
+	cursor: pointer;
+	display: inline-flex;
+	align-items: center;
+	gap: 0.34rem;
+	font-family: theme.$font-ui;
+	font-size: 0.72rem;
+	font-weight: 700;
+	letter-spacing: 0.04em;
+	color: var(--accent-deep, var(--subtitle-ink));
+
+	&::after {
+		content: '';
+		width: 0.5rem;
+		height: 0.5rem;
+		margin-top: -2px;
+		border-right: 2px solid currentColor;
+		border-bottom: 2px solid currentColor;
+		transform: rotate(45deg);
+		transition: transform 0.2s ease;
+	}
+
+	&.is-open::after {
+		margin-top: 2px;
+		transform: rotate(-135deg);
+	}
+
+	&:focus-visible {
+		@extend %focus-ring;
+	}
+}
+
+// The stats panel — hidden until Customize is open.
+.bsb-surfer__stats {
+	display: none;
+	margin-top: 0.4rem;
+	padding: 0.85rem 0.9rem 1rem;
+	border-radius: 13px;
+	background: var(--accent-soft);
+
+	&.is-open {
+		display: block;
+	}
+}
+
+// Points readout + Reset.
+.bsb-surfer__pool {
+	display: flex;
+	align-items: baseline;
+	gap: 0.45rem;
+	margin-bottom: 0.9rem;
+
+	&.is-empty .bsb-surfer__points,
+	&.is-empty .bsb-surfer__points-label {
+		color: var(--focus);
+	}
+}
+
+.bsb-surfer__points {
+	font-family: theme.$font-mono;
+	font-weight: 700;
+	font-size: 1.5rem;
+	font-variant-numeric: tabular-nums;
+	line-height: 1;
+	color: var(--accent-deep, var(--subtitle-ink));
+}
+
+.bsb-surfer__points-label {
+	font-size: 0.6rem;
+	font-weight: 700;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	color: var(--label);
+}
+
+.bsb-surfer__reset {
+	margin-left: auto;
+	align-self: center;
+	padding: 0.2rem 0.1rem;
+	border: 0;
+	background: none;
+	cursor: pointer;
+	font-family: theme.$font-ui;
+	font-size: 0.66rem;
+	font-weight: 700;
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+	color: var(--text-soft);
+
+	&:hover {
+		color: var(--accent-deep, var(--subtitle-ink));
+	}
+
+	&:focus-visible {
+		@extend %focus-ring;
+	}
+}
+
+// One stat row: name + value, the lever helper line, then the slider.
+.bsb-stat {
+	padding: 0.4rem 0;
+}
+
+.bsb-stat__top {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+}
+
+.bsb-stat__name {
+	font-weight: 700;
+	font-size: 0.9rem;
+	color: var(--text-strong);
+}
+
+.bsb-stat__val {
+	font-family: theme.$font-mono;
+	font-weight: 700;
+	font-size: 1rem;
+	font-variant-numeric: tabular-nums;
+	color: var(--accent-deep, var(--subtitle-ink));
+}
+
+.bsb-stat__lever {
+	display: block;
+	margin: 0.05rem 0 0.4rem;
+	font-size: 0.68rem;
+	color: var(--text-soft);
+}
+
+// The slider: a range input whose track is painted (accent fill + headroom tint
+// + dead track) via the bound `background` gradient.
+.bsb-stat__slider {
+	-webkit-appearance: none;
+	appearance: none;
+	display: block;
+	width: 100%;
+	height: 7px;
+	margin: 0;
+	border-radius: 6px;
+	background: var(--track);
+	outline: none;
+	cursor: pointer;
+
+	// Flat, full-width track in both engines (the painted gradient rides the
+	// element background, set per-value by the store).
+	&::-webkit-slider-runnable-track {
+		height: 7px;
+		border-radius: 6px;
+		background: transparent;
+	}
+
+	&::-moz-range-track {
+		height: 7px;
+		border-radius: 6px;
+		background: transparent;
+	}
+
+	&::-webkit-slider-thumb {
+		-webkit-appearance: none;
+		appearance: none;
+		width: 18px;
+		height: 18px;
+		margin-top: -6px;
+		border: 3px solid var(--accent);
+		border-radius: 50%;
+		background: #fff;
+		box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25);
+		cursor: pointer;
+	}
+
+	&::-moz-range-thumb {
+		width: 18px;
+		height: 18px;
+		border: 3px solid var(--accent);
+		border-radius: 50%;
+		background: #fff;
+		box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25);
+		cursor: pointer;
+	}
+
+	&:focus-visible {
+		@extend %focus-ring;
+	}
+}

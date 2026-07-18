@@ -6,7 +6,7 @@
 
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { ErrorBoundary } from './ErrorBoundary';
+import { ErrorBoundary } from '@/shared/ErrorBoundary';
 
 /** A component that throws during render, to exercise the boundary's fallback. */
 function Bomb(): never {

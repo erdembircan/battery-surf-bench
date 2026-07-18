@@ -11,9 +11,9 @@ import {
 	finishBark,
 	clearBark,
 	BARK_LEAVE_MS,
-} from './Barks';
-import { type CockpitContext } from './CockpitContext';
-import { type InstanceState } from './RunInstance';
+} from '@/cockpit/Barks';
+import { type CockpitContext } from '@/cockpit/CockpitContext';
+import { type InstanceState } from '@/cockpit/RunInstance';
 
 const STRINGS: Record< string, string[] > = {
 	readPause: [ 'Deep in the good words…', 'Catching up on the fine print…' ],

@@ -1,9 +1,12 @@
 import { describe, it, expect, vi } from 'vitest';
-import { SelectSnippet, SELECT_SNIPPET_DISPLAY_MS } from './SelectSnippet';
-import { makeContext, openAffordances } from '../TestFixtures';
-import { FakeMotor } from '../FakeMotor';
-import { DRIVE_FLOOR } from '../Bid';
-import { MAX } from '../../shared/SurferStats';
+import {
+	SelectSnippet,
+	SELECT_SNIPPET_DISPLAY_MS,
+} from '@/surfer/Behaviors/SelectSnippet';
+import { makeContext, openAffordances } from '@/surfer/TestFixtures';
+import { FakeMotor } from '@/surfer/FakeMotor';
+import { DRIVE_FLOOR } from '@/surfer/Bid';
+import { MAX } from '@/shared/SurferStats';
 
 describe( 'SelectSnippet.bid', () => {
 	it( 'still bids a small, nonzero floor at fidget 0', () => {

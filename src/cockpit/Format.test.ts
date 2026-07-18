@@ -12,7 +12,7 @@ import {
 	formatRate,
 	durationDigits,
 	EM_DASH,
-} from './Format';
+} from '@/cockpit/Format';
 
 describe( 'formatClock', () => {
 	it( 'formats seconds as MM:SS, zero-padded', () => {

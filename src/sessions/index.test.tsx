@@ -26,11 +26,11 @@ vi.mock( '@wordpress/element', () => ( {
 	createRoot: mounting.createRoot,
 } ) );
 
-vi.mock( '../shared/ErrorBoundary', () => ( {
+vi.mock( '@/shared/ErrorBoundary', () => ( {
 	ErrorBoundary: mounting.ErrorBoundary,
 } ) );
 
-vi.mock( './App', () => ( {
+vi.mock( '@/sessions/App', () => ( {
 	SessionsApp: mounting.SessionsApp,
 } ) );
 
@@ -57,7 +57,7 @@ describe( 'sessions entry point', () => {
 		document.body.append( container );
 		window.bsbSessions = config;
 
-		await import( './index' );
+		await import( '@/sessions/index' );
 
 		expect( mounting.createRoot ).toHaveBeenCalledWith( container );
 		const element = mounting.render.mock.calls[ 0 ][ 0 ];
@@ -70,7 +70,7 @@ describe( 'sessions entry point', () => {
 	it( 'does nothing when the container is absent', async () => {
 		window.bsbSessions = config;
 
-		await import( './index' );
+		await import( '@/sessions/index' );
 
 		expect( mounting.createRoot ).not.toHaveBeenCalled();
 	} );
@@ -80,7 +80,7 @@ describe( 'sessions entry point', () => {
 		container.id = 'bsb-sessions-app';
 		document.body.append( container );
 
-		await import( './index' );
+		await import( '@/sessions/index' );
 
 		expect( mounting.createRoot ).not.toHaveBeenCalled();
 	} );

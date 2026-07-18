@@ -8,7 +8,7 @@
 namespace ErdemBircan\BatterySurfBench\Admin;
 
 use ErdemBircan\BatterySurfBench\Admin\Views\SettingsScreenView;
-use ErdemBircan\BatterySurfBench\Assets;
+use ErdemBircan\BatterySurfBench\Core\Assets;
 use ErdemBircan\BatterySurfBench\Course\CourseCatalog;
 use ErdemBircan\BatterySurfBench\Course\CourseOrderSanitizer;
 use ErdemBircan\BatterySurfBench\Support\CapabilityInterface;

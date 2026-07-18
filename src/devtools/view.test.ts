@@ -4,8 +4,8 @@
  * A thin registration module: the individual behaviors it wires together
  * (merging store parts, hydration and persistence, the battery-override and
  * discharge-sim actions/getters) are unit-tested on their own
- * ({@link ./DevtoolsStore}, {@link ./BatteryOverrideStore},
- * {@link ./DischargeSimStore}, {@link ../cockpit/StoreParts}). This file only
+ * ({@link ./store/DevtoolsStore}, {@link ./store/BatteryOverrideStore},
+ * {@link ./store/DischargeSimStore}, {@link ../cockpit/store/StoreParts}). This file only
  * proves the join itself — that importing the module registers the
  * `bsb/cockpit` namespace with the whole `devtools` slice folded in.
  */
@@ -49,7 +49,7 @@ vi.mock( '@wordpress/interactivity', () => ( {
 
 describe( 'devtools view', () => {
 	it( 'joins the bsb/cockpit namespace with the devtools slice folded in', async () => {
-		await import( './view' );
+		await import( '@/devtools/view' );
 
 		expect( mocks.namespace ).toBe( 'bsb/cockpit' );
 		expect( mocks.config?.state.devtools ).toEqual( {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { easeInOutQuad } from './Ease';
+import { easeInOutQuad } from '@/surfer/Ease';
 
 describe( 'easeInOutQuad', () => {
 	it( 'starts at 0 and ends at 1', () => {

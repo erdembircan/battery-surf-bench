@@ -7,7 +7,7 @@
 
 namespace ErdemBircan\BatterySurfBench\DevTools;
 
-use ErdemBircan\BatterySurfBench\Assets;
+use ErdemBircan\BatterySurfBench\Core\Assets;
 use ErdemBircan\BatterySurfBench\Course\CourseOrderSanitizer;
 use ErdemBircan\BatterySurfBench\DevTools\Views\DevToolsPanelView;
 use ErdemBircan\BatterySurfBench\Support\Manager;

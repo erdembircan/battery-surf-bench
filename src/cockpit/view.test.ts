@@ -273,7 +273,7 @@ vi.mock( '@wordpress/interactivity', () => ( {
 	getConfig: () => mocks.interactivityConfig,
 } ) );
 
-import { __resetInstance } from './view';
+import { __resetInstance } from '@/cockpit/view';
 
 /**
  * Sets the element the next action will read.

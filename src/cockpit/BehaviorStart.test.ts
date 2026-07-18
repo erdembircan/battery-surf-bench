@@ -4,7 +4,7 @@ import {
 	behaviorKeyOf,
 	durationOf,
 	BEHAVIOR_START_TYPE,
-} from './BehaviorStart';
+} from '@/cockpit/BehaviorStart';
 
 const ORIGIN = 'https://example.test';
 

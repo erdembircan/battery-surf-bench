@@ -3,8 +3,8 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { mapOrderToRows } from './RowMapping';
-import type { BundledCatalogEntry, OrderEntry } from './Types';
+import { mapOrderToRows } from '@/settings/RowMapping';
+import type { BundledCatalogEntry, OrderEntry } from '@/settings/Types';
 
 const catalog: BundledCatalogEntry[] = [
 	{ slug: 'article-1', title: 'The Hidden Cost of a Browser Tab' },

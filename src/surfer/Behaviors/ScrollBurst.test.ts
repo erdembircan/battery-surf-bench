@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { ScrollBurst } from './ScrollBurst';
-import { makeContext } from '../TestFixtures';
-import { FakeMotor } from '../FakeMotor';
+import { ScrollBurst } from '@/surfer/Behaviors/ScrollBurst';
+import { makeContext } from '@/surfer/TestFixtures';
+import { FakeMotor } from '@/surfer/FakeMotor';
 
 describe( 'ScrollBurst.bid', () => {
 	it( 'bids the same baseline regardless of trait values', () => {

@@ -11,8 +11,8 @@ namespace ErdemBircan\BatterySurfBench\Tests\Admin;
 
 use Brain\Monkey\Functions;
 use ErdemBircan\BatterySurfBench\Admin\SessionsScreen;
-use ErdemBircan\BatterySurfBench\Assets;
 use ErdemBircan\BatterySurfBench\Content\SessionSchema;
+use ErdemBircan\BatterySurfBench\Core\Assets;
 use ErdemBircan\BatterySurfBench\Support\Manager;
 use ErdemBircan\BatterySurfBench\Tests\Support\FakeCapability;
 use ErdemBircan\BatterySurfBench\Tests\TestCase;

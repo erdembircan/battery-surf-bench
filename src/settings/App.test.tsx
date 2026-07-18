@@ -19,7 +19,7 @@ import {
 	waitFor,
 	within,
 } from '@testing-library/react';
-import type { SettingsConfig } from './Types';
+import type { SettingsConfig } from '@/settings/Types';
 
 const hooks = vi.hoisted( () => ( {
 	apiFetch: vi.fn(),
@@ -29,7 +29,7 @@ vi.mock( '@wordpress/api-fetch', () => ( {
 	default: hooks.apiFetch,
 } ) );
 
-vi.mock( './BrowsePane', () => ( {
+vi.mock( '@/settings/BrowsePane', () => ( {
 	BrowsePane: ( {
 		saving,
 		onAdd,
@@ -69,7 +69,7 @@ vi.mock( './BrowsePane', () => ( {
 	),
 } ) );
 
-vi.mock( './SelectedPane', () => ( {
+vi.mock( '@/settings/SelectedPane', () => ( {
 	SelectedPane: ( {
 		rows,
 		saving,
@@ -103,11 +103,11 @@ vi.mock( './SelectedPane', () => ( {
 	),
 } ) );
 
-vi.mock( './UserPageResolver', () => ( {
+vi.mock( '@/settings/UserPageResolver', () => ( {
 	UserPageResolver: () => null,
 } ) );
 
-const { SettingsApp } = await import( './App' );
+const { SettingsApp } = await import( '@/settings/App' );
 
 const config: SettingsConfig = {
 	postTypes: [ 'page', 'post' ],

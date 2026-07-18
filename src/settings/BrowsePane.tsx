@@ -11,8 +11,12 @@
 import { Spinner } from '@wordpress/components';
 import { useEffect, useMemo, useState } from '@wordpress/element';
 import { __, _n, sprintf } from '@wordpress/i18n';
-import { useSearchResults } from './SearchQuery';
-import type { BundledCatalogEntry, InitialBrowse, SearchRecord } from './Types';
+import { useSearchResults } from '@/settings/SearchQuery';
+import type {
+	BundledCatalogEntry,
+	InitialBrowse,
+	SearchRecord,
+} from '@/settings/Types';
 
 /** Rows fetched per page — deliberately small, since this is a real REST page, not a client-side slice. */
 const PER_PAGE = 10;

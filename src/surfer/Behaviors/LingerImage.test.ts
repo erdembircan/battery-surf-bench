@@ -1,9 +1,9 @@
 import { describe, it, expect, vi } from 'vitest';
-import { LingerImage } from './LingerImage';
-import { makeContext, openAffordances } from '../TestFixtures';
-import { FakeMotor } from '../FakeMotor';
-import { DRIVE_FLOOR } from '../Bid';
-import { MAX } from '../../shared/SurferStats';
+import { LingerImage } from '@/surfer/Behaviors/LingerImage';
+import { makeContext, openAffordances } from '@/surfer/TestFixtures';
+import { FakeMotor } from '@/surfer/FakeMotor';
+import { DRIVE_FLOOR } from '@/surfer/Bid';
+import { MAX } from '@/shared/SurferStats';
 
 describe( 'LingerImage.bid', () => {
 	it( 'still bids a small, nonzero floor at allure 0', () => {

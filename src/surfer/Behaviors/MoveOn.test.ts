@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { MoveOn, MIN_DWELL_MS, LEAVE_RAMP_MS } from './MoveOn';
-import { makeContext } from '../TestFixtures';
-import { FakeMotor } from '../FakeMotor';
+import { MoveOn, MIN_DWELL_MS, LEAVE_RAMP_MS } from '@/surfer/Behaviors/MoveOn';
+import { makeContext } from '@/surfer/TestFixtures';
+import { FakeMotor } from '@/surfer/FakeMotor';
 
 describe( 'MoveOn.bid', () => {
 	it( 'bids exactly the accumulated boredom once fully ramped', () => {

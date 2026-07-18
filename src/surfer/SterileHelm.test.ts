@@ -1,12 +1,20 @@
 import { describe, it, expect, vi } from 'vitest';
-import { SterileHelm } from './SterileHelm';
-import type { Behavior, BehaviorContext, BehaviorAnnounce } from './Behavior';
-import type { Motor } from './Motor';
-import { FakeMotor } from './FakeMotor';
-import { FakeClock } from './FakeClock';
-import { MoveOn, MOVE_ON_KEY, MOVE_ON_DISPLAY_MS } from './Behaviors/MoveOn';
-import { ScrollBurst, SCROLL_BURST_KEY } from './Behaviors/ScrollBurst';
-import { openAffordances } from './TestFixtures';
+import { SterileHelm } from '@/surfer/SterileHelm';
+import type {
+	Behavior,
+	BehaviorContext,
+	BehaviorAnnounce,
+} from '@/surfer/Behavior';
+import type { Motor } from '@/surfer/Motor';
+import { FakeMotor } from '@/surfer/FakeMotor';
+import { FakeClock } from '@/surfer/FakeClock';
+import {
+	MoveOn,
+	MOVE_ON_KEY,
+	MOVE_ON_DISPLAY_MS,
+} from '@/surfer/Behaviors/MoveOn';
+import { ScrollBurst, SCROLL_BURST_KEY } from '@/surfer/Behaviors/ScrollBurst';
+import { openAffordances } from '@/surfer/TestFixtures';
 
 // SterileHelm always compares an incoming steer's origin against the real
 // `window.location.origin` (never an injectable expected-origin parameter —

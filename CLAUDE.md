@@ -95,7 +95,7 @@ All source files (both JS/TS and PHP) must use **CamelCase** (e.g. `BatteryMonit
 
 **This app ships exactly one theme, and it is light.** There is no theme toggle and no reachable dark mode in the product.
 
-- **The dark tokens are dormant, not a feature.** `src/styles/_theme.scss` carries a full `[data-theme='dark']` (Dusk Lineup) block, but nothing in the running app ever sets `data-theme='dark'`. It is kept **only** as documentation / a hedge in case the decision is ever revisited — it is unreachable ~99.99% of the time. **The presence of those tokens is not permission to support dark mode.**
+- **The dark tokens are dormant, not a feature.** `src/styles/theme/_theme.scss` carries a full `[data-theme='dark']` (Dusk Lineup) block, but nothing in the running app ever sets `data-theme='dark'`. It is kept **only** as documentation / a hedge in case the decision is ever revisited — it is unreachable ~99.99% of the time. **The presence of those tokens is not permission to support dark mode.**
 - **Never add dark handling.** Do not write `@media (prefers-color-scheme: dark)` rules, `[data-theme='dark']` overrides for new UI, or any theme switcher — in production code **or** in design mockups. Author every surface light-only. Use the theme tokens normally (they resolve to the light values); just never introduce new dark variants.
 - **If dark is ever genuinely wanted, it's a maintainer decision** — raise it explicitly. Don't infer it from the dormant tokens.
 

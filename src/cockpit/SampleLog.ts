@@ -13,7 +13,7 @@
  * plateau — without distorting the regression, which uses one point per step.
  */
 
-import type { Sample } from './DrainRate';
+import type { Sample } from '@/cockpit/DrainRate';
 
 /** A collapsed plateau: a {@link Sample} plus how many raw readings it absorbed. */
 export interface RleSample extends Sample {

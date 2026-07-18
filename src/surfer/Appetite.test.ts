@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { Appetite } from './Appetite';
+import { Appetite } from '@/surfer/Appetite';
 
 describe( 'Appetite', () => {
 	it( 'starts full for an unseen key', () => {

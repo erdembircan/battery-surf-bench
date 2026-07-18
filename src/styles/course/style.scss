@@ -1,0 +1,809 @@
+@use "sass:color";
+// Icons only, not the whole theme partial: `@use`-ing `../theme/theme`
+// itself would also emit its `@font-face` rules (Anton, Hanken Grotesk,
+// Space Mono, Pacifico, Caveat) into this stylesheet, which doesn't use any
+// of those fonts. Aliased to `theme` so the call below reads the same as
+// every other `theme.$icon-*`/`theme.icon-*()` consumer.
+@use '../theme/icons' as theme;
+// Pure variables, no CSS of its own — safe to `@use` here for the same
+// reason the icons partial is, without pulling in the theme's @font-face
+// output.
+@use '../theme/palette' as palette;
+
+// Typography
+$font-serif: georgia, "Times New Roman", times, serif;
+$font-sans: -apple-system, blinkmacsystemfont, "Segoe UI", helvetica, arial, sans-serif;
+
+// Palette
+$paper: #fafaf8; // page background
+$ink: #1a1a18; // near-black text, headlines, dark panels
+$ink-soft: #2a2a27; // dark panel, hovered
+$ink-muted: #3d3d3a; // deck / pullquote body
+$grey: #6b6760; // meta, captions, muted labels
+$border: #e8e4dc; // hairlines and panel borders
+$panel: #f0ede6; // cream panels, asides, table headers
+$blue: #2c5f8a; // links and accents
+$red: #c0392b; // kickers, accents, progress bar
+$white: #fff;
+$black: #000;
+$tag-bg: #eef3f8; // light-blue tag chip
+
+.bsb-course-content {
+	background: $paper;
+	color: $ink;
+	font-family: $font-serif;
+	line-height: 1.75;
+	-webkit-font-smoothing: antialiased;
+
+	*,
+	*::before,
+	*::after {
+		box-sizing: border-box;
+		margin: 0;
+		padding: 0;
+	}
+
+	img,
+	svg {
+		display: block;
+		max-width: 100%;
+	}
+
+	a {
+		color: $blue;
+		text-decoration: underline;
+		text-underline-offset: 3px;
+
+		&:hover {
+			color: $red;
+		}
+	}
+
+	.bsb-progress {
+		position: fixed;
+		top: 0;
+		left: 0;
+		height: 3px;
+		width: 0%;
+		background: $red;
+		z-index: 9999;
+		transition: width 0.1s linear;
+	}
+
+	.bsb-masthead {
+		background: $ink;
+		color: $white;
+		padding: 0.75rem 2rem;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 1rem;
+
+		&__title {
+			font-family: $font-sans;
+			font-size: 1.1rem;
+			font-weight: 700;
+			letter-spacing: 0.08em;
+			text-transform: uppercase;
+			color: $white;
+			text-decoration: none;
+
+			&:hover {
+				color: #ddd;
+			}
+		}
+
+		&__tagline {
+			font-family: $font-sans;
+			font-size: 0.7rem;
+			letter-spacing: 0.12em;
+			text-transform: uppercase;
+			color: rgba($white, 0.55);
+		}
+
+		&__nav {
+			display: flex;
+			gap: 1.25rem;
+			list-style: none;
+
+			a {
+				font-family: $font-sans;
+				font-size: 0.75rem;
+				letter-spacing: 0.06em;
+				text-transform: uppercase;
+				color: rgba($white, 0.7);
+				text-decoration: none;
+
+				&:hover {
+					color: $white;
+				}
+			}
+		}
+	}
+
+	.bsb-container {
+		max-width: 960px;
+		margin: 0 auto;
+		padding: 0 1.5rem;
+	}
+
+	.bsb-article-wrap {
+		max-width: 680px;
+		margin: 0 auto;
+		padding: 0 1.5rem;
+	}
+
+	.bsb-article {
+		padding-bottom: 4rem;
+
+		&__kicker {
+			display: block;
+			font-family: $font-sans;
+			font-size: 0.72rem;
+			font-weight: 700;
+			letter-spacing: 0.14em;
+			text-transform: uppercase;
+			color: $red;
+			margin-top: 3rem;
+			margin-bottom: 0.6rem;
+		}
+
+		&__headline {
+			font-family: $font-serif;
+			font-size: clamp(2rem, 5vw, 2.8rem);
+			line-height: 1.2;
+			font-weight: 700;
+			color: $ink;
+			margin-bottom: 0.8rem;
+		}
+
+		&__meta {
+			font-family: $font-sans;
+			font-size: 0.78rem;
+			color: $grey;
+			margin-bottom: 2rem;
+			padding-bottom: 1.5rem;
+			border-bottom: 1px solid $border;
+		}
+
+		&__deck {
+			font-size: 1.15rem;
+			line-height: 1.6;
+			color: $ink-muted;
+			margin-bottom: 2rem;
+			font-style: italic;
+		}
+
+		h2 {
+			font-family: $font-serif;
+			font-size: 1.55rem;
+			font-weight: 700;
+			line-height: 1.3;
+			margin-top: 2.8rem;
+			margin-bottom: 0.9rem;
+			color: $ink;
+		}
+
+		h3 {
+			font-family: $font-serif;
+			font-size: 1.2rem;
+			font-weight: 700;
+			line-height: 1.35;
+			margin-top: 2rem;
+			margin-bottom: 0.6rem;
+			color: $ink;
+		}
+
+		p {
+			margin-bottom: 1.4rem;
+		}
+
+		ul,
+		ol {
+			padding-left: 1.6rem;
+			margin-bottom: 1.4rem;
+
+			li {
+				margin-bottom: 0.4rem;
+			}
+		}
+
+		.bsb-pullquote {
+			margin: 2.5rem 0;
+			padding: 1.6rem 2rem;
+			border-left: 4px solid $red;
+			background: $panel;
+			border-radius: 0 6px 6px 0;
+
+			blockquote {
+				font-family: $font-serif;
+				font-size: 1.3rem;
+				line-height: 1.45;
+				font-style: italic;
+				color: $ink-muted;
+				margin: 0;
+			}
+
+			cite {
+				display: block;
+				font-family: $font-sans;
+				font-size: 0.75rem;
+				color: $grey;
+				margin-top: 0.75rem;
+				letter-spacing: 0.06em;
+				text-transform: uppercase;
+				font-style: normal;
+			}
+		}
+
+		figure {
+			margin: 2.5rem 0;
+
+			svg {
+				width: 100%;
+				height: auto;
+				border-radius: 6px;
+			}
+
+			figcaption {
+				font-family: $font-sans;
+				font-size: 0.75rem;
+				color: $grey;
+				margin-top: 0.6rem;
+				text-align: center;
+				line-height: 1.4;
+			}
+		}
+
+		hr {
+			border: none;
+			border-top: 1px solid $border;
+			margin: 2.5rem 0;
+		}
+	}
+
+	.bsb-tag {
+		display: inline-block;
+		background: $tag-bg;
+		color: $blue;
+		font-family: $font-sans;
+		font-size: 0.7rem;
+		font-weight: 600;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+		padding: 0.2em 0.65em;
+		border-radius: 3px;
+		margin-right: 0.4rem;
+		margin-bottom: 0.4rem;
+		text-decoration: none;
+
+		&:hover {
+			background: color.adjust($tag-bg, $lightness: -6%);
+			color: $blue;
+		}
+	}
+
+	.bsb-next-card {
+		margin-top: 3rem;
+		padding: 2rem;
+		background: $ink;
+		border-radius: 8px;
+		color: $white;
+		text-decoration: none;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 1rem;
+		transition: background 0.15s ease;
+
+		&:hover {
+			background: $ink-soft;
+			color: $white;
+		}
+
+		&__label {
+			font-family: $font-sans;
+			font-size: 0.72rem;
+			letter-spacing: 0.12em;
+			text-transform: uppercase;
+			opacity: 0.6;
+			margin-bottom: 0.3rem;
+		}
+
+		&__title {
+			font-family: $font-serif;
+			font-size: 1.15rem;
+			font-weight: 700;
+		}
+
+		&__arrow {
+			font-size: 1.5rem;
+			opacity: 0.6;
+			flex-shrink: 0;
+		}
+	}
+
+	.bsb-aside {
+		background: $panel;
+		border: 1px solid $border;
+		border-radius: 6px;
+		padding: 1.4rem 1.6rem;
+		margin: 2.5rem 0;
+		font-family: $font-sans;
+		font-size: 0.9rem;
+
+		&__title {
+			font-size: 0.7rem;
+			font-weight: 700;
+			letter-spacing: 0.14em;
+			text-transform: uppercase;
+			color: $grey;
+			margin-bottom: 0.9rem;
+		}
+
+		p {
+			margin-bottom: 0.75rem;
+			line-height: 1.5;
+
+			&:last-child {
+				margin-bottom: 0;
+			}
+		}
+
+		ul {
+			padding-left: 1.2rem;
+
+			li {
+				margin-bottom: 0.35rem;
+			}
+		}
+	}
+
+	.bsb-table-wrap {
+		overflow-x: auto;
+		margin: 2rem 0;
+	}
+
+	table.bsb-table {
+		width: 100%;
+		border-collapse: collapse;
+		font-family: $font-sans;
+		font-size: 0.88rem;
+
+		th {
+			background: $panel;
+			font-weight: 700;
+			text-align: left;
+			padding: 0.7rem 0.9rem;
+			border-bottom: 2px solid $border;
+			white-space: nowrap;
+		}
+
+		td {
+			padding: 0.65rem 0.9rem;
+			border-bottom: 1px solid $border;
+			vertical-align: top;
+		}
+
+		tr:last-child td {
+			border-bottom: none;
+		}
+
+		tr:hover td {
+			background: rgba($black, 0.02);
+		}
+
+		.rank {
+			font-weight: 700;
+			color: $grey;
+			text-align: center;
+			width: 2.5rem;
+		}
+
+		.watts {
+			font-weight: 700;
+			color: $red;
+			white-space: nowrap;
+		}
+
+		&__high td {
+			background: rgba($red, 0.05);
+		}
+	}
+
+	.bsb-two-col {
+		display: grid;
+		grid-template-columns: 1fr 300px;
+		gap: 2.5rem;
+		align-items: start;
+
+		@media (max-width: 760px) {
+			grid-template-columns: 1fr;
+		}
+	}
+
+	.bsb-sidebar {
+		position: sticky;
+		top: 1.5rem;
+	}
+
+	.bsb-gallery {
+		&__header {
+			max-width: 680px;
+			margin: 0 auto;
+			padding: 3rem 1.5rem 2rem;
+
+			h1 {
+				font-family: $font-serif;
+				font-size: clamp(1.8rem, 4vw, 2.4rem);
+				font-weight: 700;
+				margin-bottom: 0.75rem;
+			}
+
+			p {
+				font-size: 1.05rem;
+				color: $grey;
+				line-height: 1.6;
+			}
+		}
+
+		&__grid {
+			display: grid;
+			grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+			gap: 1.25rem;
+			padding: 0 1.5rem 4rem;
+			max-width: 1200px;
+			margin: 0 auto;
+
+			@media (max-width: 540px) {
+				grid-template-columns: repeat(2, 1fr);
+				gap: 0.75rem;
+			}
+		}
+
+		figure {
+			margin: 0;
+			overflow: hidden;
+			border-radius: 6px;
+			background: $panel;
+			transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+			&:hover {
+				transform: translateY(-2px);
+				box-shadow: 0 8px 24px rgba($black, 0.12);
+			}
+
+			svg {
+				width: 100%;
+				height: 220px;
+				display: block;
+			}
+
+			figcaption {
+				font-family: $font-sans;
+				font-size: 0.72rem;
+				color: $grey;
+				padding: 0.6rem 0.8rem 0.8rem;
+				line-height: 1.35;
+			}
+		}
+	}
+
+	.bsb-gallery-next {
+		max-width: 1200px;
+		margin: 0 auto;
+		padding: 0 1.5rem 4rem;
+	}
+
+	.bsb-video {
+		&__hero {
+			background: $black;
+			padding: 2rem 0 0;
+		}
+
+		&__content {
+			max-width: 680px;
+			margin: 0 auto;
+			padding: 2.5rem 1.5rem 4rem;
+
+			h1 {
+				font-family: $font-serif;
+				font-size: clamp(1.6rem, 4vw, 2.2rem);
+				font-weight: 700;
+				margin-bottom: 1rem;
+			}
+
+			p {
+				margin-bottom: 1.3rem;
+				line-height: 1.75;
+			}
+		}
+	}
+
+	// Responsive 16:9 sizing for the native `core/embed` YouTube block. Scoped
+	// under `.bsb-course-content` (this stylesheet's own root, not repeated
+	// per-selector) rather than under `.bsb-video__hero`, so it renders
+	// correctly BOTH for the bundled video page's hero embed and for a bare
+	// YouTube embed on any user-selected surf page — those never carry
+	// `.bsb-video__hero` at all.
+	.wp-block-embed {
+		max-width: 900px;
+		margin: 0 auto;
+
+		&__wrapper {
+			position: relative;
+			// Fallback for browsers without `aspect-ratio` support, matching
+			// this stylesheet's existing padding-bottom technique (formerly
+			// `.bsb-video__ratio`, now superseded by this shared rule).
+			height: 0;
+			padding-bottom: 56.25%;
+
+			@supports (aspect-ratio: 16 / 9) {
+				aspect-ratio: 16 / 9;
+				height: auto;
+				padding-bottom: 0;
+			}
+
+			iframe {
+				position: absolute;
+				inset: 0;
+				width: 100%;
+				height: 100%;
+				border: none;
+			}
+		}
+	}
+
+	.bsb-links {
+		&__header {
+			background: $ink;
+			color: $white;
+			padding: 2.5rem 1.5rem 2rem;
+			margin-bottom: 0;
+
+			.bsb-container {
+				max-width: 960px;
+			}
+
+			h1 {
+				font-family: $font-serif;
+				font-size: clamp(1.8rem, 4vw, 2.4rem);
+				font-weight: 700;
+				margin-bottom: 0.5rem;
+			}
+
+			p {
+				font-size: 0.9rem;
+				opacity: 0.65;
+				font-family: $font-sans;
+			}
+		}
+
+		&__body {
+			max-width: 960px;
+			margin: 0 auto;
+			padding: 2rem 1.5rem 4rem;
+		}
+
+		&__section-title {
+			font-family: $font-sans;
+			font-size: 0.7rem;
+			font-weight: 700;
+			letter-spacing: 0.14em;
+			text-transform: uppercase;
+			color: $grey;
+			margin-bottom: 1rem;
+			padding-bottom: 0.5rem;
+			border-bottom: 1px solid $border;
+		}
+
+		&__grid {
+			display: grid;
+			grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+			gap: 1rem;
+			margin-bottom: 2.5rem;
+		}
+	}
+
+	.bsb-card {
+		background: $white;
+		border: 1px solid $border;
+		border-radius: 6px;
+		padding: 1.1rem 1.25rem;
+		text-decoration: none;
+		color: $ink;
+		display: block;
+		transition: border-color 0.15s, box-shadow 0.15s;
+
+		&:hover {
+			border-color: $blue;
+			box-shadow: 0 2px 12px rgba($blue, 0.1);
+			color: $ink;
+		}
+
+		&__kicker {
+			font-family: $font-sans;
+			font-size: 0.65rem;
+			font-weight: 700;
+			letter-spacing: 0.12em;
+			text-transform: uppercase;
+			color: $red;
+			margin-bottom: 0.35rem;
+		}
+
+		&__headline {
+			font-family: $font-serif;
+			font-size: 1.02rem;
+			line-height: 1.35;
+			font-weight: 700;
+			margin-bottom: 0.4rem;
+		}
+
+		&__meta {
+			font-family: $font-sans;
+			font-size: 0.72rem;
+			color: $grey;
+		}
+	}
+
+	.bsb-links-next {
+		margin-top: 1.5rem;
+	}
+
+	.bsb-footer {
+		border-top: 1px solid $border;
+		padding: 1.5rem 2rem;
+		background: $paper;
+
+		&__inner {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			gap: 1rem;
+			max-width: 960px;
+			margin: 0 auto;
+			font-family: $font-sans;
+			font-size: 0.72rem;
+			color: $grey;
+		}
+
+		&__badge {
+			background: $panel;
+			border: 1px solid $border;
+			border-radius: 3px;
+			padding: 0.2em 0.65em;
+			font-size: 0.65rem;
+			letter-spacing: 0.08em;
+			text-transform: uppercase;
+			color: $grey;
+		}
+	}
+}
+
+// Course pages render wide (like article-1) with no background around content.
+.bsb-course-content {
+	background: transparent;
+
+	.bsb-container,
+	.bsb-article-wrap,
+	.bsb-gallery__header,
+	.bsb-gallery__grid,
+	.bsb-gallery-next,
+	.bsb-video__content,
+	.bsb-links__body,
+	.bsb-two-col {
+		max-width: none;
+	}
+}
+
+// The surf engine drives the page, not the user, so the real cursor is shown
+// as the disabled/`not-allowed` affordance for the whole page while it runs —
+// the user still sees their own cursor moving (it hasn't broken), it just
+// signals the page isn't interactive; the engine's own fake cursor (see
+// FakeCursor.ts) is the visible thing actually acting on the page. Scoped
+// outside `.bsb-course-content` since both apply page-wide, not just within
+// the article wrapper. The `*` descendant selector is required because
+// `cursor` doesn't inherit through the initial value `auto` — every element
+// (text, links, buttons) resolves its own `auto` cursor regardless of what
+// the ancestor sets, so without it the real cursor reappears as an I-beam
+// over text or a pointer over links instead of `not-allowed`.
+.bsb-surfing,
+.bsb-surfing * {
+	cursor: not-allowed;
+}
+
+.bsb-surf-cursor {
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 24px;
+	height: 24px;
+	pointer-events: none;
+	z-index: 999999;
+	will-change: transform;
+}
+
+// The glyph layer, split from the positioned wrapper so the click squash can
+// animate a transform of its own: on the wrapper, either `transform: scale()`
+// keyframes (they override the engine's inline translate) or the standalone
+// `scale` property (it composes OUTSIDE the transform property, so it
+// multiplies the translate and drags the cursor toward the viewport origin)
+// would visibly yank the cursor away mid-click.
+.bsb-surf-cursor__glyph {
+	width: 100%;
+	height: 100%;
+	background-image: theme.icon-cursor($ink, $white);
+	background-size: 100% 100%;
+	background-repeat: no-repeat;
+}
+
+// Glyph modes the engine swaps onto the cursor (see FakeCursor.setMode).
+// Each mode carries its own hotspot as a margin offset on the wrapper: the
+// caret's stem centre and the hand's index fingertip sit exactly on the
+// cursor's point, the way the OS positions the real equivalents. The hand
+// keeps its source aspect via `contain` instead of stretching to the square
+// box.
+.bsb-surf-cursor--caret {
+	margin: -12px 0 0 -12px;
+}
+
+.bsb-surf-cursor--caret .bsb-surf-cursor__glyph {
+	background-image: theme.icon-cursor-caret($ink, $white);
+}
+
+.bsb-surf-cursor--hand {
+	margin: -1px 0 0 -9px;
+}
+
+.bsb-surf-cursor--hand .bsb-surf-cursor__glyph {
+	background-image: theme.icon-cursor-hand($ink, $white);
+	background-size: contain;
+	background-position: center;
+}
+
+// The click moment (FakeCursor.click): the glyph squashes toward the
+// fingertip while a ring expands from the point and fades. The squash lives
+// on the inner glyph layer, which carries no translate — see the layer's
+// own comment above for why the wrapper must never scale.
+.bsb-surf-cursor--pressing .bsb-surf-cursor__glyph {
+	transform-origin: 9px 1px;
+	animation: bsb-cursor-press 0.28s ease-out;
+}
+
+@keyframes bsb-cursor-press {
+	0% {
+		transform: scale(1);
+	}
+
+	40% {
+		transform: scale(0.8);
+	}
+
+	100% {
+		transform: scale(1);
+	}
+}
+
+.bsb-surf-click-ripple {
+	position: fixed;
+	width: 12px;
+	height: 12px;
+	margin: -6px 0 0 -6px;
+	border: 2.5px solid palette.$coastal-teal-deep;
+	border-radius: 50%;
+	pointer-events: none;
+	z-index: 999999;
+	animation: bsb-click-ripple 0.4s ease-out forwards;
+}
+
+@keyframes bsb-click-ripple {
+	0% {
+		transform: scale(0.5);
+		opacity: 0.9;
+	}
+
+	100% {
+		transform: scale(3.2);
+		opacity: 0;
+	}
+}

@@ -76,8 +76,9 @@ final class BatterySurfBenchTest extends TestCase {
 
 	/**
 	 * Booting in a `development` environment must still succeed — the
-	 * compiled artifact is skipped there ({@see DefinitionsSource}), so the
-	 * live `Services.php` wires every manager instead.
+	 * compiled artifact is skipped there
+	 * ({@see \ErdemBircan\BatterySurfBench\Container\DefinitionsSource}), so
+	 * the live `Services.php` wires every manager instead.
 	 */
 	public function test_init_boots_in_a_development_environment(): void {
 		Functions\when( 'wp_get_environment_type' )->justReturn( 'development' );

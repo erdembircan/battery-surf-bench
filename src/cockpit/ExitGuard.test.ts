@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { runBlocksExit, confirmExit } from './ExitGuard';
+import { runBlocksExit, confirmExit } from '@/cockpit/ExitGuard';
 
 describe( 'runBlocksExit', () => {
 	it( 'blocks leaving while a run is active', () => {

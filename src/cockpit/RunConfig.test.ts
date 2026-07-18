@@ -14,7 +14,7 @@ import {
 	normalizeMode,
 	DURATION_MIN,
 	DURATION_MAX,
-} from './RunConfig';
+} from '@/cockpit/RunConfig';
 
 describe( 'normalizeDuration', () => {
 	it( 'clamps below the minimum and above the maximum', () => {

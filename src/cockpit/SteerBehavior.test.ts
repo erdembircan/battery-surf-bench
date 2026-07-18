@@ -1,5 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
-import { postSteerBehavior, STEER_BEHAVIOR_TYPE } from './SteerBehavior';
+import {
+	postSteerBehavior,
+	STEER_BEHAVIOR_TYPE,
+} from '@/cockpit/SteerBehavior';
 
 describe( 'postSteerBehavior', () => {
 	it( 'posts the steer command to the target window with the given origin', () => {

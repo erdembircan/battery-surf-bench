@@ -5,11 +5,11 @@
  * scrollable content remains — quiet once there is nothing left below.
  */
 
-import type { Behavior, BehaviorContext } from '../Behavior';
-import { TEMPO } from '../Behavior';
-import type { Motor } from '../Motor';
-import { noise } from '../Bid';
-import { flickPx, flickEaseMs } from '../Tempo';
+import type { Behavior, BehaviorContext } from '@/surfer/Behavior';
+import { TEMPO } from '@/surfer/Behavior';
+import type { Motor } from '@/surfer/Motor';
+import { noise } from '@/surfer/Bid';
+import { flickPx, flickEaseMs } from '@/surfer/Tempo';
 
 /** Constant drive, independent of any trait — this is the "always surfs" baseline. */
 const BASELINE_DRIVE = 0.5;

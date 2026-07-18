@@ -3,7 +3,7 @@
  * header's shark button. Both fields are live-session-only (never persisted):
  * a released shark is a moment, not a setting. Kept free of any store/DOM
  * dependency, mirroring {@link ./SurfSteer} — the store slice
- * ({@link ./SharkReleaseStore}) only wires this against the shared
+ * ({@link ./store/SharkReleaseStore}) only wires this against the shared
  * `bsb/cockpit` state.
  */
 

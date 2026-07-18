@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { mulberry32 } from './Rng';
+import { mulberry32 } from '@/surfer/Rng';
 
 describe( 'mulberry32', () => {
 	it( 'produces values in [0, 1)', () => {

@@ -11,7 +11,7 @@ namespace ErdemBircan\BatterySurfBench\Tests\Admin;
 
 use Brain\Monkey\Functions;
 use ErdemBircan\BatterySurfBench\Admin\SettingsScreen;
-use ErdemBircan\BatterySurfBench\Assets;
+use ErdemBircan\BatterySurfBench\Core\Assets;
 use ErdemBircan\BatterySurfBench\Course\CourseCatalog;
 use ErdemBircan\BatterySurfBench\Course\CourseOrderSanitizer;
 use ErdemBircan\BatterySurfBench\Support\Manager;

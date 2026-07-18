@@ -8,7 +8,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
-import { searchPath, useSearchResults } from './SearchQuery';
+import { searchPath, useSearchResults } from '@/settings/SearchQuery';
 
 const hooks = vi.hoisted( () => ( {
 	apiFetch: vi.fn(),

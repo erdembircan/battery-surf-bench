@@ -1,0 +1,187 @@
+// ── Battery Surf Bench icons ────────────────────────────────────────────────
+// The canonical, approved set of CSS-paintable UI glyphs: every icon a
+// stylesheet masks or backgrounds onto an element, as a url-encoded SVG
+// data-URI `$icon-*` variable (or, where a glyph needs theme colours baked
+// in, an `@function` helper). `_theme.scss` forwards this partial, so any
+// stylesheet that does `@use '../theme/theme' as theme` gets `theme.$icon-*`
+// automatically — import the theme, get the icons.
+//
+// This is the governance point for the approved icon set, but it isn't the
+// whole icon story — three other tiers exist deliberately outside it:
+//
+//   1. `assets/images/*.svg` — standalone brand artwork (surfer marks, logo),
+//      referenced via `url()` from SCSS. Files, not variables here.
+//   2. React-element icons (e.g. `trashIcon` in `src/sessions/App.tsx`) stay
+//      inline in their component: DataViews requires a React element and the
+//      project deliberately doesn't depend on `@wordpress/icons`.
+//   3. Component-specific graphics that aren't "icons" — the FrankedStamp
+//      postmark art, the SummaryCard chart shell/`GraphSvg.ts` painting, the
+//      grain turbulence texture, and `wave()`'s decorative foam texture in
+//      `_theme.scss` — stay where they're painted.
+//
+// Every data-URI below must stay byte-identical to its original inline SVG
+// when it's edited for content (not just moved) — a hand-tweaked encoding is
+// how a "simple" edit silently breaks a glyph.
+
+@use 'sass:string';
+
+// ── Dark-mode leftovers (currently unused) ──────────────────────────────────
+// The plugin is light-only (dark mode was severed), so nothing masks these —
+// kept deliberately rather than deleted; see the theme's dark-mode history.
+$icon-moon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z'/%3E%3C/svg%3E");
+$icon-sun: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='4' fill='black'/%3E%3Cpath d='M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5 19 19M19 5l-1.5 1.5M6.5 17.5 5 19'/%3E%3C/svg%3E");
+$icon-monitor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='13' rx='2'/%3E%3Cpath d='M8 21h8M12 17v4'/%3E%3C/svg%3E");
+
+// A power-plug silhouette, used (as a mask) on the run control when a run is
+// blocked because the device is plugged in.
+$icon-plug: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M9 2a1 1 0 0 1 1 1v4H8V3a1 1 0 0 1 1-1zm6 0a1 1 0 0 1 1 1v4h-2V3a1 1 0 0 1 1-1zM6 8h12v3a6 6 0 0 1-5 5.91V21a1 1 0 0 1-2 0v-4.09A6 6 0 0 1 6 11V8z'/%3E%3C/svg%3E");
+
+// A downward chevron, masked onto the compact/expand controls (rotated for the
+// compact "up" toggle, used as-is for the expand "down" toggle).
+$icon-chevron-down: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+
+// A closed padlock, masked onto the view-only notice toast while a run drives
+// the benchmarked page.
+$icon-lock: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='5' y='11' width='14' height='9' rx='2'/%3E%3Cpath d='M8 11V8a4 4 0 0 1 8 0v3'/%3E%3C/svg%3E");
+
+// A warning triangle, masked onto the error toast when a session fails to save.
+$icon-warning: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 9v4'/%3E%3Cpath d='M12 17h.01'/%3E%3Cpath d='M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z'/%3E%3C/svg%3E");
+
+// A checkmark, masked onto the admin `<Notice>`'s success severity (e.g. a
+// save that completed) — the one genuinely new toast/notice icon the shared
+// `%bsb-toast` placeholder introduces (`error`/`info` reuse the cockpit
+// toast's existing warning/lock glyphs).
+$icon-check: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='4 12 9 17 20 6'/%3E%3C/svg%3E");
+
+// A speaker with sound waves, masked onto the finish-sound toggle when on.
+$icon-speaker-on: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M11 5 6 9H2v6h4l5 4z'/%3E%3Cpath d='M15.5 8.5a5 5 0 0 1 0 7'/%3E%3Cpath d='M19 5a9 9 0 0 1 0 14'/%3E%3C/svg%3E");
+
+// A muted speaker (waves replaced by a cross), masked onto the toggle when off.
+$icon-speaker-off: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M11 5 6 9H2v6h4l5 4z'/%3E%3Cline x1='22' y1='9' x2='16' y2='15'/%3E%3Cline x1='16' y1='9' x2='22' y2='15'/%3E%3C/svg%3E");
+
+// A globe, masked onto the unsupported-browser warning's "open in Chrome or
+// Edge" hint on the startup postcard's back.
+$icon-globe: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 3a15 15 0 0 0 0 18M12 3a15 15 0 0 1 0 18M3 12h18'/%3E%3C/svg%3E");
+
+// A flip/refresh glyph, masked onto the summary flipcard's "tap to flip" nudge.
+$icon-flip: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M12 6V3L8 7l4 4V8a4 4 0 1 1-4 4H6a6 6 0 1 0 6-6z'/%3E%3C/svg%3E");
+
+// A plus glyph, masked onto the summary's "New run" control (a fresh run).
+$icon-plus: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M11 4h2v7h7v2h-7v7h-2v-7H4v-2h7z'/%3E%3C/svg%3E");
+
+// A right-facing arrow, masked onto the battery start→end stat's value
+// (replaces a unicode → that renders misshapen and baseline-off in the
+// display font).
+$icon-arrow-right: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M4 11h12.2l-4.6-4.6L13 5l7 7-7 7-1.4-1.4 4.6-4.6H4z'/%3E%3C/svg%3E");
+
+// A left-facing arrow (the mirror of `$icon-arrow-right`), masked onto the
+// session-detail card's "back to listing" pill.
+$icon-arrow-left: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M20 11H7.8l4.6-4.6L11 5l-7 7 7 7 1.4-1.4L7.8 13H20z'/%3E%3C/svg%3E");
+
+// An external-link (open-in-new) glyph, masked onto the sessions screen's
+// "open the cockpit" link.
+$icon-external: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='15 3 21 3 21 9'/%3E%3Cline x1='10' y1='14' x2='21' y2='3'/%3E%3Cpath d='M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5'/%3E%3C/svg%3E");
+
+// A floppy disk (save), masked onto the settings screen's "Save changes"
+// pill — the same glyph `docs/mockups/config-pages.html` renders inline.
+$icon-save: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z'/%3E%3Cpolyline points='17 21 17 13 7 13 7 21'/%3E%3Cpolyline points='7 3 7 8 15 8'/%3E%3C/svg%3E");
+
+// A circular-arrow reset glyph, masked onto the dev-tools panel's reset
+// control (visible only once a battery/sim override is armed) and the
+// settings screen's "Reset changes" pill.
+$icon-reset: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='1 4 1 10 7 10'/%3E%3Cpath d='M3.51 15a9 9 0 1 0 2.13-9.36L1 10'/%3E%3C/svg%3E");
+
+// A finned fish — Font Awesome Free 7.3.1's `fish-fins` (solid), CC BY 4.0,
+// https://fontawesome.com/license/free — masked onto the dev-tools panel's
+// shark button (the on-demand release of the cockpit's shark-fin Easter
+// egg). Free-tier Font Awesome ships no shark, so the closest sea creature
+// stands in: the approved pick from the shark-icon-candidates mockup
+// (docs/mockups/README.md).
+$icon-fish-fins: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 576 512'%3E%3Cpath fill='black' d='M275.2 38.4c-10.6-8-25-8.5-36.3-1.5S222 57.3 224.6 70.3l9.7 48.6c-19.4 9-36.9 19.9-52.4 31.5-15.3 11.5-29 23.9-40.7 36.3L48.1 132.4c-12.5-7.3-28.4-5.3-38.7 4.9s-12.4 26-5.3 38.6L50 256 4.2 336.1c-7.2 12.6-5 28.4 5.3 38.6s26.1 12.2 38.7 4.9l93.1-54.3c11.8 12.3 25.4 24.8 40.7 36.3 15.5 11.6 33 22.5 52.4 31.5l-9.7 48.6c-2.6 13 3.1 26.3 14.3 33.3s25.6 6.5 36.3-1.5l77.6-58.2c54.9-4 101.5-27 137.2-53.8 39.2-29.4 67.2-64.7 81.6-89.5 5.8-9.9 5.8-22.2 0-32.1-14.4-24.8-42.5-60.1-81.6-89.5-35.8-26.8-82.3-49.8-137.2-53.8L275.2 38.4zM384 256a32 32 0 1 1 64 0 32 32 0 1 1 -64 0z'/%3E%3C/svg%3E");
+
+// An open book, masked onto the behavior-start bark when the surfer settles in
+// to read (readPause).
+$icon-book: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 6.5C10.2 5 7.8 4.3 5 4.2V17c2.8.1 5.2.8 7 2.3 1.8-1.5 4.2-2.2 7-2.3V4.2c-2.8.1-5.2.8-7 2.3z'/%3E%3Cpath d='M12 6.5V19.3'/%3E%3C/svg%3E");
+
+// A backward-curving arrow, masked onto the bark when the surfer glances back
+// up the page (glanceBack).
+$icon-glance-back: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 15 4 10l5-5'/%3E%3Cpath d='M4 10h9a7 7 0 0 1 7 7v1'/%3E%3C/svg%3E");
+
+// A play triangle, masked onto the bark when the surfer watches a video
+// (watchVideo).
+$icon-play: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M7 4.5v15l14-7.5z'/%3E%3C/svg%3E");
+
+// A framed picture (rectangle, a small sun, a mountain line), masked onto the
+// bark when the surfer lingers on an image (lingerImage).
+$icon-picture: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='16' rx='2'/%3E%3Ccircle cx='8.5' cy='9' r='1.5'/%3E%3Cpath d='M21 16l-5.5-5.5-4 4-3-3L3 17'/%3E%3C/svg%3E");
+
+// A terminal-style text cursor (a caret, not a mouse pointer), masked onto the
+// bark when the surfer highlights a snippet (selectSnippet).
+$icon-text-cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 4h6M12 4v16M9 20h6'/%3E%3C/svg%3E");
+
+// A stylized wave curl, masked onto the bark when the surfer moves on to the
+// next page (moveOn).
+$icon-wave: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2 15q2.5-5 5 0t5 0 5 0 5 0'/%3E%3C/svg%3E");
+
+// A double downward chevron, masked onto the dev-tools Surf group's
+// scrollBurst chip — the surfer's baseline scroll flick. Ported verbatim from
+// the approved mockup (`devtools-sterile-run`, docs/mockups/README.md).
+$icon-scroll-flick: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 5l6 6 6-6M6 13l6 6 6-6'/%3E%3C/svg%3E");
+
+// A vertical double-arrow, masked onto the dev-tools Surf group's
+// microScroll chip — the surfer's fidgety up/down jitter. Ported verbatim
+// from the approved mockup.
+$icon-micro-scroll: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3v18M8 7l4-4 4 4M8 17l4 4 4-4'/%3E%3C/svg%3E");
+
+// A squiggle, masked onto the dev-tools Surf group's fidgetWiggle chip — the
+// surfer's aimless cursor wander. Ported verbatim from the approved mockup.
+$icon-fidget-wiggle: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 15c3-6 5 6 8 0s5 6 8 0'/%3E%3C/svg%3E");
+
+// ── Parameterized glyphs ─────────────────────────────────────────────────────
+// Encodes a hex colour (e.g. `#1a1a18`) for embedding in a data-URI: the `#`
+// would otherwise be read as the URL's fragment delimiter and truncate the
+// SVG. Private (leading `_`) — only `icon-cursor` below needs it, since a
+// `mask`-based icon carries no baked-in colour and never has to encode one.
+@function _url-encode-color($color) {
+	$hex: '#{$color}';
+	@return '%23' + string.slice($hex, 2);
+}
+
+// The fake surf cursor's arrow-pointer glyph, with its fill and stroke baked
+// in — unlike the mask-based icons above, this one needs two colours at once
+// (an ink fill plus a contrasting stroke), so a single-colour `mask` can't
+// paint it. Follows `wave()`'s parameterization style in `_theme.scss`, but
+// (unlike `wave()`, whose callers pre-encode their fill) takes plain hex
+// colour values and encodes them itself via `_url-encode-color`.
+@function icon-cursor($fill, $stroke) {
+	$fill-enc: _url-encode-color($fill);
+	$stroke-enc: _url-encode-color($stroke);
+	@return url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4 2 L4 20 L9 16 L12 22 L15 20.5 L12 14.5 L18 14.5 Z' fill='#{$fill-enc}' stroke='#{$stroke-enc}' stroke-width='1'/%3E%3C/svg%3E");
+}
+
+// The fake surf cursor's I-beam caret glyph, worn while the surfer sweeps a
+// highlight (selectSnippet) or traces lines of prose (read). Drawn twice —
+// a wide contrast understroke beneath an ink stroke — because a mask-based
+// single-colour icon can't keep the caret visible over the very text it
+// sits on. Parameterized like `icon-cursor` above.
+@function icon-cursor-caret($ink, $stroke) {
+	$ink-enc: _url-encode-color($ink);
+	$stroke-enc: _url-encode-color($stroke);
+	@return url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg stroke='#{$stroke-enc}' stroke-width='5' stroke-linecap='round' fill='none'%3E%3Cpath d='M8.5 3.5c2 0 3.5 0.8 3.5 2v13c0 1.2 1.5 2 3.5 2M15.5 3.5c-2 0-3.5 0.8-3.5 2v13c0 1.2-1.5 2-3.5 2'/%3E%3C/g%3E%3Cg stroke='#{$ink-enc}' stroke-width='2.2' stroke-linecap='round' fill='none'%3E%3Cpath d='M8.5 3.5c2 0 3.5 0.8 3.5 2v13c0 1.2 1.5 2 3.5 2M15.5 3.5c-2 0-3.5 0.8-3.5 2v13c0 1.2-1.5 2-3.5 2'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+// The fake surf cursor's pointing-hand glyph, worn while the surfer clicks a
+// video player (playVideo/stopVideo). The outline is the main silhouette of
+// Font Awesome Free 7.3.1's `hand-pointer` (solid) icon — CC BY 4.0,
+// https://fontawesome.com/license/free — with its interior finger grooves
+// removed per the approved mock. Drawn twice, like `icon-cursor-caret`: a
+// contrast understroke beneath the ink fill, at the arrow cursor's own
+// outline weight. The viewBox is padded because the path touches the icon's
+// nominal 448x512 edges — an unpadded box clips the understroke's outer
+// half at the fingertip and wrist.
+@function icon-cursor-hand($fill, $stroke) {
+	$fill-enc: _url-encode-color($fill);
+	$stroke-enc: _url-encode-color($stroke);
+	$hand-path: "M128 40c0-22.1 17.9-40 40-40s40 17.9 40 40l0 148.2c8.5-7.6 19.7-12.2 32-12.2 20.6 0 38.2 13 45 31.2 8.8-9.3 21.2-15.2 35-15.2 25.3 0 46 19.5 47.9 44.3 8.5-7.7 19.8-12.3 32.1-12.3 26.5 0 48 21.5 48 48l0 112c0 70.7-57.3 128-128 128l-85.3 0c-5 0-9.9-.3-14.7-1-55.3-5.6-106.2-34-140-79L8 336c-13.3-17.7-9.7-42.7 8-56s42.7-9.7 56 8l56 74.7 0-322.7z";
+	@return url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='-16 -16 480 544'%3E%3Cpath d='#{$hand-path}' fill='#{$stroke-enc}' stroke='#{$stroke-enc}' stroke-width='24' stroke-linejoin='round'/%3E%3Cpath d='#{$hand-path}' fill='#{$fill-enc}'/%3E%3C/svg%3E");
+}

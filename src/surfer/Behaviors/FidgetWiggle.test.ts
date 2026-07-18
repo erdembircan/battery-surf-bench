@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { FidgetWiggle } from './FidgetWiggle';
-import { makeContext, openAffordances } from '../TestFixtures';
-import { FakeMotor } from '../FakeMotor';
-import { DRIVE_FLOOR } from '../Bid';
-import { MAX } from '../../shared/SurferStats';
+import { FidgetWiggle } from '@/surfer/Behaviors/FidgetWiggle';
+import { makeContext, openAffordances } from '@/surfer/TestFixtures';
+import { FakeMotor } from '@/surfer/FakeMotor';
+import { DRIVE_FLOOR } from '@/surfer/Bid';
+import { MAX } from '@/shared/SurferStats';
 
 describe( 'FidgetWiggle.bid', () => {
 	it( 'still bids a small, nonzero floor at fidget 0', () => {

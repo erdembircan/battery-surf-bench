@@ -3,7 +3,10 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { resolveReading, type BatteryOverrideState } from './BatteryOverride';
+import {
+	resolveReading,
+	type BatteryOverrideState,
+} from '@/cockpit/BatteryOverride';
 
 const raw = { level: 0.62, charging: false };
 

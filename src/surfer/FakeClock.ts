@@ -1,4 +1,4 @@
-import type { Clock } from './Clock';
+import type { Clock } from '@/surfer/Clock';
 
 /**
  * Test double for {@link Clock}: resolves every wait immediately and records

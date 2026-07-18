@@ -13,7 +13,7 @@ import {
 	HEARTBEAT_MS,
 	type BatteryManagerLike,
 	type BatteryReading,
-} from './BatteryMonitor';
+} from '@/cockpit/BatteryMonitor';
 
 /**
  * A fake manager whose events can be fired and whose level can be moved.

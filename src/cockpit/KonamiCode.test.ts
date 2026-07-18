@@ -10,7 +10,7 @@ import {
 	KONAMI_TIMEOUT_MS,
 	nextKonamiProgress,
 	isKonamiComplete,
-} from './KonamiCode';
+} from '@/cockpit/KonamiCode';
 
 /**
  * Feeds a full sequence through the recognizer with comfortable gaps.

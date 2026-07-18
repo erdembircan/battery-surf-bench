@@ -3,7 +3,7 @@ import {
 	isPageDoneMessage,
 	nextPageIndex,
 	PAGE_DONE_TYPE,
-} from './PageAdvance';
+} from '@/cockpit/PageAdvance';
 
 const ORIGIN = 'https://example.test';
 

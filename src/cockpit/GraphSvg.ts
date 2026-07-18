@@ -10,7 +10,7 @@
  * pure with respect to its inputs and so testable in isolation.
  */
 
-import type { GraphModel } from './DrainGraph';
+import type { GraphModel } from '@/cockpit/DrainGraph';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 

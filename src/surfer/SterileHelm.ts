@@ -20,11 +20,11 @@
  * `run()` resolves, `bsb:behaviorEnd` is posted for it.
  */
 
-import type { Behavior } from './Behavior';
-import type { Motor } from './Motor';
-import type { Affordances } from './Affordances';
-import { buildBehaviorContext, type PageSenseDeps } from './PageSense';
-import { MOVE_ON_KEY, MOVE_ON_DISPLAY_MS } from './Behaviors/MoveOn';
+import type { Behavior } from '@/surfer/Behavior';
+import type { Motor } from '@/surfer/Motor';
+import type { Affordances } from '@/surfer/Affordances';
+import { buildBehaviorContext, type PageSenseDeps } from '@/surfer/PageSense';
+import { MOVE_ON_KEY, MOVE_ON_DISPLAY_MS } from '@/surfer/Behaviors/MoveOn';
 
 /**
  * The message type a steer command from the cockpit carries. This module's

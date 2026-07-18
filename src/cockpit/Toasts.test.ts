@@ -5,9 +5,14 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { ToastQueue, enqueueToast, finishToast, TOAST_HOLD_MS } from './Toasts';
-import { type CockpitContext } from './CockpitContext';
-import { type InstanceState } from './RunInstance';
+import {
+	ToastQueue,
+	enqueueToast,
+	finishToast,
+	TOAST_HOLD_MS,
+} from '@/cockpit/Toasts';
+import { type CockpitContext } from '@/cockpit/CockpitContext';
+import { type InstanceState } from '@/cockpit/RunInstance';
 
 /** A context double carrying only the toast fields the queue touches. */
 const context = (): CockpitContext =>

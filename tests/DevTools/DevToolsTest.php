@@ -10,7 +10,7 @@ declare( strict_types=1 );
 namespace ErdemBircan\BatterySurfBench\Tests\DevTools;
 
 use Brain\Monkey\Functions;
-use ErdemBircan\BatterySurfBench\Assets;
+use ErdemBircan\BatterySurfBench\Core\Assets;
 use ErdemBircan\BatterySurfBench\Course\CourseCatalog;
 use ErdemBircan\BatterySurfBench\Course\CourseOrderSanitizer;
 use ErdemBircan\BatterySurfBench\DevTools\DevTools;

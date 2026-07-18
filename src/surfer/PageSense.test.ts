@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { buildBehaviorContext } from './PageSense';
-import { openAffordances } from './TestFixtures';
-import { FakeClock } from './FakeClock';
+import { buildBehaviorContext } from '@/surfer/PageSense';
+import { openAffordances } from '@/surfer/TestFixtures';
+import { FakeClock } from '@/surfer/FakeClock';
 
 describe( 'buildBehaviorContext', () => {
 	it( 'senses affordances fresh on every call', () => {
