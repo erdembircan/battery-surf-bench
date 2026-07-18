@@ -18,8 +18,8 @@
  */
 
 import { getContext, getElement } from '@wordpress/interactivity';
-import { type CockpitContext } from './CockpitContext';
-import { type StorePart } from './StoreParts';
+import { type CockpitContext } from '@/cockpit/CockpitContext';
+import { type StorePart } from '@/cockpit/StoreParts';
 import {
 	CLASSES,
 	MIN,
@@ -30,7 +30,7 @@ import {
 	headroom,
 	pointsLeft,
 	FRESH,
-} from '../shared/SurferStats';
+} from '@/shared/SurferStats';
 
 /** The root cockpit context — where the trait vector lives. */
 const ctx = (): CockpitContext => getContext< CockpitContext >();

@@ -1,6 +1,6 @@
-import type { BehaviorContext } from './Behavior';
-import type { Affordances } from './Affordances';
-import type { Clock } from './Clock';
+import type { BehaviorContext } from '@/surfer/Behavior';
+import type { Affordances } from '@/surfer/Affordances';
+import type { Clock } from '@/surfer/Clock';
 
 /** An rng stub that neutralizes bid noise to exactly `1` (see `Bid.noise`). */
 export const neutralRng = (): number => 0.5;

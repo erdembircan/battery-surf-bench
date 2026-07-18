@@ -6,8 +6,8 @@
  */
 
 import { getContext, getElement } from '@wordpress/interactivity';
-import { type CockpitContext } from './CockpitContext';
-import { type StorePart } from './StoreParts';
+import { type CockpitContext } from '@/cockpit/CockpitContext';
+import { type StorePart } from '@/cockpit/StoreParts';
 import {
 	TARGET_MIN,
 	TARGET_STEP,
@@ -15,7 +15,7 @@ import {
 	clampTarget,
 	targetFromPointer,
 	targetColor,
-} from './TargetControl';
+} from '@/cockpit/TargetControl';
 
 /** Whether a pointer drag on the battery slider is in progress. */
 let draggingTarget = false;

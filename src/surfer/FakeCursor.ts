@@ -6,8 +6,8 @@
  * is running; a static page never gets one.
  */
 
-import type { Rng } from './Rng';
-import { easeInOutQuad } from './Ease';
+import type { Rng } from '@/surfer/Rng';
+import { easeInOutQuad } from '@/surfer/Ease';
 
 /** A viewport position, in CSS pixels. */
 export interface Point {

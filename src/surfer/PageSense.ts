@@ -7,10 +7,10 @@
  * bid/run tuned against one would read the page differently under the other.
  */
 
-import type { BehaviorContext } from './Behavior';
-import type { Clock } from './Clock';
-import type { Rng } from './Rng';
-import type { Affordances } from './Affordances';
+import type { BehaviorContext } from '@/surfer/Behavior';
+import type { Clock } from '@/surfer/Clock';
+import type { Rng } from '@/surfer/Rng';
+import type { Affordances } from '@/surfer/Affordances';
 
 /** The pieces a fresh {@link BehaviorContext} is built from. */
 export interface PageSenseDeps {

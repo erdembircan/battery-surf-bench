@@ -1,6 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { clamp01, lerp, drive, noise, DRIVE_FLOOR, NOISE_AMP } from './Bid';
-import { MAX } from '../shared/SurferStats';
+import {
+	clamp01,
+	lerp,
+	drive,
+	noise,
+	DRIVE_FLOOR,
+	NOISE_AMP,
+} from '@/surfer/Bid';
+import { MAX } from '@/shared/SurferStats';
 
 describe( 'clamp01', () => {
 	it( 'clamps below 0 and above 1', () => {

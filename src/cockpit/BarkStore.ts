@@ -20,15 +20,15 @@
  */
 
 import { getContext } from '@wordpress/interactivity';
-import { type CockpitContext } from './CockpitContext';
-import { type StorePart } from './StoreParts';
-import { instanceFor } from './RunInstance';
-import { raiseBark } from './Barks';
+import { type CockpitContext } from '@/cockpit/CockpitContext';
+import { type StorePart } from '@/cockpit/StoreParts';
+import { instanceFor } from '@/cockpit/RunInstance';
+import { raiseBark } from '@/cockpit/Barks';
 import {
 	isBehaviorStartMessage,
 	behaviorKeyOf,
 	durationOf,
-} from './BehaviorStart';
+} from '@/cockpit/BehaviorStart';
 
 /** The bark slice of the `bsb/cockpit` store. */
 export const barkStore: StorePart = {

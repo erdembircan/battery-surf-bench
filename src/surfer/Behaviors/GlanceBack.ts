@@ -6,10 +6,14 @@
  * `docs/knowledge-base/surf-behavior-profile.md`.
  */
 
-import type { Behavior, BehaviorContext, BehaviorAnnounce } from '../Behavior';
-import { LITERACY } from '../Behavior';
-import type { Motor } from '../Motor';
-import { drive, noise, clamp01 } from '../Bid';
+import type {
+	Behavior,
+	BehaviorContext,
+	BehaviorAnnounce,
+} from '@/surfer/Behavior';
+import { LITERACY } from '@/surfer/Behavior';
+import type { Motor } from '@/surfer/Motor';
+import { drive, noise, clamp01 } from '@/surfer/Bid';
 
 const SCROLL_UP_PX_MIN = 500;
 const SCROLL_UP_PX_MAX = 700;

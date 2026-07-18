@@ -31,8 +31,8 @@ import {
 	useState,
 } from '@wordpress/element';
 import { __, _n, sprintf } from '@wordpress/i18n';
-import { buildFields } from './Fields';
-import type { SessionRecord, SessionsConfig } from './Types';
+import { buildFields } from '@/sessions/Fields';
+import type { SessionRecord, SessionsConfig } from '@/sessions/Types';
 
 /**
  * The trash glyph for the row and bulk Trash action — the WordPress standard

@@ -2,13 +2,13 @@
  * Maps the surf-course order into renderable Selected-pane rows.
  */
 
-import { entryKey } from './Order';
+import { entryKey } from '@/settings/Order';
 import type {
 	BundledCatalogEntry,
 	OrderEntry,
 	ResolvedUserPage,
 	SequenceRow,
-} from './Types';
+} from '@/settings/Types';
 
 /**
  * Placeholder title shown for a user entry whose title has not resolved:

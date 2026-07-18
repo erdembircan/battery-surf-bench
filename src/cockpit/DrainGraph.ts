@@ -17,7 +17,7 @@
  * fitted window entirely and is omitted.
  */
 
-import { type Sample } from './DrainRate';
+import { type Sample } from '@/cockpit/DrainRate';
 
 /** The SVG viewport the graph is drawn into, with its inner padding. */
 export interface GraphViewport {

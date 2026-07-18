@@ -7,10 +7,14 @@
  * `docs/knowledge-base/surf-behavior-profile.md` (1.5–4 s).
  */
 
-import type { Behavior, BehaviorContext, BehaviorAnnounce } from '../Behavior';
-import { ALLURE } from '../Behavior';
-import type { Motor } from '../Motor';
-import { drive, noise, clamp01 } from '../Bid';
+import type {
+	Behavior,
+	BehaviorContext,
+	BehaviorAnnounce,
+} from '@/surfer/Behavior';
+import { ALLURE } from '@/surfer/Behavior';
+import type { Motor } from '@/surfer/Motor';
+import { drive, noise, clamp01 } from '@/surfer/Bid';
 
 /** Image count at which the affordance saturates to 1. */
 const IMAGE_SATURATION = 4;

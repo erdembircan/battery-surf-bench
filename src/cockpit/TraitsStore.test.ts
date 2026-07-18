@@ -32,8 +32,8 @@ vi.mock( '@wordpress/interactivity', () => ( {
 	getElement: () => ( { ref: mocks.element } ),
 } ) );
 
-import { traitsStore, classGetter } from './TraitsStore';
-import { CLASSES, FRESH } from '../shared/SurferStats';
+import { traitsStore, classGetter } from '@/cockpit/TraitsStore';
+import { CLASSES, FRESH } from '@/shared/SurferStats';
 
 const state = traitsStore.state as Record< string, unknown >;
 const actions = traitsStore.actions as Record< string, () => void >;

@@ -14,7 +14,7 @@ import {
 	readStoredSound,
 	writeStoredSound,
 	type AudioContextLike,
-} from './FinishChime';
+} from '@/cockpit/FinishChime';
 
 /**
  * A recording stand-in for a Web Audio context.

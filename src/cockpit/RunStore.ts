@@ -12,19 +12,23 @@ import {
 	getElement,
 	store,
 } from '@wordpress/interactivity';
-import { type CockpitContext } from './CockpitContext';
-import { type StorePart } from './StoreParts';
-import { instanceFor, now, wallNow } from './RunInstance';
-import { applyReadouts, stopRun } from './RunLifecycle';
-import { normalizeDuration, normalizeMode, normalizeSpeed } from './RunConfig';
-import { clampTarget, targetCap } from './TargetControl';
-import { ScreenWakeLock, type WakeLockSentinelLike } from './WakeLock';
-import { formatClock, formatTimeToEmpty, formatRate } from './Format';
-import { withSurferParams } from './SurferUrl';
-import { buildSurfIndexUrl } from './SurfIndexUrl';
-import { isPageDoneMessage, nextPageIndex } from './PageAdvance';
-import { isBlankFrame, viewportFailed } from './PageGuard';
-import { runBlocksExit, confirmExit } from './ExitGuard';
+import { type CockpitContext } from '@/cockpit/CockpitContext';
+import { type StorePart } from '@/cockpit/StoreParts';
+import { instanceFor, now, wallNow } from '@/cockpit/RunInstance';
+import { applyReadouts, stopRun } from '@/cockpit/RunLifecycle';
+import {
+	normalizeDuration,
+	normalizeMode,
+	normalizeSpeed,
+} from '@/cockpit/RunConfig';
+import { clampTarget, targetCap } from '@/cockpit/TargetControl';
+import { ScreenWakeLock, type WakeLockSentinelLike } from '@/cockpit/WakeLock';
+import { formatClock, formatTimeToEmpty, formatRate } from '@/cockpit/Format';
+import { withSurferParams } from '@/cockpit/SurferUrl';
+import { buildSurfIndexUrl } from '@/cockpit/SurfIndexUrl';
+import { isPageDoneMessage, nextPageIndex } from '@/cockpit/PageAdvance';
+import { isBlankFrame, viewportFailed } from '@/cockpit/PageGuard';
+import { runBlocksExit, confirmExit } from '@/cockpit/ExitGuard';
 
 /**
  * The surf-route configuration the cockpit's PHP route seeds via

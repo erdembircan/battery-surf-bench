@@ -5,8 +5,8 @@
  * time — all linear in the tempo stat, fastest at `MAX`.
  */
 
-import { lerp } from './Bid';
-import { MAX } from '../shared/SurferStats';
+import { lerp } from '@/surfer/Bid';
+import { MAX } from '@/shared/SurferStats';
 
 /** Slowest and fastest tick interval, in ms, at tempo 0 and tempo MAX. */
 const TICK_MS_SLOW = 1400;

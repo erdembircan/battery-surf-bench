@@ -5,8 +5,8 @@
  * win, and a zero bid still never can.
  */
 
-import type { Behavior } from './Behavior';
-import type { Rng } from './Rng';
+import type { Behavior } from '@/surfer/Behavior';
+import type { Rng } from '@/surfer/Rng';
 
 /** One behavior's bid for the current tick. */
 export interface Ballot {

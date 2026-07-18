@@ -8,7 +8,7 @@
  */
 
 import { describe, it, expect, vi } from 'vitest';
-import { ScreenWakeLock, type WakeLockSentinelLike } from './WakeLock';
+import { ScreenWakeLock, type WakeLockSentinelLike } from '@/cockpit/WakeLock';
 
 /** A fake sentinel whose `release` event can be fired. */
 const fakeSentinel = () => {

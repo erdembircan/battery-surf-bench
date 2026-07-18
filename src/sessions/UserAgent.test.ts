@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { formatUserAgent } from './UserAgent';
+import { formatUserAgent } from '@/sessions/UserAgent';
 
 describe( 'formatUserAgent', () => {
 	it( 'composes browser, version and OS', () => {

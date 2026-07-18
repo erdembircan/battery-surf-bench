@@ -7,10 +7,10 @@
  */
 
 import { getContext, getElement } from '@wordpress/interactivity';
-import { type CockpitContext } from './CockpitContext';
-import { type StorePart } from './StoreParts';
-import { type Speed, SPEEDS, normalizeDuration } from './RunConfig';
-import { durationDigits } from './Format';
+import { type CockpitContext } from '@/cockpit/CockpitContext';
+import { type StorePart } from '@/cockpit/StoreParts';
+import { type Speed, SPEEDS, normalizeDuration } from '@/cockpit/RunConfig';
+import { durationDigits } from '@/cockpit/Format';
 
 /** Per-odometer roll state: the last duration shown and each wheel's position. */
 interface OdometerState {

@@ -29,8 +29,8 @@
  * key and duration.
  */
 
-import { type CockpitContext } from './CockpitContext';
-import { type InstanceState } from './RunInstance';
+import { type CockpitContext } from '@/cockpit/CockpitContext';
+import { type InstanceState } from '@/cockpit/RunInstance';
 
 /**
  * How long the leave animation takes, in milliseconds — matches the CSS exit

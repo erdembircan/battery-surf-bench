@@ -26,9 +26,9 @@
  */
 
 import { store, getElement } from '@wordpress/interactivity';
-import { type StorePart } from '../cockpit/StoreParts';
-import { current, type DevtoolsStore } from './DevtoolsStore';
-import { effectiveBatteryOverride } from './EffectiveBatteryOverride';
+import { type StorePart } from '@/cockpit/StoreParts';
+import { current, type DevtoolsStore } from '@/devtools/DevtoolsStore';
+import { effectiveBatteryOverride } from '@/devtools/EffectiveBatteryOverride';
 
 /**
  * The raw system battery percentage published by the production cockpit

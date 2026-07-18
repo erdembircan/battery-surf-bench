@@ -7,13 +7,13 @@
  */
 
 import { getContext, getElement } from '@wordpress/interactivity';
-import { type CockpitContext } from './CockpitContext';
-import { type StorePart } from './StoreParts';
-import { instanceFor } from './RunInstance';
-import { buildGraph, type GraphModel } from './DrainGraph';
-import { GRAPH_VIEWPORT } from './RunLifecycle';
-import { paintGraph } from './GraphSvg';
-import { formatClock } from './Format';
+import { type CockpitContext } from '@/cockpit/CockpitContext';
+import { type StorePart } from '@/cockpit/StoreParts';
+import { instanceFor } from '@/cockpit/RunInstance';
+import { buildGraph, type GraphModel } from '@/cockpit/DrainGraph';
+import { GRAPH_VIEWPORT } from '@/cockpit/RunLifecycle';
+import { paintGraph } from '@/cockpit/GraphSvg';
+import { formatClock } from '@/cockpit/Format';
 
 /**
  * How long the startup card rests on its picture front after "New run" before it

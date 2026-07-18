@@ -25,10 +25,14 @@
  * resuming a paused player.
  */
 
-import type { Behavior, BehaviorContext, BehaviorAnnounce } from '../Behavior';
-import { ALLURE } from '../Behavior';
-import type { Motor } from '../Motor';
-import { drive, noise } from '../Bid';
+import type {
+	Behavior,
+	BehaviorContext,
+	BehaviorAnnounce,
+} from '@/surfer/Behavior';
+import { ALLURE } from '@/surfer/Behavior';
+import type { Motor } from '@/surfer/Motor';
+import { drive, noise } from '@/surfer/Bid';
 
 const WATCH_MS_MIN = 30000;
 const WATCH_MS_MAX = 45000;

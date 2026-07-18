@@ -1,4 +1,4 @@
-import type { Motor } from './Motor';
+import type { Motor } from '@/surfer/Motor';
 
 /** One motion command a {@link FakeMotor} recorded. */
 export interface RecordedCommand {

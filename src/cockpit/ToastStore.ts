@@ -9,10 +9,10 @@
  */
 
 import { getContext } from '@wordpress/interactivity';
-import { type CockpitContext } from './CockpitContext';
-import { type StorePart } from './StoreParts';
-import { instanceFor } from './RunInstance';
-import { enqueueToast, finishToast, TOAST_HOLD_MS } from './Toasts';
+import { type CockpitContext } from '@/cockpit/CockpitContext';
+import { type StorePart } from '@/cockpit/StoreParts';
+import { instanceFor } from '@/cockpit/RunInstance';
+import { enqueueToast, finishToast, TOAST_HOLD_MS } from '@/cockpit/Toasts';
 
 /**
  * Begins the leave animation for the showing toast, cancelling its pending hold

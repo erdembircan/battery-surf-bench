@@ -11,7 +11,10 @@
 		"jsx": "react-jsx",
 		"jsxImportSource": "react",
 		"types": [ "node" ],
-		"allowImportingTsExtensions": true
+		"allowImportingTsExtensions": true,
+		"paths": {
+			"@/*": [ "./src/*" ]
+		}
 	},
 	"include": [
 		"src/**/*.ts",

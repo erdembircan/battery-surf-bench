@@ -5,11 +5,11 @@
  * tests can swap in a recording fake and assert on commands instead of pixels.
  */
 
-import type { Rng } from './Rng';
-import { FakeCursor, framesForDistance, type Point } from './FakeCursor';
-import { easeInOutQuad } from './Ease';
-import { contentRoot, VIDEO_EMBED_SELECTOR } from './Affordances';
-import { createVideoControl, type VideoControl } from './VideoControl';
+import type { Rng } from '@/surfer/Rng';
+import { FakeCursor, framesForDistance, type Point } from '@/surfer/FakeCursor';
+import { easeInOutQuad } from '@/surfer/Ease';
+import { contentRoot, VIDEO_EMBED_SELECTOR } from '@/surfer/Affordances';
+import { createVideoControl, type VideoControl } from '@/surfer/VideoControl';
 
 /** A motion primitive the surfer can perform. */
 export interface Motor {

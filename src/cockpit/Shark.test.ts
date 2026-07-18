@@ -13,9 +13,9 @@ import {
 	SHARK_DIVE_MS,
 	SHARK_FULL_CROSS_MS,
 	SHARK_TRAIL_MAX_DELAY_MS,
-} from './Shark';
-import { type CockpitContext } from './CockpitContext';
-import { type InstanceState } from './RunInstance';
+} from '@/cockpit/Shark';
+import { type CockpitContext } from '@/cockpit/CockpitContext';
+import { type InstanceState } from '@/cockpit/RunInstance';
 
 /** A context double carrying only the shark fields the model touches. */
 const context = (): CockpitContext =>

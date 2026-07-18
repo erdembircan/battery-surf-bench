@@ -36,7 +36,7 @@ vi.mock( '@wordpress/interactivity', () => ( {
 	getElement: () => ( { ref: mocks.element } ),
 } ) );
 
-import { dischargeSimStore } from './DischargeSimStore';
+import { dischargeSimStore } from '@/devtools/DischargeSimStore';
 
 const actions = dischargeSimStore.actions as unknown as {
 	devtoolsStepSim: () => void;

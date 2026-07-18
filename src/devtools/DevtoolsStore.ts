@@ -9,11 +9,14 @@
  */
 
 import { store } from '@wordpress/interactivity';
-import { type StorePart } from '../cockpit/StoreParts';
-import { type BatteryOverrideState } from '../cockpit/BatteryOverride';
-import { type DischargeSimState, DEFAULT_SIM } from './DischargeSim';
-import { type SurfSteerState, DEFAULT_SURF } from './SurfSteer';
-import { type SharkReleaseState, DEFAULT_SHARK_RELEASE } from './SharkRelease';
+import { type StorePart } from '@/cockpit/StoreParts';
+import { type BatteryOverrideState } from '@/cockpit/BatteryOverride';
+import { type DischargeSimState, DEFAULT_SIM } from '@/devtools/DischargeSim';
+import { type SurfSteerState, DEFAULT_SURF } from '@/devtools/SurfSteer';
+import {
+	type SharkReleaseState,
+	DEFAULT_SHARK_RELEASE,
+} from '@/devtools/SharkRelease';
 
 /** The dev-tools slice of the shared `bsb/cockpit` state. */
 export interface DevtoolsState {

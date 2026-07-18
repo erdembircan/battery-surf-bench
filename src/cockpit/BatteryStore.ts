@@ -14,14 +14,17 @@
  */
 
 import { getContext, store } from '@wordpress/interactivity';
-import { type CockpitContext } from './CockpitContext';
-import { type StorePart } from './StoreParts';
-import { instanceFor, now, type InstanceState } from './RunInstance';
-import { applyReadouts, stopRun } from './RunLifecycle';
-import { BatteryMonitor, type BatteryReading } from './BatteryMonitor';
-import { targetCap } from './TargetControl';
-import { resolveReading, type BatteryOverrideState } from './BatteryOverride';
-import { effectiveBatteryOverride } from '../devtools/EffectiveBatteryOverride';
+import { type CockpitContext } from '@/cockpit/CockpitContext';
+import { type StorePart } from '@/cockpit/StoreParts';
+import { instanceFor, now, type InstanceState } from '@/cockpit/RunInstance';
+import { applyReadouts, stopRun } from '@/cockpit/RunLifecycle';
+import { BatteryMonitor, type BatteryReading } from '@/cockpit/BatteryMonitor';
+import { targetCap } from '@/cockpit/TargetControl';
+import {
+	resolveReading,
+	type BatteryOverrideState,
+} from '@/cockpit/BatteryOverride';
+import { effectiveBatteryOverride } from '@/devtools/EffectiveBatteryOverride';
 
 /** The slice of the merged `bsb/cockpit` state the override seam reads and writes. */
 interface SharedBatteryState {

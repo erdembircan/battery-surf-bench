@@ -16,7 +16,7 @@ import {
 	distinctLevelCount,
 	WINDOW_MS,
 	type Sample,
-} from './DrainRate';
+} from '@/cockpit/DrainRate';
 
 /**
  * A discharging sample at elapsed `t` ms and 0..1 `level`.

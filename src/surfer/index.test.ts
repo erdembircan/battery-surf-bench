@@ -18,7 +18,7 @@ const mocks = vi.hoisted( () => ( {
 	sterileHelmStart: vi.fn(),
 } ) );
 
-vi.mock( './SurfLoop', () => ( {
+vi.mock( '@/surfer/SurfLoop', () => ( {
 	SurfLoop: class {
 		constructor( deps: unknown ) {
 			mocks.surfLoopCtor( deps );
@@ -29,7 +29,7 @@ vi.mock( './SurfLoop', () => ( {
 	},
 } ) );
 
-vi.mock( './SterileHelm', () => ( {
+vi.mock( '@/surfer/SterileHelm', () => ( {
 	SterileHelm: class {
 		constructor( deps: unknown ) {
 			mocks.sterileHelmCtor( deps );
@@ -62,7 +62,7 @@ describe( 'EngineBoot', () => {
 	it( 'boots nothing when bsbTraits is absent from the URL', async () => {
 		setUrl( '?' );
 
-		await import( './index' );
+		await import( '@/surfer/index' );
 
 		expect( mocks.surfLoopCtor ).not.toHaveBeenCalled();
 		expect( mocks.sterileHelmCtor ).not.toHaveBeenCalled();
@@ -71,7 +71,7 @@ describe( 'EngineBoot', () => {
 	it( 'starts SurfLoop, and never constructs SterileHelm, when bsbSterile is absent', async () => {
 		setUrl( '?bsbTraits=5,5,5,5,5' );
 
-		await import( './index' );
+		await import( '@/surfer/index' );
 
 		expect( mocks.surfLoopStart ).toHaveBeenCalledTimes( 1 );
 		expect( mocks.sterileHelmCtor ).not.toHaveBeenCalled();
@@ -80,7 +80,7 @@ describe( 'EngineBoot', () => {
 	it( 'starts SterileHelm, and never constructs (or starts) SurfLoop, when bsbSterile=1 — the auction never ticks', async () => {
 		setUrl( '?bsbTraits=5,5,5,5,5&bsbSterile=1' );
 
-		await import( './index' );
+		await import( '@/surfer/index' );
 
 		expect( mocks.sterileHelmStart ).toHaveBeenCalledTimes( 1 );
 		expect( mocks.surfLoopCtor ).not.toHaveBeenCalled();
@@ -90,7 +90,7 @@ describe( 'EngineBoot', () => {
 	it( 'treats any bsbSterile value other than "1" as a natural run', async () => {
 		setUrl( '?bsbTraits=5,5,5,5,5&bsbSterile=0' );
 
-		await import( './index' );
+		await import( '@/surfer/index' );
 
 		expect( mocks.surfLoopStart ).toHaveBeenCalledTimes( 1 );
 		expect( mocks.sterileHelmCtor ).not.toHaveBeenCalled();

@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { effectiveBatteryOverride } from './EffectiveBatteryOverride';
+import { effectiveBatteryOverride } from '@/devtools/EffectiveBatteryOverride';
 
 describe( 'effectiveBatteryOverride', () => {
 	it( 'forces discharging at the sim’s current level while the sim is running', () => {

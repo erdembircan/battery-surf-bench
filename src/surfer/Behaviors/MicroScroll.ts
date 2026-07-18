@@ -5,10 +5,10 @@
  * of idle micro-motion.
  */
 
-import type { Behavior, BehaviorContext } from '../Behavior';
-import { FIDGET } from '../Behavior';
-import type { Motor } from '../Motor';
-import { drive, noise } from '../Bid';
+import type { Behavior, BehaviorContext } from '@/surfer/Behavior';
+import { FIDGET } from '@/surfer/Behavior';
+import type { Motor } from '@/surfer/Motor';
+import { drive, noise } from '@/surfer/Bid';
 
 const JITTER_PX_MIN = 40;
 const JITTER_PX_MAX = 80;

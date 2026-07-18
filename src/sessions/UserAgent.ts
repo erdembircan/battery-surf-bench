@@ -9,7 +9,7 @@
  * unit-tested with fixed inputs.
  */
 
-import type { SessionRecord } from './Types';
+import type { SessionRecord } from '@/sessions/Types';
 
 /** The meta keys a session stores its discrete browser fields under. */
 const META = {

@@ -14,8 +14,8 @@ import {
 	hasUserPage,
 	removeEntry,
 	reorderByKey,
-} from './Order';
-import type { OrderEntry } from './Types';
+} from '@/settings/Order';
+import type { OrderEntry } from '@/settings/Types';
 
 const bundledA: OrderEntry = { kind: 'bundled', slug: 'article-1' };
 const bundledB: OrderEntry = { kind: 'bundled', slug: 'gallery' };

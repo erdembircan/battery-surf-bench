@@ -3,7 +3,7 @@ import {
 	senseAffordances,
 	contentRoot,
 	VIDEO_EMBED_SELECTOR,
-} from './Affordances';
+} from '@/surfer/Affordances';
 
 /**
  * Builds a jsdom document with the given content markup. When `chrome` is

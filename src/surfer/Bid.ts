@@ -6,8 +6,8 @@
  * so every behavior reads the same floor and the same noise band.
  */
 
-import type { Rng } from './Rng';
-import { MAX } from '../shared/SurferStats';
+import type { Rng } from '@/surfer/Rng';
+import { MAX } from '@/shared/SurferStats';
 
 /** Floor drive a zero-valued stat still contributes, so nothing is ever ruled out. */
 export const DRIVE_FLOOR = 0.05;

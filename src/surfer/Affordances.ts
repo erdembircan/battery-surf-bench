@@ -11,7 +11,7 @@
  * `scrollingElement`), since scroll progress is genuinely global.
  */
 
-import { clamp01 } from './Bid';
+import { clamp01 } from '@/surfer/Bid';
 
 export interface Affordances {
 	/** Fraction (0–1) of the scrollable height still below the fold. */

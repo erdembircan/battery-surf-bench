@@ -13,7 +13,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render } from '@testing-library/react';
-import type { SessionRecord, SessionsConfig } from './Types';
+import type { SessionRecord, SessionsConfig } from '@/sessions/Types';
 
 const hooks = vi.hoisted( () => ( {
 	useEntityRecords: vi.fn(),
@@ -44,7 +44,7 @@ vi.mock( '@wordpress/dataviews', async () => {
 } );
 
 // Imported after the mocks so App binds to the stubbed DataViews.
-const { SessionsApp } = await import( './App' );
+const { SessionsApp } = await import( '@/sessions/App' );
 
 const config: SessionsConfig = {
 	postType: 'bsb_session',

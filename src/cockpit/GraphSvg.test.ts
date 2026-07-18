@@ -8,8 +8,8 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { paintGraph } from './GraphSvg';
-import type { GraphModel } from './DrainGraph';
+import { paintGraph } from '@/cockpit/GraphSvg';
+import type { GraphModel } from '@/cockpit/DrainGraph';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 

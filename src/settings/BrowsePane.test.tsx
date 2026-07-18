@@ -14,7 +14,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
-import type { BundledCatalogEntry } from './Types';
+import type { BundledCatalogEntry } from '@/settings/Types';
 
 /** Mirrors `BrowsePane`'s own (module-private) search debounce delay. */
 const SEARCH_DEBOUNCE_MS = 300;
@@ -23,11 +23,11 @@ const hooks = vi.hoisted( () => ( {
 	useSearchResults: vi.fn(),
 } ) );
 
-vi.mock( './SearchQuery', () => ( {
+vi.mock( '@/settings/SearchQuery', () => ( {
 	useSearchResults: hooks.useSearchResults,
 } ) );
 
-const { BrowsePane } = await import( './BrowsePane' );
+const { BrowsePane } = await import( '@/settings/BrowsePane' );
 
 /**
  * A representative resolved query result.

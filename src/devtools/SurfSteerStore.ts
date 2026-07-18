@@ -18,25 +18,25 @@
  */
 
 import { getElement } from '@wordpress/interactivity';
-import { type StorePart } from '../cockpit/StoreParts';
+import { type StorePart } from '@/cockpit/StoreParts';
 import {
 	isBehaviorStartMessage,
 	behaviorKeyOf,
 	durationOf,
-} from '../cockpit/BehaviorStart';
-import { isBehaviorEndMessage } from '../cockpit/BehaviorEnd';
+} from '@/cockpit/BehaviorStart';
+import { isBehaviorEndMessage } from '@/cockpit/BehaviorEnd';
 import {
 	isPageAffordancesMessage,
 	affordancesOf,
-} from '../cockpit/PageAffordances';
-import { postSteerBehavior } from '../cockpit/SteerBehavior';
-import { current } from './DevtoolsStore';
+} from '@/cockpit/PageAffordances';
+import { postSteerBehavior } from '@/cockpit/SteerBehavior';
+import { current } from '@/devtools/DevtoolsStore';
 import {
 	isChipDisabled,
 	isChipGated,
 	surfCountdownDisplay,
 	pageSlugAt,
-} from './SurfSteer';
+} from '@/devtools/SurfSteer';
 
 /** How often the countdown ticker re-evaluates the running behavior's remaining time. */
 const TICK_MS = 1000;

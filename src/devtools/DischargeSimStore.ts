@@ -24,15 +24,15 @@
  */
 
 import { getElement } from '@wordpress/interactivity';
-import { type StorePart } from '../cockpit/StoreParts';
-import { formatClock } from '../cockpit/Format';
-import { current } from './DevtoolsStore';
+import { type StorePart } from '@/cockpit/StoreParts';
+import { formatClock } from '@/cockpit/Format';
+import { current } from '@/devtools/DevtoolsStore';
 import {
 	simulatedLevel,
 	simRemainingMs,
 	isSimComplete,
 	DEFAULT_SIM,
-} from './DischargeSim';
+} from '@/devtools/DischargeSim';
 
 /**
  * Clamps a value to a closed range.

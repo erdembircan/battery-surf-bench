@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { createVideoControl, youtubeTargetOrigin } from './VideoControl';
+import { createVideoControl, youtubeTargetOrigin } from '@/surfer/VideoControl';
 
 /**
  * Dispatches a synthetic `message` event on `window`, shaped like a real

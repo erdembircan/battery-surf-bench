@@ -5,24 +5,24 @@
  * static page with no scripted behavior.
  */
 
-import { normalizeTraits } from '../shared/SurferStats';
-import { normalizeSpeed } from '../cockpit/RunConfig';
-import { mulberry32 } from './Rng';
-import { RealClock } from './Clock';
-import { senseAffordances } from './Affordances';
-import { DomMotor } from './Motor';
-import { SurfLoop } from './SurfLoop';
-import { SterileHelm } from './SterileHelm';
-import { whenDocumentLoaded } from './PageLoad';
-import { ScrollBurst } from './Behaviors/ScrollBurst';
-import { ReadPause } from './Behaviors/ReadPause';
-import { GlanceBack } from './Behaviors/GlanceBack';
-import { WatchVideo } from './Behaviors/WatchVideo';
-import { LingerImage } from './Behaviors/LingerImage';
-import { FidgetWiggle } from './Behaviors/FidgetWiggle';
-import { MicroScroll } from './Behaviors/MicroScroll';
-import { SelectSnippet } from './Behaviors/SelectSnippet';
-import { MoveOn } from './Behaviors/MoveOn';
+import { normalizeTraits } from '@/shared/SurferStats';
+import { normalizeSpeed } from '@/cockpit/RunConfig';
+import { mulberry32 } from '@/surfer/Rng';
+import { RealClock } from '@/surfer/Clock';
+import { senseAffordances } from '@/surfer/Affordances';
+import { DomMotor } from '@/surfer/Motor';
+import { SurfLoop } from '@/surfer/SurfLoop';
+import { SterileHelm } from '@/surfer/SterileHelm';
+import { whenDocumentLoaded } from '@/surfer/PageLoad';
+import { ScrollBurst } from '@/surfer/Behaviors/ScrollBurst';
+import { ReadPause } from '@/surfer/Behaviors/ReadPause';
+import { GlanceBack } from '@/surfer/Behaviors/GlanceBack';
+import { WatchVideo } from '@/surfer/Behaviors/WatchVideo';
+import { LingerImage } from '@/surfer/Behaviors/LingerImage';
+import { FidgetWiggle } from '@/surfer/Behaviors/FidgetWiggle';
+import { MicroScroll } from '@/surfer/Behaviors/MicroScroll';
+import { SelectSnippet } from '@/surfer/Behaviors/SelectSnippet';
+import { MoveOn } from '@/surfer/Behaviors/MoveOn';
 
 /** URL param carrying the comma-separated trait vector; its presence boots the engine. */
 const TRAITS_PARAM = 'bsbTraits';

@@ -15,8 +15,8 @@
  * ebbing tide needs one.
  */
 
-import { type CockpitContext } from './CockpitContext';
-import { type InstanceState } from './RunInstance';
+import { type CockpitContext } from '@/cockpit/CockpitContext';
+import { type InstanceState } from '@/cockpit/RunInstance';
 
 /** How long the fin's rise-and-surface animation takes, in milliseconds. */
 export const SHARK_SURFACE_MS = 950;

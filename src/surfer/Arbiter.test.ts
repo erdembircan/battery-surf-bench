@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { pickBehavior } from './Arbiter';
-import { mulberry32 } from './Rng';
-import type { Behavior } from './Behavior';
+import { pickBehavior } from '@/surfer/Arbiter';
+import { mulberry32 } from '@/surfer/Rng';
+import type { Behavior } from '@/surfer/Behavior';
 
 /**
  * A minimal stub behavior — only `key` matters for arbiter tests.

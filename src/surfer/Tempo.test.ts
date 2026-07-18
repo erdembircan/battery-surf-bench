@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { tickIntervalMs, flickPx, flickEaseMs } from './Tempo';
-import { MAX } from '../shared/SurferStats';
+import { tickIntervalMs, flickPx, flickEaseMs } from '@/surfer/Tempo';
+import { MAX } from '@/shared/SurferStats';
 
 describe( 'tickIntervalMs', () => {
 	it( 'is slowest at tempo 0 and fastest at tempo MAX', () => {

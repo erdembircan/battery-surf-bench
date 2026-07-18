@@ -15,7 +15,7 @@ import {
 	writeStoredPref,
 	osPrefersDark,
 	THEME_KEY,
-} from './Theme';
+} from '@/cockpit/Theme';
 
 /**
  * Stubs `prefers-color-scheme: dark` to the given match.

@@ -13,7 +13,7 @@ import {
 	classify,
 	normalizeTraits,
 	type Archetype,
-} from './SurferStats';
+} from '@/shared/SurferStats';
 
 describe( 'SurferStats vector shape', () => {
 	it( 'has five stats', () => {

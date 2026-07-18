@@ -6,8 +6,8 @@
  */
 
 import { getContext } from '@wordpress/interactivity';
-import { type CockpitContext } from './CockpitContext';
-import { type StorePart } from './StoreParts';
+import { type CockpitContext } from '@/cockpit/CockpitContext';
+import { type StorePart } from '@/cockpit/StoreParts';
 
 /** The startup slice of the `bsb/cockpit` store. */
 export const startupStore: StorePart = {

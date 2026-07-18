@@ -14,8 +14,8 @@
  * Interactivity runtime or the DOM.
  */
 
-import { type CockpitContext, type ToastKind } from './CockpitContext';
-import { type InstanceState } from './RunInstance';
+import { type CockpitContext, type ToastKind } from '@/cockpit/CockpitContext';
+import { type InstanceState } from '@/cockpit/RunInstance';
 
 /**
  * How long a toast rests on screen, in milliseconds, before it leaves on its

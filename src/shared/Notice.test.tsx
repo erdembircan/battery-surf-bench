@@ -9,7 +9,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { useState } from '@wordpress/element';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { Notice } from './Notice';
+import { Notice } from '@/shared/Notice';
 
 describe( 'Notice', () => {
 	it( 'renders the free-text message', () => {

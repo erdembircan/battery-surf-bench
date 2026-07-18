@@ -3,7 +3,7 @@ import {
 	buildSurfIndexUrl,
 	SURF_INDEX_PARAM,
 	SURF_NONCE_PARAM,
-} from './SurfIndexUrl';
+} from '@/cockpit/SurfIndexUrl';
 
 describe( 'buildSurfIndexUrl', () => {
 	it( 'builds the base URL with the index and nonce as query params', () => {

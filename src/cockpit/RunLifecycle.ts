@@ -6,15 +6,22 @@
  * funnels through one path.
  */
 
-import { type CockpitContext, type RunEndReason } from './CockpitContext';
-import { type InstanceState, wallNow } from './RunInstance';
-import { RunSession } from './RunSession';
-import { buildGraph, type GraphViewport, type GraphModel } from './DrainGraph';
-import { buildSessionPayload, postSession } from './SessionUpload';
-import { enqueueToast } from './Toasts';
-import { clearBark } from './Barks';
-import { clearShark } from './Shark';
-import { parseUserAgent } from './UserAgent';
+import {
+	type CockpitContext,
+	type RunEndReason,
+} from '@/cockpit/CockpitContext';
+import { type InstanceState, wallNow } from '@/cockpit/RunInstance';
+import { RunSession } from '@/cockpit/RunSession';
+import {
+	buildGraph,
+	type GraphViewport,
+	type GraphModel,
+} from '@/cockpit/DrainGraph';
+import { buildSessionPayload, postSession } from '@/cockpit/SessionUpload';
+import { enqueueToast } from '@/cockpit/Toasts';
+import { clearBark } from '@/cockpit/Barks';
+import { clearShark } from '@/cockpit/Shark';
+import { parseUserAgent } from '@/cockpit/UserAgent';
 
 /**
  * The summary drain graph's drawing viewport (SVG user units). A wide, short

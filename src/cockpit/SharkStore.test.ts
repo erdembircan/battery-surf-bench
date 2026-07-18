@@ -50,13 +50,13 @@ vi.mock( '@wordpress/interactivity', () => ( {
 	store: () => ( { state: mocks.sharedState } ),
 } ) );
 
-vi.mock( './RunInstance', () => ( {
+vi.mock( '@/cockpit/RunInstance', () => ( {
 	instanceFor: () => mocks.instance,
 	now: () => mocks.now,
 } ) );
 
-import { sharkStore } from './SharkStore';
-import { KONAMI_TIMEOUT_MS } from './KonamiCode';
+import { sharkStore } from '@/cockpit/SharkStore';
+import { KONAMI_TIMEOUT_MS } from '@/cockpit/KonamiCode';
 
 const state = sharkStore.state as Record< string, unknown >;
 const callbacks = sharkStore.callbacks as {

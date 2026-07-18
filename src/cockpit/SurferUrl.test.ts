@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { withSurferParams } from './SurferUrl';
+import { withSurferParams } from '@/cockpit/SurferUrl';
 
 describe( 'withSurferParams', () => {
 	it( 'appends the trait vector and speed as query params', () => {

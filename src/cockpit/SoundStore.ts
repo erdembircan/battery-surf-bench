@@ -5,15 +5,15 @@
  */
 
 import { getContext } from '@wordpress/interactivity';
-import { type CockpitContext } from './CockpitContext';
-import { type StorePart } from './StoreParts';
-import { instanceFor } from './RunInstance';
+import { type CockpitContext } from '@/cockpit/CockpitContext';
+import { type StorePart } from '@/cockpit/StoreParts';
+import { instanceFor } from '@/cockpit/RunInstance';
 import {
 	FinishChime,
 	audioContextCtor,
 	readStoredSound,
 	writeStoredSound,
-} from './FinishChime';
+} from '@/cockpit/FinishChime';
 
 /** The sound slice of the `bsb/cockpit` store. */
 export const soundStore: StorePart = {

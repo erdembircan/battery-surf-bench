@@ -9,7 +9,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { RunSession } from './RunSession';
+import { RunSession } from '@/cockpit/RunSession';
 
 describe( 'RunSession', () => {
 	it( 'is inactive until started and active afterwards', () => {

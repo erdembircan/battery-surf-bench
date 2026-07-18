@@ -7,7 +7,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { parseUserAgent } from './UserAgent';
+import { parseUserAgent } from '@/cockpit/UserAgent';
 
 describe( 'parseUserAgent', () => {
 	it( 'parses Chrome and macOS from a desktop Chrome string', () => {

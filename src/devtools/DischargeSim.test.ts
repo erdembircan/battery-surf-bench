@@ -10,7 +10,7 @@ import {
 	isSimComplete,
 	simRemainingMs,
 	type DischargeSimConfig,
-} from './DischargeSim';
+} from '@/devtools/DischargeSim';
 
 const config = (
 	partial: Partial< DischargeSimConfig > = {}

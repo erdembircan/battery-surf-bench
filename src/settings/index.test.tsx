@@ -8,7 +8,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import type { SettingsConfig } from './Types';
+import type { SettingsConfig } from '@/settings/Types';
 
 const mounting = vi.hoisted( () => ( {
 	createRoot: vi.fn(),
@@ -24,11 +24,11 @@ vi.mock( '@wordpress/element', () => ( {
 	createRoot: mounting.createRoot,
 } ) );
 
-vi.mock( '../shared/ErrorBoundary', () => ( {
+vi.mock( '@/shared/ErrorBoundary', () => ( {
 	ErrorBoundary: mounting.ErrorBoundary,
 } ) );
 
-vi.mock( './App', () => ( {
+vi.mock( '@/settings/App', () => ( {
 	SettingsApp: mounting.SettingsApp,
 } ) );
 
@@ -58,7 +58,7 @@ describe( 'settings entry point', () => {
 		document.body.append( container );
 		window.bsbSettings = config;
 
-		await import( './index' );
+		await import( '@/settings/index' );
 
 		expect( mounting.createRoot ).toHaveBeenCalledWith( container );
 		const element = mounting.render.mock.calls[ 0 ][ 0 ];
@@ -71,7 +71,7 @@ describe( 'settings entry point', () => {
 	it( 'does nothing when the container is absent', async () => {
 		window.bsbSettings = config;
 
-		await import( './index' );
+		await import( '@/settings/index' );
 
 		expect( mounting.createRoot ).not.toHaveBeenCalled();
 	} );
@@ -81,7 +81,7 @@ describe( 'settings entry point', () => {
 		container.id = 'bsb-settings-app';
 		document.body.append( container );
 
-		await import( './index' );
+		await import( '@/settings/index' );
 
 		expect( mounting.createRoot ).not.toHaveBeenCalled();
 	} );

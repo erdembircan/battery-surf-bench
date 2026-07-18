@@ -8,10 +8,14 @@
  * reading, not like the page froze.
  */
 
-import type { Behavior, BehaviorContext, BehaviorAnnounce } from '../Behavior';
-import { LITERACY } from '../Behavior';
-import type { Motor } from '../Motor';
-import { drive, noise } from '../Bid';
+import type {
+	Behavior,
+	BehaviorContext,
+	BehaviorAnnounce,
+} from '@/surfer/Behavior';
+import { LITERACY } from '@/surfer/Behavior';
+import type { Motor } from '@/surfer/Motor';
+import { drive, noise } from '@/surfer/Bid';
 
 const PAUSE_MS_MIN = 8000;
 const PAUSE_MS_MAX = 20000;

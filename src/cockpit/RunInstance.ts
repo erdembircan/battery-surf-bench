@@ -5,11 +5,11 @@
  * same instance, so it is a single module singleton (see {@link instanceFor}).
  */
 
-import { BatteryMonitor, type BatteryReading } from './BatteryMonitor';
-import { ScreenWakeLock } from './WakeLock';
-import { RunSession } from './RunSession';
-import { FinishChime } from './FinishChime';
-import { ToastQueue } from './Toasts';
+import { BatteryMonitor, type BatteryReading } from '@/cockpit/BatteryMonitor';
+import { ScreenWakeLock } from '@/cockpit/WakeLock';
+import { RunSession } from '@/cockpit/RunSession';
+import { FinishChime } from '@/cockpit/FinishChime';
+import { ToastQueue } from '@/cockpit/Toasts';
 
 /** Per-instance calculation state, kept off the reactive context and keyed by it. */
 export interface InstanceState {

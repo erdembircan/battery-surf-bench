@@ -49,7 +49,7 @@ vi.mock( '@wordpress/interactivity', () => ( {
 
 describe( 'devtools view', () => {
 	it( 'joins the bsb/cockpit namespace with the devtools slice folded in', async () => {
-		await import( './view' );
+		await import( '@/devtools/view' );
 
 		expect( mocks.namespace ).toBe( 'bsb/cockpit' );
 		expect( mocks.config?.state.devtools ).toEqual( {

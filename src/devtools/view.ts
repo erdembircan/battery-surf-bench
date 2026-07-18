@@ -13,13 +13,13 @@
  */
 
 import { store } from '@wordpress/interactivity';
-import { mergeStoreParts } from '../cockpit/StoreParts';
-import { devtoolsShellStore, hydrateDevtools } from './DevtoolsStore';
-import { batteryOverrideStore } from './BatteryOverrideStore';
-import { dischargeSimStore } from './DischargeSimStore';
-import { surfSteerStore } from './SurfSteerStore';
-import { sharkReleaseStore } from './SharkReleaseStore';
-import { resetStore } from './ResetStore';
+import { mergeStoreParts } from '@/cockpit/StoreParts';
+import { devtoolsShellStore, hydrateDevtools } from '@/devtools/DevtoolsStore';
+import { batteryOverrideStore } from '@/devtools/BatteryOverrideStore';
+import { dischargeSimStore } from '@/devtools/DischargeSimStore';
+import { surfSteerStore } from '@/devtools/SurfSteerStore';
+import { sharkReleaseStore } from '@/devtools/SharkReleaseStore';
+import { resetStore } from '@/devtools/ResetStore';
 
 store(
 	'bsb/cockpit',

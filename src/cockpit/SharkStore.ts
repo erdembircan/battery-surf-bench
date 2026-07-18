@@ -24,11 +24,11 @@
  */
 
 import { getContext, store } from '@wordpress/interactivity';
-import { type CockpitContext } from './CockpitContext';
-import { type StorePart } from './StoreParts';
-import { instanceFor, now } from './RunInstance';
-import { launchShark, clearShark } from './Shark';
-import { nextKonamiProgress, isKonamiComplete } from './KonamiCode';
+import { type CockpitContext } from '@/cockpit/CockpitContext';
+import { type StorePart } from '@/cockpit/StoreParts';
+import { instanceFor, now } from '@/cockpit/RunInstance';
+import { launchShark, clearShark } from '@/cockpit/Shark';
+import { nextKonamiProgress, isKonamiComplete } from '@/cockpit/KonamiCode';
 
 /**
  * The slice of the merged `bsb/cockpit` state the shark-release dev-tool

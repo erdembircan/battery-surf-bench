@@ -8,7 +8,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { mergeStoreParts } from './StoreParts';
+import { mergeStoreParts } from '@/cockpit/StoreParts';
 
 describe( 'mergeStoreParts', () => {
 	it( 'merges state, actions and callbacks from every slice', () => {

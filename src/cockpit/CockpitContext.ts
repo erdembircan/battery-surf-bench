@@ -4,8 +4,8 @@
  * store's domain slices read from and write to it.
  */
 
-import { type RunMode } from './RunConfig';
-import { type Sample } from './DrainRate';
+import { type RunMode } from '@/cockpit/RunConfig';
+import { type Sample } from '@/cockpit/DrainRate';
 
 /**
  * Why a run ended — drives the summary's verdict; empty before any run ends.

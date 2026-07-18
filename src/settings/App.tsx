@@ -23,20 +23,24 @@ import {
 	useState,
 } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
-import { Notice, type NoticeKind } from '../shared/Notice';
+import { Notice, type NoticeKind } from '@/shared/Notice';
 import {
 	addBundledPage,
 	addUserPage,
 	removeEntry,
 	reorderByKey,
-} from './Order';
-import { mapOrderToRows } from './RowMapping';
-import { BrowsePane } from './BrowsePane';
-import { SelectedPane } from './SelectedPane';
-import { SaveButton } from './SaveButton';
-import { ResetButton } from './ResetButton';
-import { UserPageResolver } from './UserPageResolver';
-import type { OrderEntry, ResolvedUserPage, SettingsConfig } from './Types';
+} from '@/settings/Order';
+import { mapOrderToRows } from '@/settings/RowMapping';
+import { BrowsePane } from '@/settings/BrowsePane';
+import { SelectedPane } from '@/settings/SelectedPane';
+import { SaveButton } from '@/settings/SaveButton';
+import { ResetButton } from '@/settings/ResetButton';
+import { UserPageResolver } from '@/settings/UserPageResolver';
+import type {
+	OrderEntry,
+	ResolvedUserPage,
+	SettingsConfig,
+} from '@/settings/Types';
 
 /**
  * How long a success toast stays up before auto-dismissing — the same way the

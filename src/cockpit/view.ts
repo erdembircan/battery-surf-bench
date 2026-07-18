@@ -39,22 +39,22 @@
  */
 
 import { store } from '@wordpress/interactivity';
-import { mergeStoreParts } from './StoreParts';
-import { runStore } from './RunStore';
-import { configStore } from './ConfigStore';
-import { traitsStore } from './TraitsStore';
-import { targetStore } from './TargetStore';
-import { batteryStore } from './BatteryStore';
-import { soundStore } from './SoundStore';
-import { summaryStore } from './SummaryStore';
-import { startupStore } from './StartupStore';
-import { toastStore } from './ToastStore';
-import { barkStore } from './BarkStore';
-import { sharkStore } from './SharkStore';
+import { mergeStoreParts } from '@/cockpit/StoreParts';
+import { runStore } from '@/cockpit/RunStore';
+import { configStore } from '@/cockpit/ConfigStore';
+import { traitsStore } from '@/cockpit/TraitsStore';
+import { targetStore } from '@/cockpit/TargetStore';
+import { batteryStore } from '@/cockpit/BatteryStore';
+import { soundStore } from '@/cockpit/SoundStore';
+import { summaryStore } from '@/cockpit/SummaryStore';
+import { startupStore } from '@/cockpit/StartupStore';
+import { toastStore } from '@/cockpit/ToastStore';
+import { barkStore } from '@/cockpit/BarkStore';
+import { sharkStore } from '@/cockpit/SharkStore';
 
 // Re-exported so the run-state singleton can be reset between tests through the
 // store's entry module, without the tests reaching into its private home.
-export { __resetInstance } from './RunInstance';
+export { __resetInstance } from '@/cockpit/RunInstance';
 
 store(
 	'bsb/cockpit',

@@ -18,10 +18,10 @@
  * call here would be redundant.
  */
 
-import { type StorePart } from '../cockpit/StoreParts';
-import { resetBatteryOverride } from './BatteryOverrideStore';
-import { resetDischargeSim } from './DischargeSimStore';
-import { resetSurfSteer } from './SurfSteerStore';
+import { type StorePart } from '@/cockpit/StoreParts';
+import { resetBatteryOverride } from '@/devtools/BatteryOverrideStore';
+import { resetDischargeSim } from '@/devtools/DischargeSimStore';
+import { resetSurfSteer } from '@/devtools/SurfSteerStore';
 
 /** The dev-tools panel's cross-cutting reset, joining `bsb/cockpit`. */
 export const resetStore: StorePart = {

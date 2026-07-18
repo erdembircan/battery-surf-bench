@@ -12,18 +12,18 @@
  * own) before firing `onPageDone`.
  */
 
-import type { Behavior, BehaviorContext } from './Behavior';
-import { ENDURANCE, TEMPO } from './Behavior';
-import type { Motor } from './Motor';
-import type { Clock } from './Clock';
-import type { Rng } from './Rng';
-import type { Affordances } from './Affordances';
-import { Appetite } from './Appetite';
-import { pickBehavior } from './Arbiter';
-import { MOVE_ON_KEY, MOVE_ON_DISPLAY_MS } from './Behaviors/MoveOn';
-import { tickIntervalMs } from './Tempo';
-import { MAX } from '../shared/SurferStats';
-import { buildBehaviorContext } from './PageSense';
+import type { Behavior, BehaviorContext } from '@/surfer/Behavior';
+import { ENDURANCE, TEMPO } from '@/surfer/Behavior';
+import type { Motor } from '@/surfer/Motor';
+import type { Clock } from '@/surfer/Clock';
+import type { Rng } from '@/surfer/Rng';
+import type { Affordances } from '@/surfer/Affordances';
+import { Appetite } from '@/surfer/Appetite';
+import { pickBehavior } from '@/surfer/Arbiter';
+import { MOVE_ON_KEY, MOVE_ON_DISPLAY_MS } from '@/surfer/Behaviors/MoveOn';
+import { tickIntervalMs } from '@/surfer/Tempo';
+import { MAX } from '@/shared/SurferStats';
+import { buildBehaviorContext } from '@/surfer/PageSense';
 
 /** Boredom gained per tick at zero endurance. */
 const BOREDOM_RATE = 0.04;

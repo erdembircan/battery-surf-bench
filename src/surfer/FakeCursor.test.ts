@@ -4,7 +4,7 @@ import {
 	SURFING_CLASS,
 	framesForDistance,
 	type Point,
-} from './FakeCursor';
+} from '@/surfer/FakeCursor';
 
 /**
  * A frame source that resolves instantly after invoking `onFrame` first, so a

@@ -9,10 +9,10 @@
  */
 
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { type CockpitContext } from './CockpitContext';
-import { type InstanceState } from './RunInstance';
-import { RunSession } from './RunSession';
-import { ToastQueue } from './Toasts';
+import { type CockpitContext } from '@/cockpit/CockpitContext';
+import { type InstanceState } from '@/cockpit/RunInstance';
+import { RunSession } from '@/cockpit/RunSession';
+import { ToastQueue } from '@/cockpit/Toasts';
 
 interface RestConfig {
 	restUrl: string;
@@ -27,7 +27,7 @@ vi.mock( '@wordpress/interactivity', () => ( {
 	getConfig: () => mocks.config,
 } ) );
 
-import { stopRun } from './RunLifecycle';
+import { stopRun } from '@/cockpit/RunLifecycle';
 
 /** A reactive-context double carrying only what `stopRun` reads and writes. */
 const context = (): CockpitContext =>

@@ -12,7 +12,7 @@
 import { Component } from '@wordpress/element';
 import type { ErrorInfo, ReactNode } from 'react';
 import { __ } from '@wordpress/i18n';
-import { Notice } from './Notice';
+import { Notice } from '@/shared/Notice';
 
 interface ErrorBoundaryProps {
 	children: ReactNode;

@@ -6,7 +6,7 @@
  * without the Battery Status API or the Interactivity runtime.
  */
 
-import { type BatteryReading } from './BatteryMonitor';
+import { type BatteryReading } from '@/cockpit/BatteryMonitor';
 
 /** The dev-tools battery override slice, as it lives on the shared cockpit state. */
 export interface BatteryOverrideState {

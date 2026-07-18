@@ -17,9 +17,9 @@ import {
 	postSession,
 	type SessionUploadInput,
 	type SessionPayload,
-} from './SessionUpload';
-import { type RunSummary } from './RunSession';
-import { type RleSample } from './SampleLog';
+} from '@/cockpit/SessionUpload';
+import { type RunSummary } from '@/cockpit/RunSession';
+import { type RleSample } from '@/cockpit/SampleLog';
 
 interface RestConfig {
 	restUrl: string;

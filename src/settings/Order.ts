@@ -8,7 +8,7 @@
  * only ever deal in plain data.
  */
 
-import type { OrderEntry } from './Types';
+import type { OrderEntry } from '@/settings/Types';
 
 /**
  * Builds the stable identifier an order entry is tracked by — for React keys

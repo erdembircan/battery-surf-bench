@@ -15,8 +15,8 @@ import {
 	windowDrainRate,
 	minutesToLevel,
 	type DrainRateResult,
-} from './DrainRate';
-import { SampleLog, type RleSample } from './SampleLog';
+} from '@/cockpit/DrainRate';
+import { SampleLog, type RleSample } from '@/cockpit/SampleLog';
 
 /** The derived values the deck binds onto its readout labels. */
 export interface Readouts {

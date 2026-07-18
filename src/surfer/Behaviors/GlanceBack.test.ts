@@ -1,9 +1,9 @@
 import { describe, it, expect, vi } from 'vitest';
-import { GlanceBack } from './GlanceBack';
-import { makeContext, openAffordances } from '../TestFixtures';
-import { FakeMotor } from '../FakeMotor';
-import { DRIVE_FLOOR } from '../Bid';
-import { MAX } from '../../shared/SurferStats';
+import { GlanceBack } from '@/surfer/Behaviors/GlanceBack';
+import { makeContext, openAffordances } from '@/surfer/TestFixtures';
+import { FakeMotor } from '@/surfer/FakeMotor';
+import { DRIVE_FLOOR } from '@/surfer/Bid';
+import { MAX } from '@/shared/SurferStats';
 
 describe( 'GlanceBack.bid', () => {
 	it( 'still bids a small, nonzero floor at literacy 0', () => {
