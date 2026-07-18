@@ -9,7 +9,7 @@
  */
 
 import { store } from '@wordpress/interactivity';
-import { type StorePart } from '@/cockpit/StoreParts';
+import { type StorePart } from '@/cockpit/store/StoreParts';
 import { type BatteryOverrideState } from '@/cockpit/BatteryOverride';
 import { type DischargeSimState, DEFAULT_SIM } from '@/devtools/DischargeSim';
 import { type SurfSteerState, DEFAULT_SURF } from '@/devtools/SurfSteer';

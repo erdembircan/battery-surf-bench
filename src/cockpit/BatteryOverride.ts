@@ -2,7 +2,7 @@
  * The battery override resolver — the seam the dev-tools battery tool hooks
  * into. Pure and production-owned: with no override (or a disabled one) it is a
  * no-op passthrough, so the production behavior is unchanged when dev tools are
- * absent. Kept separate from {@link ./BatteryStore} so it can be unit-tested
+ * absent. Kept separate from {@link ./store/BatteryStore} so it can be unit-tested
  * without the Battery Status API or the Interactivity runtime.
  */
 

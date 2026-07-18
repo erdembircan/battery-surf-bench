@@ -2,12 +2,12 @@
  * The target-drop slice of the cockpit store: the battery-level slider that sets
  * the stop-at target for a target-drop run. Owns the slider's readout state and
  * its pointer-drag and keyboard interactions, delegating the level maths to
- * {@link ./TargetControl}.
+ * {@link ../TargetControl}.
  */
 
 import { getContext, getElement } from '@wordpress/interactivity';
 import { type CockpitContext } from '@/cockpit/CockpitContext';
-import { type StorePart } from '@/cockpit/StoreParts';
+import { type StorePart } from '@/cockpit/store/StoreParts';
 import {
 	TARGET_MIN,
 	TARGET_STEP,

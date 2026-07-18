@@ -3,7 +3,7 @@
  * behaviors' keys in engine boot order (the chip grid's own order), the chip
  * gating rule, and the countdown/page-slug display formats. Kept free of any
  * store/DOM dependency so the gating and formatting logic can be
- * unit-tested in isolation — the store slice ({@link ./SurfSteerStore}) only
+ * unit-tested in isolation — the store slice ({@link ./store/SurfSteerStore}) only
  * wires this against the shared `bsb/cockpit` state and the iframe message
  * handshake.
  */
@@ -69,7 +69,7 @@ export interface SurfSteerState {
 	 * The live sterile page's opaque course-page index, mirrored from
 	 * `context.activeIndex` by the same production watch while the run is
 	 * live and sterile; null otherwise. Resolved against the server-supplied
-	 * slug list ({@link ./SurfSteerStore}'s `devtoolsSurfPageSlug` getter) for
+	 * slug list ({@link ./store/SurfSteerStore}'s `devtoolsSurfPageSlug` getter) for
 	 * the page stepper's readout.
 	 */
 	pageIndex: number | null;

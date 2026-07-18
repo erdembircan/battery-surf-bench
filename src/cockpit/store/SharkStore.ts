@@ -14,7 +14,7 @@
  * button to gate on.
  *
  * Store-authoritative, mirroring {@link ./BarkStore}: the swim's clear timer
- * is owned by {@link ./Shark}, never by the fin's own CSS animation ending.
+ * is owned by {@link ../Shark}, never by the fin's own CSS animation ending.
  * The egg only ARMS while a run is live and the deck is compact — entering
  * the sequence on the expanded deck, or while idle, does nothing — and a
  * live swim is cleared the instant the topbar stops showing (the deck
@@ -25,7 +25,7 @@
 
 import { getContext, store } from '@wordpress/interactivity';
 import { type CockpitContext } from '@/cockpit/CockpitContext';
-import { type StorePart } from '@/cockpit/StoreParts';
+import { type StorePart } from '@/cockpit/store/StoreParts';
 import { instanceFor, now } from '@/cockpit/RunInstance';
 import { launchShark, clearShark } from '@/cockpit/Shark';
 import { nextKonamiProgress, isKonamiComplete } from '@/cockpit/KonamiCode';
@@ -96,7 +96,7 @@ export const sharkStore: StorePart = {
 		 * any progress (and its last-key timestamp) is reset, so a
 		 * half-entered code can never carry across an arming boundary. Each
 		 * key must follow the previous within `KONAMI_TIMEOUT_MS` or the
-		 * sequence starts over (see {@link ./KonamiCode}). A
+		 * sequence starts over (see {@link ../KonamiCode}). A
 		 * repeated key (held down) is ignored so it cannot itself advance,
 		 * reset, or count toward the timing gap. Never calls
 		 * `preventDefault` — the egg must not interfere with normal keyboard

@@ -2,13 +2,13 @@
  * The run-configuration slice of the cockpit store: the control deck's run mode,
  * duration stepper (with its rolling odometer) and surf speed. Reads and writes
  * the seeded run config on the reactive context, normalising
- * every value through {@link ./RunConfig} so a tampered context cannot push the
+ * every value through {@link ../RunConfig} so a tampered context cannot push the
  * run outside its supported range.
  */
 
 import { getContext, getElement } from '@wordpress/interactivity';
 import { type CockpitContext } from '@/cockpit/CockpitContext';
-import { type StorePart } from '@/cockpit/StoreParts';
+import { type StorePart } from '@/cockpit/store/StoreParts';
 import { type Speed, SPEEDS, normalizeDuration } from '@/cockpit/RunConfig';
 import { durationDigits } from '@/cockpit/Format';
 

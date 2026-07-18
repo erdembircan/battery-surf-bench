@@ -13,7 +13,7 @@
  * value). This module's own getters and actions read and write its manual
  * `battery` layer only; while a discharge sim (see {@link ./DischargeSimStore})
  * is running it wins over this layer entirely, resolved by the pure
- * {@link ./EffectiveBatteryOverride} — the getters below route through that
+ * {@link ../EffectiveBatteryOverride} — the getters below route through that
  * resolver so the panel reflects a running sim, but the actions never need to
  * know the sim exists.
  *
@@ -26,13 +26,13 @@
  */
 
 import { store, getElement } from '@wordpress/interactivity';
-import { type StorePart } from '@/cockpit/StoreParts';
-import { current, type DevtoolsStore } from '@/devtools/DevtoolsStore';
+import { type StorePart } from '@/cockpit/store/StoreParts';
+import { current, type DevtoolsStore } from '@/devtools/store/DevtoolsStore';
 import { effectiveBatteryOverride } from '@/devtools/EffectiveBatteryOverride';
 
 /**
  * The raw system battery percentage published by the production cockpit
- * ({@link ../cockpit/BatteryStore}), or null before any real reading exists
+ * ({@link ../../cockpit/store/BatteryStore}), or null before any real reading exists
  * (or on a platform with no Battery Status API and nothing synthesized).
  *
  * @return The live system percentage, or null.

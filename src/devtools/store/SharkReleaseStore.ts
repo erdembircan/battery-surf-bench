@@ -12,8 +12,8 @@
  * which is all the disabled binding below reads.
  */
 
-import { type StorePart } from '@/cockpit/StoreParts';
-import { current } from '@/devtools/DevtoolsStore';
+import { type StorePart } from '@/cockpit/store/StoreParts';
+import { current } from '@/devtools/store/DevtoolsStore';
 
 /** Monotonic sequence stamped onto every launch command, so the cockpit watch (which reads it reactively) re-fires even on a repeat release. */
 let sharkSeq = 0;

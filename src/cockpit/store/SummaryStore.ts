@@ -8,7 +8,7 @@
 
 import { getContext, getElement } from '@wordpress/interactivity';
 import { type CockpitContext } from '@/cockpit/CockpitContext';
-import { type StorePart } from '@/cockpit/StoreParts';
+import { type StorePart } from '@/cockpit/store/StoreParts';
 import { instanceFor } from '@/cockpit/RunInstance';
 import { buildGraph, type GraphModel } from '@/cockpit/DrainGraph';
 import { GRAPH_VIEWPORT } from '@/cockpit/RunLifecycle';

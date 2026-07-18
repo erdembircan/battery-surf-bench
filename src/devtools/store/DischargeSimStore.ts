@@ -1,14 +1,14 @@
 /**
  * The discharge-simulation sub-tool: the dev-tools panel's second section,
  * additive alongside the battery-override tool rather than a rework of it. A
- * 1-second ticker evaluates the pure model ({@link ./DischargeSim}) against
+ * 1-second ticker evaluates the pure model ({@link ../DischargeSim}) against
  * the clock and writes the result into its own `sim.currentLevel` and
  * `sim.remainingMs` output fields — never into `state.devtools.battery`, the
  * manual override's own field. `remainingMs` exists purely to drive the
  * title-bar countdown reactively (a getter only re-evaluates from a reactive
  * field a tick writes, never from wall-clock polling alone). The two layers
  * are combined into the single effective override by
- * the pure resolver {@link ./EffectiveBatteryOverride}, which every consumer
+ * the pure resolver {@link ../EffectiveBatteryOverride}, which every consumer
  * (display, sample recording, the plugged/target-drop stops, the panel's own
  * level row) reads instead of the manual layer directly. Because the sim
  * never touches the manual layer, stopping it (or letting it complete) simply
@@ -19,14 +19,14 @@
  * Also exports {@link resetDischargeSim}, a plain function rather than a
  * `StorePart` action — the panel's cross-cutting Reset button ({@link
  * ./ResetStore}) composes it directly, so this sub-tool's own reset (stop the
- * ticker, restore the steppers to {@link ./DischargeSim}.DEFAULT_SIM) lives
+ * ticker, restore the steppers to {@link ../DischargeSim}.DEFAULT_SIM) lives
  * here, next to the ticker it stops.
  */
 
 import { getElement } from '@wordpress/interactivity';
-import { type StorePart } from '@/cockpit/StoreParts';
+import { type StorePart } from '@/cockpit/store/StoreParts';
 import { formatClock } from '@/cockpit/Format';
-import { current } from '@/devtools/DevtoolsStore';
+import { current } from '@/devtools/store/DevtoolsStore';
 import {
 	simulatedLevel,
 	simRemainingMs,

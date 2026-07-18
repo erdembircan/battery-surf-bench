@@ -32,7 +32,7 @@ vi.mock( '@wordpress/interactivity', () => ( {
 	getElement: () => ( { ref: mocks.element } ),
 } ) );
 
-import { traitsStore, classGetter } from '@/cockpit/TraitsStore';
+import { traitsStore, classGetter } from '@/cockpit/store/TraitsStore';
 import { CLASSES, FRESH } from '@/shared/SurferStats';
 
 const state = traitsStore.state as Record< string, unknown >;

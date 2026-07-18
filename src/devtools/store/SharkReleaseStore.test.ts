@@ -22,7 +22,7 @@ vi.mock( '@wordpress/interactivity', () => ( {
 	store: () => ( { state: mocks.state } ),
 } ) );
 
-import { sharkReleaseStore } from '@/devtools/SharkReleaseStore';
+import { sharkReleaseStore } from '@/devtools/store/SharkReleaseStore';
 
 const state = sharkReleaseStore.state as Record< string, unknown >;
 const actions = sharkReleaseStore.actions as unknown as {

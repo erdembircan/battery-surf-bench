@@ -11,14 +11,14 @@
  * This module owns the iframe↔cockpit `bsb:behaviorStart`/`bsb:behaviorEnd`/
  * `bsb:pageAffordances` message handshake and the countdown ticker that
  * drives the running chip's `MM:SS` display; the pure gating/formatting rules
- * it wires against live in {@link ./SurfSteer}. `resetSurfSteer` is a plain
+ * it wires against live in {@link ../SurfSteer}. `resetSurfSteer` is a plain
  * function (not a `StorePart` action), for the same reason
  * {@link ./BatteryOverrideStore}'s `resetBatteryOverride` is: the panel's
  * cross-cutting Reset button ({@link ./ResetStore}) composes it directly.
  */
 
 import { getElement } from '@wordpress/interactivity';
-import { type StorePart } from '@/cockpit/StoreParts';
+import { type StorePart } from '@/cockpit/store/StoreParts';
 import {
 	isBehaviorStartMessage,
 	behaviorKeyOf,
@@ -30,7 +30,7 @@ import {
 	affordancesOf,
 } from '@/cockpit/PageAffordances';
 import { postSteerBehavior } from '@/cockpit/SteerBehavior';
-import { current } from '@/devtools/DevtoolsStore';
+import { current } from '@/devtools/store/DevtoolsStore';
 import {
 	isChipDisabled,
 	isChipGated,

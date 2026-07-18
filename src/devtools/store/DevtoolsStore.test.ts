@@ -44,7 +44,7 @@ import {
 	devtoolsShellStore,
 	hydrateDevtools,
 	DEVTOOLS_STORAGE_KEY,
-} from '@/devtools/DevtoolsStore';
+} from '@/devtools/store/DevtoolsStore';
 
 const actions = devtoolsShellStore.actions as unknown as {
 	devtoolsToggleOpen: () => void;

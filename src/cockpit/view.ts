@@ -8,24 +8,24 @@
  * surface of the control deck and reads from / writes to the per-instance
  * reactive context the block's PHP render seeds:
  *
- * - {@link ./RunStore}      — the live run: viewport URL, clock and rate
+ * - {@link ./store/RunStore}      — the live run: viewport URL, clock and rate
  *   readouts, start/stop, compact deck, and the run-scoped clock / heartbeat /
  *   wake-lock effects.
- * - {@link ./ConfigStore}   — run mode, duration stepper (and its odometer) and
+ * - {@link ./store/ConfigStore}   — run mode, duration stepper (and its odometer) and
  *   surf speed.
- * - {@link ./TraitsStore}   — the surfer personality: the point-buy stat vector,
+ * - {@link ./store/TraitsStore}   — the surfer personality: the point-buy stat vector,
  *   class presets and the derived archetype that shape the engine's behaviour.
- * - {@link ./TargetStore}   — the target-drop battery slider.
- * - {@link ./BatteryStore}  — the live battery readouts and the Battery Status
+ * - {@link ./store/TargetStore}   — the target-drop battery slider.
+ * - {@link ./store/BatteryStore}  — the live battery readouts and the Battery Status
  *   API wiring that feeds the drain-rate calculations.
- * - {@link ./SoundStore}    — the finish-chime preference and toggle.
- * - {@link ./SummaryStore}  — the end-of-run report card and its painter.
- * - {@link ./StartupStore}  — the session-start postcard and deck reveal.
- * - {@link ./ToastStore}    — the bottom notification pill (upload error /
+ * - {@link ./store/SoundStore}    — the finish-chime preference and toggle.
+ * - {@link ./store/SummaryStore}  — the end-of-run report card and its painter.
+ * - {@link ./store/StartupStore}  — the session-start postcard and deck reveal.
+ * - {@link ./store/ToastStore}    — the bottom notification pill (upload error /
  *   view-only notice), its queue and lifecycle.
- * - {@link ./BarkStore}     — the playful pill shown over the top of the
+ * - {@link ./store/BarkStore}     — the playful pill shown over the top of the
  *   running viewport when the surf engine starts a novelty behavior.
- * - {@link ./SharkStore}    — the Konami-code Easter egg: a dorsal fin that
+ * - {@link ./store/SharkStore}    — the Konami-code Easter egg: a dorsal fin that
  *   swims across the compact topbar's wave strip.
  *
  * The heavy lifting lives below the slices in dedicated, unit-tested domains
@@ -39,18 +39,18 @@
  */
 
 import { store } from '@wordpress/interactivity';
-import { mergeStoreParts } from '@/cockpit/StoreParts';
-import { runStore } from '@/cockpit/RunStore';
-import { configStore } from '@/cockpit/ConfigStore';
-import { traitsStore } from '@/cockpit/TraitsStore';
-import { targetStore } from '@/cockpit/TargetStore';
-import { batteryStore } from '@/cockpit/BatteryStore';
-import { soundStore } from '@/cockpit/SoundStore';
-import { summaryStore } from '@/cockpit/SummaryStore';
-import { startupStore } from '@/cockpit/StartupStore';
-import { toastStore } from '@/cockpit/ToastStore';
-import { barkStore } from '@/cockpit/BarkStore';
-import { sharkStore } from '@/cockpit/SharkStore';
+import { mergeStoreParts } from '@/cockpit/store/StoreParts';
+import { runStore } from '@/cockpit/store/RunStore';
+import { configStore } from '@/cockpit/store/ConfigStore';
+import { traitsStore } from '@/cockpit/store/TraitsStore';
+import { targetStore } from '@/cockpit/store/TargetStore';
+import { batteryStore } from '@/cockpit/store/BatteryStore';
+import { soundStore } from '@/cockpit/store/SoundStore';
+import { summaryStore } from '@/cockpit/store/SummaryStore';
+import { startupStore } from '@/cockpit/store/StartupStore';
+import { toastStore } from '@/cockpit/store/ToastStore';
+import { barkStore } from '@/cockpit/store/BarkStore';
+import { sharkStore } from '@/cockpit/store/SharkStore';
 
 // Re-exported so the run-state singleton can be reset between tests through the
 // store's entry module, without the tests reaching into its private home.

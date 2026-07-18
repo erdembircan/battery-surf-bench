@@ -5,12 +5,12 @@
  * the enter → hold → leave transitions from the pill's `animationend`; and owns
  * the two triggers — dismissing by hand, and raising the view-only notice when
  * the pointer enters the running viewport (once per run). The queue and timers
- * live in the per-instance state; the queue logic itself is in {@link ./Toasts}.
+ * live in the per-instance state; the queue logic itself is in {@link ../Toasts}.
  */
 
 import { getContext } from '@wordpress/interactivity';
 import { type CockpitContext } from '@/cockpit/CockpitContext';
-import { type StorePart } from '@/cockpit/StoreParts';
+import { type StorePart } from '@/cockpit/store/StoreParts';
 import { instanceFor } from '@/cockpit/RunInstance';
 import { enqueueToast, finishToast, TOAST_HOLD_MS } from '@/cockpit/Toasts';
 

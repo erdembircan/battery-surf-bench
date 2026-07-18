@@ -48,9 +48,9 @@ vi.mock( '@wordpress/interactivity', () => ( {
 	getElement: () => ( { ref: null } ),
 } ) );
 
-import { resetStore } from '@/devtools/ResetStore';
-import { dischargeSimStore } from '@/devtools/DischargeSimStore';
-import { devtoolsShellStore } from '@/devtools/DevtoolsStore';
+import { resetStore } from '@/devtools/store/ResetStore';
+import { dischargeSimStore } from '@/devtools/store/DischargeSimStore';
+import { devtoolsShellStore } from '@/devtools/store/DevtoolsStore';
 
 const actions = resetStore.actions as unknown as {
 	devtoolsReset: () => void;

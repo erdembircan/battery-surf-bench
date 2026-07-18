@@ -1,12 +1,12 @@
 /**
  * The sound slice of the cockpit store: the finish-chime preference and its
  * toggle. Restores the remembered choice on hydration and builds the chime,
- * delegating audio to {@link ./FinishChime}; a no-op where Web Audio is absent.
+ * delegating audio to {@link ../FinishChime}; a no-op where Web Audio is absent.
  */
 
 import { getContext } from '@wordpress/interactivity';
 import { type CockpitContext } from '@/cockpit/CockpitContext';
-import { type StorePart } from '@/cockpit/StoreParts';
+import { type StorePart } from '@/cockpit/store/StoreParts';
 import { instanceFor } from '@/cockpit/RunInstance';
 import {
 	FinishChime,

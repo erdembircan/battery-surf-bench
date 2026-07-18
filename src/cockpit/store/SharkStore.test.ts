@@ -55,7 +55,7 @@ vi.mock( '@/cockpit/RunInstance', () => ( {
 	now: () => mocks.now,
 } ) );
 
-import { sharkStore } from '@/cockpit/SharkStore';
+import { sharkStore } from '@/cockpit/store/SharkStore';
 import { KONAMI_TIMEOUT_MS } from '@/cockpit/KonamiCode';
 
 const state = sharkStore.state as Record< string, unknown >;

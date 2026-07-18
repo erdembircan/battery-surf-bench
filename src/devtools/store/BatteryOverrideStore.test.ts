@@ -53,7 +53,7 @@ vi.mock( '@wordpress/interactivity', () => ( {
 	getElement: () => ( { ref: mocks.element } ),
 } ) );
 
-import { batteryOverrideStore } from '@/devtools/BatteryOverrideStore';
+import { batteryOverrideStore } from '@/devtools/store/BatteryOverrideStore';
 
 /** Typed views over the loosely-typed `StorePart` slice under test. */
 const actions = batteryOverrideStore.actions as unknown as {

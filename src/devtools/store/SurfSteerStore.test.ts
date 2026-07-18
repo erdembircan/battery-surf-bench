@@ -43,7 +43,7 @@ vi.mock( '@wordpress/interactivity', () => ( {
 	getElement: () => ( { ref: mocks.element } ),
 } ) );
 
-import { surfSteerStore } from '@/devtools/SurfSteerStore';
+import { surfSteerStore } from '@/devtools/store/SurfSteerStore';
 
 const actions = surfSteerStore.actions as unknown as {
 	devtoolsSurfSetMode: () => void;

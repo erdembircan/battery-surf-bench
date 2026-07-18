@@ -8,20 +8,20 @@
  * a bark while a run is live.
  *
  * Store-authoritative: every phase transition is driven by the store's own
- * duration/leave timers (owned by {@link ./Barks}) — never by the pill's own
+ * duration/leave timers (owned by {@link ../Barks}) — never by the pill's own
  * CSS animation finishing. A bark arriving while one is already showing
  * queues in the pending slot and begins the showing bark's leave right away
  * — there is no minimum on-screen time — so the outgoing bark always plays
  * its full leave animation before the pending one enters, and barks are
  * shown in order, none dropped. The pending slot and timers live in the
- * per-instance state; the lifecycle itself is in {@link ./Barks}.
+ * per-instance state; the lifecycle itself is in {@link ../Barks}.
  *
  * No actions — barks are decorative and non-interactive, with no dismiss.
  */
 
 import { getContext } from '@wordpress/interactivity';
 import { type CockpitContext } from '@/cockpit/CockpitContext';
-import { type StorePart } from '@/cockpit/StoreParts';
+import { type StorePart } from '@/cockpit/store/StoreParts';
 import { instanceFor } from '@/cockpit/RunInstance';
 import { raiseBark } from '@/cockpit/Barks';
 import {

@@ -15,7 +15,7 @@
 
 import { getContext, store } from '@wordpress/interactivity';
 import { type CockpitContext } from '@/cockpit/CockpitContext';
-import { type StorePart } from '@/cockpit/StoreParts';
+import { type StorePart } from '@/cockpit/store/StoreParts';
 import { instanceFor, now, type InstanceState } from '@/cockpit/RunInstance';
 import { applyReadouts, stopRun } from '@/cockpit/RunLifecycle';
 import { BatteryMonitor, type BatteryReading } from '@/cockpit/BatteryMonitor';
@@ -52,7 +52,7 @@ interface SharedBatteryStore {
 /**
  * Reads the dev-tools battery override off the shared cockpit state — the
  * single effective value resolved from the manual override layer and a
- * running discharge sim (see {@link ../devtools/EffectiveBatteryOverride}).
+ * running discharge sim (see {@link ../../devtools/EffectiveBatteryOverride}).
  * Re-fetches the store by namespace (rather than closing over a reference
  * captured at import time) because the dev-tools module — if present at all
  * — joins the store from a separate script module, after this one has

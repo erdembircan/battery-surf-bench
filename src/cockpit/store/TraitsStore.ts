@@ -4,7 +4,7 @@
  * vector — the class-preset chips, the per-stat sliders, the Reset and the
  * Customize disclosure — and the derived archetype cover-name. The trait domain
  * (point-buy maths, presets, classification) lives in the shared, unit-tested
- * {@link ../shared/SurferStats} module so the cockpit and the engine read the
+ * {@link ../../shared/SurferStats} module so the cockpit and the engine read the
  * same rules; this slice only wires that domain to the reactive context.
  *
  * The trait vector is the single source of truth on the ROOT context — never a
@@ -19,7 +19,7 @@
 
 import { getContext, getElement } from '@wordpress/interactivity';
 import { type CockpitContext } from '@/cockpit/CockpitContext';
-import { type StorePart } from '@/cockpit/StoreParts';
+import { type StorePart } from '@/cockpit/store/StoreParts';
 import {
 	CLASSES,
 	MIN,

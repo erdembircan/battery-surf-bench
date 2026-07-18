@@ -13,7 +13,7 @@ import {
 	store,
 } from '@wordpress/interactivity';
 import { type CockpitContext } from '@/cockpit/CockpitContext';
-import { type StorePart } from '@/cockpit/StoreParts';
+import { type StorePart } from '@/cockpit/store/StoreParts';
 import { instanceFor, now, wallNow } from '@/cockpit/RunInstance';
 import { applyReadouts, stopRun } from '@/cockpit/RunLifecycle';
 import {
@@ -34,7 +34,7 @@ import { runBlocksExit, confirmExit } from '@/cockpit/ExitGuard';
  * The surf-route configuration the cockpit's PHP route seeds via
  * `getConfig()` — the site's home URL and a `bsb_surf` nonce, the only
  * material `currentSrc` needs to build an index request. Read from the same
- * `bsb/cockpit` config object {@link ./SessionUpload} reads its REST access
+ * `bsb/cockpit` config object {@link ../SessionUpload} reads its REST access
  * from.
  */
 interface SurfConfig {
