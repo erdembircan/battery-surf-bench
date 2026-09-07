@@ -60,7 +60,7 @@ Classes and functions must be documented — JSDoc for JS/TS code, PHPDoc for PH
  * Renders a question to the terminal using the Clack prompt library.
  *
  * @param question - The question to display.
- * @returns The user's answer.
+ * @return The user's answer.
  */
 ```
 
