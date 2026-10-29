@@ -4,8 +4,9 @@
  * `composer zip` builds the archive from the `.gitattributes` export-ignore
  * rules, and anything those rules miss ships silently: repository tooling, CI
  * configuration, untracked macOS metadata. These rules read only the archive's
- * entry names, so they are testable without a real zip. They mirror the file
- * checks WordPress.org's Plugin Check runs on a submitted plugin.
+ * entry names, so they are testable without a real zip. They cover the file
+ * checks WordPress.org's Plugin Check runs on a submitted plugin, and also
+ * reject hidden folders, which Plugin Check lets through.
  */
 
 /**
@@ -55,16 +56,19 @@ function rootOf( entry: string ): string {
 }
 
 /**
- * Returns the last path segment of an archive entry, ignoring the trailing
- * slash that marks a folder entry.
+ * Returns an archive entry's path up to and including its first hidden
+ * segment, so every file inside a hidden folder reports that folder.
  *
- * @param entry - An archive entry name.
- * @return The entry's own file or folder name.
+ * @param entry - An archive entry name, such as `assets/.DS_Store` or `assets/.cache/a.png`.
+ * @return The hidden file's or folder's path, or null when no segment is hidden.
  */
-function nameOf( entry: string ): string {
+function hiddenPathOf( entry: string ): string | null {
 	const segments = entry.replace( /\/+$/, '' ).split( '/' );
+	const index = segments.findIndex( ( segment ) =>
+		segment.startsWith( '.' )
+	);
 
-	return segments[ segments.length - 1 ];
+	return index === -1 ? null : segments.slice( 0, index + 1 ).join( '/' );
 }
 
 /**
@@ -80,6 +84,7 @@ export function findPackageViolations(
 ): string[] {
 	const violations: string[] = [];
 	const roots = new Set( entries.map( rootOf ) );
+	const hiddenPaths = new Set< string >();
 
 	for ( const root of roots ) {
 		if ( ! ALLOWED_ROOTS.includes( root ) ) {
@@ -91,16 +96,21 @@ export function findPackageViolations(
 
 	for ( const entry of entries ) {
 		const root = rootOf( entry );
+		const hiddenPath = hiddenPathOf( entry );
 
 		if (
+			hiddenPath !== null &&
 			ALLOWED_ROOTS.includes( root ) &&
-			root !== 'vendor' &&
-			nameOf( entry ).startsWith( '.' )
+			root !== 'vendor'
 		) {
-			violations.push(
-				`Hidden file "${ entry }": WordPress.org's Plugin Check rejects hidden files, so delete it or export-ignore it.`
-			);
+			hiddenPaths.add( hiddenPath );
 		}
+	}
+
+	for ( const hiddenPath of hiddenPaths ) {
+		violations.push(
+			`Hidden file or folder "${ hiddenPath }": WordPress.org's Plugin Check rejects hidden files, so delete it or export-ignore it.`
+		);
 	}
 
 	const required = options.release

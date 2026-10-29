@@ -7,8 +7,9 @@
 #
 # `pnpm package:verify` checks the built zip against the allowed contents in
 # bin/PackageRules.mts. CI runs it on every pull request and merge, and
-# bin/Release.sh on every release build, so anything these rules miss fails
-# the build instead of reaching WordPress.org.
+# bin/Release.sh on every release build, so a stray top-level path or a hidden
+# file or folder that these rules miss fails the build instead of reaching
+# WordPress.org.
 /.git                  export-ignore
 /.github               export-ignore
 /.wordpress-org        export-ignore

@@ -82,6 +82,21 @@ describe( 'findPackageViolations', () => {
 		);
 	} );
 
+	it( 'flags a hidden folder inside a shipped folder once', () => {
+		const violations = findPackageViolations(
+			[
+				...CHECKOUT_ZIP,
+				'assets/.cache/one.png',
+				'assets/.cache/two.png',
+			],
+			{ release: false }
+		);
+
+		expect( violations ).toEqual( [
+			expect.stringContaining( '"assets/.cache"' ),
+		] );
+	} );
+
 	it( 'leaves hidden files under vendor/ alone', () => {
 		expect(
 			findPackageViolations(
