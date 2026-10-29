@@ -1,14 +1,27 @@
 # Files and folders excluded from the distributable plugin archive
 # (`composer archive`). Everything not listed here ships in the zip,
 # including the untracked build/ assets and the production vendor/ tree.
+#
+# composer.json ships on purpose: WordPress.org asks plugins that bundle
+# Composer dependencies to include it alongside vendor/.
+#
+# `pnpm package:verify` checks the built zip against the allowed contents in
+# bin/PackageRules.mts. CI runs it on every pull request and merge, and
+# bin/Release.sh on every release build, so a stray top-level path or a hidden
+# file or folder that these rules miss fails the build instead of reaching
+# WordPress.org.
 /.git                  export-ignore
-/.github_bak           export-ignore
+/.github               export-ignore
+/.wordpress-org        export-ignore
 /.claude               export-ignore
+/.pnpm-store           export-ignore
+/bin                   export-ignore
 /node_modules          export-ignore
 /src                   export-ignore
 /tests                 export-ignore
 /docs                  export-ignore
 /wp-playground         export-ignore
+/playwright            export-ignore
 /coverage              export-ignore
 /.phpunit.cache        export-ignore
 /test-results          export-ignore
@@ -21,7 +34,6 @@
 /.licensewizardrc.json export-ignore
 /CLAUDE.md             export-ignore
 /README.md             export-ignore
-/composer.json         export-ignore
 /composer.lock         export-ignore
 /package.json          export-ignore
 /pnpm-lock.yaml        export-ignore
@@ -36,3 +48,6 @@
 /vitest.setup.ts       export-ignore
 /playwright.config.mts export-ignore
 *.map                  export-ignore
+# macOS Finder metadata is never tracked, but composer archive also packs
+# untracked files, so match it at any depth.
+.DS_Store              export-ignore

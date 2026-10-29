@@ -12,6 +12,10 @@
 #   4. composer zip                — package the plugin (composer archive ships the
 #                                    untracked build/ assets + production vendor/,
 #                                    per .gitattributes).
+#   5. pnpm package:verify         — check the zip against the package contract in
+#                                    bin/PackageRules.mts. --release also requires
+#                                    build/ and vendor/, so a leaked file or a
+#                                    missing bundle fails the release.
 #
 # This script installs production dependencies itself before packaging, so the
 # resulting zip's vendor/ tree is always lean regardless of what was installed
@@ -36,5 +40,8 @@ composer install --no-dev --optimize-autoloader
 
 echo "==> Packaging plugin zip (composer)"
 composer zip
+
+echo "==> Verifying package contents (pnpm)"
+pnpm package:verify --release
 
 echo "==> Release build complete."

@@ -20,6 +20,7 @@
 		"src/**/*.ts",
 		"src/**/*.tsx",
 		"wp-playground/**/*.mts",
+		"bin/**/*.mts",
 		"playwright.config.mts",
 		"tests/e2e/**/*.mts",
 		"vitest.config.mts",
