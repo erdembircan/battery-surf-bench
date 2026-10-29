@@ -372,8 +372,9 @@ test.describe( 'Surf engine', () => {
 		// Sample the painted position while the cursor drifts, and confirm
 		// every sample stays inside the viewport: a jittered curve or
 		// overshoot bowing past an edge would otherwise carry it off-screen
-		// instead of just wandering within bounds. The wiggle lasts at least
-		// 500 ms, so samples 50 ms apart land inside it.
+		// instead of just wandering within bounds. The wiggle runs 500 to
+		// 1500 ms, so most samples land mid-drift; any taken after it ends
+		// check where the cursor came to rest.
 		const viewport = page.viewportSize();
 		const samples: { x: number; y: number }[] = [];
 		for ( let i = 0; i < 10; i++ ) {
