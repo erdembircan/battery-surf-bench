@@ -266,7 +266,7 @@ CELLS;
 		// subtree fine.
 		$status_head = <<<HEAD
 <div class="bsb-deck__status-head">
-				<span class="bsb-deck__status-dot" aria-hidden="true" data-wp-class--is-sterile="state.isSterileRun"></span>
+				<span class="bsb-deck__status-mark" aria-hidden="true" data-wp-class--is-sterile="state.isSterileRun" data-wp-style----bsb-wave-speed="context.speed"></span>
 				<span class="bsb-deck__status-text">{$surfing_label} &middot; <span class="bsb-deck__clock" data-wp-text="state.runClock"></span> <span data-wp-bind--hidden="state.isModeDuration">{$elapsed_label}</span><span data-wp-bind--hidden="state.isModeTargetDrop">{$remaining_label}</span><span class="bsb-deck__sterile-chip" hidden data-wp-bind--hidden="!state.isSterileRun">{$sterile_label}</span></span>
 			</div>
 HEAD;

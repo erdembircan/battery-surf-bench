@@ -423,7 +423,7 @@ final class CockpitViewTest extends TestCase {
 	}
 
 	/**
-	 * The status-head "Sterile" chip and its coral status-dot binding appear
+	 * The status-head "Sterile" chip and its coral status-mark binding appear
 	 * in BOTH renderings of `$status_head` — the deck's own pill and the
 	 * compact topbar — since both interpolate the same snippet. Hidden unless
 	 * the production `isSterileRun` getter is true.
@@ -443,6 +443,24 @@ final class CockpitViewTest extends TestCase {
 			substr_count(
 				$markup,
 				'class="bsb-deck__sterile-chip" hidden data-wp-bind--hidden="!state.isSterileRun">Sterile</span>'
+			)
+		);
+	}
+
+	/**
+	 * Both renderings of `$status_head` (the deck's own pill and the compact
+	 * topbar) carry the status mark with its two live bindings: the sterile
+	 * class that turns it coral, and the run's demo speed as `--bsb-wave-speed`,
+	 * which the stylesheet turns into the sunburst's turn rate.
+	 */
+	public function test_render_wires_the_status_mark_in_both_status_heads(): void {
+		$markup = $this->render();
+
+		$this->assertSame(
+			2,
+			substr_count(
+				$markup,
+				'<span class="bsb-deck__status-mark" aria-hidden="true" data-wp-class--is-sterile="state.isSterileRun" data-wp-style----bsb-wave-speed="context.speed"></span>'
 			)
 		);
 	}
