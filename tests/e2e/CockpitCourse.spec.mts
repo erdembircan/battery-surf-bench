@@ -85,6 +85,74 @@ function indexUrl(
 	return `/?${ params.toString() }`;
 }
 
+/**
+ * Records every `message` the page receives, in arrival order, on
+ * `window.__bsbMessages`. The surf engine posts its announcements to
+ * `window.parent`, which is the page itself outside an iframe, so this is how
+ * a test sees them. Call it before the page navigates.
+ *
+ * @param page - The page to record on.
+ */
+async function recordMessages( page: Page ): Promise< void > {
+	await page.addInitScript( () => {
+		const recorder = window as unknown as { __bsbMessages: unknown[] };
+		recorder.__bsbMessages = [];
+		window.addEventListener( 'message', ( event ) => {
+			recorder.__bsbMessages.push( event.data );
+		} );
+	} );
+}
+
+/**
+ * Returns the messages {@link recordMessages} has captured so far.
+ *
+ * @param page - The page being recorded.
+ * @return The captured message payloads, in arrival order.
+ */
+async function recordedMessages(
+	page: Page
+): Promise< { type?: string; key?: string }[] > {
+	return page.evaluate(
+		() =>
+			(
+				window as unknown as {
+					__bsbMessages?: { type?: string; key?: string }[];
+				}
+			 ).__bsbMessages ?? []
+	);
+}
+
+/**
+ * Waits until {@link recordMessages} has captured a message of the given
+ * type, carrying the given key when one is named.
+ *
+ * @param page    - The page being recorded.
+ * @param type    - The message `type` to wait for.
+ * @param key     - The `key` the message must carry, or null for any key.
+ * @param timeout - How long to wait, in ms.
+ */
+async function waitForMessage(
+	page: Page,
+	type: string,
+	key: string | null = null,
+	timeout = 30_000
+): Promise< void > {
+	await page.waitForFunction(
+		( [ wantedType, wantedKey ] ) =>
+			(
+				window as unknown as {
+					__bsbMessages?: { type?: string; key?: string }[];
+				}
+			 ).__bsbMessages?.some(
+				( message ) =>
+					message?.type === wantedType &&
+					( wantedKey === null || message.key === wantedKey )
+			) ?? false,
+		[ type, key ] as const,
+		{ timeout }
+	);
+}
+
 test.describe( 'Course page route', () => {
 	test( 'renders article-1 through the active theme, no PHP notices', async ( {
 		page,
@@ -178,26 +246,16 @@ test.describe( 'Video course page (native YouTube embed)', () => {
 } );
 
 test.describe( 'Surf engine', () => {
-	test( 'boots and surfs when the traits URL param is present', async ( {
+	test( 'boots the surf loop from the traits URL param and moves on', async ( {
 		page,
 	} ) => {
-		// Records every `message` the page receives so the engine's page-done
-		// postMessage (sent to `window.parent`, which is the page itself here,
-		// outside an iframe) can be observed after the fact.
-		await page.addInitScript( () => {
-			(
-				window as unknown as { __bsbMessages: unknown[] }
-			 ).__bsbMessages = [];
-			window.addEventListener( 'message', ( event ) => {
-				(
-					window as unknown as { __bsbMessages: unknown[] }
-				 ).__bsbMessages.push( event.data );
-			} );
-		} );
+		await recordMessages( page );
 
-		// Tempo maxed and endurance/literacy/allure/fidget at zero: the surfer
-		// scrolls fast and gets bored fast. Speed 10x compresses every wait so
-		// the whole page session finishes well within the test timeout.
+		// Endurance at zero and speed 10x let boredom outgrow every other bid
+		// within seconds, so the loop always ends by moving on. What it does
+		// before that is a weighted lottery: every behavior keeps a floor bid
+		// even at a zero trait, so a scroll is likely but never guaranteed. The
+		// next test proves the window scroll deterministically.
 		await page.goto( '/?bsbSession=cockpit' );
 		const nonce = await surfNonce( page );
 
@@ -205,34 +263,99 @@ test.describe( 'Surf engine', () => {
 			indexUrl( nonce, 0, { bsbTraits: '10,0,0,0,0', bsbSpeed: '10' } )
 		);
 
-		await page.waitForFunction( () => window.scrollY > 0 );
+		await waitForMessage( page, 'bsb:pageDone' );
+
+		// The loop ended its natural way: `moveOn` announced itself, then the
+		// page reported done.
+		const sequence = ( await recordedMessages( page ) ).map( ( message ) =>
+			message?.type === 'bsb:behaviorStart'
+				? `start:${ message.key }`
+				: message?.type
+		);
+		const moveOn = sequence.indexOf( 'start:moveOn' );
+
+		expect( moveOn ).toBeGreaterThanOrEqual( 0 );
+		expect( moveOn ).toBeLessThan( sequence.indexOf( 'bsb:pageDone' ) );
+
+		await expectNoPhpNotices( page );
+	} );
+
+	test( 'scrolls the window when a steered scroll burst runs', async ( {
+		page,
+	} ) => {
+		await recordMessages( page );
+
+		// `bsbSterile=1` boots the sterile engine instead of the loop: no
+		// auction, and each behavior runs once on a `bsb:steerBehavior`
+		// command, over the same motor the loop drives. The dev-tools panel
+		// sends that command from the cockpit; outside an iframe the page is
+		// its own parent, so the test posts it to the page directly.
+		await page.goto( '/?bsbSession=cockpit' );
+		const nonce = await surfNonce( page );
+
+		await page.goto(
+			indexUrl( nonce, 0, {
+				bsbTraits: '10,0,0,0,0',
+				bsbSpeed: '10',
+				bsbSterile: '1',
+			} )
+		);
+
+		// The sterile engine reports the page's affordances once it is ready
+		// to be steered.
+		await waitForMessage( page, 'bsb:pageAffordances' );
+		const before = await page.evaluate( () => window.scrollY );
+
+		await page.evaluate( () =>
+			window.postMessage(
+				{ type: 'bsb:steerBehavior', key: 'scrollBurst' },
+				window.location.origin
+			)
+		);
 
 		await page.waitForFunction(
-			() =>
-				(
-					window as unknown as { __bsbMessages: { type?: string }[] }
-				 ).__bsbMessages?.some( ( m ) => m?.type === 'bsb:pageDone' ),
-			{ timeout: 20_000 }
+			( start ) => window.scrollY > start,
+			before,
+			{ timeout: 30_000 }
 		);
+		await waitForMessage( page, 'bsb:behaviorEnd', 'scrollBurst' );
 
 		await expectNoPhpNotices( page );
 	} );
 
 	test( 'drives a visible fake cursor while surfing', async ( { page } ) => {
-		// Fidget maxed, everything else at zero: FidgetWiggle/MicroScroll
-		// dominate early ticks, so the cursor moves promptly and repeatedly.
+		await recordMessages( page );
+
+		// The sterile engine runs one steered `fidgetWiggle` over the same
+		// motor and fake cursor the loop drives, so the cursor is certain to
+		// move; left to the loop's weighted lottery it only usually would.
+		// Speed 1 lets the wiggle run its full 500 ms or more, long enough to
+		// sample it mid-drift.
 		await page.goto( '/?bsbSession=cockpit' );
 		const nonce = await surfNonce( page );
 
 		await page.goto(
-			indexUrl( nonce, 0, { bsbTraits: '0,0,0,0,10', bsbSpeed: '10' } )
+			indexUrl( nonce, 0, {
+				bsbTraits: '0,0,0,0,10',
+				bsbSpeed: '1',
+				bsbSterile: '1',
+			} )
 		);
+
+		await waitForMessage( page, 'bsb:pageAffordances' );
 
 		const cursor = page.locator( '.bsb-surf-cursor' );
 		await expect( cursor ).toBeAttached();
 
 		const initialTransform = await cursor.evaluate(
 			( el ) => ( el as HTMLElement ).style.transform
+		);
+
+		await page.evaluate( () =>
+			window.postMessage(
+				{ type: 'bsb:steerBehavior', key: 'fidgetWiggle' },
+				window.location.origin
+			)
 		);
 
 		await page.waitForFunction(
@@ -246,10 +369,12 @@ test.describe( 'Surf engine', () => {
 			{ timeout: 10_000 }
 		);
 
-		// Sample the painted position repeatedly while the cursor keeps
-		// drifting, and confirm every sample stays inside the viewport — a
-		// jittered curve or overshoot bowing past an edge would otherwise
-		// carry it off-screen instead of just wandering within bounds.
+		// Sample the painted position while the cursor drifts, and confirm
+		// every sample stays inside the viewport: a jittered curve or
+		// overshoot bowing past an edge would otherwise carry it off-screen
+		// instead of just wandering within bounds. The wiggle runs 500 to
+		// 1500 ms, so most samples land mid-drift; any taken after it ends
+		// check where the cursor came to rest.
 		const viewport = page.viewportSize();
 		const samples: { x: number; y: number }[] = [];
 		for ( let i = 0; i < 10; i++ ) {
@@ -265,7 +390,7 @@ test.describe( 'Surf engine', () => {
 					y: parseFloat( match[ 2 ] ),
 				} );
 			}
-			await page.waitForTimeout( 150 );
+			await page.waitForTimeout( 50 );
 		}
 
 		expect( samples.length ).toBeGreaterThan( 0 );
@@ -277,6 +402,8 @@ test.describe( 'Surf engine', () => {
 				expect( sample.y ).toBeLessThanOrEqual( viewport.height );
 			}
 		}
+
+		await waitForMessage( page, 'bsb:behaviorEnd', 'fidgetWiggle' );
 
 		// The real OS cursor must show as the disabled `not-allowed` affordance
 		// everywhere, not just page-wide on the root — a text-bearing element
