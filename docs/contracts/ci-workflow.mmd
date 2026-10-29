@@ -12,11 +12,12 @@ sequenceDiagram
         FB->>M: open PR
         activate M
         M->>M: composer lint (phpcs)
-        M->>M: composer test (phpunit)
+        M->>M: composer test (phpunit) → composer validate:container
         M->>M: pnpm lint:js
         M->>M: pnpm test (Vitest)
         M->>M: pnpm typecheck
         M->>M: pnpm license:verify
+        M->>M: composer zip → pnpm package:verify (zip ships plugin files only)
         M->>M: pnpm i18n:make-pot (validate extraction, no commit)
         deactivate M
         M-->>FB: checks pass
@@ -27,11 +28,12 @@ sequenceDiagram
         Note over M: Push → master, post-merge (merge-checks.yml)
         activate M
         M->>M: composer lint (phpcs)
-        M->>M: composer test (phpunit)
+        M->>M: composer test (phpunit) → composer validate:container
         M->>M: pnpm lint:js
         M->>M: pnpm test (Vitest)
         M->>M: pnpm typecheck
         M->>M: pnpm license:verify
+        M->>M: composer zip → pnpm package:verify (zip ships plugin files only)
         M->>M: pnpm i18n:make-pot → commit .pot to master (WP-CLI, EndBug/add-and-commit)
         M->>M: pnpm test:e2e (Playwright + WP Playground, authenticated server; separate job)
         M->>M: pnpm test:e2e:unauth (Playwright + WP Playground, login-free server; separate job)

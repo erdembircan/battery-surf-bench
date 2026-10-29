@@ -17,8 +17,8 @@
  * its own bundled copies internally — identical public surface (so the real
  * `filterSortAndPaginate` still drives the asserted sort), no external global.
  *
- * The suite is scoped to `src/` and `wp-playground/` so it never walks the
- * downloaded Playground WordPress install or the `.claude/` worktrees,
+ * The suite is scoped to `src/`, `wp-playground/` and `bin/` so it never walks
+ * the downloaded Playground WordPress install or the `.claude/` worktrees,
  * matching the ESLint ignores.
  *
  * Runs on Vitest's `threads` pool rather than the `forks` default: workers
@@ -65,6 +65,7 @@ export default defineConfig( {
 		include: [
 			'src/**/*.test.{ts,tsx}',
 			'wp-playground/**/*.test.{ts,mts}',
+			'bin/**/*.test.mts',
 		],
 		pool: 'threads',
 		maxWorkers: process.env.CI ? undefined : '100%',

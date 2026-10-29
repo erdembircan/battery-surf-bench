@@ -62,6 +62,22 @@ jobs:
       - uses: ./.github/actions/setup-node
       - run: pnpm license:verify
 
+  package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      # PHP provides Composer for `composer zip`; Node runs the checker.
+      - uses: ./.github/actions/setup-php
+      - uses: ./.github/actions/setup-node
+      # Archive the checkout under the release zip's export-ignore rules and
+      # check it against the package contract. This proves the exclusions, not
+      # a full release: no JS build or production-only install runs here, so
+      # build/ is absent and vendor/ holds dev packages, both of which the
+      # check allows outside --release.
+      - run: composer zip
+      - run: pnpm package:verify
+
   i18n:
     runs-on: ubuntu-latest
     timeout-minutes: 10

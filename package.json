@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit",
     "lint:js": "wp-scripts lint-js",
     "license:verify": "license-wizard --verify --strict",
+    "package:verify": "tsx bin/VerifyPackage.mts zip/battery-surf-bench.zip",
     "format": "wp-scripts format \"**/*.{js,cjs,mjs,ts,tsx,mts,cts}\"",
     "i18n:make-pot": "wp i18n make-pot . languages/battery-surf-bench.pot --domain=battery-surf-bench --exclude=build,wp-playground,tests,playwright-report,test-results,.claude",
     "i18n:make-php": "wp i18n make-php languages",
