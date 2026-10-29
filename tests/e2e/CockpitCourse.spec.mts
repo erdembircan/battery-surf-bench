@@ -153,6 +153,32 @@ async function waitForMessage(
 	);
 }
 
+/**
+ * Whether a console message's source URL belongs to YouTube's embedded
+ * player: a `youtube.com`, `youtube-nocookie.com` or `ytimg.com` host, or a
+ * subdomain of one. The player runs in a cross-origin frame the plugin does
+ * not control and logs its own errors there, such as a Permissions Policy
+ * violation when it asks for the `compute-pressure` feature its embed does
+ * not grant. A test that wants zero console errors from the plugin skips
+ * these.
+ *
+ * @param url - The URL `ConsoleMessage.location()` reports.
+ * @return Whether the message came from YouTube's player.
+ */
+function isYouTubeUrl( url: string ): boolean {
+	let host: string;
+
+	try {
+		host = new URL( url ).hostname;
+	} catch {
+		return false;
+	}
+
+	return [ 'youtube.com', 'youtube-nocookie.com', 'ytimg.com' ].some(
+		( domain ) => host === domain || host.endsWith( `.${ domain }` )
+	);
+}
+
 test.describe( 'Course page route', () => {
 	test( 'renders article-1 through the active theme, no PHP notices', async ( {
 		page,
@@ -1134,9 +1160,15 @@ ${ url }
 			} );
 			expect( response.ok() ).toBeTruthy();
 
+			// Any error the plugin causes fails the test. YouTube's player
+			// logs its own errors from its cross-origin frame, which the
+			// plugin neither causes nor controls, so those are skipped.
 			const consoleErrors: string[] = [];
 			page.on( 'console', ( message ) => {
-				if ( 'error' === message.type() ) {
+				if (
+					'error' === message.type() &&
+					! isYouTubeUrl( message.location().url )
+				) {
 					consoleErrors.push( message.text() );
 				}
 			} );
