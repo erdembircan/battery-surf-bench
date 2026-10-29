@@ -153,6 +153,32 @@ async function waitForMessage(
 	);
 }
 
+/**
+ * Whether a console message's source URL belongs to YouTube's embedded
+ * player: a `youtube.com`, `youtube-nocookie.com` or `ytimg.com` host, or a
+ * subdomain of one. The player runs in a cross-origin frame the plugin does
+ * not control and logs its own errors there, such as a Permissions Policy
+ * violation when it asks for the `compute-pressure` feature its embed does
+ * not grant. A test that wants zero console errors from the plugin skips
+ * these.
+ *
+ * @param url - The URL `ConsoleMessage.location()` reports.
+ * @return Whether the message came from YouTube's player.
+ */
+function isYouTubeUrl( url: string ): boolean {
+	let host: string;
+
+	try {
+		host = new URL( url ).hostname;
+	} catch {
+		return false;
+	}
+
+	return [ 'youtube.com', 'youtube-nocookie.com', 'ytimg.com' ].some(
+		( domain ) => host === domain || host.endsWith( `.${ domain }` )
+	);
+}
+
 test.describe( 'Course page route', () => {
 	test( 'renders article-1 through the active theme, no PHP notices', async ( {
 		page,
@@ -221,13 +247,15 @@ test.describe( 'Video course page (native YouTube embed)', () => {
 		// own origin, and no `autoplay=1` — the simulation starts playback
 		// itself, the embed no longer autoplays on load.
 		//
-		// This markup contract is as far as e2e coverage goes for playback:
-		// the dev/e2e oEmbed stub returns a canned iframe pointed at a real
-		// youtube.com URL, but it never actually loads YouTube's real player
-		// (no reliable outbound network in wp-playground), so it never emits
-		// genuine player-state event messages to listen for. Faking that
-		// emission here would mean asserting against a fake of the very
-		// protocol under test — deliberately not done. The event-driven
+		// This markup contract is as far as e2e coverage goes for playback.
+		// The dev/e2e oEmbed stub only stands in for WordPress's server-side
+		// oEmbed fetch (wp-playground's PHP has no reliable outbound network)
+		// with a canned iframe pointed at a real youtube.com URL. The browser
+		// does then load YouTube's real player into that iframe, but whether
+		// it plays and emits player-state events depends on YouTube and the
+		// network, so nothing here waits on them. Faking that emission here
+		// would mean asserting against a fake of the very protocol under
+		// test — deliberately not done. The event-driven
 		// watch/auto-replay/full-stop logic (`WatchVideo.run`,
 		// `Motor.playVideo`/`stopVideo`, and the message-listening
 		// `VideoControl` built for a YouTube iframe — its `onEnded`
@@ -238,7 +266,9 @@ test.describe( 'Video course page (native YouTube embed)', () => {
 		const src = await iframe.getAttribute( 'src' );
 		expect( src ).toMatch( /enablejsapi=1/ );
 		expect( src ).toMatch( /mute=1/ );
-		expect( src ).toMatch( /origin=/ );
+		expect( new URL( src ?? '' ).searchParams.get( 'origin' ) ).toBe(
+			new URL( page.url() ).origin
+		);
 		expect( src ).not.toMatch( /autoplay=1/ );
 
 		await expectNoPhpNotices( page );
@@ -1134,9 +1164,15 @@ ${ url }
 			} );
 			expect( response.ok() ).toBeTruthy();
 
+			// Any error the plugin causes fails the test. YouTube's player
+			// logs its own errors from its cross-origin frame, which the
+			// plugin neither causes nor controls, so those are skipped.
 			const consoleErrors: string[] = [];
 			page.on( 'console', ( message ) => {
-				if ( 'error' === message.type() ) {
+				if (
+					'error' === message.type() &&
+					! isYouTubeUrl( message.location().url )
+				) {
 					consoleErrors.push( message.text() );
 				}
 			} );
@@ -1176,10 +1212,17 @@ ${ url }
 				elements.map( ( el ) => el.getAttribute( 'src' ) ?? '' )
 			);
 			expect( srcs ).toHaveLength( videoIds.length );
+			// The exact origin, not just its presence: YouTube's player posts
+			// its messages to that origin, and a wrong one would only surface
+			// as an error from YouTube's own frame, which the console check
+			// above skips.
+			const pageOrigin = new URL( page.url() ).origin;
 			for ( const src of srcs ) {
 				expect( src ).toMatch( /enablejsapi=1/ );
 				expect( src ).toMatch( /mute=1/ );
-				expect( src ).toMatch( /origin=/ );
+				expect( new URL( src ).searchParams.get( 'origin' ) ).toBe(
+					pageOrigin
+				);
 				expect( src ).not.toMatch( /autoplay=1/ );
 			}
 
