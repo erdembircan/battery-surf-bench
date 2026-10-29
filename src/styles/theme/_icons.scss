@@ -137,6 +137,11 @@ $icon-micro-scroll: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000
 // surfer's aimless cursor wander. Ported verbatim from the approved mockup.
 $icon-fidget-wiggle: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 15c3-6 5 6 8 0s5 6 8 0'/%3E%3C/svg%3E");
 
+// A surf-badge sunburst (a disc inside eight wedge rays, long and short),
+// masked onto the cockpit's live-run status mark, which turns it slowly. The
+// approved pick from the status-sun-candidates mockup (docs/mockups/README.md).
+$icon-sunburst: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M18.4 10.55 23.4 12 18.4 13.45z'/%3E%3Cpath d='M18.4 10.55 21.2 12 18.4 13.45z' transform='rotate(45 12 12)'/%3E%3Cpath d='M18.4 10.55 23.4 12 18.4 13.45z' transform='rotate(90 12 12)'/%3E%3Cpath d='M18.4 10.55 21.2 12 18.4 13.45z' transform='rotate(135 12 12)'/%3E%3Cpath d='M18.4 10.55 23.4 12 18.4 13.45z' transform='rotate(180 12 12)'/%3E%3Cpath d='M18.4 10.55 21.2 12 18.4 13.45z' transform='rotate(225 12 12)'/%3E%3Cpath d='M18.4 10.55 23.4 12 18.4 13.45z' transform='rotate(270 12 12)'/%3E%3Cpath d='M18.4 10.55 21.2 12 18.4 13.45z' transform='rotate(315 12 12)'/%3E%3Ccircle cx='12' cy='12' r='4.8'/%3E%3C/svg%3E");
+
 // ── Parameterized glyphs ─────────────────────────────────────────────────────
 // Encodes a hex colour (e.g. `#1a1a18`) for embedding in a data-URI: the `#`
 // would otherwise be read as the URL's fragment delimiter and truncate the

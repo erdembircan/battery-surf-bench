@@ -2,12 +2,11 @@
  * Cockpit dashboard styles.
  *
  * A two-pane control deck: a sidebar of run controls on the left, a surf stage
- * holding the viewport iframe on the right. The deck ships two themes — Coastal
- * Daybreak (light, default) and Dusk Lineup (dark) — selectable with the deck's
- * light/dark toggle. Every colour is a CSS custom property set per theme on the
- * block wrapper (`[data-theme]`), so the components below are theme-agnostic.
- * This is the only stylesheet the stripped dashboard route loads, so it carries
- * its own reset and web fonts (via @font-face, adding no extra stylesheet link).
+ * holding the viewport iframe on the right. The cockpit ships one light theme,
+ * Coastal Daybreak; its colours are CSS custom properties that `theme.tokens`
+ * sets on the block wrapper. This is the only stylesheet the stripped
+ * dashboard route loads, so it carries its own reset and web fonts (via
+ * @font-face, adding no extra stylesheet link).
  */
 
 @use 'sass:color';
@@ -132,23 +131,34 @@ body.bsb-cockpit-dashboard {
 	z-index: 1;
 	display: flex;
 	align-items: center;
-	gap: 0.55rem;
+	gap: 0.32rem;
 }
 
-.bsb-deck__status-dot {
+// The live-run status mark: a surf-badge sunburst (`theme.$icon-sunburst`,
+// the approved pick from the status-sun-candidates mockup) that turns slowly
+// while a run is live. The view binds the run's demo speed onto the mark as
+// `--bsb-wave-speed`, the same multiplier the waves divide by, and the turn
+// divides by its square root so a 10× run quickens without spinning. The
+// reduced-motion rule at the end of this file holds it still.
+.bsb-deck__status-mark {
 	flex: 0 0 auto;
-	width: 0.55rem;
-	height: 0.55rem;
-	border-radius: 50%;
+	width: 1.08rem;
+	height: 1.08rem;
 	background: var(--status-dot);
-	box-shadow: 0 0 12px var(--status-dot);
-	animation: bsb-pulse 1.4s ease-in-out infinite;
+	mask-image: theme.$icon-sunburst;
+	mask-repeat: no-repeat;
+	mask-position: center;
+	mask-size: contain;
+	-webkit-mask-image: theme.$icon-sunburst;
+	-webkit-mask-repeat: no-repeat;
+	-webkit-mask-position: center;
+	-webkit-mask-size: contain;
+	animation: bsb-sunburst-turn calc(36s / sqrt(var(--bsb-wave-speed, 1))) linear infinite;
 
-	// Sterile: the dot turns coral instead of the default amber/sun — the one
-	// visible departure on the status head besides the chip itself.
+	// Sterile: the sunburst turns coral instead of sun yellow, the one visible
+	// departure on the status head besides the chip itself.
 	&.is-sterile {
 		background: theme.$coastal-coral;
-		box-shadow: 0 0 12px theme.$coastal-coral;
 	}
 }
 
@@ -2100,6 +2110,7 @@ $bark-water-deep: color.mix(theme.$coastal-teal, white, 42%); // ≈ #a8d5df
 	// The status line drops to a small eyebrow beneath the wordmark.
 	.bsb-deck__status-head {
 		flex: 0 0 auto;
+		gap: 0.26rem;
 	}
 
 	.bsb-deck__status-text {
@@ -2107,9 +2118,9 @@ $bark-water-deep: color.mix(theme.$coastal-teal, white, 42%); // ≈ #a8d5df
 		opacity: 0.85;
 	}
 
-	.bsb-deck__status-dot {
-		width: 0.42rem;
-		height: 0.42rem;
+	.bsb-deck__status-mark {
+		width: 0.9rem;
+		height: 0.9rem;
 	}
 
 	// Middle column: centred as a group; the only part that wraps when squeezed.
@@ -2260,6 +2271,14 @@ $bark-water-deep: color.mix(theme.$coastal-teal, white, 42%); // ≈ #a8d5df
 	50% {
 		opacity: 0.5;
 		transform: scale(0.82);
+	}
+}
+
+// The status mark's turn: one full revolution, paced by the mark's own
+// animation duration.
+@keyframes bsb-sunburst-turn {
+	to {
+		transform: rotate(360deg);
 	}
 }
 
