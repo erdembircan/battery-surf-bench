@@ -21,6 +21,12 @@ const COLLECTION = '/wp-json/wp/v2/bsb_session';
 const PHP_NOTICE =
 	/Warning:|Notice:|Deprecated:|Fatal error:|headers already sent/;
 
+/**
+ * Slack, in SVG user units, for float noise in a measured chart label box. The
+ * overhang the time-label guard catches is several units wide.
+ */
+const AXIS_SLACK = 0.5;
+
 /** A finished target-drop run, enough for the summary to derive its verdict. */
 const sessionBody = {
 	status: 'publish',
@@ -105,6 +111,50 @@ test.describe( 'Stored-session detail screen', () => {
 
 		// The drain graph is rebuilt client-side from the seeded samples.
 		await expect( page.locator( '.bsb-summary__graph' ) ).toBeVisible();
+
+		// Regression guard: the chart's time labels stay within its time axis.
+		// Centred on their ticks, the labels at the axis ends used to hang past
+		// the plot, and a long end label ran off the chart's right edge and
+		// clipped. Each label's box is measured in the chart's own SVG units (so
+		// the card's tilt and flip don't skew it) against the x baseline, which
+		// spans the plot.
+		await expect(
+			page.locator( '.bsb-summary__chart-label--x' )
+		).toHaveCount( 3 );
+		const { axis, boxes } = await page
+			.locator( '.bsb-summary__chart' )
+			.evaluate( ( svg ) => {
+				const base = svg.querySelector< SVGLineElement >(
+					'.bsb-summary__chart-base'
+				)!;
+				return {
+					axis: {
+						left: base.x1.baseVal.value,
+						right: base.x2.baseVal.value,
+					},
+					boxes: Array.from(
+						svg.querySelectorAll< SVGTextElement >(
+							'.bsb-summary__chart-label--x'
+						),
+						( label ) => {
+							const box = label.getBBox();
+							return {
+								text: label.textContent,
+								left: box.x,
+								right: box.x + box.width,
+							};
+						}
+					),
+				};
+			} );
+		expect( boxes ).toHaveLength( 3 );
+		expect(
+			boxes.filter(
+				( box ) =>
+					box.left < axis.left - AXIS_SLACK ||
+					box.right > axis.right + AXIS_SLACK
+			)
+		).toEqual( [] );
 
 		// Regression guard: the card must NOT inherit wp-admin's global
 		// `line-height: 1.4em` (a fixed ~18px length at the 13px admin base). That
