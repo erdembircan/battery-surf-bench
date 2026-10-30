@@ -1990,6 +1990,155 @@ describe( 'bsb/cockpit view store', () => {
 
 			cleanup();
 		} );
+
+		describe( 'a run’s opening sample', () => {
+			/**
+			 * Stubs the Battery Status API with a host reporting a fixed reading.
+			 *
+			 * @param level    The host's real level, 0–1.
+			 * @param charging Whether the host reports charging.
+			 */
+			const stubHostBattery = (
+				level: number,
+				charging: boolean
+			): void => {
+				( navigator as { getBattery?: unknown } ).getBattery = () =>
+					Promise.resolve( {
+						level,
+						charging,
+						addEventListener: vi.fn(),
+						removeEventListener: vi.fn(),
+					} );
+			};
+
+			it( 'opens on the latest real reading when no dev-tools module has joined the store', async () => {
+				stubHostBattery( 0.8, false );
+				const cleanup = mocks.config!.callbacks.initBattery();
+				await vi.waitFor( () =>
+					expect( mocks.context.batteryLevel ).toBe( 80 )
+				);
+
+				mocks.config!.actions.toggleRun();
+				mocks.config!.actions.toggleRun();
+
+				expect( mocks.context.summaryBatteryStart ).toBe( '80' );
+				expect( mocks.context.summaryBatteryEnd ).toBe( '80' );
+
+				cleanup();
+			} );
+
+			it( 'opens on a forced level, not the host’s real battery', async () => {
+				stubHostBattery( 0.8, false );
+				mocks.config!.state.devtools = {
+					battery: { charging: null, level: 0.35 },
+				};
+				const cleanup = mocks.config!.callbacks.initBattery();
+				await vi.waitFor( () =>
+					expect( mocks.context.batteryLevel ).toBe( 35 )
+				);
+
+				mocks.config!.actions.toggleRun();
+				mocks.config!.actions.toggleRun();
+
+				expect( mocks.context.summaryBatteryStart ).toBe( '35' );
+				expect( mocks.context.summaryBatteryEnd ).toBe( '35' );
+
+				cleanup();
+			} );
+
+			it( 'opens on a running discharge sim’s level as a draining sample, even on a charging host', async () => {
+				// The reported case: the host is plugged in at 29%, Discharging
+				// is forced, and a discharge sim is driving the level from 90%.
+				stubHostBattery( 0.29, true );
+				const sim = { running: true, currentLevel: 0.9 };
+				mocks.config!.state.devtools = {
+					battery: { charging: false, level: null },
+					sim,
+				};
+				const cleanup = mocks.config!.callbacks.initBattery();
+				await vi.waitFor( () =>
+					expect( mocks.context.batteryLevel ).toBe( 90 )
+				);
+
+				// start → opening sample → the sim's next level, ten minutes on.
+				mockClock( [ 0, 0, 600_000 ] );
+				mocks.config!.actions.toggleRun();
+				expect( mocks.context.running ).toBe( true );
+
+				sim.currentLevel = 0.89;
+				mocks.config!.callbacks.syncBatteryOverride();
+				mocks.config!.actions.toggleRun();
+
+				// The run opens on the sim's 90%, not the host's 29%…
+				expect( mocks.context.summaryBatteryStart ).toBe( '90' );
+				expect( mocks.context.summaryBatteryEnd ).toBe( '89' );
+				expect( mocks.context.summaryDropped ).toBe( '1' );
+				// …and as a draining sample: it counts toward the drain rate
+				// (1% over 10 min → 6 %/h), which a charging sample never does.
+				expect( mocks.context.rateSession ).toBe( 6 );
+
+				cleanup();
+			} );
+
+			it( 'opens on the synthesized reading where the Battery Status API is unsupported', () => {
+				mocks.config!.state.devtools = {
+					battery: { charging: false, level: 0.3 },
+				};
+				mocks.config!.callbacks.initBattery();
+
+				mocks.config!.actions.toggleRun();
+				mocks.config!.actions.toggleRun();
+
+				expect( mocks.context.summaryBatteryStart ).toBe( '30' );
+				expect( mocks.context.summaryBatteryEnd ).toBe( '30' );
+			} );
+
+			it( 'never opens on a charging reading, even one the override watch has not re-applied yet', async () => {
+				stubHostBattery( 0.5, false );
+				const cleanup = mocks.config!.callbacks.initBattery();
+				await vi.waitFor( () =>
+					expect( mocks.context.batteryLevel ).toBe( 50 )
+				);
+
+				// Charging is forced, but the watch that re-applies the override
+				// has not run yet, so the cockpit still reads discharging and
+				// the run starts.
+				mocks.config!.state.devtools = {
+					battery: { charging: true, level: null },
+				};
+				mocks.config!.actions.toggleRun();
+				expect( mocks.context.running ).toBe( true );
+
+				// Once the watch runs, the charger guard ends the run. It never
+				// logged a draining reading, so there is nothing to summarize —
+				// rather than a charging sample posing as the run's start.
+				mocks.config!.callbacks.syncBatteryOverride();
+				expect( mocks.context.endReason ).toBe( 'plugged' );
+				expect( mocks.context.summaryBatteryStart ).toBe( '—' );
+
+				cleanup();
+			} );
+
+			it( 'never ends a run on the spot, even a target-drop run already at its floor target', async () => {
+				// At 4% the stop-at target cannot go below its 5% floor, so the
+				// battery already sits at the target. Opening the run only
+				// records the reading; the stop checks belong to the readings
+				// that arrive once the run is live.
+				stubHostBattery( 0.04, false );
+				const cleanup = mocks.config!.callbacks.initBattery();
+				await vi.waitFor( () =>
+					expect( mocks.context.batteryLevel ).toBe( 4 )
+				);
+
+				mocks.context.mode = 'targetDrop';
+				mocks.context.targetPercent = 5;
+				mocks.config!.actions.toggleRun();
+
+				expect( mocks.context.running ).toBe( true );
+
+				cleanup();
+			} );
+		} );
 	} );
 
 	describe( 'screen wake lock', () => {

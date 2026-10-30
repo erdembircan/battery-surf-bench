@@ -15,7 +15,12 @@ import { ToastQueue } from '@/cockpit/Toasts';
 export interface InstanceState {
 	/** The run's sample log and drain-rate derivations. */
 	session: RunSession;
-	/** The last battery reading seen, so a run can seed its first sample on start. */
+	/**
+	 * The last raw Battery Status API reading — never the dev-tools-resolved
+	 * one — or null before any arrives (or where the API is absent). Cached so
+	 * a changed override can be re-applied without waiting for the next real
+	 * event, and so a starting run can resolve its opening sample from it.
+	 */
 	lastReading: BatteryReading | null;
 	/** The battery monitor, so a run can gate its heartbeat poll to its lifecycle. */
 	monitor: BatteryMonitor | null;

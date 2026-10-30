@@ -15,7 +15,8 @@ import {
 import { type CockpitContext } from '@/cockpit/CockpitContext';
 import { type StorePart } from '@/cockpit/store/StoreParts';
 import { instanceFor, now, wallNow } from '@/cockpit/RunInstance';
-import { applyReadouts, stopRun } from '@/cockpit/RunLifecycle';
+import { stopRun } from '@/cockpit/RunLifecycle';
+import { seedRunSample } from '@/cockpit/store/BatteryStore';
 import {
 	normalizeDuration,
 	normalizeMode,
@@ -192,8 +193,10 @@ export const runStore: StorePart = {
 		 * Starts or stops the run. Starting normalizes the (client-seeded, so
 		 * untrusted) run configuration, resets the elapsed clock and readouts,
 		 * begins a fresh calculation session seeded with the latest battery
-		 * reading, reveals the readouts pill and hides the configuration controls,
-		 * and opens in the compact stage view (the user can expand to the full
+		 * reading as the cockpit acts on it — resolved through any dev-tools
+		 * override, never the raw cached reading (see {@link seedRunSample}) —
+		 * reveals the readouts pill and hides the configuration controls, and
+		 * opens in the compact stage view (the user can expand to the full
 		 * dashboard mid-run); stopping returns the cockpit to its idle, ready
 		 * state with the controls back. Starting is refused while the device is
 		 * plugged in or where the Battery Status API is unsupported — a benchmark
@@ -259,14 +262,7 @@ export const runStore: StorePart = {
 
 			instance.startedAtWall = wallNow();
 			instance.session.start( now() );
-			if ( instance.lastReading ) {
-				instance.session.record(
-					now(),
-					instance.lastReading.level,
-					instance.lastReading.charging
-				);
-				applyReadouts( context, instance.session );
-			}
+			seedRunSample( context, instance );
 		},
 
 		/**
