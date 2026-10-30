@@ -1,7 +1,7 @@
 /**
  * Project ESLint flat config.
  *
- * Builds on the default config shipped with `@wordpress/scripts`, with two
+ * Builds on the default config shipped with `@wordpress/scripts`, with three
  * project-specific adjustments it cannot know about:
  *
  * 1. TypeScript module extensions. wp-scripts applies its TypeScript parser and
@@ -18,6 +18,15 @@
  *    (each a full copy of the repo). `node_modules`, `build`, and `vendor` are
  *    already ignored by the default config.
  *
+ * 3. `.gitignore` files. `eslint-plugin-dotignore` lints them as their own
+ *    ESLint language, through its recommended preset. Most of the default
+ *    config's blocks name no `files`, so ESLint would run their JavaScript
+ *    rules (Prettier's included) on `.gitignore` too, and those rules crash on
+ *    a file that isn't JavaScript. Each such block is scoped to the script
+ *    files the config already linted (`SCRIPT_GLOBS`). A block that lists only
+ *    `ignores` stays unscoped, because that shape is what makes its ignores
+ *    global.
+ *
  * It also points the already-enabled `@wordpress/i18n-text-domain` rule at this
  * plugin's text domain. The default config turns the rule on but configures no
  * domain, so a wrong/missing JS text domain passes; naming the domain makes
@@ -27,7 +36,18 @@
 
 const defaultConfig = require( '@wordpress/scripts/config/eslint.config.cjs' );
 
+// The plugin ships only as an ES module. Node 22.12+ can `require()` one, and
+// the plugin itself is the module's default export.
+const dotignore = require( 'eslint-plugin-dotignore' ).default;
+
 const TS_MODULE_GLOBS = [ '**/*.mts', '**/*.cts' ];
+
+/**
+ * The script files the default config was written for: the extensions ESLint
+ * lints on its own (`.js`, `.mjs`, `.cjs`) plus the TypeScript ones its
+ * TypeScript blocks target.
+ */
+const SCRIPT_GLOBS = [ '**/*.{js,mjs,cjs,ts,tsx,mts,cts}' ];
 
 // Mirror wp-scripts' TypeScript treatment onto the `.mts`/`.cts` modules we also
 // author by adding those extensions to every block that already targets
@@ -43,10 +63,30 @@ const withTsModules = defaultConfig.map( ( block ) =>
 		: block
 );
 
+/**
+ * Scopes a config block that names no `files` to the script files, so its
+ * JavaScript rules never run on a `.gitignore`. A block holding nothing but
+ * `ignores` (and an optional `name`) is returned as is: ESLint treats that
+ * shape's ignores as global, and a `files` key would quietly narrow them.
+ *
+ * @param {Object} block A flat-config block.
+ * @return {Object} The block, scoped to the script files when it named none.
+ */
+const scopeToScripts = ( block ) => {
+	const onlyIgnores = Object.keys( block ).every(
+		( key ) => key === 'ignores' || key === 'name'
+	);
+
+	return block.files || onlyIgnores
+		? block
+		: { ...block, files: SCRIPT_GLOBS };
+};
+
 module.exports = [
-	...withTsModules,
+	...withTsModules.map( scopeToScripts ),
 	{ ignores: [ '.claude/**', 'wp-playground/wordpress/**' ] },
 	{
+		files: SCRIPT_GLOBS,
 		rules: {
 			'@wordpress/i18n-text-domain': [
 				'error',
@@ -71,4 +111,5 @@ module.exports = [
 			],
 		},
 	},
+	dotignore.configs.recommended,
 ];
