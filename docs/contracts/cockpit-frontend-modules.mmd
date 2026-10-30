@@ -26,7 +26,7 @@ classDiagram
     class RunStore {
         <<module>>
         state: currentSrc (builds the ?bsbSurfIndex/&bsbNonce= URL from seeded config + activeIndex, then carries traits+speed+sterile onto it), run/idle/compact, isSterileRun (context.sterile && context.running), clock & rate readouts
-        actions: toggleRun (refuses unsupported/charging; snapshots context.sterile from state.devtools?.surf?.sterile at start only), toggleCompact, guardViewport (stops the run on a failed iframe load/error)
+        actions: toggleRun (refuses unsupported/charging; snapshots context.sterile from state.devtools?.surf?.sterile at start only; opens the session through BatteryStore.seedRunSample — the override-resolved reading, never the raw cache), toggleCompact, guardViewport (stops the run on a failed iframe load/error)
         callbacks: syncRunActivity, initWakeLock, initPageAdvance (increments activeIndex on the surf engine's page-done message — no client-side wrap, the server wraps), syncViewportWatchdog (arms/clears the viewport load-hang watchdog), initExitGuard (native leave-confirmation while a run is live), syncDevtoolsSurf (mirrors state.devtools.surf.runLive = context.running; while live-and-sterile also mirrors surf.pageIndex = context.activeIndex and applies surf.pageStep to activeIndex, else clears surf.affordances/pageStep/pageIndex — only ever touches state.devtools when it exists)
     }
 
@@ -54,6 +54,7 @@ classDiagram
         state: batteryDisplay, batteryColor, isCharging, isBatteryUnsupported
         callbacks: initBattery (flags unsupported when API absent), syncBatteryOverride
         +applyReading(ctx, instance, BatteryReading) void
+        +seedRunSample(ctx, instance) void
     }
 
     class BatteryOverride {
@@ -490,12 +491,16 @@ classDiagram
     %% Battery-override seam: every reading (real or dev-tools-forced) resolves
     %% through BatteryOverride before BatteryStore's exported applyReading acts
     %% on it, so display, sample recording and the stop conditions share one
-    %% truth. Passthrough when no override is present or armed. The override
+    %% truth. A starting run's opening sample is resolved the same way: RunStore
+    %% seeds it through BatteryStore's exported seedRunSample (never from the
+    %% raw cached reading), which records only a draining reading and runs no
+    %% stop check. Passthrough when no override is present or armed. The override
     %% BatteryStore feeds into BatteryOverride is itself the effective one —
     %% see EffectiveBatteryOverride below, which composes the dev-tools panel's
     %% manual layer with a running discharge sim.
     BatteryStore --> BatteryOverride : resolves reading before applying it
     BatteryStore --> EffectiveBatteryOverride : resolves the effective dev-tools override
+    RunStore --> BatteryStore : seeds the opening sample on run start
 
     %% --- Dev-tools module (src/devtools/), enqueued only in a dev environment.
     %% A separate script module from CockpitView above; it joins the SAME
@@ -620,10 +625,12 @@ classDiagram
     DischargeSimStore --> DischargeSim : evaluates the pure model against the clock
     SurfSteerStore --> DevtoolsStore : reads/writes the shared devtools slice
     SurfSteerStore --> SurfSteer : gating/formatting rules
-    SurfSteerStore --> BehaviorStart : recognizes bsb:behaviorStart to start the running countdown
-    SurfSteerStore --> BehaviorEnd : recognizes bsb:behaviorEnd to clear the running key
-    SurfSteerStore --> PageAffordances : recognizes bsb:pageAffordances to store the live page's flags
-    SurfSteerStore --> SteerBehavior : posts bsb:steerBehavior to the viewport iframe's contentWindow
+    %% Mermaid rejects a second colon in a relation label, so the bsb message
+    %% names below write theirs as the #58; entity (it renders as a colon).
+    SurfSteerStore --> BehaviorStart : recognizes bsb#58;behaviorStart to start the running countdown
+    SurfSteerStore --> BehaviorEnd : recognizes bsb#58;behaviorEnd to clear the running key
+    SurfSteerStore --> PageAffordances : recognizes bsb#58;pageAffordances to store the live page's flags
+    SurfSteerStore --> SteerBehavior : posts bsb#58;steerBehavior to the viewport iframe's contentWindow
     SharkReleaseStore --> DevtoolsStore : reads/writes the shared devtools slice
     SharkReleaseStore --> SharkRelease : the pure model behind its state
 

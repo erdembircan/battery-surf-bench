@@ -8,7 +8,9 @@
  * The dev-tools battery-override tool hooks in here rather than faking the
  * Battery Status API itself: every reading — real or forced — is resolved
  * through {@link resolveReading} before {@link applyReading} acts on it, so
- * display, sample recording and the stop conditions all see one truth. With no
+ * display, sample recording and the stop conditions all see one truth. A
+ * starting run's opening sample is resolved the same way, through
+ * {@link seedRunSample}, never taken from the raw cached reading. With no
  * dev-tools module loaded `state.devtools` is undefined and the resolver is a
  * passthrough, so production behavior is unchanged.
  */
@@ -88,6 +90,31 @@ const publishSystemPercent = ( percent: number ): void => {
 };
 
 /**
+ * Records a draining reading into the live run and refreshes the derived
+ * readouts. The one home of the rule that a run only ever logs draining
+ * samples, shared by every reading the cockpit applies ({@link applyReading})
+ * and by a starting run's opening sample ({@link seedRunSample}). A no-op while
+ * no run is live, or for a charging reading: plugging in ends a run rather than
+ * logging a charging sample.
+ *
+ * @param context  The reactive cockpit context to mirror the readouts onto.
+ * @param instance The per-instance run state to record into.
+ * @param reading  The resolved reading to record.
+ */
+const recordDraining = (
+	context: CockpitContext,
+	instance: InstanceState,
+	reading: BatteryReading
+): void => {
+	if ( ! instance.session.active || reading.charging ) {
+		return;
+	}
+
+	instance.session.record( now(), reading.level, reading.charging );
+	applyReadouts( context, instance.session );
+};
+
+/**
  * Applies a resolved battery reading to the cockpit: syncs the display
  * context, records a draining sample into the live run, enforces the charger
  * guard (plugging in mid-run stops it), stops a target-drop run the instant it
@@ -112,10 +139,7 @@ export const applyReading = (
 	// the session the summary freezes rather than discarded by the stop that
 	// immediately follows it. Charging readings are not recorded — plugging in
 	// ends the run instead of logging a charging sample.
-	if ( instance.session.active && ! reading.charging ) {
-		instance.session.record( now(), reading.level, reading.charging );
-		applyReadouts( context, instance.session );
-	}
+	recordDraining( context, instance, reading );
 
 	// A benchmark must drain the battery: plugging in mid-run ends the run
 	// rather than recording charging samples.
@@ -144,6 +168,33 @@ export const applyReading = (
 		if ( context.targetPercent > cap ) {
 			context.targetPercent = cap;
 		}
+	}
+};
+
+/**
+ * Records a freshly started run's opening sample: the cached raw reading
+ * resolved through the effective dev-tools override, the same resolution every
+ * later reading gets before {@link applyReading} acts on it. Never the raw
+ * cached reading itself, which would open the run on the host's real battery
+ * while the readouts show the override (and, with Discharging forced on a
+ * charging host, on a charging sample). The sample goes through the same
+ * draining-only rule as every other one, but none of {@link applyReading}'s
+ * stop checks run here: starting a run never ends it on the spot. With no
+ * dev-tools module loaded the resolver is a passthrough, so production opens
+ * every run on the latest real reading. A no-op while no reading exists yet;
+ * the first one to arrive is recorded as usual.
+ *
+ * @param context  The reactive cockpit context to mirror the readouts onto.
+ * @param instance The per-instance run state whose freshly started session receives the sample.
+ */
+export const seedRunSample = (
+	context: CockpitContext,
+	instance: InstanceState
+): void => {
+	const reading = resolveReading( instance.lastReading, currentOverride() );
+
+	if ( reading ) {
+		recordDraining( context, instance, reading );
 	}
 };
 
