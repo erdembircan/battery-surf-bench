@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 
 /**
  * End-to-end coverage for the stored-session detail screen.
@@ -26,6 +26,43 @@ const PHP_NOTICE =
  * overhang the time-label guard catches is several units wide.
  */
 const AXIS_SLACK = 0.5;
+
+/**
+ * Measures the drain chart's time labels against its time axis. Each label's
+ * box is taken in the chart's own SVG units (so the card's tilt and flip don't
+ * skew it) and compared with the x baseline, which spans the plot.
+ *
+ * @param page The page showing the summary postcard.
+ * @return How many labels were measured, and those that run past either end.
+ */
+const measureTimeLabels = ( page: Page ) =>
+	page.locator( '.bsb-summary__chart' ).evaluate( ( svg, slack ) => {
+		const base = svg.querySelector< SVGLineElement >(
+			'.bsb-summary__chart-base'
+		)!;
+		const axisLeft = base.x1.baseVal.value;
+		const axisRight = base.x2.baseVal.value;
+		const boxes = Array.from(
+			svg.querySelectorAll< SVGTextElement >(
+				'.bsb-summary__chart-label--x'
+			),
+			( label ) => {
+				const box = label.getBBox();
+				return {
+					text: label.textContent,
+					left: box.x,
+					right: box.x + box.width,
+				};
+			}
+		);
+		return {
+			measured: boxes.length,
+			outside: boxes.filter(
+				( box ) =>
+					box.left < axisLeft - slack || box.right > axisRight + slack
+			),
+		};
+	}, AXIS_SLACK );
 
 /** A finished target-drop run, enough for the summary to derive its verdict. */
 const sessionBody = {
@@ -115,46 +152,30 @@ test.describe( 'Stored-session detail screen', () => {
 		// Regression guard: the chart's time labels stay within its time axis.
 		// Centred on their ticks, the labels at the axis ends used to hang past
 		// the plot, and a long end label ran off the chart's right edge and
-		// clipped. Each label's box is measured in the chart's own SVG units (so
-		// the card's tilt and flip don't skew it) against the x baseline, which
-		// spans the plot.
+		// clipped.
 		await expect(
 			page.locator( '.bsb-summary__chart-label--x' )
 		).toHaveCount( 3 );
-		const { axis, boxes } = await page
-			.locator( '.bsb-summary__chart' )
-			.evaluate( ( svg ) => {
-				const base = svg.querySelector< SVGLineElement >(
-					'.bsb-summary__chart-base'
-				)!;
-				return {
-					axis: {
-						left: base.x1.baseVal.value,
-						right: base.x2.baseVal.value,
-					},
-					boxes: Array.from(
-						svg.querySelectorAll< SVGTextElement >(
-							'.bsb-summary__chart-label--x'
-						),
-						( label ) => {
-							const box = label.getBBox();
-							return {
-								text: label.textContent,
-								left: box.x,
-								right: box.x + box.width,
-							};
-						}
-					),
-				};
-			} );
-		expect( boxes ).toHaveLength( 3 );
-		expect(
-			boxes.filter(
-				( box ) =>
-					box.left < axis.left - AXIS_SLACK ||
-					box.right > axis.right + AXIS_SLACK
-			)
-		).toEqual( [] );
+		expect( await measureTimeLabels( page ) ).toEqual( {
+			measured: 3,
+			outside: [],
+		} );
+
+		// They hold on a right-to-left page too, as an RTL locale renders one:
+		// the end labels' start and end anchors follow the text direction, so the
+		// chart pins its own to left-to-right instead of inheriting the page's.
+		await page.evaluate( () =>
+			document.documentElement.setAttribute( 'dir', 'rtl' )
+		);
+		expect( await measureTimeLabels( page ) ).toEqual( {
+			measured: 3,
+			outside: [],
+		} );
+
+		// Restore the admin's own left-to-right page for the checks below.
+		await page.evaluate( () =>
+			document.documentElement.removeAttribute( 'dir' )
+		);
 
 		// Regression guard: the card must NOT inherit wp-admin's global
 		// `line-height: 1.4em` (a fixed ~18px length at the 13px admin base). That
