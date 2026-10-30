@@ -260,6 +260,59 @@ test.describe( 'Dev-tools battery-override panel', () => {
 		expect( await page.content() ).not.toMatch( PHP_NOTICE );
 	} );
 
+	test( 'a run started under a forced level opens on that level, not the host’s real battery', async ( {
+		page,
+	} ) => {
+		await page.goto( '/?bsbSession=cockpit' );
+
+		// Force a level the host is not already reporting, so the summary can
+		// only show it if the run opened on the override.
+		const hostReading = page
+			.locator( '[data-wp-text="state.batteryDisplay"]' )
+			.first();
+		await expect( hostReading ).not.toHaveText( '—' );
+		const forced =
+			( await hostReading.textContent() ) === '35' ? '40' : '35';
+
+		// Discharging too: the e2e host reports charging, which would keep the
+		// run from starting.
+		await page.locator( '.bsb-devtools__pill' ).click();
+		await page.locator( '[data-devtools-charging="discharging"]' ).click();
+		const slider = page.locator(
+			'.bsb-devtools__level input[type="range"]'
+		);
+		await slider.fill( forced );
+		await slider.dispatchEvent( 'input' );
+		await expect( page.locator( '.bsb-devtools__level-value' ) ).toHaveText(
+			`${ forced }%`
+		);
+		await page.locator( '.bsb-devtools__card-close' ).click();
+
+		await startRun( page );
+		await expect(
+			page.locator( 'iframe.bsb-cockpit__viewport' )
+		).toHaveAttribute( 'src', /bsbSurfIndex/ );
+
+		// A live run is compact, so it stops from the topbar's own control.
+		await page.locator( '.bsb-deck__readout-stop' ).click();
+
+		// Both ends of the summary's battery figure sit on the forced level,
+		// the run's opening sample included.
+		await expect( page.locator( '.bsb-summary' ) ).toBeVisible();
+		await expect(
+			page.locator(
+				'.bsb-summary [data-wp-text="context.summaryBatteryStart"]'
+			)
+		).toHaveText( forced );
+		await expect(
+			page.locator(
+				'.bsb-summary [data-wp-text="context.summaryBatteryEnd"]'
+			)
+		).toHaveText( forced );
+
+		expect( await page.content() ).not.toMatch( PHP_NOTICE );
+	} );
+
 	test( 'a persisted level override positions the slider thumb after a reload', async ( {
 		page,
 	} ) => {
