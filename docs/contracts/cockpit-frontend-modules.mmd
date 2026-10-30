@@ -620,10 +620,12 @@ classDiagram
     DischargeSimStore --> DischargeSim : evaluates the pure model against the clock
     SurfSteerStore --> DevtoolsStore : reads/writes the shared devtools slice
     SurfSteerStore --> SurfSteer : gating/formatting rules
-    SurfSteerStore --> BehaviorStart : recognizes bsb:behaviorStart to start the running countdown
-    SurfSteerStore --> BehaviorEnd : recognizes bsb:behaviorEnd to clear the running key
-    SurfSteerStore --> PageAffordances : recognizes bsb:pageAffordances to store the live page's flags
-    SurfSteerStore --> SteerBehavior : posts bsb:steerBehavior to the viewport iframe's contentWindow
+    %% Mermaid rejects a second colon in a relation label, so the bsb message
+    %% names below write theirs as the #58; entity (it renders as a colon).
+    SurfSteerStore --> BehaviorStart : recognizes bsb#58;behaviorStart to start the running countdown
+    SurfSteerStore --> BehaviorEnd : recognizes bsb#58;behaviorEnd to clear the running key
+    SurfSteerStore --> PageAffordances : recognizes bsb#58;pageAffordances to store the live page's flags
+    SurfSteerStore --> SteerBehavior : posts bsb#58;steerBehavior to the viewport iframe's contentWindow
     SharkReleaseStore --> DevtoolsStore : reads/writes the shared devtools slice
     SharkReleaseStore --> SharkRelease : the pure model behind its state
 
