@@ -36,8 +36,9 @@
 
 const defaultConfig = require( '@wordpress/scripts/config/eslint.config.cjs' );
 
-// The plugin ships only as an ES module. Node 22.12+ can `require()` one, and
-// the plugin itself is the module's default export.
+// The plugin ships only as an ES module and needs Node 22.18 or later. That is
+// also new enough for `require()` to load an ES module; the plugin itself is
+// the module's default export.
 const dotignore = require( 'eslint-plugin-dotignore' ).default;
 
 const TS_MODULE_GLOBS = [ '**/*.mts', '**/*.cts' ];
