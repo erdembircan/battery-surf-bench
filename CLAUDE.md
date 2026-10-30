@@ -59,7 +59,7 @@ A few ordinary characters break Mermaid's grammar in specific places. Write them
 - **Sequence-diagram messages:** `;` as `#59;`.
 - **Class bodies** (one member per line): `{` and `}` as `#123;` and `#125;`. On a line that starts with `(`, or that closes a parenthesis opened on an earlier line, also write `(` and `)` as `#40;` and `#41;`.
 
-Mermaid numbers lines with the `%%` comment lines removed, so the line numbers in its errors run behind the file's.
+Mermaid numbers lines only after stripping a chart's `---` front matter and its `%%` comment lines, so the line numbers in its errors can run behind the file's.
 
 ## JSDoc & PHPDoc
 

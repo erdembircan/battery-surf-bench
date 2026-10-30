@@ -87,7 +87,7 @@ async function main( args: readonly string[] ): Promise< number > {
 
 	if ( failures > 0 ) {
 		process.stderr.write(
-			"Mermaid numbers lines with the %% comment lines removed, so in a chart with comments its line numbers run behind the file's.\n"
+			"Mermaid numbers lines only after stripping a chart's front matter and %% comment lines, so its line numbers can run behind the file's.\n"
 		);
 
 		return 1;
