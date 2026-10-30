@@ -20,6 +20,7 @@ sequenceDiagram
         M->>M: pnpm test (Vitest)
         M->>M: pnpm typecheck
         M->>M: pnpm license:verify
+        M->>M: pnpm contracts:verify (every contract chart parses in Mermaid)
         M->>M: composer zip → pnpm package:verify (zip ships plugin files only)
         M->>M: pnpm i18n:make-pot (validate extraction, no commit)
         deactivate M
@@ -36,6 +37,7 @@ sequenceDiagram
         M->>M: pnpm test (Vitest)
         M->>M: pnpm typecheck
         M->>M: pnpm license:verify
+        M->>M: pnpm contracts:verify (every contract chart parses in Mermaid)
         M->>M: composer zip → pnpm package:verify (zip ships plugin files only)
         M->>M: pnpm i18n:make-pot → commit .pot to master (WP-CLI, EndBug/add-and-commit)
         M->>M: pnpm test:e2e (Playwright + WP Playground, authenticated server#59; separate job)

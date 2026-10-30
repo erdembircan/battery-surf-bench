@@ -49,6 +49,18 @@ Charts must always reflect the current state of the software. Any change to the 
 
 Before closing out any implementation task, verify whether the change warrants a chart update. If it does and the chart has not been updated, the task is not done.
 
+### Keeping Charts Parseable
+
+A chart Mermaid cannot parse renders nowhere, which makes it as useless as a stale one. `pnpm contracts:verify` parses every `docs/contracts/*.mmd` file with the Mermaid version in the lockfile and prints Mermaid's own error for each chart that fails; CI runs it on every pull request and merge. Run it after any chart edit.
+
+A few ordinary characters break Mermaid's grammar in specific places. Write them as Mermaid entity codes, which render as the character itself:
+
+- **Relation labels** (the text after `A --> B :`): a further `:` as `#58;`, and `;` as `#59;`.
+- **Sequence-diagram messages:** `;` as `#59;`.
+- **Class bodies** (one member per line): `{` and `}` as `#123;` and `#125;`. On a line that starts with `(`, or that closes a parenthesis opened on an earlier line, also write `(` and `)` as `#40;` and `#41;`.
+
+Mermaid numbers lines with the `%%` comment lines removed, so the line numbers in its errors run behind the file's.
+
 ## JSDoc & PHPDoc
 
 Classes and functions must be documented — JSDoc for JS/TS code, PHPDoc for PHP code. Do **not** add doc comments to types or interfaces — the language makes them self-explanatory.
