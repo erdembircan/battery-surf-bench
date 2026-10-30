@@ -1,6 +1,9 @@
 ---
 title: GitHub CI Workflows
 ---
+%% Characters Mermaid would misread inside a label are written as entity codes,
+%% which render as the character itself: #58; ':', #59; ';', #40; '(', #41; ')',
+%% #123; '{', #125; '}'. See "Keeping Charts Parseable" in CLAUDE.md.
 sequenceDiagram
     actor Dev as Developer
     participant FB as Feature Branch
@@ -17,6 +20,7 @@ sequenceDiagram
         M->>M: pnpm test (Vitest)
         M->>M: pnpm typecheck
         M->>M: pnpm license:verify
+        M->>M: pnpm contracts:verify (every contract chart parses in Mermaid)
         M->>M: composer zip → pnpm package:verify (zip ships plugin files only)
         M->>M: pnpm i18n:make-pot (validate extraction, no commit)
         deactivate M
@@ -33,9 +37,10 @@ sequenceDiagram
         M->>M: pnpm test (Vitest)
         M->>M: pnpm typecheck
         M->>M: pnpm license:verify
+        M->>M: pnpm contracts:verify (every contract chart parses in Mermaid)
         M->>M: composer zip → pnpm package:verify (zip ships plugin files only)
         M->>M: pnpm i18n:make-pot → commit .pot to master (WP-CLI, EndBug/add-and-commit)
-        M->>M: pnpm test:e2e (Playwright + WP Playground, authenticated server; separate job)
-        M->>M: pnpm test:e2e:unauth (Playwright + WP Playground, login-free server; separate job)
+        M->>M: pnpm test:e2e (Playwright + WP Playground, authenticated server#59; separate job)
+        M->>M: pnpm test:e2e:unauth (Playwright + WP Playground, login-free server#59; separate job)
         deactivate M
     end

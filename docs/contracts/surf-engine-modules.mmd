@@ -7,6 +7,9 @@
 %% are marked <<module>>; interfaces <<interface>>; the rest are classes. Only
 %% the public (exported) surface is shown. Test doubles (FakeMotor, FakeClock)
 %% are test infrastructure, not architecture, and are omitted.
+%% Characters Mermaid would misread inside a label are written as entity codes,
+%% which render as the character itself: #58; ':', #59; ';', #40; '(', #41; ')',
+%% #123; '{', #125; '}'. See "Keeping Charts Parseable" in CLAUDE.md.
 classDiagram
     direction LR
 
@@ -19,7 +22,7 @@ classDiagram
     class EngineBoot {
         <<module>>
         boot guard on the traits URL param; builds and starts SurfLoop (or,
-        when bsbSterile=1, a SterileHelm instead) once the document has
+        when bsbSterile=1, a SterileHelm instead#41; once the document has
         loaded; posts 'bsb:pageDone' to the parent frame when the page's
         session ends; posts 'bsb:behaviorStart' with the winner's key and its
         announced wall-clock durationMs once, each time a behavior begins
@@ -89,7 +92,7 @@ classDiagram
 
     class BehaviorAnnounce {
         <<types>>
-        (durationMs) =&gt; void
+        #40;durationMs#41; =&gt; void
     }
 
     %% --- Shared context-building: senses affordances fresh and derives
@@ -295,9 +298,9 @@ classDiagram
     DomMotor --> VideoControl : builds via createVideoControl, subscribes onEnded to auto-replay, keeps the active one (+ unsubscribe) for stopVideo
     EngineBoot --> SurferStats : normalizeTraits
     EngineBoot --> RunConfig : normalizeSpeed
-    EngineBoot ..> RunStore : postMessage 'bsb:pageDone'
-    EngineBoot ..> BarkStore : postMessage 'bsb:behaviorStart' ({key, durationMs})
-    EngineBoot ..> SurfSteerStore : postMessage 'bsb:behaviorEnd' ({key}), 'bsb:pageAffordances' ({affordances}) — sterile path only
+    EngineBoot ..> RunStore : postMessage 'bsb#58;pageDone'
+    EngineBoot ..> BarkStore : postMessage 'bsb#58;behaviorStart' ({key, durationMs})
+    EngineBoot ..> SurfSteerStore : postMessage 'bsb#58;behaviorEnd' ({key}), 'bsb#58;pageAffordances' ({affordances}) — sterile path only
 
     SurfLoop --> Behavior : bids & runs each tick
     SurfLoop --> Arbiter : draws a winner
@@ -313,7 +316,7 @@ classDiagram
     SterileHelm --> Motor : passes to the steered behavior
     SterileHelm --> PageSense : builds the steered behavior's BehaviorContext
     SterileHelm --> MoveOn : recognizes its key to mirror the loop's natural end
-    SterileHelm ..> SurfSteerStore : listens for 'bsb:steerBehavior' ({key}) posted by the panel
+    SterileHelm ..> SurfSteerStore : listens for 'bsb#58;steerBehavior' ({key}) posted by the panel
 
     ReadPause --> Bid : drive & noise
     GlanceBack --> Bid : drive & noise
@@ -353,14 +356,14 @@ classDiagram
     class BarkStore {
         <<module>>
         cockpit-side receiver — recognizes 'bsb:behaviorStart' (key +
-        durationMs) while running and raises a bark held for the announced
+        durationMs#41; while running and raises a bark held for the announced
         wall-clock duration (a key with no translated strings is silently
-        ignored)
+        ignored#41;
     }
 
     class SurfSteerStore {
         <<module>>
-        dev-tools panel store part — posts 'bsb:steerBehavior' ({key}) to the
+        dev-tools panel store part — posts 'bsb:steerBehavior' (#123;key#125;) to the
         viewport iframe's contentWindow; recognizes 'bsb:behaviorEnd' and
         'bsb:pageAffordances' to drive the panel's chip gating/countdown
     }

@@ -13,6 +13,9 @@
 %% tokens, type mismatches, unmapped interfaces) in one pass; the build
 %% aborts with the full error list rather than emitting a compiled artifact
 %% when any are found.
+%% Characters Mermaid would misread inside a label are written as entity codes,
+%% which render as the character itself: #58; ':', #59; ';', #40; '(', #41; ')',
+%% #123; '{', #125; '}'. See "Keeping Charts Parseable" in CLAUDE.md.
 classDiagram
     direction LR
 
@@ -424,7 +427,7 @@ classDiagram
     CourseRouter --> CourseCatalog : uses
     CourseRouter --> Assets : uses
     CourseRouter --> Capability : gates via
-    CourseRouter --> CourseOrderSanitizer : reads & sanitizes the saved order to resolve an authorized index request (gated on capability + bsb_surf nonce, checked before any entry is resolved; bundled pages are no longer force-re-added — a saved order missing one stays missing)
+    CourseRouter --> CourseOrderSanitizer : reads & sanitizes the saved order to resolve an authorized index request (gated on capability + bsb_surf nonce, checked before any entry is resolved#59; bundled pages are no longer force-re-added — a saved order missing one stays missing)
     CourseRouter ..> UserPageView : renders via (user pages only)
     UserPageView ..|> View : implements
     CourseRouter --> YouTubeEmbed : registers per served course page

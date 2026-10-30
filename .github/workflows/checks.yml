@@ -62,6 +62,17 @@ jobs:
       - uses: ./.github/actions/setup-node
       - run: pnpm license:verify
 
+  contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup-node
+      # Parse every architecture contract chart in docs/contracts/ with Mermaid,
+      # so a chart Mermaid rejects (and that therefore renders nowhere) fails
+      # the build instead of going unnoticed.
+      - run: pnpm contracts:verify
+
   package:
     runs-on: ubuntu-latest
     timeout-minutes: 10

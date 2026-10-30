@@ -7,6 +7,9 @@
 %% admin UI genuinely shared across both screens' React trees. Function
 %% components are marked <<module>>; the rest are classes. Only the public
 %% (exported) surface is shown.
+%% Characters Mermaid would misread inside a label are written as entity codes,
+%% which render as the character itself: #58; ':', #59; ';', #40; '(', #41; ')',
+%% #123; '{', #125; '}'. See "Keeping Charts Parseable" in CLAUDE.md.
 classDiagram
     direction LR
 
@@ -14,7 +17,7 @@ classDiagram
         <<module>>
         Renders one free-text message in the shared toast shape AND enter/
         leave motion (`%bsb-toast`, `src/styles/theme/_toast.scss` — also extended
-        by the cockpit's front-end toast, `src/styles/cockpit/style.scss`). Each
+        by the cockpit's front-end toast, `src/styles/cockpit/style.scss`#41;. Each
         kind (error/info/success) carries its own colour + icon. Owns a
         small local phase state (entering/holding/leaving) keyed off
         `visible`: a caller flips it to `false` to request the exit
