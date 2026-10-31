@@ -26,16 +26,53 @@ const KONAMI_KEYS = [
 	'a',
 ];
 
+/** The cockpit block's root, which carries the store's state classes. */
+const COCKPIT = '.wp-block-bsb-cockpit[data-wp-interactive="bsb/cockpit"]';
+
 /**
- * Presses the full Konami sequence in order. `page.keyboard.press` calls in a
- * row are comfortably under the store's 300ms inter-key timeout.
+ * The class the cockpit root carries exactly while the egg is armed: a run is
+ * live and the deck is compact.
+ */
+const ARMED_CLASS = 'is-compact';
+
+/**
+ * Enters the full Konami sequence in one page-side task: a `keydown` per key,
+ * dispatched on the focused element so it bubbles up to the store's
+ * `document`-level listener the way a real keystroke does. Inside a single
+ * task nothing else on the page runs between two keys, so every gap stays far
+ * below the store's 300ms limit.
+ *
+ * `page.keyboard.press` can't promise that. Each key costs two round trips
+ * through the browser, and on a busy machine one gap can pass 300ms. The store
+ * then starts the sequence over and the fin never shows, which fails the test
+ * even though the egg works.
+ *
+ * It throws if an iframe (the surf viewport, say) has focus. Real keystrokes
+ * would go into that frame and never reach the cockpit, and dispatching here
+ * would hide that.
  *
  * @param page - The page to act on.
  */
-async function pressKonami( page: Page ): Promise< void > {
-	for ( const key of KONAMI_KEYS ) {
-		await page.keyboard.press( key );
-	}
+async function enterKonami( page: Page ): Promise< void > {
+	await page.locator( COCKPIT ).evaluate( ( cockpit, keys ) => {
+		const target = cockpit.ownerDocument.activeElement ?? cockpit;
+
+		if ( target instanceof HTMLIFrameElement ) {
+			throw new Error(
+				'An iframe has focus, so real keystrokes would never reach the cockpit.'
+			);
+		}
+
+		for ( const key of keys ) {
+			target.dispatchEvent(
+				new KeyboardEvent( 'keydown', {
+					key,
+					bubbles: true,
+					cancelable: true,
+				} )
+			);
+		}
+	}, KONAMI_KEYS );
 }
 
 /**
@@ -43,7 +80,8 @@ async function pressKonami( page: Page ): Promise< void > {
  * regardless of the host's real battery/charging state, the same seam every
  * other cockpit e2e spec that needs a live run already uses), flips the
  * startup postcard, picks the fastest demo speed, and starts a run — which
- * opens the compact topbar automatically.
+ * opens the compact topbar automatically. Returns only once the cockpit shows
+ * the egg armed, so no test enters the code before the store would accept it.
  *
  * @param page - The page to act on.
  */
@@ -64,6 +102,8 @@ async function startFastRun( page: Page ): Promise< void > {
 	await page
 		.locator( '.bsb-run[data-wp-on--click="actions.toggleRun"]' )
 		.click();
+
+	await expect( page.locator( COCKPIT ) ).toContainClass( ARMED_CLASS );
 }
 
 test.describe( 'Shark-fin Easter egg', () => {
@@ -77,7 +117,7 @@ test.describe( 'Shark-fin Easter egg', () => {
 		const topbarFin = page.locator( '.bsb-cockpit__topbar .bsb-fin' );
 		await expect( topbarFin ).toBeHidden();
 
-		await pressKonami( page );
+		await enterKonami( page );
 
 		await expect( topbarFin ).toBeVisible();
 		await expect( topbarFin ).toHaveAttribute(
@@ -100,14 +140,14 @@ test.describe( 'Shark-fin Easter egg', () => {
 		await startFastRun( page );
 
 		const topbarFin = page.locator( '.bsb-cockpit__topbar .bsb-fin' );
-		await pressKonami( page );
+		await enterKonami( page );
 		await expect( topbarFin ).toBeVisible();
 
 		const startBefore = await topbarFin.evaluate( ( el ) =>
 			getComputedStyle( el ).getPropertyValue( '--fin-start' )
 		);
 
-		await pressKonami( page );
+		await enterKonami( page );
 
 		const startAfter = await topbarFin.evaluate( ( el ) =>
 			getComputedStyle( el ).getPropertyValue( '--fin-start' )
@@ -125,10 +165,17 @@ test.describe( 'Shark-fin Easter egg', () => {
 		await startFastRun( page );
 
 		// Expand the deck: the topbar (and its fin) is no longer the readout
-		// surface the egg arms against.
+		// surface the egg arms against. The run stays live, so the expanded
+		// deck alone is what keeps the egg disarmed.
 		await page.locator( '.bsb-deck__expand' ).click();
+		await expect( page.locator( COCKPIT ) ).not.toContainClass(
+			ARMED_CLASS
+		);
+		await expect(
+			page.locator( '.bsb-run[data-wp-on--click="actions.toggleRun"]' )
+		).toContainClass( 'is-running' );
 
-		await pressKonami( page );
+		await enterKonami( page );
 
 		await expect( page.locator( '.bsb-fin' ).first() ).toBeHidden();
 
