@@ -3,31 +3,35 @@
 //   node src/tools/render.mjs <scene> --preview 0,1.5 → stills at local times (seconds)
 // Frames go to work/frames/ ($FRAMES_DIR overrides it, $BSB_VIDEO_WORK moves all of
 // work/); each scene owns a disjoint global frame range from shots.json, so scenes
-// can render in parallel.
+// can render in parallel. BSB_VIDEO_SCALE=2 renders 3840×2160 frames into
+// work/frames-4k/ (previews into work/previews-4k/); see output.mjs.
 //
 // A scene that pushes a camera across live DOM can ask for supersampling with
 // <meta name="supersample" content="4">: it renders at that device scale and is
-// box-filtered back down to 1920×1080. Chrome snaps glyphs to whole device pixels,
+// box-filtered down to the output size. Chrome snaps glyphs to whole device pixels,
 // so at 1× a slow zoom makes static text hop ~1 px between frames; at 4× the hops
-// shrink to about a quarter of a pixel and average out.
+// shrink to about a quarter of a pixel and average out. A 4K build captures the same
+// 4× surface and filters it down by 2 instead of 4. Scenes that don't ask, or ask
+// for no more than the output's own scale, are captured directly at that scale.
 //
 // A 4× frame is a 7680×4320 surface, and Chrome sometimes hands over the screenshot
 // before every tile is painted, so parts of the frame are silently missing (it
 // happens under memory pressure). Every supersampled frame is therefore checked
-// against a 1× render of the same instant: at 1/8 size the two agree within ~40
-// grey levels, while a missing tile or layer differs by 120+. A frame that fails is
+// against a 1× render of the same instant: at 240×135 the two agree within ~40 grey
+// levels, while a missing tile or layer differs by 120+. A frame that fails is
 // captured again, and the render stops if it can't get a complete one.
 import { execFile } from 'node:child_process';
 import { mkdirSync, readFileSync, rmSync } from 'node:fs';
 import { promisify } from 'node:util';
 import { chromium } from 'playwright';
+import { HEIGHT, SCALE, SUFFIX, WIDTH } from './output.mjs';
 
 const ROOT = new URL( '../../', import.meta.url ).pathname;
 const SRC = `${ ROOT }src/`;
 const T = JSON.parse( readFileSync( `${ SRC }shots.json`, 'utf8' ) );
 const WORK = process.env.BSB_VIDEO_WORK ?? `${ ROOT }work`;
-const FRAMES = process.env.FRAMES_DIR ?? `${ WORK }/frames/`;
-const PREVIEWS = `${ WORK }/previews/`;
+const FRAMES = process.env.FRAMES_DIR ?? `${ WORK }/frames${ SUFFIX }/`;
+const PREVIEWS = `${ WORK }/previews${ SUFFIX }/`;
 const MAX_CELL_DIFF = 64;
 const ATTEMPTS = 3;
 
@@ -42,7 +46,11 @@ if ( ! sc ) {
 mkdirSync( preview ? PREVIEWS : FRAMES, { recursive: true } );
 const html = readFileSync( `${ SRC }scenes/${ name }.html`, 'utf8' );
 const SS = Number( html.match( /<meta name="supersample" content="(\d+)">/ )?.[ 1 ] ?? 1 );
-const BIG = `${ WORK }/ss-${ name }/`;
+// Capture at the scene's supersample scale or the output scale, whichever is
+// higher; a capture above the output scale is box-filtered down and checked.
+const DSF = Math.max( SS, SCALE );
+const SUPER = DSF > SCALE;
+const BIG = `${ WORK }/ss-${ name }${ SUFFIX }/`;
 const run = promisify( execFile );
 const pending = new Set();
 const failures = [];
@@ -62,13 +70,13 @@ const renderAt = ( t ) => Promise.all( pages.map( ( p ) => p.evaluate( ( tt ) =>
  * @param {string} big  Supersampled PNG capture.
  * @param {string} ref  1× PNG capture.
  * @param {string} path Output JPEG path.
- * @return {Promise<number>} The largest difference between the two at 1/8 size, in grey levels.
+ * @return {Promise<number>} The largest difference between the two at 240×135, in grey levels.
  */
 async function finish( big, ref, path ) {
 	const gray = [ '-resize', '240x135!', '-colorspace', 'gray', '-depth', '8', 'gray:-' ];
 	const opts = { encoding: 'buffer', maxBuffer: 1 << 20 };
 	const [ a, b ] = await Promise.all( [
-		run( 'magick', [ big, '-filter', 'Box', '-resize', '1920x1080!', '-strip', '-quality', '95', '-write', path, ...gray ], opts ),
+		run( 'magick', [ big, '-filter', 'Box', '-resize', `${ WIDTH }x${ HEIGHT }!`, '-strip', '-quality', '95', '-write', path, ...gray ], opts ),
 		run( 'magick', [ ref, '-filter', 'Box', ...gray ], opts ),
 	] );
 	let max = 0;
@@ -100,7 +108,7 @@ async function grab( path ) {
  * @param {number} t    Scene-local time of the frame, for a re-capture.
  */
 async function capture( path, t ) {
-	if ( SS === 1 ) {
+	if ( ! SUPER ) {
 		await page.screenshot( { path, type: 'jpeg', quality: 95 } );
 		return;
 	}
@@ -145,13 +153,13 @@ async function repair() {
 	}
 }
 
-if ( SS > 1 ) {
+if ( SUPER ) {
 	mkdirSync( BIG, { recursive: true } );
 }
 const browser = await chromium.launch( { args: [ '--hide-scrollbars', '--force-color-profile=srgb', '--font-render-hinting=none' ] } );
 const viewport = { width: 1920, height: 1080 };
-const page = await browser.newPage( { viewport, deviceScaleFactor: SS } );
-const ref = SS > 1 ? await browser.newPage( { viewport, deviceScaleFactor: 1 } ) : null;
+const page = await browser.newPage( { viewport, deviceScaleFactor: DSF } );
+const ref = SUPER ? await browser.newPage( { viewport, deviceScaleFactor: 1 } ) : null;
 const pages = [ page, ref ].filter( Boolean );
 const errors = [];
 page.on( 'pageerror', ( e ) => errors.push( e.message ) );
@@ -169,7 +177,7 @@ if ( preview ) {
 	}
 	await settle();
 	await repair();
-	console.log( `${ name }: ${ preview.length } previews` );
+	console.log( `${ name }: ${ preview.length } previews at ${ WIDTH }×${ HEIGHT }` );
 } else {
 	for ( let i = 0; i < sc.frames; i++ ) {
 		await renderAt( i / T.FPS );
@@ -177,9 +185,9 @@ if ( preview ) {
 	}
 	await settle();
 	await repair();
-	console.log( `${ name }: frames ${ sc.f0 }–${ sc.f1 - 1 }${ SS > 1 ? ` at ${ SS }× supersampling, checked against 1×` : '' } in ${ ( ( Date.now() - t0 ) / 1000 ).toFixed( 1 ) } s` );
+	console.log( `${ name }: frames ${ sc.f0 }–${ sc.f1 - 1 } at ${ WIDTH }×${ HEIGHT }${ SUPER ? `, ${ DSF }× supersampled and checked against 1×` : '' } in ${ ( ( Date.now() - t0 ) / 1000 ).toFixed( 1 ) } s` );
 }
-if ( SS > 1 ) {
+if ( SUPER ) {
 	rmSync( BIG, { recursive: true, force: true } );
 }
 if ( errors.length ) {

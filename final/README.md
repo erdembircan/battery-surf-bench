@@ -1,13 +1,15 @@
 # Battery Surf Bench: 60 s listing spot (final)
 
-This folder receives the deliverables when you build (`pnpm build`, see `../README.md`). They are gitignored; only this description is committed.
+This folder receives the deliverables when you build (`pnpm build`, or `pnpm build:4k` for the 4K master; see `../README.md`). They are gitignored; only this description is committed.
 
 ## Deliverables
 
 | File | What it is |
 | --- | --- |
-| `battery-surf-bench-spot-60s.mp4` | **Upload master.** 1920×1080, 30 fps, H.264 High (CRF 16), BT.709 tagged; AAC 320 kb/s, −14.0 LUFS, true peak ≤ −1 dBTP; 60.000 s, 1,800 frames. |
-| `battery-surf-bench-spot-60s-review.mp4` | Lighter copy for review (CRF 25, AAC 160 kb/s). |
+| `battery-surf-bench-spot-60s-4k.mp4` | **Upload master** for YouTube (`pnpm build:4k`). 3840×2160, 30 fps, H.264 High (CRF 16), BT.709 tagged; AAC 320 kb/s, −14.0 LUFS, true peak ≤ −1 dBTP; 60.000 s, 1,800 frames. |
+| `battery-surf-bench-spot-60s-4k-review.mp4` | Lighter copy of the 4K master for review (CRF 25, AAC 160 kb/s). |
+| `battery-surf-bench-spot-60s.mp4` | 1080p master (`pnpm build`). 1920×1080, 30 fps, H.264 High (CRF 16), BT.709 tagged; AAC 320 kb/s, −14.0 LUFS, true peak ≤ −1 dBTP; 60.000 s, 1,800 frames. |
+| `battery-surf-bench-spot-60s-review.mp4` | Lighter copy of the 1080p master for review (CRF 25, AAC 160 kb/s). |
 | `captions.en.srt` | English captions, one cue per voice-over line. Upload them to YouTube for sound-off viewers. |
 | `thumbnail-1280x720.png` | YouTube custom thumbnail: the logo with the tagline. |
 | `thumbnail-alt-endcard-1280x720.png` | Alternate thumbnail: the end-card lockup. |
