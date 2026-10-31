@@ -62,6 +62,7 @@ final class AssetsTest extends TestCase {
 	 */
 	public function test_enqueue_style_uses_namespaced_handle_and_hash_version(): void {
 		$this->stub_resolvers( 'a1b2c3d4', 'https://example.test/app.css' );
+		Functions\when( 'is_rtl' )->justReturn( false );
 		Functions\when( 'wp_style_add_data' )->justReturn( true );
 
 		Functions\expect( 'wp_enqueue_style' )
@@ -82,11 +83,38 @@ final class AssetsTest extends TestCase {
 	 */
 	public function test_enqueue_style_marks_the_stylesheet_for_rtl_replacement(): void {
 		$this->stub_resolvers( 'a1b2c3d4', 'https://example.test/app.css' );
+		Functions\when( 'is_rtl' )->justReturn( false );
 		Functions\when( 'wp_enqueue_style' )->justReturn();
 
 		Functions\expect( 'wp_style_add_data' )
 			->once()
 			->with( 'battery-surf-bench-app', 'rtl', 'replace' );
+
+		$assets = new Assets( 'battery-surf-bench', new Paths( '/plugins/battery-surf-bench/battery-surf-bench.php' ) );
+		$assets->enqueue( 'assets/app.css' );
+
+		// The Mockery expectation above is the assertion; acknowledge it so
+		// PHPUnit does not flag the test as risky.
+		$this->addToAssertionCount( 1 );
+	}
+
+	/**
+	 * On a right-to-left site a stylesheet is versioned by its `-rtl.css`
+	 * twin's contents, the file WordPress serves there, so a change to the
+	 * twin alone still reaches the browser.
+	 */
+	public function test_enqueue_style_on_an_rtl_site_is_versioned_by_its_twin(): void {
+		Functions\when( 'plugins_url' )->justReturn( 'https://example.test/app.css' );
+		Functions\when( 'plugin_dir_path' )->justReturn( '/plugins/battery-surf-bench/' );
+		Functions\when( 'is_rtl' )->justReturn( true );
+		Functions\when( 'wp_style_add_data' )->justReturn( true );
+		Functions\when( 'hash_file' )->alias(
+			static fn( string $algo, string $path ): string => str_ends_with( $path, '/assets/app-rtl.css' ) ? 'feedbeef' : 'a1b2c3d4'
+		);
+
+		Functions\expect( 'wp_enqueue_style' )
+			->once()
+			->with( 'battery-surf-bench-app', 'https://example.test/app.css', array(), 'feedbeef' );
 
 		$assets = new Assets( 'battery-surf-bench', new Paths( '/plugins/battery-surf-bench/battery-surf-bench.php' ) );
 		$assets->enqueue( 'assets/app.css' );

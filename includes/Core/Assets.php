@@ -10,6 +10,7 @@ namespace ErdemBircan\BatterySurfBench\Core;
 use InvalidArgumentException;
 
 use function esc_html;
+use function is_rtl;
 use function wp_enqueue_script;
 use function wp_enqueue_script_module;
 use function wp_enqueue_style;
@@ -53,10 +54,10 @@ class Assets {
 	 * stylesheet is a `wp-scripts` build artifact, and the build writes an
 	 * rtlcss-mirrored `-rtl.css` twin beside each one, so on a right-to-left
 	 * site (`is_rtl()`) WordPress links the twin in place of the original. The
-	 * twin keeps the original's content-hash version, which is safe because the
-	 * build derives the twin from the original: the twin only changes when the
-	 * original does. The release package check (`bin/PackageRules.mts`) fails
-	 * any stylesheet that ships without its twin.
+	 * version is the content hash of whichever file WordPress serves, so a
+	 * browser re-downloads the twin whenever the twin changes, even when the
+	 * original did not. The release package check (`bin/PackageRules.mts`)
+	 * fails any stylesheet that ships without its twin.
 	 *
 	 * @param string        $relative Path to the asset relative to the plugin root.
 	 * @param array<string> $deps     Handles the asset depends on.
@@ -73,7 +74,7 @@ class Assets {
 				wp_enqueue_script( $handle, $this->paths->url( $relative ), $deps, $this->version( $relative ), true );
 				break;
 			case 'css':
-				wp_enqueue_style( $handle, $this->paths->url( $relative ), $deps, $this->version( $relative ) );
+				wp_enqueue_style( $handle, $this->paths->url( $relative ), $deps, $this->version( $this->served_stylesheet( $relative ) ) );
 				wp_style_add_data( $handle, 'rtl', 'replace' );
 				break;
 			default:
@@ -230,6 +231,20 @@ class Assets {
 	 */
 	private function handle( string $relative ): string {
 		return $this->prefix . '-' . pathinfo( $relative, PATHINFO_FILENAME );
+	}
+
+	/**
+	 * Resolves the stylesheet WordPress serves for a plugin stylesheet: its
+	 * `-rtl.css` twin on a right-to-left site, the stylesheet itself otherwise.
+	 * Versioning by the served file ties the version to the bytes the browser
+	 * downloads, even when a toolchain upgrade changes how rtlcss mirrors a
+	 * stylesheet that did not change.
+	 *
+	 * @param string $relative Path to the stylesheet relative to the plugin root.
+	 * @return string Path to the stylesheet WordPress serves, relative to the plugin root.
+	 */
+	private function served_stylesheet( string $relative ): string {
+		return is_rtl() ? substr( $relative, 0, -strlen( '.css' ) ) . '-rtl.css' : $relative;
 	}
 
 	/**
