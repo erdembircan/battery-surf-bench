@@ -1,0 +1,72 @@
+/* Battery Surf Bench — 60 s spot. Shared stage: brand tokens, fonts, primitives.
+   Light only (Coastal Daybreak), matching the plugin and its WordPress.org art. */
+@font-face { font-family: 'Anton'; src: url(../../node_modules/@fontsource/anton/files/anton-latin-400-normal.woff2); }
+@font-face { font-family: 'Hanken Grotesk'; font-weight: 400; src: url(../../node_modules/@fontsource/hanken-grotesk/files/hanken-grotesk-latin-400-normal.woff2); }
+@font-face { font-family: 'Hanken Grotesk'; font-weight: 500; src: url(../../node_modules/@fontsource/hanken-grotesk/files/hanken-grotesk-latin-500-normal.woff2); }
+@font-face { font-family: 'Hanken Grotesk'; font-weight: 600; src: url(../../node_modules/@fontsource/hanken-grotesk/files/hanken-grotesk-latin-600-normal.woff2); }
+@font-face { font-family: 'Hanken Grotesk'; font-weight: 700; src: url(../../node_modules/@fontsource/hanken-grotesk/files/hanken-grotesk-latin-700-normal.woff2); }
+@font-face { font-family: 'Hanken Grotesk'; font-weight: 800; src: url(../../node_modules/@fontsource/hanken-grotesk/files/hanken-grotesk-latin-800-normal.woff2); }
+@font-face { font-family: 'Space Mono'; font-weight: 400; src: url(../../node_modules/@fontsource/space-mono/files/space-mono-latin-400-normal.woff2); }
+@font-face { font-family: 'Space Mono'; font-weight: 700; src: url(../../node_modules/@fontsource/space-mono/files/space-mono-latin-700-normal.woff2); }
+@font-face { font-family: 'Pacifico'; src: url(../../node_modules/@fontsource/pacifico/files/pacifico-latin-400-normal.woff2); }
+
+:root {
+	/* Coastal Daybreak (src/styles/theme/_palette.scss) */
+	--sky-0: #f3fafd;
+	--sky-1: #e7f6ff;
+	--aqua: #9ad9ea;
+	--teal: #2f9bb3;
+	--teal-deep: #1c7e96;
+	--navy: #1f3a5f;
+	--ink-soft: #5b7488;
+	--coral: #ff7a5c;
+	--coral-deep: #ef5a3a;
+	--sun: #ffce5c;
+	--surface: #f1f7fa;
+	--line: #e1edf2;
+	--green: #2e9e6b;
+	/* WordPress.org banner (docs/images/wordpress-org/banner.svg) */
+	--dawn-0: #e7f6ff;
+	--dawn-1: #fdf2da;
+	--dawn-2: #ffd9a6;
+	--glow: #ffe6a6;
+	--sun-hi: #ffe08a;
+	--sea-hi: #a9e0ef;
+	--sea-top: #8fd6e8;
+	/* Type */
+	--display: 'Anton', 'Oswald', 'Arial Narrow', sans-serif;
+	--ui: 'Hanken Grotesk', ui-sans-serif, system-ui, sans-serif;
+	--mono: 'Space Mono', ui-monospace, Menlo, monospace;
+	--script: 'Pacifico', cursive;
+	/* Primitives */
+	--pill-bg: rgba(255, 255, 255, 0.94);
+	--pill-line: rgba(28, 126, 150, 0.4);
+	--pill-halo: rgba(47, 155, 179, 0.12);
+	--lift: 0 22px 60px -22px rgba(31, 58, 95, 0.5), 0 6px 18px -8px rgba(31, 58, 95, 0.25);
+	/* The plugin's own idle-stage sky (--idle-sky in _theme.scss) */
+	--idle-sky:
+		radial-gradient(120% 70% at 50% -10%, rgba(255, 206, 92, 0.34) 0%, rgba(255, 206, 92, 0) 55%),
+		linear-gradient(180deg, #eaf6fb 0%, #dcf0f6 60%, #cfe9f2 100%);
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: var(--sky-0); }
+#stage { position: relative; width: 1920px; height: 1080px; overflow: hidden; background: var(--idle-sky); font-family: var(--ui); color: var(--navy); }
+.layer { position: absolute; inset: 0; }
+.abs { position: absolute; left: 0; top: 0; }
+.cc { transform-origin: 50% 50%; }
+img { display: block; user-select: none; }
+
+/* Headline super: Anton caps, navy. */
+.super { font-family: var(--display); color: var(--navy); text-transform: uppercase; letter-spacing: 0.015em; line-height: 0.94; white-space: nowrap; }
+/* Sub-line / label */
+.sub { font-family: var(--ui); font-weight: 600; color: var(--ink-soft); }
+.eyebrow { font-family: var(--ui); font-weight: 800; letter-spacing: 0.22em; text-transform: uppercase; color: var(--teal-deep); font-size: 22px; }
+/* The product's frosted pill (bark/toast language). */
+.pill { background: var(--pill-bg); border: 2px solid var(--pill-line); border-radius: 999px; box-shadow: 0 16px 40px -14px rgba(31, 58, 95, 0.32), 0 0 0 8px var(--pill-halo); }
+/* A product screen as an object in the scene. */
+.screen { position: absolute; overflow: hidden; border-radius: 18px; box-shadow: var(--lift); background: #fff; }
+.screen > img, .tex { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+/* Cursor (the surfer's own glyphs, src/styles/theme/_icons.scss). */
+.cursor { position: absolute; left: 0; top: 0; width: 34px; height: 34px; pointer-events: none; transform-origin: 0 0; filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.18)); }
+.ripple { position: absolute; left: 0; top: 0; border: 3.5px solid var(--teal-deep); border-radius: 50%; }

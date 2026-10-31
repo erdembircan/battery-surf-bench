@@ -1,0 +1,80 @@
+<!doctype html>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../lib/stage.css">
+<script src="../lib/stage.js"></script>
+<script src="../lib/cockpit.js"></script>
+<style>
+	#persp { position: absolute; inset: 0; perspective: 2200px; perspective-origin: 960px 480px; }
+	#card { position: absolute; left: 0; top: 0; width: 680px; height: 420px; transform-style: preserve-3d; transform-origin: 340px 210px; }
+	.face { position: absolute; inset: 0; backface-visibility: hidden; border-radius: 17px; overflow: hidden; }
+	#cshadow { position: absolute; left: 0; top: 0; width: 680px; height: 420px; border-radius: 22px; background: rgba(31, 58, 95, 0.32); filter: blur(26px); transform-origin: 340px 210px; }
+	.face img { position: absolute; left: 0; top: 0; width: 680px; height: 420px; }
+	#back { transform: rotateY(180deg); }
+	#stamp { position: absolute; left: 606.6px; top: 20.2px; width: 50px; height: 60px; transform-origin: 25px 30px; }
+	#win { position: absolute; left: 0; top: 0; width: 1540px; height: 444px; border-radius: 22px; overflow: hidden; background: #fff; box-shadow: 0 40px 90px -30px rgba(31, 58, 95, 0.5), 0 0 0 1px rgba(31, 58, 95, 0.06); }
+	#win .chrome { position: absolute; left: 0; top: 0; right: 0; height: 40px; background: #eef4f7; border-bottom: 1px solid #dde8ee; }
+	#win .chrome i { position: absolute; top: 14px; width: 12px; height: 12px; border-radius: 50%; background: #c9d6de; }
+	#win .chrome b { position: absolute; left: 50%; top: 8px; width: 520px; margin-left: -260px; height: 24px; border-radius: 12px; background: #fff; font: 600 13px/24px var(--ui); color: var(--ink-soft); text-align: center; }
+	#win .view { position: absolute; left: 0; top: 40px; right: 0; bottom: 0; overflow: hidden; }
+	#win .view img { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+	#glow { position: absolute; left: 0; top: 0; height: 41px; border-radius: 6px; background: rgba(47, 155, 179, 0.16); box-shadow: inset 0 0 0 2px rgba(47, 155, 179, 0.7); opacity: 0; }
+</style>
+<div id="stage">
+	<div id="win"><div class="chrome"><i style="left:18px"></i><i style="left:38px"></i><i style="left:58px"></i><b>Sessions ‹ Coastline Tech Notes — WordPress</b></div><div class="view"><img id="sess" src="../../plates/sessions.png"><div id="glow"></div></div></div>
+	<div id="cshadow"></div>
+	<div id="persp">
+		<div id="card">
+			<div class="face" id="front"><img src="../../plates/postcard-front-card.png"></div>
+			<div class="face" id="back"><img src="../../plates/postcard-back-nostamp-card.png"><img id="stamp" src="../../plates/postcard-stamp-tight.png"></div>
+		</div>
+	</div>
+</div>
+<script>
+// S14 · Postcard + sessions (4.0 s). VO "Each run ends in a postcard, and every session is saved." at +0.25.
+// SFX: paper flip +0.20, stamp thud +1.10, the plugin's finish chime +1.35.
+const st = S.$( '#stage' );
+st.style.background = 'var(--idle-sky)';
+const cshadow = S.$( '#cshadow' );
+const card = S.$( '#card' ), stamp = S.$( '#stamp' ), win = S.$( '#win' ), glow = S.$( '#glow' );
+// Sessions plate (2×): crop to the content column (x ≥ 160, y ≥ 32 CSS) at 0.86.
+const SK = 0.86;
+const sess = S.$( '#sess' );
+sess.style.width = `${ 1920 * SK }px`;
+sess.style.transform = `translate3d(${ -160 * SK }px, ${ -32 * SK }px, 0)`;
+// Row #7 (bottom row) in plate CSS px → window view px.
+const ROW = { x: ( 170 - 160 ) * SK, y: ( 346 - 32 ) * SK, w: ( 1910 - 170 ) * SK };
+glow.style.width = `${ ROW.w }px`;
+glow.style.transform = `translate3d(${ ROW.x }px, ${ ROW.y }px, 0)`;
+const word = Cockpit.swipeWord( st, 'Every run, remembered', { x: 150, y: 868, size: 92 } );
+const WIN = { x: 190, y: 250 };
+S.scene( {
+	dur: 4.0,
+	render( t ) {
+		// Card: centered and tilted, flips at +0.20, stamp lands at +1.10, then flies into its row.
+		const flip = S.prog( t, 0.2, 0.78, S.E.inOutCubic );
+		const lift = Math.sin( Math.PI * flip ) * 0.06;
+		const thud = t > 1.1 ? Math.exp( -( t - 1.1 ) * 9 ) * Math.sin( ( t - 1.1 ) * 38 ) * 7 : 0;
+		const fly = S.prog( t, 2.45, 3.25, S.E.inOutCubic );
+		const baseS = S.kf( t, [ [ 0, 1.5 ], [ 2.45, 1.56, S.E.inOutSine ] ] );
+		const s = S.lerp( baseS, 0.14, fly ) * ( 1 + lift );
+		// Destination: row #7 inside the window (view starts 40 px below the window top).
+		const dx = WIN.x + ROW.x + 150, dy = WIN.y + 40 + ROW.y + 20;
+		const cx = S.lerp( 960, dx, fly ), cy = S.lerp( 470, dy, fly ) + S.kf( t, [ [ 0, 26 ], [ 0.5, 0, S.E.outCubic ] ] ) + thud * ( 1 - fly );
+		const tilt = S.lerp( -3, 0, fly );
+		card.style.transform = `translate3d(${ cx - 340 }px, ${ cy - 210 }px, 0) rotateZ(${ tilt }deg) rotateY(${ 180 * flip }deg) scale(${ s })`;
+		card.style.opacity = String( 1 - S.prog( t, 3.18, 3.34 ) );
+		const sw = Math.max( 0.04, Math.abs( Math.cos( Math.PI * flip ) ) );
+		cshadow.style.transform = `translate3d(${ cx - 340 }px, ${ cy - 210 + 34 * s }px, 0) rotateZ(${ tilt }deg) scale(${ s * sw * 0.97 }, ${ s * 0.93 })`;
+		cshadow.style.opacity = String( ( 1 - S.prog( t, 3.0, 3.3 ) ) * ( 0.55 + 0.45 * sw ) );
+		// The franked stamp drops onto the report side.
+		const sp = S.prog( t, 0.95, 1.12, S.E.inQuad );
+		stamp.style.opacity = String( S.clamp( sp * 3 ) );
+		stamp.style.transform = `rotate(${ S.lerp( -24, -6, sp ) }deg) scale(${ S.lerp( 2.3, 1, sp ) })`;
+		// The Sessions log slides up behind.
+		const w = S.prog( t, 2.3, 3.05, S.E.outCubic );
+		S.tf( win, { x: WIN.x, y: WIN.y + ( 1 - w ) * 520, o: S.clamp( w * 1.6 ) } );
+		glow.style.opacity = String( S.prog( t, 3.18, 3.42 ) * ( 0.75 + 0.25 * Math.sin( ( t - 3.2 ) * 6 ) ) );
+		word( S.prog( t, 2.55, 3.35 ) );
+	},
+} );
+</script>

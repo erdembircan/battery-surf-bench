@@ -1,0 +1,50 @@
+<!doctype html>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../lib/stage.css">
+<script src="../lib/stage.js"></script>
+<script src="../lib/cockpit.js"></script>
+<div id="stage"></div>
+<script>
+// S07 · It lingers (2.5 s). VO "Lingers on pictures." at +0.30; bark at +0.50; shimmer at +0.90.
+const st = S.$( '#stage' );
+st.style.background = '#fff';
+const SCROLL = 250;
+const scr = Cockpit.screen( st, { plate: 'cockpit-compact-A-y0.png', page: 'page-1.png', scroll: SCROLL } );
+// Tile II ("Data-Centre Heat Horizon"): image area in page CSS px.
+const TILE = { x: 666, y: 400, w: 260, h: 220 };
+const tsy = Cockpit.TOPBAR + TILE.y - SCROLL; // tile top in screen px
+const focus = Cockpit.el( 'div', '', scr.over, 'position:absolute;left:0;top:0;width:1920px;height:1080px;opacity:0' );
+const cxT = TILE.x + TILE.w / 2, cyT = tsy + TILE.h / 2;
+focus.style.background = `radial-gradient(ellipse 230px 200px at ${ cxT }px ${ cyT }px, rgba(255,255,255,0) 0%, rgba(255,255,255,0) 72%, rgba(244,250,253,0.46) 100%)`;
+const spark = Cockpit.el( 'div', '', scr.over, 'position:absolute;left:0;top:0' );
+const R = S.rng( 7 );
+const stars = Array.from( { length: 7 }, ( _, i ) => {
+	const s = Cockpit.el( 'div', '', spark, 'position:absolute;width:26px;height:26px;opacity:0' );
+	s.innerHTML = '<svg viewBox="-13 -13 26 26" width="26" height="26"><path d="M0 -12 Q2 -2 12 0 Q2 2 0 12 Q-2 2 -12 0 Q-2 -2 0 -12Z" fill="#ffce5c" stroke="#fff" stroke-width="1.2"/></svg>';
+	return { el: s, x: TILE.x + 20 + R() * ( TILE.w - 40 ), y: tsy + 16 + R() * ( TILE.h - 40 ), t: 0.9 + i * 0.11, s: 0.6 + R() * 0.7 };
+} );
+const bark = Cockpit.bark( scr.over, 'lingerImage' );
+const arrow = S.cursor( scr.over, 'arrow', 30 );
+const word = Cockpit.swipeWord( st, 'Lingers', { x: 120, y: 836, size: 150 } );
+S.scene( {
+	dur: 2.5,
+	render( t ) {
+		// Glide in, then the restless-but-staying dwell of the lingerImage behavior.
+		const gx = S.kf( t, [ [ 0, 1280 ], [ 0.55, cxT + 18, S.E.outCubic ] ] );
+		const gy = S.kf( t, [ [ 0, 760 ], [ 0.55, cyT + 10, S.E.outCubic ] ] );
+		const dwell = S.prog( t, 0.55, 2.5 );
+		const x = gx + Math.sin( dwell * 5.1 ) * 14 * dwell;
+		const y = gy + Math.sin( dwell * 3.7 + 1 ) * 10 * dwell;
+		S.tf( arrow, { x: x - 5, y: y - 2.5 } );
+		focus.style.opacity = String( S.prog( t, 0.35, 1.1, S.E.inOutSine ) );
+		stars.forEach( ( s ) => {
+			const p = S.clamp( ( t - s.t ) / 0.7 );
+			const a = Math.sin( p * Math.PI );
+			S.tf( s.el, { x: s.x - 13, y: s.y - 13 - p * 18, s: s.s * ( 0.4 + 0.6 * a ), r: p * 90, o: a } );
+		} );
+		bark( S.prog( t, 0.48, 0.94 ) );
+		Cockpit.camera( scr, { cx: S.kf( t, [ [ 0, 900 ], [ 2.5, cxT + 40, S.E.inOutSine ] ] ), cy: S.kf( t, [ [ 0, 420 ], [ 2.5, cyT, S.E.inOutSine ] ] ), z: S.kf( t, [ [ 0, 1.15 ], [ 2.5, 1.42, S.E.inOutCubic ] ] ), sy: 470 } );
+		word( S.prog( t, 0.3, 1.02 ) );
+	},
+} );
+</script>

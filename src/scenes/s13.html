@@ -1,0 +1,207 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>s13 · Honest math</title>
+<link rel="stylesheet" href="../lib/stage.css">
+<script src="../lib/stage.js"></script>
+<script src="data/run.js"></script>
+<style>
+	#card { position: absolute; left: 140px; top: 196px; width: 1640px; height: 812px; border-radius: 30px; background: #f7fbfd; box-shadow: var(--lift); }
+	#chart { position: absolute; left: 0; top: 0; }
+	#super { position: absolute; left: 0; top: 70px; width: 1920px; text-align: center; font-size: 74px; }
+	.cal { position: absolute; left: 236px; top: 236px; font: 700 28px var(--mono); color: var(--ink-soft); letter-spacing: 0.06em; }
+	#rate { position: absolute; right: 290px; top: 222px; text-align: right; }
+	#rate .k { font: 800 21px var(--ui); letter-spacing: 0.22em; color: var(--ink-soft); }
+	#rate .v { font: 700 92px/1 var(--mono); color: var(--navy); font-variant-numeric: tabular-nums; }
+	#rate .u { font: 700 40px var(--mono); color: var(--teal); margin-left: 8px; }
+	#legend { position: absolute; left: 236px; top: 930px; display: flex; gap: 46px; font: 700 21px var(--mono); letter-spacing: 0.08em; color: var(--ink-soft); }
+	#legend i { display: inline-block; width: 44px; height: 0; vertical-align: middle; margin-right: 14px; }
+	#empty { position: relative; z-index: 2; display: inline-block; margin-top: 10px; padding: 2px 12px 4px; border-radius: 10px; background: rgba(247, 251, 253, 0.96); font: 700 30px var(--mono); color: #d9721e; white-space: nowrap; }
+</style>
+<div id="stage">
+	<div id="card"></div>
+	<svg id="chart" width="1920" height="1080" viewBox="0 0 1920 1080"></svg>
+	<div class="super" id="super">Least-squares fit · No premature verdicts</div>
+	<div class="cal" id="cal">CALIBRATING…</div>
+	<div id="rate"><div class="k">RATE · SESSION</div><div class="v"><span id="rv">0.0</span><span class="u">%/h</span></div><div id="empty"></div></div>
+	<div id="legend"><span><i style="border-top:5px solid var(--teal)"></i>MEASURED</span><span><i style="border-top:5px dashed #ef8f3c"></i>PROJECTED 100 → 0</span></div>
+</div>
+<script>
+	const { E, prog, kf, tf, $, clamp, lerp } = S;
+	const NS = 'http://www.w3.org/2000/svg';
+	const C = $( '#chart' );
+	const mk = ( tag, attrs, parent = C ) => {
+		const el = document.createElementNS( NS, tag );
+		for ( const k in attrs ) el.setAttribute( k, attrs[ k ] );
+		parent.appendChild( el );
+		return el;
+	};
+	// ── Data (from the captured run) ─────────────────────────────────────────
+	const RATE = window.RUN.rateSession; // %/h
+	const LV = window.RUN.staircase; // 1 % steps
+	const STEP = 60 / RATE; // minutes per 1 % at that rate
+	const pts = LV.map( ( l, k ) => [ k * STEP, l ] );
+	const tNow = pts[ pts.length - 1 ][ 0 ] + STEP * 0.62;
+	// Least-squares fit through the samples (the plugin's own method).
+	const n = pts.length, mx = pts.reduce( ( a, p ) => a + p[ 0 ], 0 ) / n, my = pts.reduce( ( a, p ) => a + p[ 1 ], 0 ) / n;
+	const slope = pts.reduce( ( a, p ) => a + ( p[ 0 ] - mx ) * ( p[ 1 ] - my ), 0 ) / pts.reduce( ( a, p ) => a + ( p[ 0 ] - mx ) ** 2, 0 ); // %/min
+	const fitAt = ( x ) => my + slope * ( x - mx );
+	const tEmpty = mx - my / slope; // minutes from start to 0 %
+	const lastLevel = LV[ LV.length - 1 ];
+	const hoursLeft = lastLevel / RATE;
+	const tFull = ( 100 / RATE ) * 60; // minutes: the plugin's own 100 % → 0 % projection
+
+	// ── Geometry ──────────────────────────────────────────────────────────────
+	const X0 = 330, X1 = 1640, Y0 = 380, Y1 = 860;
+	const IN = { x: [ -STEP * 0.35, tNow + STEP * 0.3 ], y: [ Math.min( ...LV ) - 1.6, Math.max( ...LV ) + 1.3 ] };
+	const OUT = { x: [ 0, Math.max( 360, Math.ceil( Math.max( tEmpty, tFull ) / 60 ) * 60 ) * 1.04 ], y: [ 0, 100 ] };
+	let D = IN;
+	const sx = ( x ) => X0 + ( ( x - D.x[ 0 ] ) / ( D.x[ 1 ] - D.x[ 0 ] ) ) * ( X1 - X0 );
+	const sy = ( y ) => Y1 - ( ( y - D.y[ 0 ] ) / ( D.y[ 1 ] - D.y[ 0 ] ) ) * ( Y1 - Y0 );
+
+	const clip = mk( 'clipPath', { id: 'plot' }, mk( 'defs', {} ) );
+	mk( 'rect', { x: X0, y: Y0 - 30, width: X1 - X0 + 2, height: Y1 - Y0 + 30 }, clip );
+	const gridIn = mk( 'g', {} ), gridOut = mk( 'g', {} ), xIn = mk( 'g', {} ), xOut = mk( 'g', {} );
+	const plot = mk( 'g', { 'clip-path': 'url(#plot)' } );
+	const area = mk( 'path', { fill: 'rgba(47,155,179,0.16)' }, plot );
+	const proj = mk( 'path', { fill: 'none', stroke: '#ef8f3c', 'stroke-width': 5, 'stroke-dasharray': '18 13', 'stroke-linecap': 'round' }, plot );
+	const fit = mk( 'line', { stroke: '#1f3a5f', 'stroke-width': 5, 'stroke-linecap': 'round' }, plot );
+	const stair = mk( 'path', { fill: 'none', stroke: '#2f9bb3', 'stroke-width': 5.5, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }, plot );
+	mk( 'line', { x1: X0, y1: Y1, x2: X1, y2: Y1, stroke: 'rgba(47,74,92,0.42)', 'stroke-width': 2.5 } );
+	const dots = pts.map( () => ( { ring: mk( 'circle', { fill: 'none', stroke: '#2f9bb3', 'stroke-width': 3 } ), dot: mk( 'circle', { fill: '#ffffff', stroke: '#2f9bb3', 'stroke-width': 5 } ) } ) );
+	const endDot = mk( 'circle', { fill: '#ef8f3c' } );
+
+	const label = ( parent, anchor ) => mk( 'text', { 'font-family': 'Space Mono', 'font-weight': 700, 'font-size': 24, fill: '#5b7488', 'text-anchor': anchor }, parent );
+	const yIn = [], yOut = [], xInL = [], xOutL = [];
+	for ( let v = Math.ceil( IN.y[ 0 ] ); v <= Math.floor( IN.y[ 1 ] ); v++ ) yIn.push( { v, line: mk( 'line', { stroke: '#e1edf2', 'stroke-width': 2 }, gridIn ), text: v % 2 === 0 ? label( gridIn, 'end' ) : null } );
+	for ( let v = 0; v <= 100; v += 20 ) yOut.push( { v, line: mk( 'line', { stroke: '#e1edf2', 'stroke-width': 2 }, gridOut ), text: label( gridOut, 'end' ) } );
+	for ( let m = 0; m <= IN.x[ 1 ]; m += 5 ) xInL.push( { v: m, text: label( xIn, 'middle' ), s: `${ m }m` } );
+	for ( let h = 0; h * 60 <= OUT.x[ 1 ]; h++ ) xOutL.push( { v: h * 60, text: label( xOut, 'middle' ), s: `${ h }h` } );
+
+	const LAND = pts.map( ( _, k ) => 0.4 + 0.3 * k );
+	const SNAP = 2.6;
+	const fmtH = ( h ) => `${ Math.floor( h ) } h ${ String( Math.round( ( h % 1 ) * 60 ) ).padStart( 2, '0' ) } m`;
+
+	S.scene( {
+		dur: 4.75,
+		render( t ) {
+			const z = prog( t, 2.9, 3.72, E.inOutCubic );
+			D = { x: [ lerp( IN.x[ 0 ], OUT.x[ 0 ], z ), lerp( IN.x[ 1 ], OUT.x[ 1 ], z ) ], y: [ lerp( IN.y[ 0 ], OUT.y[ 0 ], z ), lerp( IN.y[ 1 ], OUT.y[ 1 ], z ) ] };
+			// Card and chart chrome rise in.
+			const enter = prog( t, 0, 0.42, E.outCubic );
+			tf( $( '#card' ), { y: 40 * ( 1 - enter ), o: enter } );
+			C.style.opacity = enter;
+			const sup = prog( t, 0.3, 0.75, E.outCubic );
+			tf( $( '#super' ), { y: 30 * ( 1 - sup ), o: sup } );
+			$( '#legend' ).style.opacity = prog( t, 0.35, 0.8 );
+
+			// Grid and labels for both scales, cross-faded through the zoom.
+			const zin = 1 - clamp( z / 0.35 ), zout = clamp( ( z - 0.55 ) / 0.45 );
+			gridIn.setAttribute( 'opacity', zin );
+			xIn.setAttribute( 'opacity', zin );
+			gridOut.setAttribute( 'opacity', zout );
+			xOut.setAttribute( 'opacity', zout );
+			for ( const g of [ ...yIn, ...yOut ] ) {
+				const y = sy( g.v );
+				g.line.setAttribute( 'x1', X0 );
+				g.line.setAttribute( 'x2', X1 );
+				g.line.setAttribute( 'y1', y );
+				g.line.setAttribute( 'y2', y );
+				const inside = y <= Y1 + 2 && y >= Y0 - 40;
+				g.line.setAttribute( 'opacity', inside ? 1 : 0 );
+				if ( g.text ) {
+					g.text.setAttribute( 'x', X0 - 18 );
+					g.text.setAttribute( 'y', y + 8 );
+					g.text.setAttribute( 'opacity', inside ? 1 : 0 );
+					g.text.textContent = `${ g.v }%`;
+				}
+			}
+			for ( const g of [ ...xInL, ...xOutL ] ) {
+				g.text.setAttribute( 'x', sx( g.v ) );
+				g.text.setAttribute( 'y', Y1 + 44 );
+				g.text.setAttribute( 'opacity', sx( g.v ) <= X1 + 8 ? 1 : 0 );
+				g.text.textContent = g.s;
+			}
+
+			// Staircase: each sample drops in with a tick; the line follows it.
+			let landed = -1;
+			pts.forEach( ( p, k ) => {
+				const d = t - LAND[ k ];
+				const el = dots[ k ];
+				if ( d < 0 ) {
+					el.dot.setAttribute( 'r', 0 );
+					el.ring.setAttribute( 'r', 0 );
+					return;
+				}
+				landed = k;
+				const drop = d < 0.2 ? ( 1 - E.outBack( d / 0.2, 2.4 ) ) * -46 : 0;
+				el.dot.setAttribute( 'cx', sx( p[ 0 ] ) );
+				el.dot.setAttribute( 'cy', sy( p[ 1 ] ) + drop );
+				el.dot.setAttribute( 'r', 11 * ( 1 - 0.55 * z ) );
+				const rp = clamp( d / 0.45 );
+				el.ring.setAttribute( 'cx', sx( p[ 0 ] ) );
+				el.ring.setAttribute( 'cy', sy( p[ 1 ] ) );
+				el.ring.setAttribute( 'r', rp < 1 ? 11 + 34 * E.outCubic( rp ) : 0 );
+				el.ring.setAttribute( 'opacity', 1 - rp );
+			} );
+			let d = '';
+			if ( landed >= 0 ) {
+				d = `M${ sx( pts[ 0 ][ 0 ] ) } ${ sy( pts[ 0 ][ 1 ] ) }`;
+				for ( let k = 1; k <= landed; k++ ) d += ` H${ sx( pts[ k ][ 0 ] ) } V${ sy( pts[ k ][ 1 ] ) }`;
+				// After the last sample, the reading carries on to "now".
+				const g = landed === pts.length - 1 ? prog( t, LAND[ landed ], SNAP, E.outCubic ) : 0;
+				d += ` H${ sx( lerp( pts[ landed ][ 0 ], tNow, g ) ) }`;
+				const endX = landed === pts.length - 1 ? lerp( pts[ landed ][ 0 ], tNow, g ) : pts[ landed ][ 0 ];
+				area.setAttribute( 'd', `${ d } V${ sy( D.y[ 0 ] ) } H${ sx( pts[ 0 ][ 0 ] ) } Z` );
+				void endX;
+			} else {
+				area.setAttribute( 'd', '' );
+			}
+			stair.setAttribute( 'd', d );
+
+			// The fit: snaps in slightly off, then springs onto the regression line.
+			if ( t >= SNAP ) {
+				const k = t - SNAP;
+				const wob = 9 * Math.exp( -7 * k ) * Math.cos( 2 * Math.PI * 2.3 * k );
+				const grow = E.outCubic( clamp( k / 0.12 ) );
+				const xa = lerp( mx, pts[ 0 ][ 0 ] - STEP * 0.25, grow ), xb = lerp( mx, tNow, grow );
+				// Rotate the fitted line about the centroid (in screen space) by the wobble.
+				const cx = sx( mx ), cy = sy( my ), a = ( wob * Math.PI ) / 180;
+				const rot = ( x, y ) => [ cx + ( x - cx ) * Math.cos( a ) - ( y - cy ) * Math.sin( a ), cy + ( x - cx ) * Math.sin( a ) + ( y - cy ) * Math.cos( a ) ];
+				const [ ax, ay ] = rot( sx( xa ), sy( fitAt( xa ) ) ), [ bx, by ] = rot( sx( xb ), sy( fitAt( xb ) ) );
+				fit.setAttribute( 'x1', ax );
+				fit.setAttribute( 'y1', ay );
+				fit.setAttribute( 'x2', bx );
+				fit.setAttribute( 'y2', by );
+				fit.setAttribute( 'opacity', 1 );
+			} else {
+				fit.setAttribute( 'opacity', 0 );
+			}
+			// Projection runs on to empty once the view has widened.
+			const pr = prog( t, 3.18, 3.98, E.inOutQuad );
+			if ( pr > 0 ) {
+				// Like the plugin's summary chart: a full charge (100 % at 0 h) drained at the fitted rate.
+				const xe = lerp( 0, tFull, pr ), ye = 100 * ( 1 - xe / tFull );
+				proj.setAttribute( 'd', `M${ sx( 0 ) } ${ sy( 100 ) } L${ sx( xe ) } ${ sy( ye ) }` );
+				endDot.setAttribute( 'cx', sx( xe ) );
+				endDot.setAttribute( 'cy', sy( ye ) );
+				endDot.setAttribute( 'r', pr >= 1 ? 11 : 0 );
+			} else {
+				proj.setAttribute( 'd', '' );
+				endDot.setAttribute( 'r', 0 );
+			}
+			const el = prog( t, 3.9, 4.3, E.outCubic );
+			const empty = $( '#empty' );
+			empty.textContent = `100 % → 0 % in ${ Math.floor( 100 / RATE ) } h ${ String( Math.floor( ( ( 100 / RATE ) % 1 ) * 60 ) ).padStart( 2, '0' ) } m`; // the plugin's own projection (S12 shows 7:11)
+			tf( empty, { y: 12 * ( 1 - el ), o: el } );
+
+			// "Calibrating…" waits for the data; the verdict replaces it at the snap.
+			const dotsN = Math.floor( t * 3.2 ) % 4;
+			$( '#cal' ).textContent = 'CALIBRATING' + '.'.repeat( dotsN ) + ' '.repeat( 3 - dotsN );
+			const calOut = prog( t, SNAP - 0.05, SNAP + 0.15 );
+			tf( $( '#cal' ), { y: -10 * calOut, o: prog( t, 0.25, 0.5 ) * ( 1 - calOut ) } );
+			const rIn = prog( t, SNAP, SNAP + 0.25, E.outBack );
+			tf( $( '#rate' ), { y: 18 * ( 1 - rIn ), o: prog( t, SNAP, SNAP + 0.12 ) } );
+			$( '#rv' ).textContent = ( RATE * E.outCubic( prog( t, SNAP, SNAP + 0.75 ) ) ).toFixed( 1 );
+		},
+	} );
+</script>

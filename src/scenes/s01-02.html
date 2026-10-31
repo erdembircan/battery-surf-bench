@@ -1,0 +1,82 @@
+<!doctype html>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../lib/stage.css">
+<script src="../lib/stage.js"></script>
+<script src="../lib/cockpit.js"></script>
+<script src="mg/seascape.js"></script>
+<script src="mg/wavewipe.js"></script>
+<style>
+	#sea, #wipe { position: absolute; inset: 0; }
+	#lap { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+	#bezel { position: absolute; left: -46px; top: -50px; width: 2012px; height: 1176px; border-radius: 64px; background: #1f3a5f; box-shadow: 0 60px 120px -40px rgba(10, 30, 55, 0.55); }
+	#bezel i { position: absolute; left: 50%; top: 22px; width: 12px; height: 12px; margin-left: -6px; border-radius: 50%; background: #2f4d72; }
+	#base { position: absolute; left: -210px; top: 1126px; width: 2340px; height: 92px; }
+	#shadow { position: absolute; left: -120px; top: 1196px; width: 2160px; height: 90px; border-radius: 50%; background: radial-gradient(closest-side, rgba(12, 52, 72, 0.38), rgba(12, 52, 72, 0)); }
+	#hl { position: absolute; left: 0; top: 0; height: 33px; background: rgba(56, 132, 245, 0.3); border-radius: 3px; mix-blend-mode: multiply; }
+</style>
+<div id="stage">
+	<svg id="sea" width="1920" height="1080" viewBox="0 0 1920 1080"></svg>
+	<div id="lap">
+		<div id="shadow"></div>
+		<svg id="base" viewBox="0 0 2340 92"><defs><linearGradient id="steel" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#eef3f6"/><stop offset="0.55" stop-color="#d3dee5"/><stop offset="1" stop-color="#aebfca"/></linearGradient></defs><path d="M120 0 H2220 Q2340 0 2340 40 L2340 54 Q2340 92 2290 92 H50 Q0 92 0 54 L0 40 Q0 0 120 0 Z" fill="url(#steel)" stroke="#1f3a5f" stroke-width="5"/><path d="M1000 6 H1340 Q1340 26 1320 26 H1020 Q1000 26 1000 6 Z" fill="#b7c6d0"/></svg>
+		<div id="bezel"><i></i></div>
+	</div>
+	<svg id="wipe" width="1920" height="1080" viewBox="0 0 1920 1080"></svg>
+</div>
+<script>
+// S01–S02 · Cold open → pull back (9.5 s). VO S01 at 1.80 "This isn't someone browsing.";
+// VO S02 at 4.25 "It's Battery Surf Bench, measuring how fast real browsing drains your battery."
+// SFX: soft click 0.60, highlight swish 1.20, scroll tick 2.90, whoosh 4.00, UI tick 7.60.
+const sea = buildSeascape( S.$( '#sea' ), { horizon: 820, sunX: 960, sunR: 330, glowR: 680, seed: 5 } );
+const wipe = buildWaveWipe( S.$( '#wipe' ) );
+const lap = S.$( '#lap' );
+const scr = Cockpit.screen( lap, { plate: 'cockpit-compact-A-y900.png', page: 'page-0.png', scroll: 850, topbarB: 'cockpit-compact-B-y900.png' } );
+scr.root.style.borderRadius = '6px';
+// Selection highlight + the surfer's caret, inside the page layer so they scroll with it.
+const hl = Cockpit.el( 'div', '', scr.viewport, '' );
+hl.id = 'hl';
+const caret = S.cursor( scr.over, 'caret', 26 );
+const LINE = 1107, X0 = 899, X1 = 1160; // "(like the one you're reading)"
+const W = Math.log;
+function cam( t ) {
+	// Log-space zoom keys: tight on the phrase → cockpit (name lands) → laptop on the sea.
+	const keys = [
+		[ 0, 1.85, 985, 372 ],
+		[ 4.0, 2.0, 980, 372 ],
+		[ 5.1, 1.0, 960, 540, S.E.inOutCubic ],
+		[ 5.9, 0.97, 960, 548, S.E.outQuad ],
+		[ 8.5, 0.58, 960, 640, S.E.inOutCubic ],
+		[ 9.5, 0.565, 960, 646, S.E.outSine ],
+	];
+	let k = 1;
+	while ( k < keys.length - 1 && t > keys[ k ][ 0 ] ) k++;
+	const a = keys[ k - 1 ], b = keys[ k ];
+	const p = ( b[ 4 ] || S.E.inOutSine )( S.clamp( ( t - a[ 0 ] ) / ( b[ 0 ] - a[ 0 ] ) ) );
+	return { z: Math.exp( S.lerp( W( a[ 1 ] ), W( b[ 1 ] ), p ) ), cx: S.lerp( a[ 2 ], b[ 2 ], p ), cy: S.lerp( a[ 3 ], b[ 3 ], p ) };
+}
+S.scene( {
+	dur: 9.5,
+	render( t ) {
+		sea.update( t );
+		// Reading scroll, then a micro-scroll on the tick; settles where the plate sits (900).
+		const scroll = t < 2.9 ? S.kf( t, [ [ 0, 850 ], [ 1.0, 888, S.E.outCubic ] ] ) : S.kf( t, [ [ 2.9, 888 ], [ 3.4, 900, S.E.inOutSine ] ] );
+		scr.scroll( scroll );
+		// Caret: approach, press, drag-select the phrase, then rest.
+		const cx = S.kf( t, [ [ 0, 700 ], [ 0.55, X0, S.E.outCubic ], [ 0.9, X0 ], [ 1.9, X1, S.E.inOutSine ], [ 3.0, X1 + 6 ], [ 4.2, X1 + 40, S.E.inOutSine ] ] );
+		const cyPage = S.kf( t, [ [ 0, LINE + 39 ], [ 0.55, LINE, S.E.outCubic ] ] );
+		const sy = Cockpit.TOPBAR + cyPage - scroll;
+		S.tf( caret, { x: cx - 13, y: sy - 13, s: t >= 0.6 && t < 0.72 ? 0.9 : 1 } );
+		const selW = t < 0.9 ? 0 : Math.max( 0, cx - X0 );
+		hl.style.width = `${ Math.min( selW, X1 - X0 ) }px`;
+		hl.style.transform = `translate3d(${ X0 }px, ${ LINE - 17 - scroll }px, 0)`;
+		// The live 1 % tick (84 → 83 %) on the UI cue.
+		scr.topbarB.style.opacity = String( S.prog( t, 7.6, 7.75 ) );
+		// Camera on the whole laptop (screen at model 0,0 → 1920,1080) + a slow bob once afloat.
+		const c = cam( t );
+		const bob = S.prog( t, 7.2, 9.5 ) * 5 * Math.sin( t * 2.1 );
+		lap.style.transform = `translate3d(${ 960 - c.cx * c.z }px, ${ 540 - c.cy * c.z + bob }px, 0) scale(${ c.z })`;
+		// Hand-off to S03: the wave rolls in and covers the frame on the last frame.
+		wipe.update( S.E.inOutQuad( S.prog( t, 9.1, 9.5 - 1 / 30 ) ), 'in', t );
+	},
+} );
+</script>

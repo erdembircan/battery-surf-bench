@@ -1,0 +1,138 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<!-- The slow push over live DOM text needs supersampling, or glyphs hop between pixels (see render.mjs). -->
+<meta name="supersample" content="4">
+<!-- S09 Personalities: CU of the real deck's Surfer section (static DOM clone +
+     compiled product CSS). Tap Scholar (+0.70), tap Doomscroller (+1.90), then
+     build your own: drag Tempo down, Endurance up → the label derives CUSTOM. -->
+<link rel="stylesheet" href="../vendor/style-cockpit-dashboard.css">
+<link rel="stylesheet" href="../lib/stage.css">
+<style>
+	#cam { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; }
+	#host { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; }
+	#sup { position: absolute; left: 912px; top: 360px; width: 960px; }
+	#sup .line { display: block; font-size: 126px; }
+	#sup .line + .line { margin-top: 14px; }
+	#swash { position: absolute; left: 916px; top: 660px; overflow: visible; }
+	#cam .cursor, #cam .ripple { z-index: 50; }
+</style>
+<script src="../lib/stage.js"></script>
+<script src="deck/cockpit-markup.js"></script>
+<script src="deck/deck.js"></script>
+</head>
+<body>
+<div id="stage">
+	<div id="cam"><div id="host"></div></div>
+	<div id="sup" class="super"><span class="line" id="l1">Pick a surfer,</span><span class="line" id="l2">or build your own</span></div>
+	<svg id="swash" width="560" height="40" viewBox="0 0 560 40"><path id="swashp" d="M6 22 C 70 4, 130 4, 190 20 S 310 36, 370 20 S 490 4, 554 18" fill="none" stroke="#2f9bb3" stroke-width="9" stroke-linecap="round"/></svg>
+</div>
+<script>
+const { E, prog, kf, tf, lerp } = S;
+const deck = Deck.mount( S.$( '#host' ), { hideStage: true } );
+const cam = S.$( '#cam' );
+const cur = S.cursor( cam, 'arrow', 22 );
+const rip = S.ripple( cam );
+const swash = S.$( '#swashp' );
+const swashLen = swash.getTotalLength();
+swash.style.strokeDasharray = `${ swashLen }`;
+
+// Geometry from the clone, in its own page space (no camera yet).
+const G = {};
+function measure() {
+	G.scholar = deck.rect( deck.chip( 'Scholar' ) );
+	G.doom = deck.rect( deck.chip( 'Doomscroller' ) );
+	G.sl = [ 0, 1, 2, 3, 4 ].map( ( i ) => deck.rect( deck.slider( i ) ) );
+}
+// Thumb centre for slider i at value v (the product thumb is ~18px, inset by its radius).
+const thumbX = ( i, v ) => G.sl[ i ].x + 9 + ( ( G.sl[ i ].w - 18 ) * v ) / 10;
+const thumbY = ( i ) => G.sl[ i ].y + G.sl[ i ].h / 2;
+
+const C = deck.CLASSES;
+const T_SCHOLAR = 0.7, T_DOOM = 1.9;
+const SWING = 0.48;
+// Build-your-own drags: Tempo 10 → 6 then Endurance 4 → 8 (budget stays ≤ 25).
+const D1 = [ 2.56, 2.98 ], D2 = [ 3.16, 3.56 ];
+
+function traitsAt( t ) {
+	const swing = ( from, to, t0 ) => {
+		const p = E.outCubic( S.clamp( ( t - t0 - 0.03 ) / SWING ) );
+		return from.map( ( a, i ) => lerp( a, to[ i ], p ) );
+	};
+	if ( t < T_SCHOLAR ) return { v: C.Balanced };
+	if ( t < T_DOOM ) return { v: swing( C.Balanced, C.Scholar, T_SCHOLAR ), forced: 'Scholar' };
+	if ( t < D1[ 0 ] ) return { v: swing( C.Scholar, C.Doomscroller, T_DOOM ), forced: 'Doomscroller' };
+	const v = [ ...C.Doomscroller ];
+	v[ 0 ] = lerp( 10, 6, prog( t, D1[ 0 ], D1[ 1 ], E.inOutCubic ) );
+	v[ 1 ] = lerp( 4, 8, prog( t, D2[ 0 ], D2[ 1 ], E.inOutCubic ) );
+	return { v };
+}
+
+function cursorAt( t ) {
+	const sc = [ G.scholar.x + G.scholar.w * 0.55, G.scholar.y + G.scholar.h * 0.6 ];
+	const dm = [ G.doom.x + G.doom.w * 0.5, G.doom.y + G.doom.h * 0.62 ];
+	const t0 = [ thumbX( 0, 10 ), thumbY( 0 ) ];
+	const t0b = [ thumbX( 0, 6 ), thumbY( 0 ) ];
+	const t1 = [ thumbX( 1, 4 ), thumbY( 1 ) ];
+	const t1b = [ thumbX( 1, 8 ), thumbY( 1 ) ];
+	return kf( t, [
+		[ 0, [ sc[ 0 ] + 260, sc[ 1 ] + 150 ] ],
+		[ 0.62, sc, E.inOutCubic ],
+		[ 1.05, sc ],
+		[ 1.82, dm, E.inOutCubic ],
+		[ 2.3, dm ],
+		[ 2.52, t0, E.inOutCubic ],
+		[ D1[ 0 ], t0 ],
+		[ D1[ 1 ], t0b, E.inOutCubic ],
+		[ 3.08, t1, E.inOutCubic ],
+		[ D2[ 0 ], t1 ],
+		[ D2[ 1 ], t1b, E.inOutCubic ],
+		[ 3.8, [ t1b[ 0 ] + 26, t1b[ 1 ] + 30 ], E.outCubic ],
+	] );
+}
+
+S.scene( {
+	dur: 113 / 30,
+	setup() {
+		measure();
+	},
+	render( t ) {
+		// Camera: Surfer section on the left half, slow push toward the sliders.
+		const s = kf( t, [ [ 0, 1.84 ], [ 3.77, 1.94, E.inOutSine ] ] );
+		const fx = kf( t, [ [ 0, -8 ], [ 3.77, -16, E.inOutSine ] ] );
+		const fy = kf( t, [ [ 0, 30 - 322 * 1.84 ], [ 3.77, 18 - 322 * 1.94, E.inOutSine ] ] );
+		cam.style.transform = `translate(${ fx }px, ${ fy }px) scale(${ s })`;
+
+		// State.
+		const { v, forced } = traitsAt( t );
+		deck.setTraits( v, forced ? { label: forced, pool: 0 } : {} );
+		deck.setClass( forced ?? deck.classify( v.map( Math.round ) ) );
+
+		// Chip press feedback (scale dip right after each tap).
+		for ( const [ key, at ] of [ [ 'Scholar', T_SCHOLAR ], [ 'Doomscroller', T_DOOM ] ] ) {
+			const d = t - at;
+			const k = d >= 0 && d < 0.22 ? 1 - 0.07 * Math.sin( ( d / 0.22 ) * Math.PI ) : 1;
+			deck.chip( key ).style.transform = `scale(${ k })`;
+		}
+
+		// Cursor + ripples + drag "grip".
+		const [ cx, cy ] = cursorAt( t );
+		const gripping = ( t >= D1[ 0 ] - 0.04 && t <= D1[ 1 ] + 0.02 ) || ( t >= D2[ 0 ] - 0.04 && t <= D2[ 1 ] + 0.02 );
+		tf( cur, { x: cx - 4 * ( 22 / 24 ), y: cy - 2 * ( 22 / 24 ), s: gripping ? 0.9 : 1 } );
+		if ( t < T_DOOM ) rip( cx, cy, t - T_SCHOLAR, 0.75 );
+		else if ( t < D1[ 0 ] - 0.1 ) rip( cx, cy, t - T_DOOM, 0.75 );
+		else if ( t < D2[ 0 ] - 0.1 ) rip( cx, cy, t - D1[ 0 ], 0.5 );
+		else rip( cx, cy, t - D2[ 0 ], 0.5 );
+
+		// Super: two lines rise in with the VO (+0.35), then a teal swash draws.
+		[ [ '#l1', 0.32 ], [ '#l2', 0.46 ] ].forEach( ( [ sel, at ] ) => {
+			const p = prog( t, at, at + 0.5, E.outCubic );
+			tf( S.$( sel ), { y: ( 1 - p ) * 46, o: prog( t, at, at + 0.3 ) } );
+		} );
+		swash.style.strokeDashoffset = String( swashLen * ( 1 - prog( t, 0.78, 1.35, E.inOutCubic ) ) );
+	},
+} );
+</script>
+</body>
+</html>

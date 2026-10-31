@@ -1,0 +1,40 @@
+<!doctype html>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../lib/stage.css">
+<script src="../lib/stage.js"></script>
+<script src="../lib/cockpit.js"></script>
+<div id="stage"></div>
+<script>
+// S05 · It reads (2.5 s). VO "Ours reads." at +0.30; bark pop at +0.60.
+// The surfer read-traces a line of the article with its caret glyph.
+const st = S.$( '#stage' );
+st.style.background = '#fff';
+const scr = Cockpit.screen( st, { plate: 'cockpit-compact-A-y0.png', page: 'page-0.png', scroll: 560 } );
+const bark = Cockpit.bark( scr.over, 'readPause' );
+const caret = S.cursor( scr.over, 'caret', 26 );
+const word = Cockpit.swipeWord( st, 'Reads', { x: 120, y: 836, size: 150 } );
+// Lines of "Modern web pages are not documents…" (page y, x-extent), read-traced in order.
+const LINES = [ [ 683, 314, 1600 ], [ 722, 314, 1560 ], [ 760, 314, 1563 ] ];
+S.scene( {
+	dur: 2.5,
+	render( t ) {
+		const scroll = S.kf( t, [ [ 0, 548 ], [ 2.5, 584, S.E.inOutSine ] ] );
+		scr.scroll( scroll );
+		// Caret glides line by line, reading pace with tiny pauses at line ends.
+		const seg = [ [ 0.05, 0.95 ], [ 1.05, 1.75 ], [ 1.85, 2.5 ] ];
+		let cx = LINES[ 0 ][ 1 ], cy = LINES[ 0 ][ 0 ];
+		seg.forEach( ( [ a, b ], i ) => {
+			if ( t >= a ) {
+				const p = S.prog( t, a, b, S.E.inOutSine );
+				cx = S.lerp( LINES[ i ][ 1 ], LINES[ i ][ 2 ], p );
+				cy = LINES[ i ][ 0 ];
+			}
+		} );
+		const sy = Cockpit.TOPBAR + cy - scroll;
+		S.tf( caret, { x: cx - 13, y: sy - 15 } );
+		bark( S.prog( t, 0.55, 1.01 ) );
+		Cockpit.camera( scr, { cx: S.kf( t, [ [ 0, 900 ], [ 2.5, 940, S.E.inOutSine ] ] ), cy: 318, z: S.kf( t, [ [ 0, 1.4 ], [ 2.5, 1.5, S.E.inOutSine ] ] ), sy: 470 } );
+		word( S.prog( t, 0.28, 1.0 ) );
+	},
+} );
+</script>

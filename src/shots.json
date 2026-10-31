@@ -1,0 +1,644 @@
+{
+ "TARGET": 60,
+ "FPS": 30,
+ "FRAMES": 1800,
+ "scenes": [
+  {
+   "name": "s01-02",
+   "shots": [
+    "S01",
+    "S02"
+   ],
+   "f0": 0,
+   "f1": 285,
+   "frames": 285,
+   "start": 0,
+   "end": 9.5
+  },
+  {
+   "name": "s03",
+   "shots": [
+    "S03"
+   ],
+   "f0": 285,
+   "f1": 390,
+   "frames": 105,
+   "start": 9.5,
+   "end": 13
+  },
+  {
+   "name": "s04",
+   "shots": [
+    "S04"
+   ],
+   "f0": 390,
+   "f1": 510,
+   "frames": 120,
+   "start": 13,
+   "end": 17
+  },
+  {
+   "name": "s05",
+   "shots": [
+    "S05"
+   ],
+   "f0": 510,
+   "f1": 585,
+   "frames": 75,
+   "start": 17,
+   "end": 19.5
+  },
+  {
+   "name": "s06",
+   "shots": [
+    "S06"
+   ],
+   "f0": 585,
+   "f1": 660,
+   "frames": 75,
+   "start": 19.5,
+   "end": 22
+  },
+  {
+   "name": "s07",
+   "shots": [
+    "S07"
+   ],
+   "f0": 660,
+   "f1": 735,
+   "frames": 75,
+   "start": 22,
+   "end": 24.5
+  },
+  {
+   "name": "s08",
+   "shots": [
+    "S08"
+   ],
+   "f0": 735,
+   "f1": 825,
+   "frames": 90,
+   "start": 24.5,
+   "end": 27.5
+  },
+  {
+   "name": "s09",
+   "shots": [
+    "S09"
+   ],
+   "f0": 825,
+   "f1": 938,
+   "frames": 113,
+   "start": 27.5,
+   "end": 31.25
+  },
+  {
+   "name": "s10",
+   "shots": [
+    "S10"
+   ],
+   "f0": 938,
+   "f1": 1065,
+   "frames": 127,
+   "start": 31.25,
+   "end": 35.5
+  },
+  {
+   "name": "s11",
+   "shots": [
+    "S11"
+   ],
+   "f0": 1065,
+   "f1": 1155,
+   "frames": 90,
+   "start": 35.5,
+   "end": 38.5
+  },
+  {
+   "name": "s12",
+   "shots": [
+    "S12"
+   ],
+   "f0": 1155,
+   "f1": 1290,
+   "frames": 135,
+   "start": 38.5,
+   "end": 43
+  },
+  {
+   "name": "s13",
+   "shots": [
+    "S13"
+   ],
+   "f0": 1290,
+   "f1": 1433,
+   "frames": 143,
+   "start": 43,
+   "end": 47.75
+  },
+  {
+   "name": "s14",
+   "shots": [
+    "S14"
+   ],
+   "f0": 1433,
+   "f1": 1553,
+   "frames": 120,
+   "start": 47.75,
+   "end": 51.75
+  },
+  {
+   "name": "s15",
+   "shots": [
+    "S15"
+   ],
+   "f0": 1553,
+   "f1": 1665,
+   "frames": 112,
+   "start": 51.75,
+   "end": 55.5
+  },
+  {
+   "name": "s16",
+   "shots": [
+    "S16"
+   ],
+   "f0": 1665,
+   "f1": 1800,
+   "frames": 135,
+   "start": 55.5,
+   "end": 60
+  }
+ ],
+ "shots": [
+  {
+   "id": "S01",
+   "title": "Cold open",
+   "dur": 4,
+   "framing": "ECU inside the surf viewport. No cockpit chrome in frame.",
+   "action": "A cursor reads a paragraph and highlights a phrase, like a person would. Slow push-in.",
+   "vo": "This isn't someone browsing.",
+   "voAt": 1.8,
+   "read": "",
+   "sfx": [
+    [
+     0.6,
+     "Soft mouse click"
+    ],
+    [
+     1.2,
+     "Highlight swish"
+    ],
+    [
+     2.9,
+     "Scroll tick"
+    ]
+   ],
+   "start": 0,
+   "end": 4,
+   "voDur": 1.49,
+   "f0": 0,
+   "f1": 120
+  },
+  {
+   "id": "S02",
+   "title": "Pull back: the cockpit",
+   "dur": 5.5,
+   "framing": "Pull back to a WS of the laptop. The live cockpit fills the screen.",
+   "action": "The compact top bar comes into view with battery %, drain rates and time to empty. Battery ticks down 1%.",
+   "vo": "It's Battery Surf Bench, measuring how fast real browsing drains your battery.",
+   "voAt": 0.25,
+   "read": "",
+   "sfx": [
+    [
+     0,
+     "Whoosh (pull back)"
+    ],
+    [
+     3.6,
+     "UI tick (battery -1%)"
+    ]
+   ],
+   "start": 4,
+   "end": 9.5,
+   "voDur": 4.79,
+   "f0": 120,
+   "f1": 285
+  },
+  {
+   "id": "S03",
+   "title": "Logo",
+   "dur": 3.5,
+   "framing": "Centered lockup on the Coastal Daybreak sky.",
+   "action": "A wave wipes the frame. The surfing-battery mascot rides in and lands on the beat, then the wordmark and tagline settle.",
+   "vo": "The battery benchmark that browses like a human.",
+   "voAt": 0.2,
+   "read": "The battery benchmark that browses like a human.",
+   "sfx": [
+    [
+     0,
+     "Wave whoosh"
+    ],
+    [
+     0.5,
+     "Splash + music drop"
+    ]
+   ],
+   "start": 9.5,
+   "end": 13,
+   "voDur": 2.91,
+   "f0": 285,
+   "f1": 390
+  },
+  {
+   "id": "S04",
+   "title": "The timer test",
+   "dur": 4,
+   "framing": "Flat graphic in gray. A stopwatch and a stack of identical pages.",
+   "action": "Pages flip mechanically, one per tick: load, wait, next.",
+   "vo": "Most battery tests flip pages on a timer.",
+   "voAt": 0.25,
+   "read": "Typical test: load \u00b7 wait \u00b7 repeat",
+   "sfx": [
+    [
+     0,
+     "Metronome ticks (every beat)"
+    ],
+    [
+     0.5,
+     "Page flip clunk \u00d74"
+    ]
+   ],
+   "start": 13,
+   "end": 17,
+   "voDur": 3.16,
+   "f0": 390,
+   "f1": 510
+  },
+  {
+   "id": "S05",
+   "title": "It reads",
+   "dur": 2.5,
+   "framing": "MCU of the viewport: article page plus the bark pill.",
+   "action": "The caret highlight sweeps a sentence. Bark pops: \"Deep in the good words\u2026\"",
+   "vo": "Ours reads.",
+   "voAt": 0.3,
+   "read": "READS \u00b7 Deep in the good words\u2026",
+   "sfx": [
+    [
+     0.6,
+     "Bark pop"
+    ]
+   ],
+   "start": 17,
+   "end": 19.5,
+   "voDur": 0.77,
+   "f0": 510,
+   "f1": 585
+  },
+  {
+   "id": "S06",
+   "title": "It watches",
+   "dur": 2.5,
+   "framing": "MCU of the video page player.",
+   "action": "The hand cursor clicks play and the video rolls. Bark: \"Ooh, moving pictures!\"",
+   "vo": "Watches.",
+   "voAt": 0.3,
+   "read": "WATCHES \u00b7 Ooh, moving pictures!",
+   "sfx": [
+    [
+     0.4,
+     "Click"
+    ],
+    [
+     0.7,
+     "Bark pop"
+    ]
+   ],
+   "start": 19.5,
+   "end": 22,
+   "voDur": 0.64,
+   "f0": 585,
+   "f1": 660
+  },
+  {
+   "id": "S07",
+   "title": "It lingers",
+   "dur": 2.5,
+   "framing": "MCU of the gallery grid.",
+   "action": "The cursor dwells on one image with a gentle zoom. Bark: \"Ooh, shiny pixels\u2026\"",
+   "vo": "Lingers on pictures.",
+   "voAt": 0.3,
+   "read": "LINGERS \u00b7 Ooh, shiny pixels\u2026",
+   "sfx": [
+    [
+     0.5,
+     "Bark pop"
+    ],
+    [
+     0.9,
+     "Shimmer"
+    ]
+   ],
+   "start": 22,
+   "end": 24.5,
+   "voDur": 1.45,
+   "f0": 660,
+   "f1": 735
+  },
+  {
+   "id": "S08",
+   "title": "It moves on",
+   "dur": 3,
+   "framing": "MCU of the link hub, ending on a whip-pan.",
+   "action": "Bark: \"Paddling off to the next page\u2026\" The page whips away to the next one.",
+   "vo": "And moves on when it gets bored.",
+   "voAt": 0.3,
+   "read": "MOVES ON \u00b7 Paddling off to the next page\u2026",
+   "sfx": [
+    [
+     0.5,
+     "Bark pop"
+    ],
+    [
+     2.6,
+     "Whip whoosh"
+    ]
+   ],
+   "start": 24.5,
+   "end": 27.5,
+   "voDur": 1.77,
+   "f0": 735,
+   "f1": 825
+  },
+  {
+   "id": "S09",
+   "title": "Personalities",
+   "dur": 3.75,
+   "framing": "CU of the deck's Surfer section: class chips and stat sliders.",
+   "action": "Tap Scholar, then Doomscroller: the five sliders swing within the 25-point budget; two quick drags build a custom surfer.",
+   "vo": "Pick a personality, or build your own.",
+   "voAt": 0.35,
+   "read": "Pick a surfer, or build your own",
+   "sfx": [
+    [
+     0.7,
+     "Chip tap"
+    ],
+    [
+     1.9,
+     "Chip tap"
+    ],
+    [
+     2.1,
+     "Slider swish"
+    ],
+    [
+     2.56,
+     "Slider swish"
+    ],
+    [
+     3.16,
+     "Slider swish"
+    ]
+   ],
+   "start": 27.5,
+   "end": 31.25,
+   "voDur": 2.35,
+   "f0": 825,
+   "f1": 938
+  },
+  {
+   "id": "S10",
+   "title": "Your own pages",
+   "dur": 4.25,
+   "framing": "MS of the Settings screen in wp-admin: browse pane and selected pages.",
+   "action": "Click Add on a post. It slides into the sequence, then a drag reorders it.",
+   "vo": "Surf the built-in course, or your own posts and pages.",
+   "voAt": 0.3,
+   "read": "Your posts & pages, too",
+   "sfx": [
+    [
+     1,
+     "Click (Add)"
+    ],
+    [
+     2.4,
+     "Drag swish"
+    ]
+   ],
+   "start": 31.25,
+   "end": 35.5,
+   "voDur": 3.43,
+   "f0": 938,
+   "f1": 1065
+  },
+  {
+   "id": "S11",
+   "title": "Unplug. Start.",
+   "dur": 3,
+   "framing": "Two inserts: the charger plug, then a CU of the Start button.",
+   "action": "The cable pulls out and PLUGGED IN turns into START. Click, and the run begins.",
+   "vo": "Unplug, press Start.",
+   "voAt": 0.3,
+   "read": "",
+   "sfx": [
+    [
+     0.25,
+     "Plug-out thunk"
+    ],
+    [
+     1.55,
+     "Button click"
+    ],
+    [
+     1.7,
+     "Run-start whoosh"
+    ]
+   ],
+   "start": 35.5,
+   "end": 38.5,
+   "voDur": 1.85,
+   "f0": 1065,
+   "f1": 1155
+  },
+  {
+   "id": "S12",
+   "title": "Live readouts",
+   "dur": 4.5,
+   "framing": "CU of the readouts: battery, 10-min rate, session rate, time to empty.",
+   "action": "The numbers update as samples land. Slow push across the readout row.",
+   "vo": "Battery level, drain rate, time to empty. All live.",
+   "voAt": 0.3,
+   "read": "Battery \u00b7 Rate 10 min \u00b7 Rate session \u00b7 Time to empty",
+   "sfx": [
+    [
+     0.9,
+     "Digital tick"
+    ],
+    [
+     2,
+     "Digital tick"
+    ],
+    [
+     3.1,
+     "Digital tick"
+    ]
+   ],
+   "start": 38.5,
+   "end": 43,
+   "voDur": 3.67,
+   "f0": 1155,
+   "f1": 1290
+  },
+  {
+   "id": "S13",
+   "title": "Honest math",
+   "dur": 4.75,
+   "framing": "Graphic: the battery staircase on a chart.",
+   "action": "Samples land as dots while it reads \"calibrating\u2026\". Then a least-squares line snaps through them and a dashed projection runs to empty.",
+   "vo": "Every rate is fitted to your real battery curve. No guesswork.",
+   "voAt": 0.3,
+   "read": "Least-squares fit \u00b7 No premature verdicts",
+   "sfx": [
+    [
+     0.4,
+     "Sample ticks \u00d76"
+    ],
+    [
+     2.6,
+     "Snap (line fits)"
+    ]
+   ],
+   "start": 43,
+   "end": 47.75,
+   "voDur": 3.94,
+   "f0": 1290,
+   "f1": 1433
+  },
+  {
+   "id": "S14",
+   "title": "Postcard + sessions",
+   "dur": 4,
+   "framing": "MS of the summary postcard, then a slide to the Sessions grid.",
+   "action": "The postcard flips to its verdict, the franked stamp lands, then the Sessions log slides in.",
+   "vo": "Each run ends in a postcard, and every session is saved.",
+   "voAt": 0.25,
+   "read": "Every run, remembered",
+   "sfx": [
+    [
+     0.2,
+     "Paper flip"
+    ],
+    [
+     1.1,
+     "Stamp thud"
+    ],
+    [
+     1.35,
+     "Finish chime (the plugin\u2019s own)"
+    ]
+   ],
+   "start": 47.75,
+   "end": 51.75,
+   "voDur": 3.24,
+   "f0": 1433,
+   "f1": 1553
+  },
+  {
+   "id": "S15",
+   "title": "Private by design",
+   "dur": 3.75,
+   "framing": "Three icon chips on the sky gradient.",
+   "action": "The chips pop in one by one: Operator-only, No telemetry, Saved on your site.",
+   "vo": "No telemetry. Your data stays on your site.",
+   "voAt": 0.3,
+   "read": "Operator-only \u00b7 No telemetry \u00b7 Saved on your site",
+   "sfx": [
+    [
+     0.3,
+     "Pop"
+    ],
+    [
+     0.9,
+     "Pop"
+    ],
+    [
+     1.5,
+     "Pop"
+    ]
+   ],
+   "start": 51.75,
+   "end": 55.5,
+   "voDur": 2.94,
+   "f0": 1553,
+   "f1": 1665
+  },
+  {
+   "id": "S16",
+   "title": "End card",
+   "dur": 4.5,
+   "framing": "Logo lockup, \"Free WordPress plugin\", fine print, waves along the bottom.",
+   "action": "The lockup settles and holds for about 1 s after the VO, while the cockpit\u2019s shark fin surfaces at +0.85 s, cruises across the waves with its wake, and dives at +4.0 s.",
+   "vo": "Battery Surf Bench. Unplug, and find out.",
+   "voAt": 0.4,
+   "read": "Battery Surf Bench \u00b7 Free WordPress plugin \u00b7 Requires a Chromium-based browser on a battery-powered device.",
+   "sfx": [
+    [
+     0,
+     "Wave swell"
+    ],
+    [
+     0.85,
+     "Tiny splash (fin surfaces)"
+    ],
+    [
+     4.1,
+     "Tiny splash (fin dives)"
+    ]
+   ],
+   "start": 55.5,
+   "end": 60,
+   "voDur": 3.14,
+   "f0": 1665,
+   "f1": 1800
+  }
+ ],
+ "MUSIC": [
+  {
+   "from": 0,
+   "to": 10,
+   "label": "Intro: plucks + pad"
+  },
+  {
+   "from": 10,
+   "to": 13,
+   "label": "Drop on logo"
+  },
+  {
+   "from": 13,
+   "to": 17,
+   "label": "Timer: pad only"
+  },
+  {
+   "from": 17,
+   "to": 43,
+   "label": "Groove"
+  },
+  {
+   "from": 43,
+   "to": 47.75,
+   "label": "Breakdown"
+  },
+  {
+   "from": 47.75,
+   "to": 58,
+   "label": "Groove"
+  },
+  {
+   "from": 58,
+   "to": 60,
+   "label": "Button + ring-out"
+  }
+ ]
+}

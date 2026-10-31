@@ -1,0 +1,126 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>s03 · Logo</title>
+<link rel="stylesheet" href="../lib/stage.css">
+<script src="../lib/stage.js"></script>
+<script src="mg/mascot.js"></script>
+<script src="mg/seascape.js"></script>
+<script src="mg/wavewipe.js"></script>
+<style>
+	#sea, #wipe, #fx { position: absolute; left: 0; top: 0; }
+	#mascot { position: absolute; left: 210px; top: 245px; transform-origin: 0 0; }
+	.word { position: absolute; left: 1052px; font-family: var(--display); color: var(--navy); font-size: 176px; line-height: 1; letter-spacing: 0.012em; white-space: nowrap; transform-origin: 0 100%; }
+	#tag { position: absolute; left: 0; top: 0; padding: 20px 46px 22px; font: 700 50px/1.1 var(--ui); color: var(--navy); white-space: nowrap; }
+</style>
+<div id="stage">
+	<svg id="sea"></svg>
+	<div id="mascot"></div>
+	<div class="word" id="w1">BATTERY SURF</div>
+	<div class="word" id="w2">BENCH</div>
+	<div class="pill" id="tag">The battery benchmark that browses like a human.</div>
+	<svg id="fx" width="1920" height="1080" viewBox="0 0 1920 1080"></svg>
+	<svg id="wipe"></svg>
+</div>
+<script>
+	const { E, prog, kf, tf, $, clamp } = S;
+	const sea = buildSeascape( $( '#sea' ), { horizon: 760, sunX: 1440, sunR: 300, glowR: 590, seed: 11 } );
+	const wipe = buildWaveWipe( $( '#wipe' ) );
+	const M = buildMascot( $( '#mascot' ), 780 );
+	const SC = M.scale; // scene px per mascot unit
+	const MX = 210, MY = 245, VX = 375, VY = 666;
+	const toScene = ( vx, vy ) => [ MX + ( vx - VX ) * SC, MY + ( vy - VY ) * SC ];
+
+	const LAND = 0.5;
+	// Surfer path: rides in from off-screen left, lands on the beat.
+	function surfer( t ) {
+		if ( t < LAND ) {
+			const p = E.outCubic( clamp( t / LAND ) );
+			return { x: -1350 * ( 1 - p ), y: -46 * Math.sin( Math.PI * p ) + 10 * ( 1 - p ), r: -9 * ( 1 - p ) + 3 * Math.sin( Math.PI * p ) };
+		}
+		const d = t - LAND;
+		const settle = Math.exp( -6.5 * d );
+		return { x: 0, y: 16 * settle * Math.cos( 2 * Math.PI * 1.7 * d ) - 16 * settle + 5 * Math.sin( ( 2 * Math.PI * d ) / 2.1 ) * ( 1 - settle ), r: 4.5 * settle * Math.cos( 2 * Math.PI * 1.4 * d ) };
+	}
+	// Board tail in mascot units (left end of the board, where spray kicks up).
+	const TAIL = [ 760, 1760 ], NOSE = [ 2050, 1830 ];
+	function boardPoint( t, pt ) {
+		const s = surfer( t );
+		const [ px, py ] = [ 1390, 1450 ];
+		const a = ( s.r * Math.PI ) / 180;
+		const dx = pt[ 0 ] - px, dy = pt[ 1 ] - py;
+		const vx = px + dx * Math.cos( a ) - dy * Math.sin( a ) + s.x / SC;
+		const vy = py + dx * Math.sin( a ) + dy * Math.cos( a ) + s.y / SC;
+		return toScene( vx, vy );
+	}
+	// Spray: droplets kicked from the tail during the ride and a burst on landing.
+	const rnd = S.rng( 303 );
+	const drops = [];
+	for ( let i = 0; i < 34; i++ ) drops.push( { e: 0.06 + ( i / 34 ) * 0.42, vx: -260 - rnd() * 300, vy: -320 - rnd() * 360, r: 4 + rnd() * 8, src: 'tail' } );
+	for ( let i = 0; i < 30; i++ ) {
+		const a = -Math.PI * ( 0.12 + rnd() * 0.76 );
+		const sp = 380 + rnd() * 620;
+		drops.push( { e: LAND, vx: Math.cos( a ) * sp, vy: Math.sin( a ) * sp, r: 4 + rnd() * 10, src: rnd() < 0.5 ? 'nose' : 'tail' } );
+	}
+	const NS = 'http://www.w3.org/2000/svg';
+	for ( const d of drops ) {
+		d.el = document.createElementNS( NS, 'circle' );
+		d.el.setAttribute( 'fill', '#ffffff' );
+		d.el.setAttribute( 'stroke', '#9ad9ea' );
+		d.el.setAttribute( 'stroke-width', '2' );
+		$( '#fx' ).appendChild( d.el );
+	}
+	// Pages pop in around the battery after the landing, one per beat-ish.
+	const PAGES = [ [ 'browser', 0.56, -12 ], [ 'video', 0.63, 10 ], [ 'image', 0.70, -9 ], [ 'globe', 0.77, 12 ] ];
+	const PAGE_FLOAT = { browser: 0.3, video: 1.9, image: 3.1, globe: 4.4 };
+
+	let tagW = 0;
+	S.scene( {
+		dur: 3.5,
+		setup() {
+			tagW = $( '#tag' ).getBoundingClientRect().width;
+			// Fit the wordmark's first line inside the safe area (≤ 772 px wide).
+			const w = $( '#w1' ).getBoundingClientRect().width;
+			if ( w > 772 ) {
+				const fs = ( 176 * 772 ) / w;
+				$( '#w1' ).style.fontSize = $( '#w2' ).style.fontSize = `${ fs }px`;
+			}
+		},
+		render( t ) {
+			sea.update( t + 2, { sunLift: -18 * E.inOutSine( clamp( t / 3.5 ) ) } );
+			wipe.update( E.inOutQuad( prog( t, 0, 0.48 ) ), 'out', t );
+
+			const s = surfer( t );
+			M.place( 'surfer', { x: s.x / SC, y: s.y / SC, r: s.r } );
+			for ( const [ name, at, rot ] of PAGES ) {
+				const p = prog( t, at, at + 0.42 );
+				const sc = p <= 0 ? 0.001 : E.outBack( p, 2.2 );
+				const fl = Math.sin( ( t + PAGE_FLOAT[ name ] ) * 2.2 ) * 10;
+				// Start tucked toward the surfer, spring out to place.
+				const el = M.parts[ name ];
+				const k = 1 - E.outCubic( p );
+				const dx = ( 1390 - +el.dataset.px ) * 0.35 * k, dy = ( 1450 - +el.dataset.py ) * 0.35 * k;
+				M.place( name, { x: dx + s.x / SC, y: dy + fl + s.y / SC * 0.4, s: Math.max( 0.001, 0.25 + 0.75 * sc ), r: rot * ( 1 - E.outCubic( p ) ), o: clamp( p * 4 ) } );
+			}
+			for ( const d of drops ) {
+				const dt = t - d.e;
+				if ( dt < 0 || dt > 0.9 ) {
+					d.el.setAttribute( 'r', 0 );
+					continue;
+				}
+				const [ ox, oy ] = boardPoint( d.e, d.src === 'nose' ? NOSE : TAIL );
+				const x = ox + d.vx * dt, y = oy + d.vy * dt + 0.5 * 1900 * dt * dt;
+				d.el.setAttribute( 'cx', x.toFixed( 1 ) );
+				d.el.setAttribute( 'cy', y.toFixed( 1 ) );
+				d.el.setAttribute( 'r', ( d.r * ( 1 - dt / 0.9 ) ).toFixed( 2 ) );
+				d.el.setAttribute( 'opacity', ( 1 - dt / 0.9 ).toFixed( 3 ) );
+			}
+			// Wordmark: two lines rise and settle like a crest.
+			const w1 = prog( t, 0.74, 1.24 ), w2 = prog( t, 0.84, 1.34 );
+			tf( $( '#w1' ), { x: 0, y: 296 + 90 * ( 1 - E.outBack( w1, 1.4 ) ), o: clamp( w1 * 3 ) } );
+			tf( $( '#w2' ), { x: 0, y: 296 + 166 + 90 * ( 1 - E.outBack( w2, 1.4 ) ), o: clamp( w2 * 3 ) } );
+			// Tagline pill over the sea.
+			const g = prog( t, 1.16, 1.62, E.outCubic );
+			tf( $( '#tag' ), { x: 960 - tagW / 2, y: 878 + 36 * ( 1 - g ), o: g } );
+		},
+	} );
+</script>

@@ -1,0 +1,114 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<!-- The push over live DOM text needs supersampling, or glyphs hop between pixels (see render.mjs). -->
+<meta name="supersample" content="4">
+<!-- S11 Unplug. Press Start: the real cockpit (static clone) on an illustrated
+     laptop. The charger pulls out (+0.25), the product's run button flips from
+     PLUGGED IN to START, the camera pushes in, the cursor clicks Start (+1.55),
+     the button becomes STOP and the shot drives forward into the cut. -->
+<link rel="stylesheet" href="../vendor/style-cockpit-dashboard.css">
+<link rel="stylesheet" href="../lib/stage.css">
+<style>
+	#world { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; }
+	#screen { position: absolute; left: 360px; top: 96px; width: 1920px; height: 1080px; transform-origin: 0 0; transform: scale(0.625); overflow: hidden; border-radius: 10px; }
+	#host { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; }
+	#screen .cursor, #screen .ripple { z-index: 50; }
+	svg.abs { overflow: visible; }
+</style>
+<script src="../lib/stage.js"></script>
+<script src="deck/cockpit-markup.js"></script>
+<script src="deck/deck.js"></script>
+</head>
+<body>
+<div id="stage">
+	<div id="world">
+		<svg class="abs" width="1920" height="1080" viewBox="0 0 1920 1080">
+			<defs>
+				<linearGradient id="base" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f4f8fa"/><stop offset="1" stop-color="#cfdce4"/></linearGradient>
+				<radialGradient id="shadow" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#1f3a5f" stop-opacity="0.22"/><stop offset="1" stop-color="#1f3a5f" stop-opacity="0"/></radialGradient>
+				<linearGradient id="boot" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#dfe7ec"/></linearGradient>
+			</defs>
+			<ellipse cx="960" cy="842" rx="820" ry="34" fill="url(#shadow)"/>
+			<rect x="342" y="78" width="1236" height="711" rx="28" fill="#1f3a5f"/>
+			<circle cx="960" cy="88" r="3.5" fill="#5b7488"/>
+			<path d="M236 789 L1684 789 L1712 811 Q1716 828 1694 828 L226 828 Q204 828 208 811 Z" fill="url(#base)" stroke="#1f3a5f" stroke-width="3"/>
+			<path d="M884 789 Q884 799 896 799 L1024 799 Q1036 799 1036 789" fill="#d6e1e8" stroke="#1f3a5f" stroke-width="2"/>
+			<rect x="1678" y="802" width="10" height="12" rx="2" fill="#1f3a5f"/>
+		</svg>
+		<div id="screen"><div id="host"></div></div>
+		<svg class="abs" width="1920" height="1080" viewBox="0 0 1920 1080">
+			<path id="cable" fill="none" stroke="#1f3a5f" stroke-width="15" stroke-linecap="round"/>
+			<g id="plug">
+				<rect x="1684" y="803" width="22" height="10" rx="3" fill="#9fb1bd" stroke="#1f3a5f" stroke-width="2.5"/>
+				<rect x="1704" y="794" width="74" height="28" rx="9" fill="url(#boot)" stroke="#1f3a5f" stroke-width="3"/>
+				<rect x="1716" y="804" width="40" height="3" rx="1.5" fill="#c3d0d8"/>
+			</g>
+			<g id="spark" stroke="#ff7a5c" stroke-width="5" stroke-linecap="round" fill="none">
+				<path d="M1694 790 l-12 -18"/><path d="M1700 808 l-24 0"/><path d="M1694 826 l-12 18"/>
+			</g>
+		</svg>
+	</div>
+</div>
+<script>
+const { E, prog, kf, tf, lerp } = S;
+const deck = Deck.mount( S.$( '#host' ) );
+const screen = S.$( '#screen' );
+const world = S.$( '#world' );
+const cur = S.cursor( screen, 'arrow', 30 );
+const rip = S.ripple( screen );
+const plug = S.$( '#plug' );
+const cable = S.$( '#cable' );
+const spark = S.$( '#spark' );
+const SCR = { x: 360, y: 96, k: 0.625 };
+let RUN;
+const T_UNPLUG = 0.25, T_START = 0.4, T_CLICK = 1.55, T_STOP = 1.64;
+
+S.scene( {
+	dur: 90 / 30,
+	setup() {
+		RUN = deck.rect( '.bsb-run' );
+		deck.setTraits( deck.CLASSES.Balanced );
+		deck.setClass( 'Balanced' );
+	},
+	render( t ) {
+		// Run button: the product's own blocked / start / running states.
+		deck.setRun( t < T_START ? 'blocked' : t < T_STOP ? 'start' : 'running' );
+		const press = t >= T_CLICK && t < T_CLICK + 0.2 ? 1 - 0.045 * Math.sin( ( ( t - T_CLICK ) / 0.2 ) * Math.PI ) : 1;
+		deck.root.querySelector( '.bsb-run' ).style.transform = `scale(${ press })`;
+
+		// Charger: pulls out with a snap, cable swings and settles.
+		const out = prog( t, T_UNPLUG, T_UNPLUG + 0.16, E.outCubic );
+		const sway = t > T_UNPLUG ? Math.exp( -5 * ( t - T_UNPLUG ) ) * Math.sin( ( t - T_UNPLUG ) * 18 ) : 0;
+		const dx = 150 * out, dy = 10 * out + 14 * sway;
+		plug.setAttribute( 'transform', `translate(${ 1690 + dx } ${ 808 + dy }) scale(1.25) rotate(${ -4 * sway } 40 0) translate(-1690 -808)` );
+		const x0 = 1690 + 88 * 1.25 + dx, y0 = 808 + dy;
+		cable.setAttribute( 'd', `M${ x0 } ${ y0 } C ${ x0 + 70 } ${ y0 + 4 }, ${ 1900 + 20 * sway } ${ 900 }, ${ 1960 } ${ 1120 }` );
+		spark.style.opacity = String( t >= T_UNPLUG && t < T_UNPLUG + 0.18 ? 1 - ( t - T_UNPLUG ) / 0.18 : 0 );
+		const jiggle = t > T_UNPLUG ? Math.exp( -9 * ( t - T_UNPLUG ) ) * Math.sin( ( t - T_UNPLUG ) * 40 ) * 2.5 : 0;
+
+		// Camera: establish, then push onto the run button, then drive through.
+		const bx = SCR.x + ( RUN.x + RUN.w / 2 ) * SCR.k;
+		const by = SCR.y + ( RUN.y + RUN.h / 2 ) * SCR.k;
+		const z = kf( t, [ [ 0, 1.14 ], [ 0.42, 1.16, E.linear ], [ 1.32, 3.2, E.inOutCubic ], [ 2.6, 3.34, E.linear ], [ 3.0, 4.3, E.inQuad ] ] );
+		const p = prog( t, 0.42, 1.32, E.inOutCubic );
+		const fx = lerp( 960, 960, p ), fy = lerp( 540, 560, p );
+		const cx = lerp( 1050, bx, p ), cy = lerp( 536, by, p );
+		world.style.transform = `translate(${ fx - cx * z + jiggle }px, ${ fy - cy * z }px) scale(${ z })`;
+
+		// Cursor (page space on the laptop screen): enters, clicks Start.
+		const target = [ RUN.x + RUN.w * 0.62, RUN.y + RUN.h * 0.58 ];
+		const [ px, py ] = kf( t, [
+			[ 0.9, [ target[ 0 ] + 300, target[ 1 ] + 120 ] ],
+			[ 1.48, target, E.outCubic ],
+			[ 2.2, target ],
+			[ 3.0, [ target[ 0 ] + 10, target[ 1 ] + 4 ], E.inOutSine ],
+		] );
+		tf( cur, { x: px - 5, y: py - 2.5, s: t >= T_CLICK && t < T_CLICK + 0.14 ? 0.88 : 1, o: prog( t, 0.85, 1.0 ) } );
+		rip( px, py, t - T_CLICK, 1.3 );
+	},
+} );
+</script>
+</body>
+</html>

@@ -1,0 +1,50 @@
+<!doctype html>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../lib/stage.css">
+<script src="../lib/stage.js"></script>
+<script src="../lib/cockpit.js"></script>
+<div id="stage"></div>
+<svg width="0" height="0" style="position:absolute"><filter id="whip" x="-20%" y="0" width="140%" height="100%"><feGaussianBlur id="whipblur" stdDeviation="0 0"/></filter></svg>
+<script>
+// S08 · It moves on (3.0 s). VO "And moves on when it gets bored." at +0.30; bark at +0.50;
+// click on a card at +2.15; whip whoosh at +2.60.
+const st = S.$( '#stage' );
+st.style.background = '#fff';
+const scr = Cockpit.screen( st, { plate: 'cockpit-compact-A-y0.png', page: 'page-4.png', scroll: 0 } );
+// Tilt-shift: the "Breaking & recent" row (fictional headlines naming real brands) stays soft.
+const soft = Cockpit.el( 'div', '', scr.viewport, 'position:absolute;left:0;top:0;width:1920px;height:992px;-webkit-mask-image:linear-gradient(180deg, transparent 0, transparent 596px, #000 660px);mask-image:linear-gradient(180deg, transparent 0, transparent 596px, #000 660px)' );
+const softImg = Cockpit.el( 'img', '', soft, 'position:absolute;left:0;top:0;width:1920px;filter:blur(7px)' );
+softImg.src = '../../plates/page-4.png';
+// The next page waits off to the right, then whips in.
+const next = Cockpit.el( 'div', '', scr.viewport, 'position:absolute;left:0;top:0;width:1920px;height:992px;overflow:hidden;background:#fff;transform:translate3d(1920px,0,0)' );
+const nextImg = Cockpit.el( 'img', '', next, 'position:absolute;left:0;top:0;width:1920px' );
+nextImg.src = '../../plates/page-2.png';
+const pageLayer = scr.page;
+const blur = S.$( '#whipblur' );
+const bark = Cockpit.bark( scr.over, 'moveOn' );
+const arrow = S.cursor( scr.over, 'arrow', 30 );
+const rip = S.ripple( scr.over );
+const word = Cockpit.swipeWord( st, 'Moves on', { x: 120, y: 836, size: 150 } );
+const CARD = { x: 796, y: Cockpit.TOPBAR + 494 };
+S.scene( {
+	dur: 3.0,
+	render( t ) {
+		const x = S.kf( t, [ [ 0, 1320 ], [ 0.7, CARD.x + 60, S.E.outCubic ], [ 1.9, CARD.x + 20, S.E.inOutSine ], [ 2.15, CARD.x, S.E.inOutQuad ] ] );
+		const y = S.kf( t, [ [ 0, 820 ], [ 0.7, CARD.y + 20, S.E.outCubic ], [ 1.9, CARD.y + 6, S.E.inOutSine ], [ 2.15, CARD.y, S.E.inOutQuad ] ] );
+		S.tf( arrow, { x: x - 5, y: y - 2.5, s: t >= 2.15 && t < 2.28 ? 0.86 : 1, o: 1 - S.prog( t, 2.5, 2.6 ) } );
+		rip( x, y, t - 2.15, 1.4 );
+		bark( S.prog( t, 0.48, 0.94 ) );
+		// Whip: current page slides out left, next page slides in, with directional blur.
+		const w = S.prog( t, 2.42, 3.0, S.E.inOutQuint );
+		const dx = -1920 * w;
+		const vel = Math.sin( Math.PI * w );
+		pageLayer.style.transform = `translate3d(${ dx }px, 0, 0)`;
+		softImg.style.transform = `translate3d(${ dx }px, 0, 0)`;
+		next.style.transform = `translate3d(${ 1920 + dx }px, 0, 0)`;
+		blur.setAttribute( 'stdDeviation', `${ ( 60 * vel ).toFixed( 1 ) } 0` );
+		scr.viewport.style.filter = vel > 0.02 ? 'url(#whip)' : 'none';
+		Cockpit.camera( scr, { cx: S.kf( t, [ [ 0, 960 ], [ 3, 900, S.E.inOutSine ] ] ), cy: 400, z: S.kf( t, [ [ 0, 1.2 ], [ 3, 1.3, S.E.inOutSine ] ] ), sy: 450 } );
+		word( S.prog( t, 0.3, 1.02 ) );
+	},
+} );
+</script>

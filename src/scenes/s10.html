@@ -1,0 +1,165 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<!-- S10 Your own pages: the real Settings screen (2× plates). Click Add on the
+     staged post (+1.00): it flies into the sequence as #6. Then (+2.40) the
+     real dnd-kit drag: lift, rows reflow, drop at #2. Gentle push-in. -->
+<link rel="stylesheet" href="../lib/stage.css">
+<style>
+	#cam { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; }
+	.p { position: absolute; background-repeat: no-repeat; }
+	.spr { position: absolute; left: 0; top: 0; transform-origin: 50% 50%; }
+	#cam .cursor, #cam .ripple { z-index: 50; }
+	#sup { position: absolute; left: 110px; top: 912px; padding: 18px 40px 24px; font-size: 68px; z-index: 60; }
+</style>
+<script src="../lib/stage.js"></script>
+<script src="admin/settings-geo.js"></script>
+</head>
+<body>
+<div id="stage">
+	<div id="cam"></div>
+	<div id="sup" class="super pill">Your posts &amp; pages, too</div>
+</div>
+<script>
+const { E, prog, kf, tf, lerp, clamp } = S;
+const G = window.SETTINGS_GEO;
+const PL = '../../plates/';
+const cam = S.$( '#cam' );
+
+/** A region of a 2× plate, shown at CSS-pixel scale. */
+function patch( plate, r, z = 1 ) {
+	const d = document.createElement( 'div' );
+	d.className = 'p';
+	Object.assign( d.style, {
+		left: `${ r.x }px`, top: `${ r.y }px`, width: `${ r.w }px`, height: `${ r.h }px`, zIndex: String( z ),
+		backgroundImage: `url(${ PL }${ plate })`, backgroundSize: '1920px 1080px', backgroundPosition: `${ -r.x }px ${ -r.y }px`,
+	} );
+	cam.appendChild( d );
+	return d;
+}
+function sprite( file, w, h, z ) {
+	const i = document.createElement( 'img' );
+	i.src = `${ PL }${ file }`;
+	i.className = 'spr';
+	i.style.width = `${ w }px`;
+	i.style.height = `${ h }px`;
+	i.style.zIndex = String( z );
+	cam.appendChild( i );
+	return i;
+}
+const R = G.after.rows; // slots 1..6 (index 0..5)
+const SEL = G.before.selected;
+const pitch = R[ 1 ].y - R[ 0 ].y;
+const listBox = { x: SEL.x + 2, y: R[ 0 ].y - 6, w: SEL.w - 4, h: R[ 5 ].y + R[ 5 ].h - R[ 0 ].y + 14 };
+
+const base = patch( 'settings-before.png', { x: 0, y: 0, w: 1920, h: 1080 }, 1 );
+const btnAdded = patch( 'settings-after.png', { x: G.before.addBtn.x - 6, y: G.before.addBtn.y - 6, w: G.before.addBtn.w + 12, h: G.before.addBtn.h + 12 }, 3 );
+const selAfter = patch( 'settings-after.png', SEL, 4 );
+const listNoRows = patch( 'settings-after-norows.png', listBox, 5 );
+const selDone = patch( 'settings-after-drag.png', SEL, 7 );
+const browseGhost = patch( 'settings-before.png', G.before.browseRow, 9 );
+const rows = [ 1, 2, 3, 4, 5, 6 ].map( ( n ) => sprite( `settings-row-${ n }.png`, R[ n - 1 ].w, R[ n - 1 ].h, 6 ) );
+const pad = G.drag.overlayPad;
+const O = G.drag.overlay;
+const overlay = sprite( 'settings-drag-overlay.png', O.w + pad * 2, O.h + pad * 2, 8 );
+const P = G.drag.placeholder;
+const placeholder = sprite( 'settings-drag-placeholder.png', P.w, P.h, 6 );
+const fly = sprite( 'settings-row-6.png', R[ 5 ].w, R[ 5 ].h, 10 );
+const cur = S.cursor( cam, 'arrow', 24 );
+const rip = S.ripple( cam );
+
+const T_ADD = 1.0, T_LAND = 1.56, T_PRESS = 2.4, T_LIFT = 2.52, T_DROP = 3.06, T_SETTLE = 3.22;
+const show = ( el, on ) => ( el.style.visibility = on ? 'visible' : 'hidden' );
+const place = ( el, x, y, { s = 1, r = 0, o = 1 } = {} ) => {
+	el.style.transform = `translate(${ x }px, ${ y }px) rotate(${ r }deg) scale(${ s })`;
+	el.style.opacity = String( o );
+};
+
+S.scene( {
+	dur: 127 / 30,
+	assets: [ 'settings-before.png', 'settings-after.png', 'settings-after-norows.png', 'settings-after-drag.png' ].map( ( f ) => PL + f ),
+	render( t ) {
+		// Camera: a gentle push toward the two panels.
+		const z = kf( t, [ [ 0, 1.0 ], [ 4.24, 1.13, E.inOutSine ] ] );
+		const cx = 1062, cy = 600;
+		cam.style.transform = `translate(${ cx * ( 1 - z ) }px, ${ cy * ( 1 - z ) }px) scale(${ z })`;
+
+		// Add: the button flips to "Added"; a lifted copy flies into slot 6.
+		show( btnAdded, t >= T_ADD + 0.06 );
+		const f = prog( t, T_ADD + 0.04, T_LAND, E.inOutCubic );
+		const flying = t >= T_ADD + 0.04 && t < T_LAND;
+		show( fly, flying );
+		show( browseGhost, flying );
+		if ( flying ) {
+			const sx = G.before.browseRow.x, sy = G.before.browseRow.y;
+			const x = lerp( sx, R[ 5 ].x, f ), y = lerp( sy, R[ 5 ].y, f ) - Math.sin( f * Math.PI ) * 46;
+			const lift = Math.sin( f * Math.PI );
+			place( fly, x, y, { s: 1 + 0.03 * lift, o: prog( t, T_ADD + 0.04, T_ADD + 0.2 ) } );
+			fly.style.boxShadow = `0 ${ 10 + 18 * lift }px ${ 24 + 26 * lift }px -10px rgba(31,58,95,${ 0.18 + 0.22 * lift })`;
+			fly.style.borderRadius = '9px';
+			fly.style.background = '#fff';
+			place( browseGhost, 0, 0, { o: 1 - prog( t, T_ADD + 0.04, T_ADD + 0.22 ) } );
+		}
+		show( selAfter, t >= T_LAND && t < T_SETTLE );
+
+		// Drag: lift row 6, carry it to slot 2 while rows 2–5 reflow down.
+		const dragging = t >= T_PRESS && t < T_SETTLE;
+		show( listNoRows, dragging );
+		rows.forEach( ( r ) => show( r, dragging ) );
+		show( overlay, dragging );
+		show( placeholder, dragging );
+		show( selDone, t >= T_SETTLE - 0.1 );
+		selDone.style.opacity = String( prog( t, T_SETTLE - 0.1, T_SETTLE ) );
+		if ( dragging ) {
+			const lift = prog( t, T_PRESS, T_LIFT, E.outCubic );
+			const travel = prog( t, T_LIFT, T_DROP, E.inOutCubic );
+			const settle = prog( t, T_DROP, T_SETTLE, E.outCubic );
+			const yTop = lerp( R[ 5 ].y, R[ 1 ].y, travel );
+			const yCenter = yTop + R[ 5 ].h / 2;
+			// Rows 2..5 (index 1..4) slide down one pitch as the overlay's centre
+			// approaches their middle, finishing as it gets there.
+			let moved = 0;
+			for ( let k = 0; k < 5; k++ ) {
+				let dy = 0;
+				if ( k >= 1 ) {
+					const crossT = R[ k ].y + R[ k ].h / 2;
+					const q = E.inOutQuad( clamp( ( crossT + 30 - yCenter ) / 30 ) );
+					moved += q;
+					dy = pitch * q;
+				}
+				place( rows[ k ], R[ k ].x, R[ k ].y + dy );
+			}
+			show( rows[ 5 ], false );
+			// The dashed placeholder glides up into the gap the rows open.
+			const phY = R[ 5 ].y - pitch * moved + ( P.y - G.drag.rowsMid[ 5 ].y );
+			place( placeholder, P.x, phY, { o: 1 - settle } );
+			// The real tilted overlay, settling flat into slot 2 on drop.
+			const ox = O.x - pad, oyMid = O.y - pad;
+			const dyOverlay = yTop - G.drag.rowsMid[ 5 ].y;
+			const dropTo = R[ 1 ].y - G.drag.rowsMid[ 5 ].y;
+			place( overlay, ox, oyMid + lerp( dyOverlay, dropTo, settle ), { o: lerp( lift, 1, settle ), r: -2.5 * settle, s: 1 - 0.02 * settle } );
+		}
+
+		// Cursor: to Add, click; to the handle, press, carry, release.
+		const add = [ G.before.addBtn.x + G.before.addBtn.w * 0.55, G.before.addBtn.y + G.before.addBtn.h * 0.62 ];
+		const hd = [ G.drag.handle.x + G.drag.handle.w / 2, G.drag.handle.y + G.drag.handle.h / 2 ];
+		const carryY = lerp( hd[ 1 ], hd[ 1 ] - ( R[ 5 ].y - R[ 1 ].y ), prog( t, T_LIFT, T_DROP, E.inOutCubic ) );
+		const [ px, py ] = t < T_PRESS
+			? kf( t, [ [ 0, [ add[ 0 ] + 330, add[ 1 ] + 230 ] ], [ 0.9, add, E.inOutCubic ], [ 1.55, add ], [ 2.3, hd, E.inOutCubic ] ] )
+			: t < T_DROP
+				? [ hd[ 0 ], carryY ]
+				: kf( t, [ [ T_DROP, [ hd[ 0 ], carryY ] ], [ 4.24, [ hd[ 0 ] + 70, carryY + 60 ], E.inOutSine ] ] );
+		const pressed = ( t >= T_ADD && t < T_ADD + 0.12 ) || ( t >= T_PRESS && t < T_DROP + 0.04 );
+		tf( cur, { x: px - 4, y: py - 2, s: pressed ? 0.88 : 1 } );
+		if ( t < T_PRESS - 0.2 ) rip( px, py, t - T_ADD, 0.9 );
+		else rip( px, py, t - T_PRESS, 0.7 );
+
+		// Super.
+		const sp = prog( t, 0.4, 0.9, E.outCubic );
+		tf( S.$( '#sup' ), { y: ( 1 - sp ) * 50, o: prog( t, 0.4, 0.7 ) } );
+	},
+} );
+</script>
+</body>
+</html>

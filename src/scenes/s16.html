@@ -1,0 +1,115 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>s16 · End card</title>
+<link rel="stylesheet" href="../lib/stage.css">
+<script src="../lib/stage.js"></script>
+<script src="mg/mascot.js"></script>
+<script src="mg/seascape.js"></script>
+<style>
+	#sea, #fx { position: absolute; left: 0; top: 0; }
+	#mascot { position: absolute; left: 0; top: 0; transform-origin: 50% 100%; }
+	#word { position: absolute; left: 0; top: 0; width: 1920px; text-align: center; font-family: var(--display); font-size: 136px; line-height: 1; color: var(--navy); letter-spacing: 0.012em; white-space: nowrap; }
+	#free { position: absolute; left: 0; top: 0; padding: 18px 46px 19px; font: 800 34px/1 var(--ui); letter-spacing: 0.16em; color: var(--navy); white-space: nowrap; transform-origin: 50% 50%; }
+	#fine { position: absolute; left: 0; top: 0; width: 1920px; text-align: center; font: 600 27px/1.3 var(--ui); color: #ffffff; text-shadow: 0 1px 10px rgba(16, 70, 90, 0.35); white-space: nowrap; }
+</style>
+<div id="stage">
+	<svg id="sea"></svg>
+	<div id="mascot"></div>
+	<div id="word">BATTERY SURF BENCH</div>
+	<div class="pill" id="free">FREE WORDPRESS PLUGIN</div>
+	<div id="fine">Requires a Chromium-based browser (Chrome, Edge, Opera…) on a battery-powered device · WordPress 7.0+</div>
+	<svg id="fx" width="1920" height="1080" viewBox="0 0 1920 1080"></svg>
+</div>
+<script>
+	const { E, prog, kf, tf, $, clamp, lerp } = S;
+	const NS = 'http://www.w3.org/2000/svg';
+	const HORIZON = 830;
+	const sea = buildSeascape( $( '#sea' ), { horizon: HORIZON, sunX: 960, sunR: 330, glowR: 680, seed: 23, sparkles: 280 } );
+	const MW = 600;
+	const M = buildMascot( $( '#mascot' ), MW );
+	const MH = MW * ( 1554 / 2346 );
+	const mk = ( tag, attrs, parent = $( '#fx' ) ) => {
+		const el = document.createElementNS( NS, tag );
+		for ( const k in attrs ) el.setAttribute( k, attrs[ k ] );
+		parent.appendChild( el );
+		return el;
+	};
+	// The cockpit's shark-fin wink, cruising through the sea and diving.
+	// The fin lives in a world-space clip so it really sinks below the waterline.
+	$( '#fx' ).insertAdjacentHTML( 'afterbegin', '<defs><clipPath id="waterline"><rect x="0" y="0" width="1920" height="949"/></clipPath></defs>' );
+	const finG = mk( 'g', { 'clip-path': 'url(#waterline)' } );
+	const fin = mk( 'path', { d: 'M-34 0 Q-14 -10 2 -54 Q10 -26 34 0 Z', fill: '#2a4a6f' }, finG );
+	const wake = [ 0, 1, 2 ].map( ( k ) => mk( 'path', { fill: 'none', stroke: '#ffffff', 'stroke-width': 4 - k, 'stroke-linecap': 'round' } ) );
+	const rnd = S.rng( 58 );
+	const splash = Array.from( { length: 16 }, () => ( { a: -Math.PI * ( 0.15 + rnd() * 0.7 ), v: 160 + rnd() * 260, r: 2.5 + rnd() * 4.5, el: mk( 'circle', { fill: '#ffffff' } ) } ) );
+	const diveSplash = Array.from( { length: 10 }, () => ( { a: -Math.PI * ( 0.2 + rnd() * 0.6 ), v: 110 + rnd() * 170, r: 2 + rnd() * 3.5, el: mk( 'circle', { fill: '#ffffff' } ) } ) );
+	// A long swim, like the cockpit's own fin: surface on the left with a splash,
+	// cruise right with a bob and a wake, then dive.
+	const FIN_X0 = 200, FIN_X1 = 1700, FIN_Y = 946, UP = 0.85, CRUISE = 1.15, DIVE = 4.0, GONE = 4.35;
+	const finAt = ( tt ) => {
+		if ( tt < UP || tt >= GONE ) return null;
+		const up = E.outBack( prog( tt, UP, CRUISE ), 1.6 ), down = E.inCubic( prog( tt, DIVE, GONE ) );
+		return {
+			x: FIN_X0 + ( FIN_X1 - FIN_X0 ) * E.inOutSine( prog( tt, UP, GONE ) ),
+			y: FIN_Y + 60 * ( 1 - up ) + 70 * down + 3 * Math.sin( tt * 7 ),
+			r: 2.5 * Math.sin( tt * 3.4 ),
+		};
+	};
+	let freeW = 0;
+	S.scene( {
+		dur: 4.5,
+		setup() {
+			freeW = $( '#free' ).getBoundingClientRect().width;
+		},
+		render( t ) {
+			// The sea swells up into place; the sun climbs to rest.
+			const rise = prog( t, 0, 0.95, E.outCubic );
+			sea.update( t + 5, { sunLift: 70 * ( 1 - prog( t, 0, 1.3, E.outCubic ) ), seaRise: 280 * ( 1 - rise ) } );
+
+			const m = prog( t, 0.22, 0.78 );
+			const bob = 6 * Math.sin( ( t - 0.78 ) * 2.6 ) * clamp( ( t - 0.6 ) / 0.6 );
+			tf( $( '#mascot' ), { x: 960 - MW / 2, y: 92 + 46 * ( 1 - E.outBack( m, 1.5 ) ) + bob, s: 0.9 + 0.1 * E.outCubic( m ), o: clamp( m * 3 ) } );
+			const w = prog( t, 0.45, 0.95 );
+			tf( $( '#word' ), { y: 516 + 60 * ( 1 - E.outBack( w, 1.3 ) ), o: clamp( w * 3 ) } );
+			const f = prog( t, 0.72, 1.15 );
+			tf( $( '#free' ), { x: 960 - freeW / 2, y: 690, s: f <= 0 ? 0.001 : 0.7 + 0.3 * E.outBack( f, 2.4 ), o: clamp( f * 4 ) } );
+			const fp = prog( t, 0.98, 1.45, E.outCubic );
+			tf( $( '#fine' ), { y: 984 + 16 * ( 1 - fp ), o: fp } );
+
+			// Fin wink: a long swim across the end card; gone before the final frames.
+			const now = finAt( t );
+			const fo = now ? 1 : 0;
+			const fx = now ? now.x : FIN_X0, fy = now ? now.y : FIN_Y + 60;
+			fin.setAttribute( 'transform', `translate(${ fx } ${ fy }) rotate(${ now ? now.r : 0 })` );
+			fin.setAttribute( 'opacity', fo );
+			wake.forEach( ( p, k ) => {
+				const on = fo * clamp( ( t - UP - 0.12 ) / 0.2 ) * ( 1 - prog( t, DIVE + 0.1, GONE ) );
+				const len = 90 + 50 * k;
+				p.setAttribute( 'd', `M${ fx - 30 - len } ${ FIN_Y + 2 + k * 6 } Q${ fx - 30 - len / 2 } ${ FIN_Y - 4 + k * 6 } ${ fx - 26 } ${ FIN_Y + k * 4 }` );
+				p.setAttribute( 'opacity', ( on * ( 0.75 - k * 0.2 ) ).toFixed( 3 ) );
+			} );
+			for ( const s of splash ) {
+				const dt = t - UP;
+				if ( dt < 0 || dt > 0.6 ) {
+					s.el.setAttribute( 'r', 0 );
+					continue;
+				}
+				s.el.setAttribute( 'cx', FIN_X0 + Math.cos( s.a ) * s.v * dt );
+				s.el.setAttribute( 'cy', FIN_Y + Math.sin( s.a ) * s.v * dt + 0.5 * 1500 * dt * dt );
+				s.el.setAttribute( 'r', s.r * ( 1 - dt / 0.6 ) );
+			}
+			// A smaller splash where it dives.
+			const dp = finAt( DIVE + 0.12 );
+			for ( const s of diveSplash ) {
+				const dt = t - ( DIVE + 0.12 );
+				if ( ! dp || dt < 0 || dt > 0.33 ) {
+					s.el.setAttribute( 'r', 0 );
+					continue;
+				}
+				s.el.setAttribute( 'cx', dp.x + Math.cos( s.a ) * s.v * dt );
+				s.el.setAttribute( 'cy', FIN_Y + Math.sin( s.a ) * s.v * dt + 0.5 * 1500 * dt * dt );
+				s.el.setAttribute( 'r', s.r * ( 1 - dt / 0.33 ) );
+			}
+		},
+	} );
+</script>

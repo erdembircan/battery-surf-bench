@@ -1,0 +1,142 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>s04 · The timer test</title>
+<link rel="stylesheet" href="../lib/stage.css">
+<script src="../lib/stage.js"></script>
+<style>
+	/* Deliberately gray: the plugin's palette drained of color. */
+	#stage { background: #e9ecee; --g-ink: #4d555c; --g-mid: #8d969d; --g-light: #c8cfd4; --g-paper: #f6f7f8; }
+	#grid { position: absolute; inset: 0; background-image: radial-gradient(#cdd3d7 1.6px, transparent 1.8px); background-size: 36px 36px; opacity: 0.8; }
+	#title { position: absolute; left: 0; top: 70px; width: 1920px; text-align: center; font-family: var(--display); font-size: 92px; letter-spacing: 0.02em; color: var(--g-ink); white-space: nowrap; }
+	#title span { opacity: 0; }
+	#watch { position: absolute; left: 0; top: 0; }
+	.page { position: absolute; left: 1010px; top: 300px; width: 470px; height: 600px; background: var(--g-paper); border: 4px solid var(--g-ink); border-radius: 14px; transform-origin: 50% 0; backface-visibility: hidden; overflow: hidden; }
+	.page .bar { position: absolute; left: 0; right: 0; top: 0; height: 52px; background: var(--g-light); border-bottom: 4px solid var(--g-ink); }
+	.page .dot { position: absolute; top: 17px; width: 14px; height: 14px; border-radius: 50%; background: var(--g-mid); }
+	.page .hero { position: absolute; left: 34px; right: 34px; top: 88px; height: 170px; background: var(--g-light); border-radius: 8px; }
+	.page .ln { position: absolute; left: 34px; height: 16px; border-radius: 8px; background: var(--g-light); }
+	#steps { position: absolute; left: 1010px; top: 930px; width: 470px; display: flex; justify-content: space-between; font: 700 30px var(--mono); color: var(--g-mid); }
+	#steps b { font-weight: 700; }
+	#prog { position: absolute; left: 1010px; top: 988px; width: 470px; height: 10px; border-radius: 5px; background: var(--g-light); overflow: hidden; }
+	#prog i { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: var(--g-ink); }
+	#tint { position: absolute; left: 0; top: 0; }
+</style>
+<div id="stage">
+	<div id="grid"></div>
+	<div id="title"><span>TYPICAL TEST:</span> <span>LOAD</span> <span>·</span> <span>WAIT</span> <span>·</span> <span>REPEAT</span></div>
+	<svg id="watch" width="1920" height="1080" viewBox="0 0 1920 1080"></svg>
+	<div id="pages"></div>
+	<div id="steps"><b>LOAD</b><span>→</span><b>WAIT</b><span>→</span><b>NEXT</b></div>
+	<div id="prog"><i></i></div>
+	<svg id="tint" width="1920" height="1080" viewBox="0 0 1920 1080"></svg>
+</div>
+<script>
+	const { E, prog, tf, $, $$, clamp } = S;
+	const NS = 'http://www.w3.org/2000/svg';
+	const mk = ( tag, attrs, parent ) => {
+		const el = document.createElementNS( NS, tag );
+		for ( const k in attrs ) el.setAttribute( k, attrs[ k ] );
+		parent.appendChild( el );
+		return el;
+	};
+	// ── Stopwatch ─────────────────────────────────────────────────────────────
+	const W = $( '#watch' ), CX = 590, CY = 610, R = 232;
+	mk( 'rect', { x: CX - 34, y: CY - R - 74, width: 68, height: 42, rx: 8, fill: '#c8cfd4', stroke: '#4d555c', 'stroke-width': 8 }, W );
+	mk( 'rect', { x: CX - 14, y: CY - R - 34, width: 28, height: 30, fill: '#4d555c' }, W );
+	const sideBtn = mk( 'rect', { x: 0, y: 0, width: 46, height: 30, rx: 7, fill: '#c8cfd4', stroke: '#4d555c', 'stroke-width': 7 }, W );
+	sideBtn.setAttribute( 'transform', `rotate(42 ${ CX } ${ CY }) translate(${ CX - 23 } ${ CY - R - 44 })` );
+	mk( 'circle', { cx: CX, cy: CY, r: R + 18, fill: '#c8cfd4', stroke: '#4d555c', 'stroke-width': 14 }, W );
+	mk( 'circle', { cx: CX, cy: CY, r: R - 6, fill: '#f6f7f8' }, W );
+	for ( let k = 0; k < 60; k++ ) {
+		const a = ( k / 60 ) * Math.PI * 2, major = k % 5 === 0;
+		const r1 = R - 20, r2 = R - ( major ? 58 : 36 );
+		mk( 'line', { x1: CX + r1 * Math.sin( a ), y1: CY - r1 * Math.cos( a ), x2: CX + r2 * Math.sin( a ), y2: CY - r2 * Math.cos( a ), stroke: major ? '#4d555c' : '#8d969d', 'stroke-width': major ? 7 : 3.5, 'stroke-linecap': 'round' }, W );
+	}
+	const sweep = mk( 'path', { fill: 'rgba(77,85,92,0.12)' }, W );
+	const hand = mk( 'g', {}, W );
+	mk( 'line', { x1: CX, y1: CY + 46, x2: CX, y2: CY - R + 44, stroke: '#4d555c', 'stroke-width': 9, 'stroke-linecap': 'round' }, hand );
+	mk( 'circle', { cx: CX, cy: CY, r: 20, fill: '#4d555c' }, W );
+	mk( 'circle', { cx: CX, cy: CY, r: 8, fill: '#c8cfd4' }, W );
+	const label = mk( 'text', { x: CX, y: CY + 116, 'text-anchor': 'middle', 'font-family': 'Space Mono', 'font-weight': 700, 'font-size': 44, fill: '#4d555c' }, W );
+
+	// ── Identical pages ───────────────────────────────────────────────────────
+	function page() {
+		const p = document.createElement( 'div' );
+		p.className = 'page';
+		let h = '<div class="bar">' + [ 22, 46, 70 ].map( ( x ) => `<span class="dot" style="left:${ x }px"></span>` ).join( '' ) + '</div><div class="hero"></div>';
+		[ 296, 336, 376, 416, 470, 510, 550 ].forEach( ( y, i ) => {
+			h += `<span class="ln" style="top:${ y }px;width:${ [ 380, 330, 395, 250, 370, 310, 200 ][ i ] }px"></span>`;
+		} );
+		p.innerHTML = h;
+		$( '#pages' ).appendChild( p );
+		return p;
+	}
+	const back2 = page(), back1 = page(), top0 = page(), flipper = page();
+	tf( back2, { x: 26, y: 26 } );
+	tf( back1, { x: 13, y: 13 } );
+
+	const FLIPS = [ 0.5, 1.5, 2.5, 3.5 ];
+	const FLIP_DUR = 0.15;
+	const BEAT = 0.5;
+	const words = $$( '#title span' );
+	const WORD_AT = [ 0, 0.5, 1.0, 1.0, 1.5, 1.5 ];
+	const steps = $$( '#steps b' );
+	const tint = $( '#tint' );
+	const tintGlow = mk( 'circle', { cx: -40, cy: 120, r: 620, fill: 'url(#tglow)' }, tint );
+	tint.insertAdjacentHTML( 'afterbegin', '<defs><radialGradient id="tglow" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#ffe6a6" stop-opacity="0.9"/><stop offset="1" stop-color="#ffe6a6" stop-opacity="0"/></radialGradient></defs>' );
+	const tintBands = [ [ '#9ad9ea', 0 ], [ '#2f9bb3', 46 ], [ '#1c7e96', 120 ] ].map( ( [ fill, off ] ) => ( { el: mk( 'path', { fill }, tint ), off } ) );
+
+	S.scene( {
+		dur: 4,
+		render( t ) {
+			// Metronome hand: jumps 30° on every beat, stiff snap with a 2-frame shudder.
+			const beat = Math.floor( t / BEAT + 1e-6 );
+			const since = t - beat * BEAT;
+			const shudder = since < 0.1 ? Math.sin( since * 90 ) * 3 * ( 1 - since / 0.1 ) : 0;
+			const ang = ( beat * 30 + shudder ) % 360;
+			hand.setAttribute( 'transform', `rotate(${ ang } ${ CX } ${ CY })` );
+			const a = ( ang * Math.PI ) / 180, rr = R - 70;
+			sweep.setAttribute( 'd', ang < 0.5 ? '' : `M${ CX } ${ CY } L${ CX } ${ CY - rr } A${ rr } ${ rr } 0 ${ ang > 180 ? 1 : 0 } 1 ${ CX + rr * Math.sin( a ) } ${ CY - rr * Math.cos( a ) } Z` );
+			label.textContent = `00:${ String( ( beat * 5 ) % 60 ).padStart( 2, '0' ) }`;
+			// Side button presses on each beat.
+			const press = since < 0.08 ? 6 : 0;
+			sideBtn.setAttribute( 'transform', `rotate(42 ${ CX } ${ CY }) translate(${ CX - 23 } ${ CY - R - 44 + press })` );
+
+			// Page flips: the top page flips up and over on a fixed cadence; the next is identical.
+			let flipP = -1, lastFlip = -1;
+			for ( const f of FLIPS ) {
+				if ( t >= f ) lastFlip = f;
+				if ( t >= f && t < f + FLIP_DUR ) flipP = ( t - f ) / FLIP_DUR;
+			}
+			if ( flipP >= 0 ) {
+				const ang2 = -100 * E.inQuad( flipP );
+				flipper.style.transform = `perspective(1700px) rotateX(${ ang2 }deg)`;
+				flipper.style.opacity = flipP < 0.9 ? 1 : 0;
+			} else {
+				flipper.style.transform = 'none';
+				flipper.style.opacity = 0;
+			}
+			// A small clunk as each page lands.
+			const clunk = FLIPS.reduce( ( m, f ) => ( t >= f + FLIP_DUR && t < f + FLIP_DUR + 0.12 ? Math.sin( ( t - f - FLIP_DUR ) * 80 ) * 4 * ( 1 - ( t - f - FLIP_DUR ) / 0.12 ) : m ), 0 );
+			tf( top0, { y: clunk } );
+			// LOAD → WAIT → NEXT, in lockstep with the flips.
+			const nextFlip = FLIPS.find( ( f ) => f > t ) ?? 4.1;
+			const phase = lastFlip < 0 ? ( t < 0.38 ? 1 : 2 ) : t - lastFlip < 0.16 ? 0 : nextFlip - t < 0.14 ? 2 : 1;
+			steps.forEach( ( s, i ) => ( s.style.color = i === phase ? '#4d555c' : '#aab2b8' ) );
+			const from = lastFlip < 0 ? 0 : lastFlip + 0.16, to = nextFlip - 0.14;
+			$( '#prog i' ).style.width = `${ 100 * clamp( ( t - from ) / ( to - from ) ) }%`;
+			// Super snaps in word by word on the beats.
+			words.forEach( ( w, i ) => ( w.style.opacity = t >= WORD_AT[ i ] ? 1 : 0 ) );
+
+			// Hand-off: color and a wave creep in from the left in the last 0.4 s.
+			const c = prog( t, 3.48, 4.0, E.inCubic );
+			tintGlow.setAttribute( 'opacity', ( 0.85 * c ).toFixed( 3 ) );
+			for ( const b of tintBands ) {
+				const base = -260 + 500 * c - b.off;
+				let d = `M-300 -40 L${ base } -40`;
+				for ( let y = -40; y <= 1120; y += 20 ) d += ` L${ ( base + 30 * Math.sin( y / 70 + t * 9 + b.off ) + 18 * Math.sin( y / 23 - t * 12 ) ).toFixed( 1 ) } ${ y }`;
+				b.el.setAttribute( 'd', d + ' L-300 1120 Z' );
+			}
+		},
+	} );
+</script>

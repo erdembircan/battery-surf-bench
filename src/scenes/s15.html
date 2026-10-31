@@ -1,0 +1,76 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>s15 · Private by design</title>
+<link rel="stylesheet" href="../lib/stage.css">
+<script src="../lib/stage.js"></script>
+<style>
+	#sea { position: absolute; left: 0; top: 0; }
+	#glow { position: absolute; left: 960px; top: -260px; width: 1400px; height: 900px; margin-left: -700px; border-radius: 50%; background: radial-gradient(closest-side, rgba(255, 206, 92, 0.38), rgba(255, 206, 92, 0)); }
+	.chip { position: absolute; left: 0; top: 0; height: 162px; display: flex; align-items: center; gap: 40px; padding: 0 76px 0 24px; transform-origin: 50% 50%; }
+	.chip .disc { width: 118px; height: 118px; border-radius: 50%; background: linear-gradient(150deg, #2f9bb3, #1c7e96); box-shadow: 0 8px 18px -6px rgba(28, 126, 150, 0.6); display: grid; place-items: center; flex: none; }
+	.chip svg { width: 70px; height: 70px; overflow: visible; }
+	.chip .lab { font: 700 64px/1 var(--ui); color: var(--navy); white-space: nowrap; letter-spacing: -0.005em; }
+</style>
+<div id="stage">
+	<div id="glow"></div>
+	<svg id="sea" width="1920" height="1080" viewBox="0 0 1920 1080"></svg>
+	<div id="chips"></div>
+</div>
+<script>
+	const { E, prog, tf, $, $$, clamp } = S;
+	const NS = 'http://www.w3.org/2000/svg';
+	// White line icons drawn on a 48-unit grid.
+	const ICONS = {
+		lock: [ 'M15 23 V16 a9 9 0 0 1 18 0 V23', 'M11 23 H37 V41 H11 Z', 'M24 30 V35' ],
+		signal: [ 'M24 33 m-2.4 0 a2.4 2.4 0 1 0 4.8 0 a2.4 2.4 0 1 0 -4.8 0', 'M16.5 25.5 a10.6 10.6 0 0 1 15 0', 'M10.5 19.5 a19 19 0 0 1 27 0', 'M9 41 L39 9' ],
+		house: [ 'M8 24 L24 10 L40 24', 'M13 20 V40 H35 V20', 'M21 40 V30 H27 V40' ],
+	};
+	const CHIPS = [ [ 'lock', 'Operator-only', 0.3 ], [ 'signal', 'No telemetry', 0.9 ], [ 'house', 'Saved on your site', 1.5 ] ];
+	const chips = CHIPS.map( ( [ icon, text, at ] ) => {
+		const el = document.createElement( 'div' );
+		el.className = 'chip pill';
+		const paths = ICONS[ icon ].map( ( d, i ) => `<path d="${ d }" fill="none" stroke="#fff" stroke-width="${ icon === 'signal' && i === 3 ? 4.4 : 4 }" stroke-linecap="round" stroke-linejoin="round"/>` ).join( '' );
+		el.innerHTML = `<div class="disc"><svg viewBox="0 0 48 48">${ paths }</svg></div><div class="lab">${ text }</div>`;
+		$( '#chips' ).appendChild( el );
+		return { el, at, paths: $$( 'path', el ), icon };
+	} );
+	// Low sea band along the bottom (continues into the end card's swell).
+	const bands = [ [ '#cfeef6', 0.0, 960, 16, 620 ], [ '#9ad9ea', 0.9, 992, 18, 560 ], [ '#5fb5cb', 2.1, 1030, 16, 500 ] ].map( ( [ fill, ph, y, amp, len ] ) => {
+		const p = document.createElementNS( NS, 'path' );
+		p.setAttribute( 'fill', fill );
+		$( '#sea' ).appendChild( p );
+		return { p, ph, y, amp, len };
+	} );
+	let W = 0;
+	S.scene( {
+		dur: 3.75,
+		setup() {
+			W = Math.max( ...chips.map( ( c ) => c.el.getBoundingClientRect().width ) );
+			for ( const c of chips ) {
+				c.el.style.width = `${ W }px`;
+				for ( const p of c.paths ) {
+					const L = p.getTotalLength();
+					p.style.strokeDasharray = `${ L } ${ L }`;
+					p.dataset.len = L;
+				}
+			}
+		},
+		render( t ) {
+			for ( const b of bands ) b.p.setAttribute( 'd', S.wavePath( 1920, b.y, b.amp, b.len, b.ph + t * 1.3, 1100 ) );
+			tf( $( '#glow' ), { y: 10 * Math.sin( t * 1.2 ), o: 0.9 + 0.1 * Math.sin( t * 1.7 ) } );
+			chips.forEach( ( c, i ) => {
+				const p = prog( t, c.at, c.at + 0.5 );
+				const s = p <= 0 ? 0.001 : 0.62 + 0.38 * E.outBack( p, 2.6 );
+				const float = Math.sin( ( t + i * 1.3 ) * 1.9 ) * 4 * clamp( p * 2 );
+				tf( c.el, { x: 960 - W / 2, y: 214 + i * 214 + 34 * ( 1 - E.outCubic( p ) ) + float, s, o: clamp( p * 5 ) } );
+				// The icon draws itself on just after the pop.
+				const dp = prog( t, c.at + 0.1, c.at + 0.55, E.inOutQuad );
+				c.paths.forEach( ( path, k ) => {
+					const L = +path.dataset.len;
+					const kp = clamp( dp * c.paths.length - k * 0.55 );
+					path.style.strokeDashoffset = `${ L * ( 1 - kp ) }`;
+				} );
+			} );
+		},
+	} );
+</script>

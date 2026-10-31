@@ -1,0 +1,111 @@
+<!doctype html>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../lib/stage.css">
+<script src="../lib/stage.js"></script>
+<script src="../lib/cockpit.js"></script>
+<style>
+	/* Our own clip over the bundled page's third-party YouTube player. */
+	#clip { position: absolute; left: 290px; top: 210px; width: 1340px; height: 538px; overflow: hidden; background: #0d2034; }
+	#clip svg { position: absolute; inset: 0; }
+	#clip .title { position: absolute; left: 36px; top: 28px; font: 700 26px var(--ui); color: #eaf6fb; letter-spacing: 0.01em; }
+	#clip .kicker { position: absolute; left: 36px; top: 64px; font: 700 15px var(--ui); color: var(--aqua); letter-spacing: 0.2em; text-transform: uppercase; }
+	#clip .bar { position: absolute; left: 0; right: 0; bottom: 0; height: 54px; background: linear-gradient(0deg, rgba(5, 16, 28, 0.75), rgba(5, 16, 28, 0)); }
+	#clip .track { position: absolute; left: 70px; right: 150px; bottom: 22px; height: 5px; border-radius: 3px; background: rgba(234, 246, 251, 0.25); }
+	#clip .fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; background: var(--coral); }
+	#clip .time { position: absolute; right: 26px; bottom: 13px; font: 700 17px var(--mono); color: #eaf6fb; }
+	#clip .pp { position: absolute; left: 26px; bottom: 14px; width: 22px; height: 22px; }
+	#play { position: absolute; left: 50%; top: 50%; width: 132px; height: 132px; margin: -66px 0 0 -66px; border-radius: 50%; background: rgba(255, 255, 255, 0.95); box-shadow: 0 18px 40px -12px rgba(0, 0, 0, 0.5); }
+	#play::after { content: ''; position: absolute; left: 52px; top: 38px; border-left: 44px solid var(--teal-deep); border-top: 28px solid transparent; border-bottom: 28px solid transparent; }
+</style>
+<div id="stage"></div>
+<script>
+// S06 · It watches (2.5 s). VO "Watches." at +0.30; click at +0.40; bark at +0.70.
+const st = S.$( '#stage' );
+st.style.background = '#fff';
+const scr = Cockpit.screen( st, { plate: 'cockpit-compact-A-y0.png', page: 'page-3.png', scroll: 0 } );
+// Clip lives inside the page layer so it scrolls with the page.
+const clip = Cockpit.el( 'div', '', scr.viewport, '' );
+clip.id = 'clip';
+clip.innerHTML = `
+<svg viewBox="0 0 1340 538" width="1340" height="538">
+	<defs>
+		<radialGradient id="glow" cx="0.5" cy="0.45" r="0.6"><stop offset="0" stop-color="#1c7e96" stop-opacity="0.55"/><stop offset="1" stop-color="#0d2034" stop-opacity="0"/></radialGradient>
+		<linearGradient id="cell" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#2f9bb3"/><stop offset="1" stop-color="#9ad9ea"/></linearGradient>
+	</defs>
+	<rect width="1340" height="538" fill="url(#glow)"/>
+	<g id="grid" stroke="#9ad9ea" stroke-opacity="0.08" stroke-width="1"></g>
+	<g fill="none" stroke-linecap="round" stroke-linejoin="round">
+		<path id="w1" d="M330 290 H 560 V 210 H 760" stroke="#2f9bb3" stroke-opacity="0.45" stroke-width="6"/>
+		<path id="w2" d="M330 300 H 560 V 360 H 760" stroke="#2f9bb3" stroke-opacity="0.45" stroke-width="6"/>
+		<path id="w3" d="M880 280 H 1040" stroke="#2f9bb3" stroke-opacity="0.45" stroke-width="6"/>
+		<path id="p1" d="M330 290 H 560 V 210 H 760" stroke="#ffe08a" stroke-width="6" stroke-dasharray="40 600"/>
+		<path id="p2" d="M330 300 H 560 V 360 H 760" stroke="#ffe08a" stroke-width="6" stroke-dasharray="40 600"/>
+		<path id="p3" d="M880 280 H 1040" stroke="#ff7a5c" stroke-width="6" stroke-dasharray="34 300"/>
+	</g>
+	<g transform="translate(200 210)">
+		<rect x="0" y="0" width="120" height="170" rx="18" fill="none" stroke="#eaf6fb" stroke-width="6"/>
+		<rect x="40" y="-16" width="40" height="18" rx="5" fill="#eaf6fb"/>
+		<rect id="lvl" x="12" y="12" width="96" height="146" rx="10" fill="url(#cell)"/>
+	</g>
+	<g transform="translate(760 200)">
+		<rect x="0" y="0" width="120" height="170" rx="14" fill="#14324d" stroke="#9ad9ea" stroke-width="5"/>
+		<text x="60" y="96" text-anchor="middle" font-family="Space Mono" font-weight="700" font-size="30" fill="#9ad9ea">CPU</text>
+	</g>
+	<g transform="translate(1040 200)">
+		<rect x="0" y="0" width="190" height="130" rx="10" fill="none" stroke="#eaf6fb" stroke-width="6"/>
+		<rect id="scrn" x="12" y="12" width="166" height="106" rx="4" fill="#ff7a5c" fill-opacity="0.35"/>
+		<path d="M70 150 H 120" stroke="#eaf6fb" stroke-width="6" stroke-linecap="round"/>
+	</g>
+	<g font-family="Space Mono" font-weight="700" font-size="17" fill="#9ad9ea" fill-opacity="0.85">
+		<text x="200" y="420">BATTERY</text><text x="770" y="420">SoC</text><text x="1060" y="420">DISPLAY</text>
+	</g>
+</svg>
+<div class="kicker">Video feature · Energy &amp; hardware</div>
+<div class="title">Inside a Modern Laptop's Power Path</div>
+<div class="bar"><div class="track"><div class="fill"></div></div>
+<svg class="pp" viewBox="0 0 22 22"><path id="ppg" d="M5 3 L19 11 L5 19 Z" fill="#eaf6fb"/></svg>
+<div class="time">0:00 / 18:24</div></div>
+<div id="play"></div>`;
+const grid = clip.querySelector( '#grid' );
+for ( let x = 0; x <= 1340; x += 60 ) grid.insertAdjacentHTML( 'beforeend', `<line x1="${ x }" y1="0" x2="${ x }" y2="538"/>` );
+for ( let y = 0; y <= 538; y += 60 ) grid.insertAdjacentHTML( 'beforeend', `<line x1="0" y1="${ y }" x2="1340" y2="${ y }"/>` );
+const bark = Cockpit.bark( scr.over, 'watchVideo' );
+const arrow = S.cursor( scr.over, 'arrow', 30 );
+const rip = S.ripple( scr.over );
+const word = Cockpit.swipeWord( st, 'Watches', { x: 120, y: 836, size: 150 } );
+const PLAY = { x: 960, y: Cockpit.TOPBAR + 210 + 269 };
+S.scene( {
+	dur: 2.5,
+	render( t ) {
+		const playing = t >= 0.4;
+		const pt = Math.max( 0, t - 0.4 ); // playback time
+		// Cursor glides to play, presses, then drifts aside so the clip is clear.
+		const cx = S.kf( t, [ [ 0, 1260 ], [ 0.38, PLAY.x + 4, S.E.outCubic ], [ 0.55, PLAY.x + 4 ], [ 1.4, PLAY.x + 220, S.E.inOutCubic ] ] );
+		const cy = S.kf( t, [ [ 0, 760 ], [ 0.38, PLAY.y + 6, S.E.outCubic ], [ 0.55, PLAY.y + 6 ], [ 1.4, PLAY.y + 190, S.E.inOutCubic ] ] );
+		const press = t >= 0.4 && t < 0.52 ? 0.86 : 1;
+		S.tf( arrow, { x: cx - 5, y: cy - 2.5, s: press } );
+		rip( cx, cy, t - 0.4, 1.4 );
+		const play = clip.querySelector( '#play' );
+		const pp = S.prog( t, 0.42, 0.62, S.E.inCubic );
+		play.style.opacity = String( 1 - pp );
+		play.style.transform = `scale(${ 1 + 0.25 * pp })`;
+		// Playback: energy pulses run battery → SoC → display; battery cell sinks a touch.
+		const run = ( id, len, speed, phase ) => clip.querySelector( id ).setAttribute( 'stroke-dashoffset', String( -( ( pt * speed + phase ) % len ) ) );
+		run( '#p1', 640, playing ? 520 : 0, 0 );
+		run( '#p2', 640, playing ? 520 : 0, 320 );
+		run( '#p3', 334, playing ? 420 : 0, 0 );
+		[ '#p1', '#p2', '#p3' ].forEach( ( id ) => ( clip.querySelector( id ).style.opacity = playing ? '1' : '0' ) );
+		clip.querySelector( '#scrn' ).setAttribute( 'fill-opacity', String( playing ? 0.35 + 0.25 * Math.sin( pt * 9 ) ** 2 : 0.18 ) );
+		const lvl = 146 - ( playing ? pt * 6 : 0 );
+		const lv = clip.querySelector( '#lvl' );
+		lv.setAttribute( 'height', String( lvl ) );
+		lv.setAttribute( 'y', String( 12 + 146 - lvl ) );
+		clip.querySelector( '.fill' ).style.width = `${ playing ? 2 + pt * 4 : 0 }%`;
+		clip.querySelector( '.time' ).textContent = `0:${ String( Math.floor( playing ? pt * 2 : 0 ) ).padStart( 2, '0' ) } / 18:24`;
+		clip.querySelector( '#ppg' ).setAttribute( 'd', playing ? 'M5 3 H9 V19 H5 Z M13 3 H17 V19 H13 Z' : 'M5 3 L19 11 L5 19 Z' );
+		bark( S.prog( t, 0.66, 1.12 ) );
+		Cockpit.camera( scr, { cx: S.kf( t, [ [ 0, 1000 ], [ 2.5, 1030, S.E.inOutSine ] ] ), cy: 470, z: S.kf( t, [ [ 0, 1.12 ], [ 2.5, 1.2, S.E.inOutSine ] ] ), sy: 520 } );
+		word( S.prog( t, 0.3, 1.02 ) );
+	},
+} );
+</script>

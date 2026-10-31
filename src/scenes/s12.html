@@ -1,0 +1,77 @@
+<!doctype html>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../lib/stage.css">
+<script src="../lib/stage.js"></script>
+<script src="../lib/cockpit.js"></script>
+<style>
+	.call { position: absolute; left: 0; top: 0; font-family: var(--display); font-size: 54px; letter-spacing: 0.02em; color: var(--navy); text-transform: uppercase; white-space: nowrap; }
+	.call small { display: block; font: 700 19px var(--ui); letter-spacing: 0.16em; color: var(--teal-deep); margin-top: 6px; }
+	#live { position: absolute; left: 0; top: 0; display: flex; align-items: center; gap: 16px; padding: 14px 30px 14px 24px; font: 400 44px var(--display); letter-spacing: 0.06em; color: var(--navy); }
+	#live i { width: 22px; height: 22px; border-radius: 50%; background: var(--coral-deep); box-shadow: 0 0 0 0 rgba(239, 90, 58, 0.5); }
+</style>
+<div id="stage"></div>
+<script>
+// S12 · Live readouts (4.5 s). VO "Battery level, drain rate, time to empty. All live." at +0.30.
+// Ticks at +0.9 (battery −1 %), +2.0, +3.1.
+const st = S.$( '#stage' );
+const lines = Cockpit.el( 'div', '', st, 'position:absolute;inset:0' );
+lines.innerHTML = '<svg width="1920" height="1080" style="position:absolute;inset:0"><g id="leads" fill="none" stroke="#2f9bb3" stroke-width="4" stroke-linecap="round"></g><g id="dots" fill="#2f9bb3"></g></svg>';
+// Only the top bar matters here: clip the cockpit to its 88 px band.
+const band = Cockpit.el( 'div', '', st, 'position:absolute;left:0;top:0;width:1920px;height:1080px' );
+const scr = Cockpit.screen( band, { plate: 'cockpit-compact-A-y900.png', topbarB: 'cockpit-compact-B-y900.png' } );
+scr.root.style.height = `${ Cockpit.TOPBAR + 2 }px`;
+scr.root.style.borderRadius = '0';
+scr.root.style.boxShadow = '0 30px 60px -30px rgba(31,58,95,0.55)';
+const Z = 2.0;
+const CX = 985;
+const SY = 300; // stage y of the bar's centre line
+const stageX = ( rx, cx ) => 960 + ( rx - cx ) * Z;
+// Readout anchors (cockpit CSS px): battery, 100%→0%, rate·10, rate·session.
+const RD = { bat: 808, tte: 897, r10: 998, rs: 1111 };
+const callouts = [
+	{ id: 'bat', text: 'Battery level', sub: 'Live from the browser', x: 290, y: 600, at: 0.35, to: [ 'bat' ] },
+	{ id: 'rate', text: 'Drain rate', sub: '10-minute & whole session', x: 1070, y: 600, at: 1.15, to: [ 'r10', 'rs' ] },
+	{ id: 'tte', text: 'Time to empty', sub: 'Projected, 100 % → 0 %', x: 610, y: 806, at: 1.95, to: [ 'tte' ] },
+];
+callouts.forEach( ( c ) => {
+	c.el = Cockpit.el( 'div', 'call', st, 'opacity:0' );
+	c.el.innerHTML = `${ c.text }<small>${ c.sub }</small>`;
+} );
+const live = Cockpit.el( 'div', 'pill', st, 'opacity:0' );
+live.id = 'live';
+live.innerHTML = '<i></i>ALL LIVE';
+const leads = S.$( '#leads' ), dots = S.$( '#dots' );
+S.scene( {
+	dur: 4.5,
+	render( t ) {
+		const cx = S.kf( t, [ [ 0, CX - 8 ], [ 4.5, CX + 12, S.E.inOutSine ] ] );
+		const z = S.kf( t, [ [ 0, 2.3 ], [ 4.5, 2.4, S.E.inOutSine ] ] );
+		Cockpit.camera( scr, { cx, cy: Cockpit.TOPBAR / 2, z, sy: SY } );
+		// The live 1 % tick: the real B plate's bar cross-fades in.
+		scr.topbarB.style.opacity = String( S.prog( t, 0.9, 1.05 ) );
+		leads.innerHTML = '';
+		dots.innerHTML = '';
+		const barBottom = SY + ( Cockpit.TOPBAR / 2 - 4 ) * z;
+		callouts.forEach( ( c ) => {
+			const p = S.prog( t, c.at, c.at + 0.5 );
+			const e = S.E.outBack( p, 1.5 );
+			S.tf( c.el, { x: c.x, y: c.y + ( 1 - e ) * 40, o: S.clamp( p * 2 ) } );
+			c.to.forEach( ( k ) => {
+				const ax = 960 + ( RD[ k ] - cx ) * z;
+				const ay = barBottom + 8;
+				const bx = c.x + 30 + ( c.to.length > 1 ? ( c.to.indexOf( k ) * 120 ) : 0 );
+				const by = c.y - 14;
+				const q = S.E.outCubic( S.prog( t, c.at - 0.05, c.at + 0.35 ) );
+				if ( q <= 0 ) return;
+				const mx = S.lerp( ax, bx, q ), my = S.lerp( ay, by, q );
+				leads.insertAdjacentHTML( 'beforeend', `<path d="M${ ax } ${ ay } L${ mx } ${ my }"/>` );
+				dots.insertAdjacentHTML( 'beforeend', `<circle cx="${ ax }" cy="${ ay }" r="${ 9 * Math.min( 1, q * 2 ) }"/>` );
+			} );
+		} );
+		const lp = S.prog( t, 3.05, 3.5 );
+		S.tf( live, { x: 1350, y: 820 + ( 1 - S.E.outBack( lp, 1.6 ) ) * 30, o: S.clamp( lp * 2 ) } );
+		const pulse = ( ( t - 3.1 ) % 0.9 + 0.9 ) % 0.9 / 0.9;
+		live.querySelector( 'i' ).style.boxShadow = `0 0 0 ${ 14 * pulse }px rgba(239,90,58,${ 0.45 * ( 1 - pulse ) })`;
+	},
+} );
+</script>
