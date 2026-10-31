@@ -30,13 +30,24 @@ pnpm encode        # master + review MP4 and thumbnails → final/
 
 `pnpm build` runs render, audio and encode in sequence (the takes must exist). Render a single scene with `pnpm render s09`, or stills with `pnpm render s09 --preview 0.5,1.8` (→ `work/previews/`). Set `BSB_VIDEO_WORK` to keep `work/` somewhere else.
 
+### 4K
+
+The YouTube upload is a 4K build of the same spot. `BSB_VIDEO_SCALE=2` renders every frame at 3840×2160, and the `:4k` scripts set it for you:
+
+```sh
+pnpm render:all:4k # the same 1,800 frames at 3840×2160 → work/frames-4k/
+pnpm encode:4k     # 4K master + review MP4 → final/*-4k.mp4, plus the thumbnails
+```
+
+`pnpm build:4k` runs the 4K render, the audio and the 4K encode in sequence. The soundtrack is the same at both sizes, so the audio steps don't change. For single scenes and stills, prefix the command: `BSB_VIDEO_SCALE=2 pnpm render s09 --preview 0.5,1.8` (→ `work/previews-4k/`). The 4K build keeps its own frame folders and MP4 names, so it never overwrites the 1080p build, and `pnpm encode:4k` stops if it finds frames of the wrong size.
+
 ## Pipeline
 
 1. **Plates** (`plates/`): 2× captures of the real plugin running in a throwaway WordPress Playground. They cover the cockpit, course pages, bark pills, deck, settings, sessions and postcard. Swap a plate to re-shoot a moment without touching any scene. The capture scripts needed the plugin running, so they aren't part of this branch.
 2. **Scenes** (`src/scenes/<name>.html`): one HTML page per scene, each a pure function of time. A scene calls `S.scene({ dur, render(t) })` from `src/lib/stage.js`. There are no CSS animations or timers, so every frame is reproducible. The deck scenes (S09, S11) clone the plugin's real cockpit markup (`src/scenes/deck/cockpit-markup.js`). They style it with the plugin's compiled stylesheet and fonts, vendored in `src/vendor/` from plugin commit `8e5b0b3`, so the clone and its CSS stay a matched pair.
-3. **Render** (`src/tools/render.mjs <scene>`): headless Chromium renders 30 fps, 1920×1080 frames, globally numbered. Every scene owns a disjoint frame range in `src/shots.json` (1,800 frames in total). Scenes that push a camera across live UI text (S09, S11) declare `<meta name="supersample" content="4">`: they render at 4× and are box-filtered down, because at 1× Chrome snaps every glyph to whole pixels and a slow zoom makes static text hop about 1 px between frames. Chrome sometimes captures a 4× frame before it has painted every tile, so parts go missing. Each 4× frame is therefore checked against a 1× render of the same instant, captured again if it doesn't match, and the render stops if it still can't get a complete one.
+3. **Render** (`src/tools/render.mjs <scene>`): headless Chromium renders 30 fps frames, globally numbered: 1920×1080, or 3840×2160 with `BSB_VIDEO_SCALE=2`. Scenes keep their 1920×1080 CSS layout at both sizes; the 4K build draws them at twice the device pixel ratio, which also shows the 2× plates at their native resolution. Every scene owns a disjoint frame range in `src/shots.json` (1,800 frames in total). Scenes that push a camera across live UI text (S09, S11) declare `<meta name="supersample" content="4">`: they render at 4× and are box-filtered down to the output size, because at 1× Chrome snaps every glyph to whole pixels and a slow zoom makes static text hop about 1 px between frames. The 4K build captures the same 4× surface and filters it down by 2 instead of 4. Chrome sometimes captures a 4× frame before it has painted every tile, so parts go missing. Each 4× frame is therefore checked against a 1× render of the same instant, captured again if it doesn't match, and the render stops if it still can't get a complete one.
 4. **Audio** (`src/audio/`): an original score, synthesized SFX (the finish chime is byte-exact from the plugin's `src/cockpit/FinishChime.ts`), and a Kokoro-82M neural voice-over (female voice `af_heart`, fitted to the cuts by `vo-kokoro.mjs`). Two lines are tuned in `src/audio/kokoro/make-takes.sh`: the S16 sign-off and the accent in S11. Kokoro's vocoder is seeded, and the score and SFX use seeded noise, so a rebuild reproduces the same audio. Mastered to −14 LUFS, −1 dBTP, with separate stems.
-5. **Assembly** (`src/tools/encode.mjs`): ffmpeg encodes the 1,800 frames to H.264. It converts the JPEG frames from BT.601 full range to BT.709 limited range, tags the stream BT.709, muxes `final/audio/mix-master.wav`, and writes the master, a review copy and two thumbnails.
+5. **Assembly** (`src/tools/encode.mjs`): ffmpeg encodes the 1,800 frames to H.264. It converts the JPEG frames from BT.601 full range to BT.709 limited range, tags the stream BT.709, muxes `final/audio/mix-master.wav`, and writes the master, a review copy and two thumbnails. The 4K encode reads `work/frames-4k/` and gives its master and review copy a `-4k` suffix; the thumbnails are 1280×720 either way.
 
 ## Art direction
 

@@ -10,10 +10,13 @@
 	"scripts": {
 		"render": "node src/tools/render.mjs",
 		"render:all": "node src/tools/render-all.mjs",
+		"render:all:4k": "BSB_VIDEO_SCALE=2 node src/tools/render-all.mjs",
 		"audio:takes": "sh src/audio/kokoro/make-takes.sh",
 		"audio": "node src/audio/score.mjs && node src/audio/sfx.mjs && node src/audio/vo-kokoro.mjs && node src/audio/mix.mjs && node src/audio/qc.mjs",
 		"encode": "node src/tools/encode.mjs",
-		"build": "pnpm render:all && pnpm audio && pnpm encode"
+		"encode:4k": "BSB_VIDEO_SCALE=2 node src/tools/encode.mjs",
+		"build": "pnpm render:all && pnpm audio && pnpm encode",
+		"build:4k": "pnpm render:all:4k && pnpm audio && pnpm encode:4k"
 	},
 	"devDependencies": {
 		"@fontsource/anton": "5.2.7",

@@ -1,5 +1,6 @@
-// Renders every scene in shots.json into work/frames/, one after another (the
-// supersampled scenes need the memory to themselves).
+// Renders every scene in shots.json into work/frames/ (work/frames-4k/ with
+// BSB_VIDEO_SCALE=2), one after another (the supersampled scenes need the memory to
+// themselves).
 //   node src/tools/render-all.mjs [scene...]   → all scenes, or just the ones named
 import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
