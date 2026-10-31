@@ -115,8 +115,8 @@ All source files (both JS/TS and PHP) must use **CamelCase** (e.g. `BatteryMonit
 
 **The app is left-to-right only; it does not support right-to-left languages.** Its design reads one way in every language — the postcard's stamp sits top-right, the control deck slides in from the left, the battery gauge fills toward its terminal on the right — and none of it mirrors. The build therefore writes no `-rtl.css` stylesheets: `webpack.config.js` drops the right-to-left step `@wordpress/scripts` adds by default.
 
-- **Never add right-to-left support** — no mirrored stylesheets, rtlcss directives, right-to-left layout variants or right-to-left test switches.
-- **Don't treat the left-to-right layout on a right-to-left site as a bug.** WordPress still marks pages right-to-left on those sites; the plugin's styles don't adapt, by design.
+- **Never add right-to-left support** — no mirrored stylesheets, rtlcss directives or right-to-left layout variants. Holding the left-to-right design steady on a right-to-left page is different and fine: a pin like the drain chart's `direction="ltr"`, and tests that render a page right-to-left to prove such a pin holds.
+- **Don't treat the left-to-right layout on a right-to-left site as a bug to fix by mirroring.** WordPress still marks pages right-to-left on those sites; the plugin's styles don't adapt, by design. If something breaks there, raise it with the maintainer before changing anything.
 - **If right-to-left is ever genuinely wanted, it's a maintainer decision** — raise it explicitly.
 
 ## Mock Big Design Decisions First
