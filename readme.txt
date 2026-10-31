@@ -16,6 +16,8 @@ Battery Surf Bench is a WordPress plugin that measures your device's real-world 
 
 No lab hardware. No external services. Just your browser, your battery, and a surfer that never gets tired.
 
+https://www.youtube.com/watch?v=X8CwzH_P4-g
+
 = Highlights =
 
 * **A surfer, not a script.** The simulated visitor makes its own decisions as it browses. No two runs play out the same.
