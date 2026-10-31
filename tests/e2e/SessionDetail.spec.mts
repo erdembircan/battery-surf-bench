@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { FORCE_RTL_COOKIE } from '../../wp-playground/config.mts';
 
 /**
  * End-to-end coverage for the stored-session detail screen.
@@ -88,6 +89,30 @@ const sessionBody = {
 	},
 };
 
+/**
+ * Seeds a finished session through the post type's own REST collection, the
+ * way the cockpit uploads a finished run.
+ *
+ * @param page - The authenticated page whose request context posts the session.
+ * @return The new session's post id.
+ */
+async function seedSession( page: Page ): Promise< number > {
+	const nonce = (
+		await (
+			await page.request.get(
+				'/wp-admin/admin-ajax.php?action=rest-nonce'
+			)
+		).text()
+	).trim();
+	const created = await page.request.post( COLLECTION, {
+		headers: { 'X-WP-Nonce': nonce },
+		data: sessionBody,
+	} );
+	expect( created.status() ).toBe( 201 );
+
+	return ( await created.json() ).id as number;
+}
+
 test.describe( 'Stored-session detail screen', () => {
 	test( 'renders the summary postcard on the native edit screen, no PHP notices', async ( {
 		page,
@@ -102,21 +127,7 @@ test.describe( 'Stored-session detail screen', () => {
 			consoleErrors.push( error.message );
 		} );
 
-		// Seed a session through the post type's own REST collection, the way the
-		// cockpit uploads a finished run.
-		const nonce = (
-			await (
-				await page.request.get(
-					'/wp-admin/admin-ajax.php?action=rest-nonce'
-				)
-			).text()
-		).trim();
-		const created = await page.request.post( COLLECTION, {
-			headers: { 'X-WP-Nonce': nonce },
-			data: sessionBody,
-		} );
-		expect( created.status() ).toBe( 201 );
-		const id = ( await created.json() ).id as number;
+		const id = await seedSession( page );
 
 		// Open the session at its native admin edit URL — the flow a listing row
 		// click follows.
@@ -191,5 +202,74 @@ test.describe( 'Stored-session detail screen', () => {
 
 		expect( await page.content() ).not.toMatch( PHP_NOTICE );
 		expect( consoleErrors ).toEqual( [] );
+	} );
+
+	test( 'on a right-to-left site, swaps in the mirrored stylesheet so the panel clears the right-hand admin menu', async ( {
+		page,
+		baseURL,
+	} ) => {
+		const id = await seedSession( page );
+
+		// Render this browser context right-to-left (the Playground's switch, see
+		// `forceRtlMuPlugin` in `wp-playground/blueprint.mts`).
+		await page
+			.context()
+			.addCookies( [
+				{ name: FORCE_RTL_COOKIE, value: '1', url: baseURL },
+			] );
+
+		await page.goto( `/wp-admin/post.php?post=${ id }&action=edit` );
+
+		// WordPress renders the admin right-to-left, with its menu on the right.
+		await expect( page.locator( 'html' ) ).toHaveAttribute( 'dir', 'rtl' );
+		await expect( page.locator( '.bsb-summary' ) ).toBeVisible();
+
+		// The cockpit stylesheet is replaced by its mirrored twin, not joined by it.
+		await expect(
+			page.locator(
+				'#battery-surf-bench-style-cockpit-dashboard-rtl-css'
+			)
+		).toHaveAttribute( 'href', /style-cockpit-dashboard-rtl\.css/ );
+		await expect(
+			page.locator( '#battery-surf-bench-style-cockpit-dashboard-css' )
+		).toHaveCount( 0 );
+
+		// The fixed panel ends where the admin menu begins. The unmirrored
+		// stylesheet offsets it from the left instead, for a menu that isn't
+		// there, so it runs on underneath the real one. Both checks compare the
+		// two boxes rather than viewport edges: Chromium puts the scrollbar on
+		// the left in a right-to-left document.
+		await expect
+			.poll( async () => {
+				const panel = await page
+					.locator( '.bsb-session-detail' )
+					.boundingBox();
+				const menu = await page
+					.locator( '#adminmenuwrap' )
+					.boundingBox();
+
+				if ( ! panel || ! menu ) {
+					return null;
+				}
+
+				return {
+					panelStartsLeftOfMenu: panel.x < menu.x,
+					panelEndsAtMenu:
+						Math.abs( panel.x + panel.width - menu.x ) <= 1,
+				};
+			} )
+			.toEqual( { panelStartsLeftOfMenu: true, panelEndsAtMenu: true } );
+
+		// The drain chart still draws left to right under the mirrored
+		// stylesheet: its time labels stay within its time axis.
+		await expect(
+			page.locator( '.bsb-summary__chart-label--x' )
+		).toHaveCount( 3 );
+		expect( await measureTimeLabels( page ) ).toEqual( {
+			measured: 3,
+			outside: [],
+		} );
+
+		expect( await page.content() ).not.toMatch( PHP_NOTICE );
 	} );
 } );

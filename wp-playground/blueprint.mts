@@ -2,7 +2,11 @@ import type {
 	BlueprintDeclaration,
 	BlueprintV1Declaration,
 } from '@wp-playground/blueprints';
-import { PLUGIN_SLUG, liveReloadClientUrl } from './config.mts';
+import {
+	FORCE_RTL_COOKIE,
+	PLUGIN_SLUG,
+	liveReloadClientUrl,
+} from './config.mts';
 
 /**
  * Base blueprint options shared by all playground modes. Pins PHP to the
@@ -240,14 +244,66 @@ export const youtubeOembedStubStep = (): NonNullable<
 ];
 
 /**
+ * Source for a dev/e2e-only must-use plugin that renders a request
+ * right-to-left when it carries the {@link FORCE_RTL_COOKIE} cookie.
+ *
+ * A real right-to-left site gets `is_rtl()` from its core language pack,
+ * which Playground cannot download (it has no reliable outbound network).
+ * Core's `WP_Locale` also honors a legacy `$text_direction` global set before
+ * it is built, and must-use plugins load before that point, so setting the
+ * global flips the same switch a language pack does: admin and theme
+ * documents print `dir="rtl"`, and every stylesheet registered for
+ * right-to-left replacement (all of the plugin's own, through
+ * `Assets::enqueue()`) is served as its `-rtl.css` twin. The cookie scopes the
+ * switch to the requests a test or a developer opts in, so everything else
+ * keeps rendering left-to-right. It is never shipped: the production plugin
+ * carries no such switch.
+ */
+export const forceRtlMuPlugin = `<?php
+/**
+ * Battery Surf Bench dev/e2e right-to-left switch. Injected by the Playground
+ * blueprints so a request carrying the ${ FORCE_RTL_COOKIE } cookie renders the
+ * way a right-to-left site renders it, without a language pack Playground
+ * cannot download. Never present outside Playground: the shipped plugin
+ * carries no such switch.
+ */
+if ( 'development' === wp_get_environment_type() && ! empty( $_COOKIE['${ FORCE_RTL_COOKIE }'] ) ) {
+	// WP_Locale reads this legacy override before the locale's own text
+	// direction, so is_rtl() turns true for the whole request.
+	$GLOBALS['text_direction'] = 'rtl';
+}
+`;
+
+/**
+ * Build the dev/e2e-only right-to-left switch mu-plugin install step.
+ *
+ * @return The mkdir + writeFile steps that install the mu-plugin.
+ */
+export const forceRtlStep = (): NonNullable<
+	BlueprintV1Declaration[ 'steps' ]
+> => [
+	{
+		step: 'mkdir',
+		path: '/wordpress/wp-content/mu-plugins',
+	},
+	{
+		step: 'writeFile',
+		path: '/wordpress/wp-content/mu-plugins/bsb-force-rtl.php',
+		data: forceRtlMuPlugin,
+	},
+];
+
+/**
  * Build the development blueprint for a first-run or non-persistent instance.
  * Enables debug constants, activates the plugin, installs the dev auto-login
  * mu-plugin, installs the YouTube oEmbed stub (so the video course page
  * renders a real, controllable embed without needing outbound network — see
- * {@link youtubeOembedStubMuPlugin}), and installs the LiveReload mu-plugin
- * pointed at the resolved port. Does not use the shared `login` step — see
- * {@link autoLoginMuPlugin} for why the dev server needs its own auto-login
- * path instead.
+ * {@link youtubeOembedStubMuPlugin}), installs the right-to-left switch (so a
+ * developer can view any page right-to-left by setting the
+ * {@link FORCE_RTL_COOKIE} cookie — see {@link forceRtlMuPlugin}), and
+ * installs the LiveReload mu-plugin pointed at the resolved port. Does not use
+ * the shared `login` step — see {@link autoLoginMuPlugin} for why the dev
+ * server needs its own auto-login path instead.
  *
  * @param liveReloadPort - The port the LiveReload server bound this run.
  * @return The blueprint declaration.
@@ -261,6 +317,7 @@ export const devBlueprint = (
 		...activatePluginStep,
 		...autoLoginStep(),
 		...youtubeOembedStubStep(),
+		...forceRtlStep(),
 		...liveReloadStep( liveReloadPort ),
 	],
 } );
@@ -268,10 +325,11 @@ export const devBlueprint = (
 /**
  * Build the resume blueprint for an existing persistent installation.
  * Re-enables debug constants and reinstalls the dev auto-login, YouTube
- * oEmbed stub and LiveReload mu-plugins pointed at the resolved port; the
- * plugin is already active in the persisted database, so activation is
- * skipped. Does not use the shared `login` step — see {@link autoLoginMuPlugin}
- * for why the dev server needs its own auto-login path instead.
+ * oEmbed stub, right-to-left switch and LiveReload mu-plugins, the last
+ * pointed at the resolved port; the plugin is already active in the persisted
+ * database, so activation is skipped. Does not use the shared `login` step —
+ * see {@link autoLoginMuPlugin} for why the dev server needs its own
+ * auto-login path instead.
  *
  * @param liveReloadPort - The port the LiveReload server bound this run.
  * @return The blueprint declaration.
@@ -284,6 +342,7 @@ export const devResumeBlueprint = (
 		...debugStep,
 		...autoLoginStep(),
 		...youtubeOembedStubStep(),
+		...forceRtlStep(),
 		...liveReloadStep( liveReloadPort ),
 	],
 } );
@@ -295,7 +354,10 @@ export const devResumeBlueprint = (
  * {@link youtubeOembedStubMuPlugin}), so `CockpitCourse.spec.mts`'s video
  * course page coverage exercises the real, unmodified production
  * `YouTubeEmbed::embed_oembed_html()` amend against a real (stubbed) oEmbed
- * response instead of needing outbound network. Carries no login step: the
+ * response instead of needing outbound network, and the right-to-left switch
+ * (see {@link forceRtlMuPlugin}), which the right-to-left specs opt into per
+ * browser context with the {@link FORCE_RTL_COOKIE} cookie; every other spec
+ * sends no such cookie and renders left-to-right. Carries no login step: the
  * pinned `@wp-playground/cli` (3.1.39) races that step's bundled auto-login
  * mu-plugin against the server's own ready flag (see {@link autoLoginMuPlugin}),
  * which made a cookie-less request to `wp-login.php` nondeterministic — the
@@ -306,17 +368,24 @@ export const devResumeBlueprint = (
  */
 export const e2eBlueprint: BlueprintDeclaration = {
 	...base,
-	steps: [ ...debugStep, ...activatePluginStep, ...youtubeOembedStubStep() ],
+	steps: [
+		...debugStep,
+		...activatePluginStep,
+		...youtubeOembedStubStep(),
+		...forceRtlStep(),
+	],
 };
 
 /**
  * End-to-end blueprint for a deterministic, non-persistent test instance that
- * is never authenticated. Its steps are the same as {@link e2eBlueprint} —
- * neither carries a login step — so what actually keeps this server anonymous
- * is that no Playwright project targeting it ever drives a form login or
- * loads a `storageState`, unlike the `authenticated` project's `auth.setup.mts`.
- * Backs the `unauthenticated` Playwright project, which drives gated surfaces
- * as an anonymous visitor to prove they are actually refused.
+ * is never authenticated. Like {@link e2eBlueprint} it carries no login step,
+ * so what actually keeps this server anonymous is that no Playwright project
+ * targeting it ever drives a form login or loads a `storageState`, unlike the
+ * `authenticated` project's `auth.setup.mts`. It also leaves out that
+ * blueprint's test-only mu-plugins (the YouTube oEmbed stub and the
+ * right-to-left switch), which no unauthenticated spec needs. Backs the
+ * `unauthenticated` Playwright project, which drives gated surfaces as an
+ * anonymous visitor to prove they are actually refused.
  */
 export const e2eUnauthenticatedBlueprint: BlueprintDeclaration = {
 	...base,

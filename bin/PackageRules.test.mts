@@ -139,4 +139,37 @@ describe( 'findPackageViolations', () => {
 		expect( violations ).toHaveLength( 1 );
 		expect( violations[ 0 ] ).toContain( 'composer.json' );
 	} );
+
+	it( 'accepts stylesheets that ship with their right-to-left twins', () => {
+		expect(
+			findPackageViolations(
+				[
+					...RELEASE_ZIP,
+					'build/style-cockpit-dashboard.css',
+					'build/style-cockpit-dashboard-rtl.css',
+				],
+				{ release: true }
+			)
+		).toEqual( [] );
+	} );
+
+	it( 'flags a stylesheet shipped without its right-to-left twin', () => {
+		const violations = findPackageViolations(
+			[ ...RELEASE_ZIP, 'build/style-course.css' ],
+			{ release: true }
+		);
+
+		expect( violations ).toHaveLength( 1 );
+		expect( violations[ 0 ] ).toContain( '"build/style-course.css"' );
+		expect( violations[ 0 ] ).toContain( '"build/style-course-rtl.css"' );
+	} );
+
+	it( 'leaves stylesheets under vendor/ alone', () => {
+		expect(
+			findPackageViolations(
+				[ ...CHECKOUT_ZIP, 'vendor/acme/widget/style.css' ],
+				{ release: false }
+			)
+		).toEqual( [] );
+	} );
 } );

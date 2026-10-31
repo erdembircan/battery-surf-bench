@@ -18,6 +18,7 @@ use function wp_register_script;
 use function wp_register_script_module;
 use function wp_set_script_module_translations;
 use function wp_set_script_translations;
+use function wp_style_add_data;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -48,6 +49,15 @@ class Assets {
 	 * Enqueues a plugin-relative asset, choosing the script or style function
 	 * by its file extension and versioning it with a content hash.
 	 *
+	 * A stylesheet is also marked for right-to-left replacement. Every plugin
+	 * stylesheet is a `wp-scripts` build artifact, and the build writes an
+	 * rtlcss-mirrored `-rtl.css` twin beside each one, so on a right-to-left
+	 * site (`is_rtl()`) WordPress links the twin in place of the original. The
+	 * twin keeps the original's content-hash version, which is safe because the
+	 * build derives the twin from the original: the twin only changes when the
+	 * original does. The release package check (`bin/PackageRules.mts`) fails
+	 * any stylesheet that ships without its twin.
+	 *
 	 * @param string        $relative Path to the asset relative to the plugin root.
 	 * @param array<string> $deps     Handles the asset depends on.
 	 * @throws InvalidArgumentException When the file extension is not a supported asset type.
@@ -64,6 +74,7 @@ class Assets {
 				break;
 			case 'css':
 				wp_enqueue_style( $handle, $this->paths->url( $relative ), $deps, $this->version( $relative ) );
+				wp_style_add_data( $handle, 'rtl', 'replace' );
 				break;
 			default:
 				throw new InvalidArgumentException(

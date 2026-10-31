@@ -7,6 +7,12 @@
  * entry names, so they are testable without a real zip. They cover the file
  * checks WordPress.org's Plugin Check runs on a submitted plugin, and also
  * reject hidden folders, which Plugin Check lets through.
+ *
+ * They also require every stylesheet to ship with its `-rtl.css` twin. The
+ * plugin tells WordPress to serve the twin in place of the stylesheet on
+ * right-to-left sites (see `Assets::enqueue()`), so a missing twin would leave
+ * those sites unstyled. Only a release zip carries the compiled stylesheets,
+ * so in practice this check bites in `bin/Release.sh`.
  */
 
 /**
@@ -127,6 +133,26 @@ export function findPackageViolations(
 		violations.push(
 			'"vendor/" ships without "composer.json": WordPress.org asks for composer.json alongside Composer dependencies.'
 		);
+	}
+
+	const shipped = new Set( entries );
+
+	for ( const entry of entries ) {
+		if (
+			rootOf( entry ) === 'vendor' ||
+			! entry.endsWith( '.css' ) ||
+			entry.endsWith( '-rtl.css' )
+		) {
+			continue;
+		}
+
+		const twin = `${ entry.slice( 0, -'.css'.length ) }-rtl.css`;
+
+		if ( ! shipped.has( twin ) ) {
+			violations.push(
+				`Stylesheet "${ entry }" ships without its right-to-left twin "${ twin }": right-to-left sites load the twin in its place, so they would get none of its styles. Rebuild with wp-scripts, which writes the twin beside every stylesheet, and make sure .gitattributes does not export-ignore it.`
+			);
+		}
 	}
 
 	return violations;

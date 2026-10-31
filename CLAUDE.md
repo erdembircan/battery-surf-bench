@@ -103,6 +103,8 @@ All source files (both JS/TS and PHP) must use **CamelCase** (e.g. `BatteryMonit
 
 **Author all styles as SCSS — never hand-write `.css` files.** A hand-written `.css` file in the source tree is a regression: every stylesheet must have an SCSS source that the build compiles into its CSS artifact. Always enqueue the compiled artifact, never a CSS file edited by hand. Discover where sources live and where they compile to from the build configuration — don't assume a fixed directory layout, tool, or naming convention.
 
+**Stylesheets are mirrored for right-to-left sites.** The build writes an rtlcss-flipped `-rtl.css` twin beside every stylesheet, and `Assets::enqueue()` tells WordPress to serve the twin in its place whenever `is_rtl()`. A rule tied to physical coordinates — a position JavaScript measures from the left edge, a `left` the store sets inline, artwork that is never mirrored — must be pinned so rtlcss leaves it alone: wrap it in `/*! rtl:begin:ignore */` … `/*! rtl:end:ignore */`, or put `/*! rtl:ignore */` before a single rule. The `!` is required, because the compressed build drops every other comment; `cssnano.config.js` keeps these and nothing else. A pinned piece whose children sit in a row also needs `dir="ltr"` in its markup, or the row itself still reverses.
+
 ## Single Light Theme — No Dark Mode
 
 **This app ships exactly one theme, and it is light.** There is no theme toggle and no reachable dark mode in the product.

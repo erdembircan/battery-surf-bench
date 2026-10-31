@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { FORCE_RTL_COOKIE } from '../../wp-playground/config.mts';
 
 /**
  * End-to-end coverage for the two URL-parameter routes the plugin serves: the
@@ -1462,5 +1463,165 @@ test.describe( 'Security: index route gate', () => {
 		expect( body ).not.toContain( 'surfer.js' );
 
 		await anon.dispose();
+	} );
+} );
+
+test.describe( 'Right-to-left rendering', () => {
+	test( 'swaps in the mirrored stylesheets but keeps the target battery left-to-right', async ( {
+		page,
+		baseURL,
+	} ) => {
+		// Left-to-right first: the original stylesheets, and no twins.
+		await page.goto( '/?bsbSession=cockpit' );
+		await expect( page.locator( 'html' ) ).not.toHaveAttribute(
+			'dir',
+			'rtl'
+		);
+		await expect(
+			page.locator( '#battery-surf-bench-style-cockpit-dashboard-css' )
+		).toBeAttached();
+		await expect(
+			page.locator(
+				'#battery-surf-bench-style-cockpit-dashboard-rtl-css'
+			)
+		).toHaveCount( 0 );
+
+		// The same page on a right-to-left site (the Playground's switch, see
+		// `forceRtlMuPlugin` in `wp-playground/blueprint.mts`): the document
+		// flips, and every plugin stylesheet is replaced by its mirrored twin.
+		await page
+			.context()
+			.addCookies( [
+				{ name: FORCE_RTL_COOKIE, value: '1', url: baseURL },
+			] );
+		await page.goto( '/?bsbSession=cockpit' );
+		await expect( page.locator( 'html' ) ).toHaveAttribute( 'dir', 'rtl' );
+		await expect(
+			page.locator(
+				'#battery-surf-bench-style-cockpit-dashboard-rtl-css'
+			)
+		).toHaveAttribute( 'href', /style-cockpit-dashboard-rtl\.css/ );
+		await expect(
+			page.locator( '#battery-surf-bench-style-devtools-rtl-css' )
+		).toHaveAttribute( 'href', /style-devtools-rtl\.css/ );
+		await expect(
+			page.locator( '#battery-surf-bench-style-cockpit-dashboard-css' )
+		).toHaveCount( 0 );
+
+		// Show the deck, then switch it to target-drop mode so the battery
+		// gauge renders.
+		await page
+			.locator(
+				'.bsb-flipcard--idle .bsb-flipcard__flip[data-wp-on--click="actions.toggleIdleFlip"]'
+			)
+			.first()
+			.click();
+		await expect(
+			page.locator( '.wp-block-bsb-cockpit.is-deck-shown' )
+		).toBeAttached();
+		await page
+			.locator( '.bsb-seg__option[data-mode="targetDrop"]' )
+			.click();
+		await expect( page.locator( '.bsb-target__battery' ) ).toBeVisible();
+
+		// The gauge stays left-to-right: the fill grows from the battery's left
+		// edge, the handle rides the fill's right end, and the cap sits to the
+		// right. Polled, because the deck is still sliding in.
+		await expect
+			.poll( () =>
+				page.evaluate( () => {
+					const box = ( selector: string ) =>
+						document
+							.querySelector( selector )!
+							.getBoundingClientRect();
+					const battery = document.querySelector(
+						'.bsb-target__battery'
+					)!;
+					const inner =
+						battery.getBoundingClientRect().left +
+						battery.clientLeft;
+					const fill = box( '.bsb-target__fill' );
+					const handle = box( '.bsb-target__handle' );
+					const cap = box( '.bsb-target__cap' );
+
+					return {
+						fillStartsAtLeftEdge:
+							Math.abs( fill.left - inner ) <= 1,
+						handleOnFillEnd:
+							Math.abs(
+								handle.left + handle.width / 2 - fill.right
+							) <= 1,
+						capOnTheRight:
+							cap.left >=
+							battery.getBoundingClientRect().right - 1,
+					};
+				} )
+			)
+			.toEqual( {
+				fillStartsAtLeftEdge: true,
+				handleOnFillEnd: true,
+				capOnTheRight: true,
+			} );
+
+		await expectNoPhpNotices( page );
+	} );
+
+	test( 'keeps the fake cursor on the surf engine’s coordinates on a right-to-left course page', async ( {
+		page,
+		baseURL,
+	} ) => {
+		await recordMessages( page );
+		await page
+			.context()
+			.addCookies( [
+				{ name: FORCE_RTL_COOKIE, value: '1', url: baseURL },
+			] );
+
+		// The sterile engine places the cursor and holds it there until steered,
+		// so its position is stable to measure.
+		await page.goto( '/?bsbSession=cockpit' );
+		const nonce = await surfNonce( page );
+		await page.goto(
+			indexUrl( nonce, 0, {
+				bsbTraits: '0,0,0,0,10',
+				bsbSpeed: '1',
+				bsbSterile: '1',
+			} )
+		);
+		await waitForMessage( page, 'bsb:pageAffordances' );
+
+		// The course page renders right-to-left, with the mirrored stylesheet.
+		await expect( page.locator( 'html' ) ).toHaveAttribute( 'dir', 'rtl' );
+		await expect(
+			page.locator( '#battery-surf-bench-style-course-rtl-css' )
+		).toHaveAttribute( 'href', /style-course-rtl\.css/ );
+
+		// The engine paints the cursor by translating it from the viewport's
+		// top-left corner, so its box must sit exactly at that translation. A
+		// mirrored stylesheet would anchor it to the right edge instead and push
+		// it off-screen.
+		const cursor = page.locator( '.bsb-surf-cursor' );
+		await expect( cursor ).toBeAttached();
+		const placement = await cursor.evaluate( ( el ) => {
+			const match = ( el as HTMLElement ).style.transform.match(
+				/translate\(([-\d.]+)px,\s*([-\d.]+)px\)/
+			);
+			const rect = el.getBoundingClientRect();
+
+			return {
+				x: match ? parseFloat( match[ 1 ] ) : Number.NaN,
+				y: match ? parseFloat( match[ 2 ] ) : Number.NaN,
+				left: rect.left,
+				top: rect.top,
+			};
+		} );
+		expect( Math.abs( placement.left - placement.x ) ).toBeLessThanOrEqual(
+			1
+		);
+		expect( Math.abs( placement.top - placement.y ) ).toBeLessThanOrEqual(
+			1
+		);
+
+		await expectNoPhpNotices( page );
 	} );
 } );

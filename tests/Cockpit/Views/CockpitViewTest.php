@@ -591,4 +591,15 @@ final class CockpitViewTest extends TestCase {
 			)
 		);
 	}
+
+	/**
+	 * The target battery gauge carries `dir="ltr"`, so on a right-to-left site
+	 * its cap stays to the right of the battery, in line with the fill and
+	 * handle, which always grow from the left.
+	 */
+	public function test_render_pins_the_target_gauge_left_to_right(): void {
+		$markup = $this->render();
+
+		$this->assertStringContainsString( '<span class="bsb-target__gauge" dir="ltr">', $markup );
+	}
 }

@@ -62,6 +62,7 @@ final class AssetsTest extends TestCase {
 	 */
 	public function test_enqueue_style_uses_namespaced_handle_and_hash_version(): void {
 		$this->stub_resolvers( 'a1b2c3d4', 'https://example.test/app.css' );
+		Functions\when( 'wp_style_add_data' )->justReturn( true );
 
 		Functions\expect( 'wp_enqueue_style' )
 			->once()
@@ -69,6 +70,44 @@ final class AssetsTest extends TestCase {
 
 		$assets = new Assets( 'battery-surf-bench', new Paths( '/plugins/battery-surf-bench/battery-surf-bench.php' ) );
 		$assets->enqueue( 'assets/app.css' );
+
+		// The Mockery expectation above is the assertion; acknowledge it so
+		// PHPUnit does not flag the test as risky.
+		$this->addToAssertionCount( 1 );
+	}
+
+	/**
+	 * A `.css` asset is marked for right-to-left replacement, so WordPress
+	 * serves its `-rtl.css` twin in its place on a right-to-left site.
+	 */
+	public function test_enqueue_style_marks_the_stylesheet_for_rtl_replacement(): void {
+		$this->stub_resolvers( 'a1b2c3d4', 'https://example.test/app.css' );
+		Functions\when( 'wp_enqueue_style' )->justReturn();
+
+		Functions\expect( 'wp_style_add_data' )
+			->once()
+			->with( 'battery-surf-bench-app', 'rtl', 'replace' );
+
+		$assets = new Assets( 'battery-surf-bench', new Paths( '/plugins/battery-surf-bench/battery-surf-bench.php' ) );
+		$assets->enqueue( 'assets/app.css' );
+
+		// The Mockery expectation above is the assertion; acknowledge it so
+		// PHPUnit does not flag the test as risky.
+		$this->addToAssertionCount( 1 );
+	}
+
+	/**
+	 * A `.js` asset carries no right-to-left style data: only stylesheets have
+	 * a mirrored twin to swap in.
+	 */
+	public function test_enqueue_script_adds_no_rtl_style_data(): void {
+		$this->stub_resolvers( 'a1b2c3d4', 'https://example.test/app.js' );
+		Functions\when( 'wp_enqueue_script' )->justReturn();
+
+		Functions\expect( 'wp_style_add_data' )->never();
+
+		$assets = new Assets( 'battery-surf-bench', new Paths( '/plugins/battery-surf-bench/battery-surf-bench.php' ) );
+		$assets->enqueue( 'assets/app.js' );
 
 		// The Mockery expectation above is the assertion; acknowledge it so
 		// PHPUnit does not flag the test as risky.

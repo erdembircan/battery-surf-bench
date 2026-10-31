@@ -326,6 +326,13 @@ body.bsb-cockpit-dashboard {
 // elements, so they multiply visually rather than fighting over one value.
 // The lead fin also fires a one-shot splash ring at the waterline on the
 // dive only (never on surfacing) — see `.bsb-fin__splash` below.
+// Pinned against rtlcss, so the right-to-left build leaves the whole shark as
+// it is. The store swims it left to right with translateX percentages measured
+// from the lane's left edge, and the fin's SVG is never mirrored: a mirrored
+// copy would start at the right edge and swim straight out of its lane. The
+// directives are loud `/*!` comments because the compressed build drops plain
+// ones (see cssnano.config.js).
+/*! rtl:begin:ignore */
 .bsb-deck__fin-lane {
 	position: absolute;
 	inset: 0;
@@ -589,6 +596,7 @@ body.bsb-cockpit-dashboard {
 		transform: scaleX(1.2);
 	}
 }
+/*! rtl:end:ignore */
 
 // Pure decoration: the store's timer still runs and clears the swim on its
 // own schedule regardless, so hiding the fin outright costs nothing but the
@@ -1032,6 +1040,12 @@ body.bsb-cockpit-dashboard {
 	flex: 0 0 auto;
 }
 
+// Pinned against rtlcss: the battery gauge reads left to right in every
+// language. The store sets the handle's `left` inline, TargetControl maps the
+// pointer from the battery's left edge, and the markup carries `dir="ltr"` so
+// the cap stays on the right. The directives are loud `/*!` comments because
+// the compressed build drops plain ones (see cssnano.config.js).
+/*! rtl:begin:ignore */
 // Horizontal battery whose fill is a draggable slider. Its level + colour are
 // set by the store; click/drag inside it or use the arrow keys to change it.
 .bsb-target__battery {
@@ -1095,6 +1109,7 @@ body.bsb-cockpit-dashboard {
 	border-radius: 0 3px 3px 0;
 	background: var(--text-soft);
 }
+/*! rtl:end:ignore */
 
 .bsb-target__value {
 	margin-left: auto;
@@ -2251,6 +2266,11 @@ $bark-water-deep: color.mix(theme.$coastal-teal, white, 42%); // ≈ #a8d5df
 	}
 }
 
+// Pinned against rtlcss. Mirroring would turn the `from` offset into 100%
+// but leave `to` at -200px, so the deck and tide waves would stop looping a
+// whole number of tiles and jump at the end of every loop. Waves read the
+// same flowing either way. (Loud `/*!` directive: see cssnano.config.js.)
+/*! rtl:ignore */
 @keyframes bsb-wave {
 	from {
 		background-position-x: 0;

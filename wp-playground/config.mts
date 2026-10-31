@@ -279,3 +279,11 @@ export const PLAYGROUND_UNAUTH_READY_PATTERN = playgroundReadyPattern(
 
 /** File the authenticated admin session is persisted to by the e2e setup project. */
 export const ADMIN_STORAGE_STATE = 'test-results/.auth/admin.json';
+
+/**
+ * Cookie that makes a Playground request render right-to-left. A browser
+ * context that sends it gets the right-to-left switch mu-plugin's override
+ * (see `forceRtlMuPlugin` in `blueprint.mts`); every other request renders
+ * left-to-right as usual.
+ */
+export const FORCE_RTL_COOKIE = 'bsb_force_rtl';

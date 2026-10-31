@@ -712,6 +712,13 @@ $tag-bg: #eef3f8; // light-blue tag chip
 	cursor: not-allowed;
 }
 
+// Pinned against rtlcss, so the right-to-left build leaves this block as it
+// is. FakeCursor places the cursor and its click ripple at viewport
+// coordinates measured from the left edge, and the glyph art is never
+// mirrored, so their left anchor and hotspot margins must stay physical. The
+// directives are loud `/*!` comments because the compressed build drops plain
+// ones (see cssnano.config.js).
+/*! rtl:begin:ignore */
 .bsb-surf-cursor {
 	position: fixed;
 	top: 0;
@@ -807,3 +814,4 @@ $tag-bg: #eef3f8; // light-blue tag chip
 		opacity: 0;
 	}
 }
+/*! rtl:end:ignore */

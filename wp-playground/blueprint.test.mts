@@ -17,6 +17,11 @@
  * plugin and enable debug constants, but must never carry the `login` step or
  * the dev auto-login mu-plugin, or a fresh browser context there would stop
  * being genuinely anonymous.
+ *
+ * The right-to-left switch is test scaffolding of the same kind: the dev and
+ * authenticated e2e blueprints install it so a browser context can opt into
+ * rendering right-to-left with a cookie, and the unauthenticated blueprint
+ * leaves it out.
  */
 
 import { describe, it, expect } from 'vitest';
@@ -31,7 +36,9 @@ import {
 	e2eUnauthenticatedBlueprint,
 	autoLoginMuPlugin,
 	youtubeOembedStubMuPlugin,
+	forceRtlMuPlugin,
 } from './blueprint.mts';
+import { FORCE_RTL_COOKIE } from './config.mts';
 
 /**
  * All blueprints this module builds are Blueprint v1 declarations (the v2
@@ -50,6 +57,7 @@ const AUTO_LOGIN_PATH =
 const LIVE_RELOAD_PATH = '/wordpress/wp-content/mu-plugins/bsb-live-reload.php';
 const YOUTUBE_OEMBED_STUB_PATH =
 	'/wordpress/wp-content/mu-plugins/bsb-youtube-oembed-stub.php';
+const FORCE_RTL_PATH = '/wordpress/wp-content/mu-plugins/bsb-force-rtl.php';
 
 /**
  * Find a `writeFile` step by its target path within a blueprint's steps.
@@ -110,6 +118,16 @@ describe( 'devBlueprint', () => {
 		expect( step?.data ).toContain( 'bsb_youtube_oembed_stub' );
 		expect( step?.data ).toContain( 'pre_oembed_result' );
 	} );
+
+	it( 'installs the right-to-left switch mu-plugin', () => {
+		const step = findWriteFileStep(
+			blueprint.steps as Record< string, unknown >[],
+			FORCE_RTL_PATH
+		);
+
+		expect( step ).toBeDefined();
+		expect( step?.data ).toBe( forceRtlMuPlugin );
+	} );
 } );
 
 describe( 'devResumeBlueprint', () => {
@@ -152,6 +170,16 @@ describe( 'devResumeBlueprint', () => {
 		);
 
 		expect( step ).toBeDefined();
+	} );
+
+	it( 'installs the right-to-left switch mu-plugin', () => {
+		const step = findWriteFileStep(
+			blueprint.steps as Record< string, unknown >[],
+			FORCE_RTL_PATH
+		);
+
+		expect( step ).toBeDefined();
+		expect( step?.data ).toBe( forceRtlMuPlugin );
 	} );
 } );
 
@@ -201,6 +229,16 @@ describe( 'e2eBlueprint', () => {
 
 		expect( step ).toBeDefined();
 	} );
+
+	it( 'installs the right-to-left switch mu-plugin', () => {
+		const step = findWriteFileStep(
+			blueprint.steps as Record< string, unknown >[],
+			FORCE_RTL_PATH
+		);
+
+		expect( step ).toBeDefined();
+		expect( step?.data ).toBe( forceRtlMuPlugin );
+	} );
 } );
 
 describe( 'e2eUnauthenticatedBlueprint', () => {
@@ -249,6 +287,15 @@ describe( 'e2eUnauthenticatedBlueprint', () => {
 
 		expect( step ).toBeUndefined();
 	} );
+
+	it( 'does not install the right-to-left switch mu-plugin -- no unauthenticated spec renders a page right-to-left', () => {
+		const step = findWriteFileStep(
+			blueprint.steps as Record< string, unknown >[],
+			FORCE_RTL_PATH
+		);
+
+		expect( step ).toBeUndefined();
+	} );
 } );
 
 describe( 'autoLoginMuPlugin', () => {
@@ -281,5 +328,25 @@ describe( 'youtubeOembedStubMuPlugin', () => {
 	it( 'never makes a network request of its own', () => {
 		expect( youtubeOembedStubMuPlugin ).not.toContain( 'wp_remote_get' );
 		expect( youtubeOembedStubMuPlugin ).not.toContain( 'curl' );
+	} );
+} );
+
+describe( 'forceRtlMuPlugin', () => {
+	it( 'guards on the development environment type', () => {
+		expect( forceRtlMuPlugin ).toContain(
+			"'development' === wp_get_environment_type()"
+		);
+	} );
+
+	it( 'acts only on requests that carry the right-to-left cookie', () => {
+		expect( forceRtlMuPlugin ).toContain(
+			`$_COOKIE['${ FORCE_RTL_COOKIE }']`
+		);
+	} );
+
+	it( 'sets the text direction override WP_Locale reads', () => {
+		expect( forceRtlMuPlugin ).toContain(
+			"$GLOBALS['text_direction'] = 'rtl';"
+		);
 	} );
 } );
