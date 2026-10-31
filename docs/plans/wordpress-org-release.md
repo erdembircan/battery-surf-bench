@@ -7,6 +7,7 @@
 - **`.wordpress-org/`** holds the directory artwork: the icon and banner. It never ships in the plugin zip. Nothing else may live in it: the deploy action mirrors the folder into the SVN `assets/` directory and deletes anything that isn't there. The editable sources and export commands are in `docs/images/wordpress-org/`.
 - **`bin/Release.sh`** builds `zip/battery-surf-bench.zip`: the JS/CSS bundles, a production-only `vendor/`, `composer zip`, then `pnpm package:verify --release`.
 - **`pnpm package:verify`** (rules in `bin/PackageRules.mts`) fails CI and the release build when the zip holds files that Plugin Check's file checks flag.
+- **Listing video.** The 60-second spot is on YouTube as Unlisted at https://youtu.be/X8CwzH_P4-g; its source is the `listing-video` branch. `readme.txt` puts the video's URL alone on its own line in the Description, which the plugin page turns into an embedded player: WordPress.org keeps oEmbed in readmes for YouTube, Vimeo and a short list of other providers, and strips raw HTML. There is no video field in the submission form, and WordPress.org builds the page from `readme.txt` alone (`README.md` is export-ignored, so it never reaches the zip or SVN).
 
 ## Before submitting
 
