@@ -10,19 +10,28 @@
  * config builds the cockpit's Interactivity API view as an ES module with
  * `@wordpress/interactivity` externalized. Both are returned untouched apart
  * from the script config's explicit entry points, the module config's added
- * dev-tools entry, the DataViews stylesheet alias, and the `@` → `src` path
- * alias (mirroring the TypeScript/Vitest configs), so blocks, modules and
- * bundles all bind to WordPress's own packages.
+ * dev-tools entry, the DataViews stylesheet alias, the `@` → `src` path alias
+ * (mirroring the TypeScript/Vitest configs) and the dropped right-to-left
+ * stylesheet step (see below), so blocks, modules and bundles all bind to
+ * WordPress's own packages.
  *
  * The dev-tools view module (`src/devtools/view.ts`) is not tied to a
  * `block.json`, so `@wordpress/scripts`' automatic module-entry discovery (which
  * scans for `viewScriptModule` fields) never finds it — it is added to the
  * module config's entry map by hand below, alongside the block-derived entries
  * it otherwise leaves untouched.
+ *
+ * The plugin does not support right-to-left languages: its design reads the
+ * same way in every language and never mirrors. `@wordpress/scripts` adds an
+ * RtlCssPlugin that writes an rtlcss-mirrored `-rtl.css` beside every
+ * stylesheet, and nothing would ever serve those files, so that step is
+ * filtered out of every config and the build writes no right-to-left
+ * stylesheets.
  */
 
 const path = require( 'path' );
 const defaultConfig = require( '@wordpress/scripts/config/webpack.config' );
+const RtlCssPlugin = require( '@wordpress/scripts/plugins/rtlcss-webpack-plugin' );
 
 // `@wordpress/scripts` returns `[ scriptConfig, moduleConfig ]` once the source
 // tree contains a script module, or a lone script config otherwise. Normalize
@@ -150,4 +159,20 @@ const customModuleConfigs = moduleConfigs.map( ( moduleConfig, index ) => {
 	};
 } );
 
-module.exports = [ customScriptConfig, ...customModuleConfigs ];
+/**
+ * Drops `@wordpress/scripts`' right-to-left stylesheet step from a config, so
+ * the build writes no `-rtl.css` files (see the note at the top of this file).
+ *
+ * @param {Object} config A webpack config.
+ * @return {Object} The same config without the RtlCssPlugin.
+ */
+const withoutRtlStylesheets = ( config ) => ( {
+	...config,
+	plugins: ( config.plugins ?? [] ).filter(
+		( plugin ) => ! ( plugin instanceof RtlCssPlugin )
+	),
+} );
+
+module.exports = [ customScriptConfig, ...customModuleConfigs ].map(
+	withoutRtlStylesheets
+);
