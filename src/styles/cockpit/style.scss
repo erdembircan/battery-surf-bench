@@ -326,6 +326,7 @@ body.bsb-cockpit-dashboard {
 // elements, so they multiply visually rather than fighting over one value.
 // The lead fin also fires a one-shot splash ring at the waterline on the
 // dive only (never on surfacing) — see `.bsb-fin__splash` below.
+//
 // Pinned against rtlcss, so the right-to-left build leaves the whole shark as
 // it is. The store swims it left to right with translateX percentages measured
 // from the lane's left edge, and the fin's SVG is never mirrored: a mirrored
