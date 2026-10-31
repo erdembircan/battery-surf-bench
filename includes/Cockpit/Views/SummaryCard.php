@@ -85,8 +85,7 @@ class SummaryCard implements View {
 		// The drain chart draws left to right in every locale, so its SVG pins
 		// `direction="ltr"` instead of inheriting the page's: on a right-to-left
 		// page its labels' start and end anchors would otherwise swap sides and
-		// run off the plot. The pin is markup so it holds under either stylesheet
-		// build; the `-rtl.css` variant's rtlcss pass flips a CSS `direction`.
+		// run off the plot.
 		$summary_back = <<<HTML
 {$frank}
 		<div class="bsb-summary__report">

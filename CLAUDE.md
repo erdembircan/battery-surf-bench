@@ -111,6 +111,14 @@ All source files (both JS/TS and PHP) must use **CamelCase** (e.g. `BatteryMonit
 - **Never add dark handling.** Do not write `@media (prefers-color-scheme: dark)` rules, `[data-theme='dark']` overrides for new UI, or any theme switcher — in production code **or** in design mockups. Author every surface light-only. Use the theme tokens normally (they resolve to the light values); just never introduce new dark variants.
 - **If dark is ever genuinely wanted, it's a maintainer decision** — raise it explicitly. Don't infer it from the dormant tokens.
 
+## No Right-to-Left Support
+
+**The app is left-to-right only; it does not support right-to-left languages.** Its design reads one way in every language — the postcard's stamp sits top-right, the control deck slides in from the left, the battery gauge fills toward its terminal on the right — and none of it mirrors. The build therefore writes no `-rtl.css` stylesheets: `webpack.config.js` drops the right-to-left step `@wordpress/scripts` adds by default.
+
+- **Never add right-to-left support** — no mirrored stylesheets, rtlcss directives, right-to-left layout variants or right-to-left test switches.
+- **Don't treat the left-to-right layout on a right-to-left site as a bug.** WordPress still marks pages right-to-left on those sites; the plugin's styles don't adapt, by design.
+- **If right-to-left is ever genuinely wanted, it's a maintainer decision** — raise it explicitly.
+
 ## Mock Big Design Decisions First
 
 **For any significant style or design decision, build a standalone HTML mockup before touching production code.** New UI surfaces, redesigns, distinctive components, palette/typography directions, novel interactions — prototype them as self-contained `.html` files (inline CSS/JS, self-contained assets — data-URI images or system fonts, no external CDN or remote resources), iterate on the mockup with the maintainer, and only port the approved direction into the real SCSS/markup/Interactivity code. This keeps exploration off the build/test/lint cycle and avoids churning production files through rejected ideas.

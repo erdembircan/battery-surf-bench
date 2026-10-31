@@ -4,7 +4,12 @@
 # ecosystem's build tooling in turn. Neither ecosystem's own build script
 # reaches into the other — this orchestrator is the single caller that knows
 # both:
-#   1. pnpm run build              — compile the JS/CSS bundles (wp-scripts).
+#   1. rm -rf build + pnpm run build — clear stale output, then compile the
+#                                    JS/CSS bundles (wp-scripts). The build runs
+#                                    with wp-scripts' experimental modules flag,
+#                                    which turns off its own output cleaning, so
+#                                    files an earlier build wrote would
+#                                    otherwise linger in build/ and ship.
 #   2. composer build:container    — validate + flatten/plan the container definitions.
 #   3. composer install --no-dev   — reinstall vendor/ without dev-only packages
 #                                    (phpunit, phpcs, mockery, ...) so the zip
@@ -28,6 +33,9 @@
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
+
+echo "==> Clearing stale build output"
+rm -rf build
 
 echo "==> Building JS/CSS bundles (pnpm)"
 pnpm run build
