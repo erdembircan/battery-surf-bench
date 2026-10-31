@@ -2592,6 +2592,18 @@ $bark-water-deep: color.mix(theme.$coastal-teal, white, 42%); // ≈ #a8d5df
 	&--x {
 		text-anchor: middle;
 	}
+
+	// The time labels at the axis ends anchor inward (see `GraphSvg.ts`), so
+	// they stay inside the plot. These follow `--x` so they override its
+	// centring. `start` and `end` follow the text direction, which the chart's
+	// view pins to left-to-right, so they mean left and right in every locale.
+	&--start {
+		text-anchor: start;
+	}
+
+	&--end {
+		text-anchor: end;
+	}
 }
 
 .bsb-summary__chart-area {

@@ -31,6 +31,31 @@ const el = (
 };
 
 /**
+ * The `class` for an elapsed-time label. The first and last labels mark the
+ * axis ends, whose ticks sit on the plot's left and right edges. Centred there,
+ * they would hang past the plot, and a long last label would run off the chart
+ * and clip, so they anchor inward instead: the first from its start, the last
+ * from its end. The labels between stay centred on their ticks; a lone label
+ * counts as the first.
+ *
+ * @param index The label's position along the axis, from the left.
+ * @param count How many labels the axis has.
+ * @return The label's class list.
+ */
+const xLabelClass = ( index: number, count: number ): string => {
+	const classes = [
+		'bsb-summary__chart-label',
+		'bsb-summary__chart-label--x',
+	];
+	if ( index === 0 ) {
+		classes.push( 'bsb-summary__chart-label--start' );
+	} else if ( index === count - 1 ) {
+		classes.push( 'bsb-summary__chart-label--end' );
+	}
+	return classes.join( ' ' );
+};
+
+/**
  * Paints a drain-graph model into an SVG element, replacing its contents. A null
  * model clears the chart (the caller hides it when there is nothing to plot).
  * @param svg   The target SVG element.
@@ -80,9 +105,9 @@ export const paintGraph = (
 			y2: frame.bottom,
 		} )
 	);
-	for ( const tick of model.xTicks ) {
+	for ( const [ index, tick ] of model.xTicks.entries() ) {
 		const label = el( 'text', {
-			class: 'bsb-summary__chart-label bsb-summary__chart-label--x',
+			class: xLabelClass( index, model.xTicks.length ),
 			x: tick.pos,
 			y: frame.bottom + 14,
 		} );

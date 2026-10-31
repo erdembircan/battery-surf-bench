@@ -117,4 +117,16 @@ final class SummaryCardTest extends TestCase {
 			$this->card( array( 'start_hidden' => false ) )
 		);
 	}
+
+	/**
+	 * The drain chart draws left to right in every locale. Its SVG pins the
+	 * direction, so on a right-to-left page its labels' start and end anchors
+	 * keep their sides instead of running off the plot.
+	 */
+	public function test_chart_draws_left_to_right_in_every_locale(): void {
+		$this->assertMatchesRegularExpression(
+			'/<svg class="bsb-summary__chart"[^>]* direction="ltr"/',
+			$this->card()
+		);
+	}
 }

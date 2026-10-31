@@ -82,6 +82,11 @@ class SummaryCard implements View {
 			</div>
 		HTML;
 
+		// The drain chart draws left to right in every locale, so its SVG pins
+		// `direction="ltr"` instead of inheriting the page's: on a right-to-left
+		// page its labels' start and end anchors would otherwise swap sides and
+		// run off the plot. The pin is markup so it holds under either stylesheet
+		// build; the `-rtl.css` variant's rtlcss pass flips a CSS `direction`.
 		$summary_back = <<<HTML
 {$frank}
 		<div class="bsb-summary__report">
@@ -89,7 +94,7 @@ class SummaryCard implements View {
 			<p class="bsb-summary__sig" data-wp-text="state.summarySig"></p>
 			<span class="bsb-summary__divide" aria-hidden="true"></span>
 			<div class="bsb-summary__graph" data-wp-bind--hidden="!context.hasGraph">
-				<svg class="bsb-summary__chart" viewBox="0 0 480 90" aria-hidden="true"></svg>
+				<svg class="bsb-summary__chart" viewBox="0 0 480 90" direction="ltr" aria-hidden="true"></svg>
 				<div class="bsb-summary__legend" aria-hidden="true">
 					<span class="bsb-summary__legend-item"><span class="bsb-summary__legend-swatch"></span>{$measured_label}</span>
 					<span class="bsb-summary__legend-item"><span class="bsb-summary__legend-swatch bsb-summary__legend-swatch--fit"></span>{$projected_label}</span>
