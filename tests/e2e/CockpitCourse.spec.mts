@@ -1524,9 +1524,18 @@ test.describe( 'Right-to-left rendering', () => {
 			.click();
 		await expect( page.locator( '.bsb-target__battery' ) ).toBeVisible();
 
+		// Drop the target to its minimum, so a fill or handle anchored to the
+		// wrong edge would land far from where it belongs.
+		await page.locator( '.bsb-target__battery' ).press( 'Home' );
+		await expect( page.locator( '.bsb-target__battery' ) ).toHaveAttribute(
+			'aria-valuenow',
+			'5'
+		);
+
 		// The gauge stays left-to-right: the fill grows from the battery's left
 		// edge, the handle rides the fill's right end, and the cap sits to the
-		// right. Polled, because the deck is still sliding in.
+		// right. Polled, because the deck may still be sliding in and the fill
+		// and handle ease to the new value.
 		await expect
 			.poll( () =>
 				page.evaluate( () => {
