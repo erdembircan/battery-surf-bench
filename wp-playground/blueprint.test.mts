@@ -17,6 +17,11 @@
  * plugin and enable debug constants, but must never carry the `login` step or
  * the dev auto-login mu-plugin, or a fresh browser context there would stop
  * being genuinely anonymous.
+ *
+ * The dev blueprints also reset the site language to English on every boot:
+ * the language lives in the persisted database, so a switch made to check a
+ * translation used to stick across restarts. The e2e blueprints leave it
+ * alone, since they start from a fresh English install on every run.
  */
 
 import { describe, it, expect } from 'vitest';
@@ -67,6 +72,26 @@ function findWriteFileStep(
 	);
 }
 
+/**
+ * Read the value a blueprint's `setSiteOptions` steps give a site option.
+ *
+ * @param steps - The blueprint's `steps` array.
+ * @param name  - The option to look up.
+ * @return The option's value, or undefined if no step sets it.
+ */
+function findSiteOption(
+	steps: ReadonlyArray< Record< string, unknown > > | undefined,
+	name: string
+): unknown {
+	const step = steps?.find(
+		( candidate ) =>
+			candidate.step === 'setSiteOptions' &&
+			name in ( candidate.options as Record< string, unknown > )
+	);
+
+	return ( step?.options as Record< string, unknown > | undefined )?.[ name ];
+}
+
 describe( 'devBlueprint', () => {
 	const blueprint = asV1( devBlueprint( 9400 ) );
 
@@ -110,6 +135,15 @@ describe( 'devBlueprint', () => {
 		expect( step?.data ).toContain( 'bsb_youtube_oembed_stub' );
 		expect( step?.data ).toContain( 'pre_oembed_result' );
 	} );
+
+	it( 'resets the site language to English', () => {
+		expect(
+			findSiteOption(
+				blueprint.steps as Record< string, unknown >[],
+				'WPLANG'
+			)
+		).toBe( '' );
+	} );
 } );
 
 describe( 'devResumeBlueprint', () => {
@@ -152,6 +186,15 @@ describe( 'devResumeBlueprint', () => {
 		);
 
 		expect( step ).toBeDefined();
+	} );
+
+	it( 'resets the site language to English', () => {
+		expect(
+			findSiteOption(
+				blueprint.steps as Record< string, unknown >[],
+				'WPLANG'
+			)
+		).toBe( '' );
 	} );
 } );
 
@@ -201,6 +244,15 @@ describe( 'e2eBlueprint', () => {
 
 		expect( step ).toBeDefined();
 	} );
+
+	it( 'does not set the site language -- a fresh install is already English', () => {
+		expect(
+			findSiteOption(
+				blueprint.steps as Record< string, unknown >[],
+				'WPLANG'
+			)
+		).toBeUndefined();
+	} );
 } );
 
 describe( 'e2eUnauthenticatedBlueprint', () => {
@@ -248,6 +300,15 @@ describe( 'e2eUnauthenticatedBlueprint', () => {
 		);
 
 		expect( step ).toBeUndefined();
+	} );
+
+	it( 'does not set the site language -- a fresh install is already English', () => {
+		expect(
+			findSiteOption(
+				blueprint.steps as Record< string, unknown >[],
+				'WPLANG'
+			)
+		).toBeUndefined();
 	} );
 } );
 

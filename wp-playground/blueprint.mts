@@ -6,8 +6,15 @@ import { PLUGIN_SLUG, liveReloadClientUrl } from './config.mts';
 
 /**
  * Base blueprint options shared by all playground modes. Pins PHP to the
- * project's supported version and tracks the latest WordPress. No extra
- * libraries are requested so boot never depends on fetching wp-cli.phar.
+ * project's supported version and installs the latest WordPress release.
+ * `latest` is resolved only when WordPress is downloaded: the e2e instances
+ * download it on every run, while the persistent dev site downloads it once
+ * and from then on is kept current by WordPress's own background updater,
+ * which installs every release, major ones included (the default since
+ * WordPress 5.6). That updater only runs while the dev server is up, so after
+ * a release lands while the server is off, the site boots on the previous
+ * version and updates itself once its twice-daily update check comes due. No
+ * extra libraries are requested so boot never depends on fetching wp-cli.phar.
  */
 const base = {
 	preferredVersions: {
@@ -33,6 +40,25 @@ const debugStep: BlueprintV1Declaration[ 'steps' ] = [
 			WP_DEBUG_DISPLAY: true,
 			SCRIPT_DEBUG: true,
 			WP_ENVIRONMENT_TYPE: 'development',
+		},
+	},
+];
+
+/**
+ * Pin the persistent dev site to the default English (US) locale on every
+ * boot. The site language lives in the persisted database, so switching the
+ * dev site to another locale (for example to check one of the plugin's own
+ * translations) used to stick across restarts and greet every later run in
+ * that language. An empty `WPLANG` is how WordPress stores en_US. Uses
+ * `setSiteOptions` rather than `setSiteLanguage`, which would fetch a
+ * translation package over the network. Switching languages mid-session
+ * still works; the next start resets it.
+ */
+const siteLanguageStep: BlueprintV1Declaration[ 'steps' ] = [
+	{
+		step: 'setSiteOptions',
+		options: {
+			WPLANG: '',
 		},
 	},
 ];
@@ -241,13 +267,14 @@ export const youtubeOembedStubStep = (): NonNullable<
 
 /**
  * Build the development blueprint for a first-run or non-persistent instance.
- * Enables debug constants, activates the plugin, installs the dev auto-login
- * mu-plugin, installs the YouTube oEmbed stub (so the video course page
- * renders a real, controllable embed without needing outbound network — see
- * {@link youtubeOembedStubMuPlugin}), and installs the LiveReload mu-plugin
- * pointed at the resolved port. Does not use the shared `login` step — see
- * {@link autoLoginMuPlugin} for why the dev server needs its own auto-login
- * path instead.
+ * Enables debug constants, pins the site language to English (see
+ * {@link siteLanguageStep}), activates the plugin, installs the dev
+ * auto-login mu-plugin, installs the YouTube oEmbed stub (so the video course
+ * page renders a real, controllable embed without needing outbound network —
+ * see {@link youtubeOembedStubMuPlugin}), and installs the LiveReload
+ * mu-plugin pointed at the resolved port. Does not use the shared `login`
+ * step — see {@link autoLoginMuPlugin} for why the dev server needs its own
+ * auto-login path instead.
  *
  * @param liveReloadPort - The port the LiveReload server bound this run.
  * @return The blueprint declaration.
@@ -258,6 +285,7 @@ export const devBlueprint = (
 	...base,
 	steps: [
 		...debugStep,
+		...siteLanguageStep,
 		...activatePluginStep,
 		...autoLoginStep(),
 		...youtubeOembedStubStep(),
@@ -267,7 +295,8 @@ export const devBlueprint = (
 
 /**
  * Build the resume blueprint for an existing persistent installation.
- * Re-enables debug constants and reinstalls the dev auto-login, YouTube
+ * Re-enables debug constants, resets the site language to English (see
+ * {@link siteLanguageStep}), and reinstalls the dev auto-login, YouTube
  * oEmbed stub and LiveReload mu-plugins pointed at the resolved port; the
  * plugin is already active in the persisted database, so activation is
  * skipped. Does not use the shared `login` step — see {@link autoLoginMuPlugin}
@@ -282,6 +311,7 @@ export const devResumeBlueprint = (
 	...base,
 	steps: [
 		...debugStep,
+		...siteLanguageStep,
 		...autoLoginStep(),
 		...youtubeOembedStubStep(),
 		...liveReloadStep( liveReloadPort ),
