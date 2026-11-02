@@ -282,6 +282,85 @@ test.describe( 'Dev-tools Surf group', () => {
 		expect( await page.content() ).not.toMatch( PHP_NOTICE );
 	} );
 
+	// The highlight's pace is set per character, not per sweep: whichever
+	// paragraph the engine picks, it highlights a bounded snippet and spends
+	// at least an animation frame per character growing it — a sweep
+	// squeezed into one fixed duration would race a long paragraph through
+	// in a fraction of that. Counted in frames, not milliseconds, so a fast
+	// display or a loaded runner can't tip it either way.
+	test( 'steering selectSnippet highlights a bounded snippet at a steady per-character pace', async ( {
+		page,
+	} ) => {
+		await page.goto( '/?bsbSession=cockpit' );
+
+		await forceDischarging( page );
+		await armSterile( page );
+		await page.locator( '.bsb-devtools__card-close' ).click();
+
+		await startFastRun( page );
+		await page.locator( '.bsb-devtools__pill' ).click();
+
+		const selectSnippetChip = page.locator(
+			'[data-devtools-behavior="selectSnippet"]'
+		);
+		await expect( selectSnippetChip ).toBeEnabled( { timeout: 15_000 } );
+
+		const coursePage = page
+			.locator( 'iframe.bsb-cockpit__viewport' )
+			.contentFrame()
+			.locator( 'body.bsb-course-page' );
+
+		// Samples the visible length of the page's selection on every
+		// animation frame, from before the steer until the highlight has
+		// grown and been cleared again (or 20 s pass with no highlight).
+		const sampling = coursePage.evaluate(
+			( body ) =>
+				new Promise< number[] >( ( resolve ) => {
+					const view = body.ownerDocument.defaultView!;
+					const lengths: number[] = [];
+					const sample = (): void => {
+						const length = ( view.getSelection()?.toString() ?? '' )
+							.replace( /\s+/g, ' ' )
+							.trim().length;
+						lengths.push( length );
+
+						if (
+							length === 0 &&
+							lengths.some( ( seen ) => seen > 0 )
+						) {
+							resolve( lengths );
+							return;
+						}
+
+						view.requestAnimationFrame( sample );
+					};
+
+					view.requestAnimationFrame( sample );
+					view.setTimeout( () => resolve( lengths ), 20_000 );
+				} )
+		);
+
+		await selectSnippetChip.click();
+
+		const lengths = await sampling;
+		const snippetLength = Math.max( ...lengths );
+		const firstFrame = lengths.findIndex( ( length ) => length > 0 );
+		const fullFrame = lengths.indexOf( snippetLength );
+
+		// A bounded snippet: never a sliver, never a whole long paragraph.
+		expect( snippetLength ).toBeGreaterThanOrEqual( 21 );
+		expect( snippetLength ).toBeLessThanOrEqual( 160 );
+
+		// At least one frame per character, on average, while it grows.
+		expect( fullFrame - firstFrame ).toBeGreaterThanOrEqual(
+			snippetLength
+		);
+
+		await expect( selectSnippetChip ).toBeEnabled( { timeout: 15_000 } );
+
+		expect( await page.content() ).not.toMatch( PHP_NOTICE );
+	} );
+
 	test( 'steering watchVideo wears the hand cursor shortly after, without waiting out the full watch dwell', async ( {
 		page,
 	} ) => {

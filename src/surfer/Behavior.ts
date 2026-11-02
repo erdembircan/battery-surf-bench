@@ -42,7 +42,9 @@ export interface BehaviorContext {
  * Called once from inside run(), at the moment the behavior knows how long
  * it will hold the stage (its wall-clock dwell in ms), before awaiting — so
  * the cockpit's bark countdown matches the actual dwell exactly. Same single
- * rng draw; never sample twice.
+ * rng draw; never sample twice. A behavior whose dwell only its motor call
+ * can know — `selectSnippet`'s depends on the snippet the motor picks —
+ * hands this callback to that call, which fires it before any motion.
  */
 export type BehaviorAnnounce = ( durationMs: number ) => void;
 

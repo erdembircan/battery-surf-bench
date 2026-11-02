@@ -1,8 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import {
-	SelectSnippet,
-	SELECT_SNIPPET_DISPLAY_MS,
-} from '@/surfer/Behaviors/SelectSnippet';
+import { SelectSnippet } from '@/surfer/Behaviors/SelectSnippet';
 import { makeContext, openAffordances } from '@/surfer/TestFixtures';
 import { FakeMotor } from '@/surfer/FakeMotor';
 import { DRIVE_FLOOR } from '@/surfer/Bid';
@@ -50,8 +47,8 @@ describe( 'SelectSnippet.run', () => {
 		] );
 	} );
 
-	it( 'announces the fixed selection-choreography duration before selecting', async () => {
-		const motor = new FakeMotor();
+	it( 'announces the duration the motor plans for the snippet it picks', async () => {
+		const motor = new FakeMotor( 2345 );
 		const announce = vi.fn();
 		await new SelectSnippet().run(
 			motor,
@@ -60,6 +57,21 @@ describe( 'SelectSnippet.run', () => {
 		);
 
 		expect( announce ).toHaveBeenCalledTimes( 1 );
-		expect( announce ).toHaveBeenCalledWith( SELECT_SNIPPET_DISPLAY_MS );
+		expect( announce ).toHaveBeenCalledWith( 2345 );
+	} );
+
+	it( 'announces nothing when the motor finds nothing to select', async () => {
+		const motor = new FakeMotor( null );
+		const announce = vi.fn();
+		await new SelectSnippet().run(
+			motor,
+			makeContext( [ 0, 0, 0, 0, MAX ] ),
+			announce
+		);
+
+		expect( announce ).not.toHaveBeenCalled();
+		expect( motor.commands ).toEqual( [
+			{ kind: 'selectSnippet', args: [] },
+		] );
 	} );
 } );

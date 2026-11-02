@@ -10,6 +10,7 @@ import { FakeCursor, framesForDistance, type Point } from '@/surfer/FakeCursor';
 import { easeInOutQuad } from '@/surfer/Ease';
 import { contentRoot, VIDEO_EMBED_SELECTOR } from '@/surfer/Affordances';
 import { createVideoControl, type VideoControl } from '@/surfer/VideoControl';
+import { planSnippet, snippetSweepMs, sweptChars } from '@/surfer/Snippet';
 
 /** A motion primitive the surfer can perform. */
 export interface Motor {
@@ -17,8 +18,21 @@ export interface Motor {
 	scrollBy: ( px: number, ms: number ) => Promise< void >;
 	/** Drifts the pointer along an aimless path for `ms`. */
 	pointerDrift: ( ms: number ) => Promise< void >;
-	/** Briefly selects a snippet of page text, then clears the selection. */
-	selectSnippet: () => Promise< void >;
+	/**
+	 * Highlights a snippet of page text at a steady pace, holds it briefly,
+	 * then clears the selection. The snippet opens a visible paragraph, list
+	 * item or quote: its whole first text run when that is short, otherwise
+	 * the run cut at a sentence or word end, so a long paragraph never
+	 * becomes a sweep of many seconds. The sweep moves at a fixed number of
+	 * characters per second, so a longer snippet takes proportionally longer
+	 * rather than racing through the same fixed time. Calls `onPlanned` once,
+	 * before any motion, with the whole choreography's duration in ms
+	 * (approach, sweep and hold); never calls it when the page offers nothing
+	 * to select.
+	 */
+	selectSnippet: (
+		onPlanned?: ( durationMs: number ) => void
+	) => Promise< void >;
 	/**
 	 * Picks one video or video-host embed at random from ALL of them on the
 	 * page (not just the first), attends it (scrolls into view, approaches
@@ -155,18 +169,20 @@ const hasViewportOverlap = ( el: Element ): boolean => {
 };
 
 /**
- * Caret-anchored point of `textNode`'s first character: the left edge of that
- * character's own client rect, at its vertical centre — where a user's
- * pointer lands before dragging a selection open. Measured from a probing
- * one-character range because a collapsed range has no client rects. `null`
- * when the environment can't measure range geometry (e.g. jsdom) or the node
- * has no laid-out rect — callers fall back to block-rect geometry.
+ * Caret-anchored point of the character at `offset` in `textNode`: the left
+ * edge of that character's own client rect, at its vertical centre — where a
+ * user's pointer lands before dragging a selection open. Measured from a
+ * probing one-character range because a collapsed range has no client
+ * rects. `null` when the environment can't measure range geometry (e.g.
+ * jsdom) or the character has no laid-out rect — callers fall back to
+ * block-rect geometry.
  * @param textNode
+ * @param offset
  */
-const textStartPoint = ( textNode: Text ): Point | null => {
+const textStartPoint = ( textNode: Text, offset: number ): Point | null => {
 	const probe = textNode.ownerDocument.createRange();
-	probe.setStart( textNode, 0 );
-	probe.setEnd( textNode, Math.min( 1, textNode.length ) );
+	probe.setStart( textNode, offset );
+	probe.setEnd( textNode, Math.min( offset + 1, textNode.length ) );
 
 	if ( typeof probe.getClientRects !== 'function' ) {
 		return null;
@@ -186,6 +202,18 @@ const textStartPoint = ( textNode: Text ): Point | null => {
 
 	return { x: first.left, y: first.top + first.height / 2 };
 };
+
+/**
+ * `el`'s first direct child text node holding more than whitespace — the
+ * run `selectSnippet` highlights from — or undefined when it has none.
+ * @param el
+ */
+const firstTextRun = ( el: Element ): Text | undefined =>
+	Array.from( el.childNodes ).find(
+		( node ): node is Text =>
+			node.nodeType === Node.TEXT_NODE &&
+			( node.textContent ?? '' ).trim().length > 0
+	);
 
 /**
  * Caret-anchored point of `range`'s growing end: the right edge of its last
@@ -218,9 +246,6 @@ const selectionEdgePoint = ( range: Range ): Point | null => {
 /** How long the cursor travels to a snippet before the selection sweep starts. */
 const SNIPPET_APPROACH_MS = 500;
 
-/** How long the progressive selection sweep takes to cover the snippet. */
-const SNIPPET_SWEEP_MS = 700;
-
 /** How long the finished selection is held before it is cleared. */
 const SNIPPET_HOLD_MS = 600;
 
@@ -242,8 +267,7 @@ const DEFAULT_LINE_HEIGHT_PX = 24;
 
 /**
  * Nominal duration a single line's left-to-right sweep takes in `traceBlock`,
- * jittered per line by {@link TRACE_LINE_JITTER_FRACTION} — a reading pace,
- * distinctly slower than `selectSnippet`'s quick sweep.
+ * jittered per line by {@link TRACE_LINE_JITTER_FRACTION} — a reading pace.
  */
 const TRACE_LINE_MS = 1500;
 
@@ -395,37 +419,43 @@ export class DomMotor implements Motor {
 		}
 	}
 
-	async selectSnippet(): Promise< void > {
+	async selectSnippet(
+		onPlanned?: ( durationMs: number ) => void
+	): Promise< void > {
 		const root = contentRoot( document );
 		const candidates = Array.from(
 			root.querySelectorAll( 'p, li, blockquote' )
-		).filter(
-			( el ) =>
-				( el.textContent ?? '' ).trim().length > 20 &&
-				isInViewport( el )
-		);
+		)
+			.filter( isInViewport )
+			.flatMap( ( el ) => {
+				const textNode = firstTextRun( el );
+				const plan = textNode
+					? planSnippet( textNode.textContent ?? '' )
+					: null;
+
+				return textNode && plan ? [ { el, textNode, plan } ] : [];
+			} );
 
 		if ( candidates.length === 0 ) {
 			return;
 		}
 
-		const el = candidates[ Math.floor( this.rng() * candidates.length ) ];
-		const textNode = Array.from( el.childNodes ).find(
-			( node ): node is Text =>
-				node.nodeType === Node.TEXT_NODE &&
-				( node.textContent ?? '' ).trim().length > 0
-		);
+		const { el, textNode, plan } =
+			candidates[ Math.floor( this.rng() * candidates.length ) ];
 		const selection = el.ownerDocument.defaultView?.getSelection();
 
-		if ( ! textNode || ! selection ) {
+		if ( ! selection ) {
 			return;
 		}
 
-		const text = textNode.textContent ?? '';
+		const chars = plan.ends.length;
+		const sweepMs = snippetSweepMs( chars );
 		const rect = el.getBoundingClientRect();
 
+		onPlanned?.( SNIPPET_APPROACH_MS + sweepMs + SNIPPET_HOLD_MS );
+
 		await this.cursor.travelTo(
-			textStartPoint( textNode ) ?? {
+			textStartPoint( textNode, plan.start ) ?? {
 				x: rect.left,
 				y: rect.top + rect.height / 2,
 			},
@@ -435,27 +465,29 @@ export class DomMotor implements Motor {
 		this.cursor.setMode( 'caret' );
 
 		const range = el.ownerDocument.createRange();
-		range.setStart( textNode, 0 );
-		range.setEnd( textNode, 0 );
+		range.setStart( textNode, plan.start );
+		range.setEnd( textNode, plan.start );
 		selection.removeAllRanges();
 		selection.addRange( range );
 
-		// Extends the selection and rides its caret edge with the cursor,
-		// frame by frame — eased like a human drag, following the selection's
-		// real geometry across wrapped lines rather than gliding along the
-		// block's bounding box. At least one character stays selected from the
+		// Extends the selection at the snippet's steady pace and rides its
+		// caret edge with the cursor, frame by frame, following the
+		// selection's real geometry across wrapped lines rather than gliding
+		// along the block's bounding box. Progress counts visible characters,
+		// so a run of source whitespace costs one character's time, not one
+		// per tab or newline. At least one character stays selected from the
 		// first frame, so the caret edge is always measurable.
-		const sweepFrames = msToFrames( SNIPPET_SWEEP_MS );
+		const sweepFrames = msToFrames( sweepMs );
 
 		for ( let i = 1; i <= sweepFrames; i++ ) {
-			const t = easeInOutQuad( i / sweepFrames );
-			range.setEnd(
-				textNode,
-				Math.max( 1, Math.floor( text.length * t ) )
+			const covered = Math.max(
+				1,
+				Math.floor( sweptChars( ( i / sweepFrames ) * sweepMs, chars ) )
 			);
+			range.setEnd( textNode, plan.ends[ covered - 1 ] );
 			this.cursor.moveTo(
 				selectionEdgePoint( range ) ?? {
-					x: rect.left + rect.width * t,
+					x: rect.left + rect.width * ( covered / chars ),
 					y: rect.top + rect.height / 2,
 				}
 			);

@@ -78,6 +78,8 @@ classDiagram
     %% knows its own wall-clock dwell, before awaiting — the cockpit's bark
     %% countdown matches that exact duration. Behaviors with no dwell to
     %% announce (the mechanical ones) simply never call it.
+    %% A behavior whose dwell only its motor call can know (SelectSnippet)
+    %% hands announce to that call, which fires it before any motion.
     class Behavior {
         <<interface>>
         +key string
@@ -116,7 +118,7 @@ classDiagram
         <<interface>>
         +scrollBy(px, ms) Promise
         +pointerDrift(ms) Promise
-        +selectSnippet() Promise
+        +selectSnippet(onPlanned?) Promise
         +playVideo() Promise
         +stopVideo() Promise
         +lingerImage(ms) Promise
@@ -128,7 +130,7 @@ classDiagram
     class DomMotor {
         +scrollBy(px, ms) Promise
         +pointerDrift(ms) Promise
-        +selectSnippet() Promise
+        +selectSnippet(onPlanned?) Promise
         +playVideo() Promise
         +stopVideo() Promise
         +lingerImage(ms) Promise
@@ -211,6 +213,21 @@ classDiagram
         +easeInOutQuad(t) number
     }
 
+    %% What DomMotor.selectSnippet highlights, and how fast: plans a snippet
+    %% from a text run (whole when short, else cut at its last sentence or
+    %% word end within the cap; a whitespace run counts as one visible
+    %% character) and paces the sweep at a steady per-character speed, eased
+    %% up from rest and back down, so a longer snippet takes longer.
+    class Snippet {
+        <<module>>
+        +SNIPPET_MIN_CHARS
+        +SNIPPET_MAX_CHARS
+        +SNIPPET_MS_PER_CHAR
+        +planSnippet(text) SnippetPlan|null
+        +snippetSweepMs(chars) number
+        +sweptChars(elapsedMs, chars) number
+    }
+
     %% --- Behaviors: one bidder per action, each governed by one primary stat.
     %% ScrollBurst: baseline mover, constant drive × scrollRemaining affordance.
     class ScrollBurst {
@@ -254,7 +271,10 @@ classDiagram
         +bid(BehaviorContext, appetite, boredom) number
         +run(Motor, BehaviorContext) Promise
     }
-    %% SelectSnippet: fidget, gated by textDensity.
+    %% SelectSnippet: fidget, gated by textDensity. Hands its announce to
+    %% Motor.selectSnippet as onPlanned, so it barks for exactly the duration
+    %% the motor plans for the snippet it picks, and not at all when the page
+    %% offers nothing to select.
     class SelectSnippet {
         +key string
         +bid(BehaviorContext, appetite, boredom) number
@@ -329,7 +349,8 @@ classDiagram
     ScrollBurst --> Tempo : flick px & ease
     Bid --> SurferStats : MAX
 
-    DomMotor --> Ease : eases scroll & travel progress
+    DomMotor --> Ease : eases scroll progress
+    DomMotor --> Snippet : plans each highlight & paces its sweep
     FakeCursor --> Ease : eases travel progress
 
     Behavior ..> BehaviorContext : reads

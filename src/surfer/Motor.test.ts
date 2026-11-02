@@ -701,6 +701,48 @@ describe( 'DomMotor.pointerDrift', () => {
 } );
 
 describe( 'DomMotor.selectSnippet', () => {
+	/**
+	 * Steps a fresh motor through `selectSnippet` on `html`, recording the
+	 * selection's length on every frame.
+	 * @param html
+	 */
+	const selectionLengthsFor = async ( html: string ): Promise< number[] > => {
+		document.body.innerHTML = html;
+		const lengths: number[] = [];
+
+		await new DomMotor(
+			() => 0,
+			() => {
+				lengths.push( getSelection()?.toString().length ?? 0 );
+				return Promise.resolve();
+			}
+		).selectSnippet();
+
+		return lengths;
+	};
+
+	/**
+	 * How many frames a recorded sweep took — from its first highlighted
+	 * frame to its first fully highlighted one — and its pace, in characters
+	 * per frame, across the middle half of that stretch.
+	 * @param lengths
+	 */
+	const sweepOf = ( lengths: number[] ): { frames: number; pace: number } => {
+		const full = Math.max( ...lengths );
+		const first = lengths.findIndex( ( length ) => length > 0 );
+		const last = lengths.indexOf( full );
+		const quarter = first + Math.round( ( last - first ) / 4 );
+		const threeQuarters =
+			first + Math.round( ( ( last - first ) * 3 ) / 4 );
+
+		return {
+			frames: last - first,
+			pace:
+				( lengths[ threeQuarters ] - lengths[ quarter ] ) /
+				( threeQuarters - quarter ),
+		};
+	};
+
 	it( 'does nothing when the page has no text long enough to select', async () => {
 		document.body.innerHTML = '<p>short</p>';
 		await expect(
@@ -858,17 +900,153 @@ describe( 'DomMotor.selectSnippet', () => {
 			expect( ys ).toContain( 112 );
 			expect( ys ).toContain( 136 );
 
-			// The final painted position is the exact caret edge of the fully
-			// extended selection: the second line's right edge.
+			// The final painted position is the exact caret edge of the
+			// snippet's last visible character — the paragraph's trailing
+			// space is never highlighted: the second line's right edge.
+			const snippetEnd = text.data.trimEnd().length;
 			const last = moveToSpy.mock.calls.at( -1 )![ 0 ] as Point;
 			expect( last ).toEqual( {
-				x: 50 + ( text.length - half ) * 4,
+				x: 50 + ( snippetEnd - half ) * 4,
 				y: 136,
 			} );
 		} finally {
 			Range.prototype.getClientRects = originalGetClientRects;
 			moveToSpy.mockRestore();
 		}
+	} );
+
+	it( 'highlights a short and a long snippet at the same pace, the long one simply taking longer', async () => {
+		const short = sweepOf(
+			await selectionLengthsFor(
+				`<p>${ 'word '.repeat( 8 ).trimEnd() }</p>`
+			)
+		);
+		const long = sweepOf(
+			await selectionLengthsFor(
+				`<p>${ 'word '.repeat( 30 ).trimEnd() }</p>`
+			)
+		);
+
+		expect( long.pace ).toBeCloseTo( short.pace, 1 );
+		expect( long.frames ).toBeGreaterThan( 2 * short.frames );
+	} );
+
+	it( 'highlights only the opening sentences of a long paragraph, stopping at a sentence end', async () => {
+		const opening =
+			'This opening sentence is long enough to count on its own.';
+		const second =
+			'A second sentence follows it and still fits inside the cap.';
+		const third =
+			'A third sentence runs well past the cap so the highlight must stop before it begins.';
+		document.body.innerHTML = `<p>${ opening } ${ second } ${ third }</p>`;
+		const highlighted: string[] = [];
+
+		await new DomMotor(
+			() => 0,
+			() => {
+				highlighted.push( getSelection()?.toString() ?? '' );
+				return Promise.resolve();
+			}
+		).selectSnippet();
+
+		const longest = highlighted.reduce(
+			( kept, text ) => ( text.length > kept.length ? text : kept ),
+			''
+		);
+		expect( longest ).toBe( `${ opening } ${ second }` );
+	} );
+
+	it( 'starts at the first visible character and paces a run of source whitespace as one character', async () => {
+		const plain = sweepOf(
+			await selectionLengthsFor(
+				`<p>${ 'word '.repeat( 10 ).trimEnd() }</p>`
+			)
+		);
+
+		document.body.innerHTML = `<p>\n\t\t\t${ 'word\n\t\t\t\t'.repeat(
+			9
+		) }word\n\t\t</p>`;
+		const lengths: number[] = [];
+		let firstOffset: number | null = null;
+
+		await new DomMotor(
+			() => 0,
+			() => {
+				const selection = getSelection();
+				const length = selection?.toString().length ?? 0;
+
+				if ( length > 0 && firstOffset === null ) {
+					firstOffset = selection!.getRangeAt( 0 ).startOffset;
+				}
+
+				lengths.push( length );
+				return Promise.resolve();
+			}
+		).selectSnippet();
+
+		expect( firstOffset ).toBe( 4 );
+		expect( sweepOf( lengths ).frames ).toBe( plain.frames );
+	} );
+
+	it( 'skips a paragraph whose first text run is too short to highlight', async () => {
+		document.body.innerHTML = `<p>By <strong>A Byline Long Enough To Count As Text</strong></p><p>${ 'word '
+			.repeat( 10 )
+			.trimEnd() }</p>`;
+		const [ byline, prose ] = document.querySelectorAll( 'p' );
+		const anchors: ( Element | null )[] = [];
+
+		await new DomMotor(
+			() => 0,
+			() => {
+				anchors.push(
+					getSelection()?.anchorNode?.parentElement ?? null
+				);
+				return Promise.resolve();
+			}
+		).selectSnippet();
+
+		expect( anchors ).toContain( prose );
+		expect( anchors ).not.toContain( byline );
+	} );
+
+	it( 'reports its planned duration once, before any motion, matching the frames it then takes', async () => {
+		document.body.innerHTML = `<p>${ 'word '.repeat( 12 ).trimEnd() }</p>`;
+		let frames = 0;
+		let framesWhenPlanned: number | null = null;
+		let planned = 0;
+		const onPlanned = vi.fn( ( durationMs: number ) => {
+			planned = durationMs;
+			framesWhenPlanned = frames;
+		} );
+
+		await new DomMotor(
+			() => 0,
+			() => {
+				frames++;
+				return Promise.resolve();
+			}
+		).selectSnippet( onPlanned );
+
+		expect( onPlanned ).toHaveBeenCalledTimes( 1 );
+		expect( framesWhenPlanned ).toBe( 0 );
+
+		// The motor paces its choreography on nominal 16 ms frames, so the
+		// announced duration matches the frames it actually took to within a
+		// frame per phase (approach, sweep, hold).
+		expect( Math.abs( planned - frames * 16 ) ).toBeLessThanOrEqual(
+			3 * 16
+		);
+	} );
+
+	it( 'reports nothing when the page has nothing to select', async () => {
+		document.body.innerHTML = '<p>short</p>';
+		const onPlanned = vi.fn();
+
+		await new DomMotor( () => 0.1, instantFrames ).selectSnippet(
+			onPlanned
+		);
+
+		expect( onPlanned ).not.toHaveBeenCalled();
 	} );
 } );
 
