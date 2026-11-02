@@ -17,6 +17,14 @@
  * plugin and enable debug constants, but must never carry the `login` step or
  * the dev auto-login mu-plugin, or a fresh browser context there would stop
  * being genuinely anonymous.
+ *
+ * The dev blueprints also carry the persistent site's declared state: the
+ * site language is reset to English on every boot (the language lives in the
+ * persisted database, so a switch made to check a translation used to stick),
+ * and core is opted into every WordPress release (the persisted install is
+ * downloaded once, and WordPress only auto-updates minor releases by
+ * default). Neither belongs on the e2e blueprints, which start from a fresh
+ * English install of the latest release on every run.
  */
 
 import { describe, it, expect } from 'vitest';
@@ -67,6 +75,46 @@ function findWriteFileStep(
 	);
 }
 
+/**
+ * Read the value a blueprint's `defineWpConfigConsts` steps give a constant.
+ *
+ * @param steps - The blueprint's `steps` array.
+ * @param name  - The constant to look up.
+ * @return The constant's defined value, or undefined if no step defines it.
+ */
+function findDefinedConst(
+	steps: ReadonlyArray< Record< string, unknown > > | undefined,
+	name: string
+): unknown {
+	const step = steps?.find(
+		( candidate ) =>
+			candidate.step === 'defineWpConfigConsts' &&
+			name in ( candidate.consts as Record< string, unknown > )
+	);
+
+	return ( step?.consts as Record< string, unknown > | undefined )?.[ name ];
+}
+
+/**
+ * Read the value a blueprint's `setSiteOptions` steps give a site option.
+ *
+ * @param steps - The blueprint's `steps` array.
+ * @param name  - The option to look up.
+ * @return The option's value, or undefined if no step sets it.
+ */
+function findSiteOption(
+	steps: ReadonlyArray< Record< string, unknown > > | undefined,
+	name: string
+): unknown {
+	const step = steps?.find(
+		( candidate ) =>
+			candidate.step === 'setSiteOptions' &&
+			name in ( candidate.options as Record< string, unknown > )
+	);
+
+	return ( step?.options as Record< string, unknown > | undefined )?.[ name ];
+}
+
 describe( 'devBlueprint', () => {
 	const blueprint = asV1( devBlueprint( 9400 ) );
 
@@ -110,6 +158,24 @@ describe( 'devBlueprint', () => {
 		expect( step?.data ).toContain( 'bsb_youtube_oembed_stub' );
 		expect( step?.data ).toContain( 'pre_oembed_result' );
 	} );
+
+	it( 'opts core into every WordPress release, not only minor ones', () => {
+		expect(
+			findDefinedConst(
+				blueprint.steps as Record< string, unknown >[],
+				'WP_AUTO_UPDATE_CORE'
+			)
+		).toBe( true );
+	} );
+
+	it( 'resets the site language to English', () => {
+		expect(
+			findSiteOption(
+				blueprint.steps as Record< string, unknown >[],
+				'WPLANG'
+			)
+		).toBe( '' );
+	} );
 } );
 
 describe( 'devResumeBlueprint', () => {
@@ -152,6 +218,24 @@ describe( 'devResumeBlueprint', () => {
 		);
 
 		expect( step ).toBeDefined();
+	} );
+
+	it( 'opts core into every WordPress release, not only minor ones', () => {
+		expect(
+			findDefinedConst(
+				blueprint.steps as Record< string, unknown >[],
+				'WP_AUTO_UPDATE_CORE'
+			)
+		).toBe( true );
+	} );
+
+	it( 'resets the site language to English', () => {
+		expect(
+			findSiteOption(
+				blueprint.steps as Record< string, unknown >[],
+				'WPLANG'
+			)
+		).toBe( '' );
 	} );
 } );
 
@@ -201,6 +285,24 @@ describe( 'e2eBlueprint', () => {
 
 		expect( step ).toBeDefined();
 	} );
+
+	it( 'does not opt core into automatic updates -- each run already downloads the latest release', () => {
+		expect(
+			findDefinedConst(
+				blueprint.steps as Record< string, unknown >[],
+				'WP_AUTO_UPDATE_CORE'
+			)
+		).toBeUndefined();
+	} );
+
+	it( 'does not set the site language -- a fresh install is already English', () => {
+		expect(
+			findSiteOption(
+				blueprint.steps as Record< string, unknown >[],
+				'WPLANG'
+			)
+		).toBeUndefined();
+	} );
 } );
 
 describe( 'e2eUnauthenticatedBlueprint', () => {
@@ -248,6 +350,24 @@ describe( 'e2eUnauthenticatedBlueprint', () => {
 		);
 
 		expect( step ).toBeUndefined();
+	} );
+
+	it( 'does not opt core into automatic updates -- each run already downloads the latest release', () => {
+		expect(
+			findDefinedConst(
+				blueprint.steps as Record< string, unknown >[],
+				'WP_AUTO_UPDATE_CORE'
+			)
+		).toBeUndefined();
+	} );
+
+	it( 'does not set the site language -- a fresh install is already English', () => {
+		expect(
+			findSiteOption(
+				blueprint.steps as Record< string, unknown >[],
+				'WPLANG'
+			)
+		).toBeUndefined();
 	} );
 } );
 

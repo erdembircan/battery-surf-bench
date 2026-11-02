@@ -6,7 +6,10 @@ import { PLUGIN_SLUG, liveReloadClientUrl } from './config.mts';
 
 /**
  * Base blueprint options shared by all playground modes. Pins PHP to the
- * project's supported version and tracks the latest WordPress. No extra
+ * project's supported version and installs the latest WordPress release.
+ * `latest` is resolved only when WordPress is downloaded: the e2e instances
+ * download it on every run, while the persistent dev site downloads it once
+ * and then keeps itself current through {@link coreAutoUpdateStep}. No extra
  * libraries are requested so boot never depends on fetching wp-cli.phar.
  */
 const base = {
@@ -33,6 +36,44 @@ const debugStep: BlueprintV1Declaration[ 'steps' ] = [
 			WP_DEBUG_DISPLAY: true,
 			SCRIPT_DEBUG: true,
 			WP_ENVIRONMENT_TYPE: 'development',
+		},
+	},
+];
+
+/**
+ * Let the persistent dev site follow every WordPress release. Its install
+ * is created once from `latest` and then reused, and WordPress on its own
+ * only auto-updates minor releases, so without this a new major release
+ * would never reach the dev site short of `pnpm playground:fresh`. `true`
+ * opts core into major updates through WordPress's own background updater.
+ * Dev-only on purpose: the e2e instances download the latest release on
+ * every run already, and a core update starting mid-suite would only add
+ * noise.
+ */
+const coreAutoUpdateStep: BlueprintV1Declaration[ 'steps' ] = [
+	{
+		step: 'defineWpConfigConsts',
+		consts: {
+			WP_AUTO_UPDATE_CORE: true,
+		},
+	},
+];
+
+/**
+ * Pin the persistent dev site to the default English (US) locale on every
+ * boot. The site language lives in the persisted database, so switching the
+ * dev site to another locale (for example to check one of the plugin's own
+ * translations) used to stick across restarts and greet every later run in
+ * that language. An empty `WPLANG` is how WordPress stores en_US. Uses
+ * `setSiteOptions` rather than `setSiteLanguage`, which would fetch a
+ * translation package over the network. Switching languages mid-session
+ * still works; the next start resets it.
+ */
+const siteLanguageStep: BlueprintV1Declaration[ 'steps' ] = [
+	{
+		step: 'setSiteOptions',
+		options: {
+			WPLANG: '',
 		},
 	},
 ];
@@ -241,13 +282,15 @@ export const youtubeOembedStubStep = (): NonNullable<
 
 /**
  * Build the development blueprint for a first-run or non-persistent instance.
- * Enables debug constants, activates the plugin, installs the dev auto-login
- * mu-plugin, installs the YouTube oEmbed stub (so the video course page
- * renders a real, controllable embed without needing outbound network — see
- * {@link youtubeOembedStubMuPlugin}), and installs the LiveReload mu-plugin
- * pointed at the resolved port. Does not use the shared `login` step — see
- * {@link autoLoginMuPlugin} for why the dev server needs its own auto-login
- * path instead.
+ * Enables debug constants, opts core into every WordPress release (see
+ * {@link coreAutoUpdateStep}), pins the site language to English (see
+ * {@link siteLanguageStep}), activates the plugin, installs the dev
+ * auto-login mu-plugin, installs the YouTube oEmbed stub (so the video course
+ * page renders a real, controllable embed without needing outbound network —
+ * see {@link youtubeOembedStubMuPlugin}), and installs the LiveReload
+ * mu-plugin pointed at the resolved port. Does not use the shared `login`
+ * step — see {@link autoLoginMuPlugin} for why the dev server needs its own
+ * auto-login path instead.
  *
  * @param liveReloadPort - The port the LiveReload server bound this run.
  * @return The blueprint declaration.
@@ -258,6 +301,8 @@ export const devBlueprint = (
 	...base,
 	steps: [
 		...debugStep,
+		...coreAutoUpdateStep,
+		...siteLanguageStep,
 		...activatePluginStep,
 		...autoLoginStep(),
 		...youtubeOembedStubStep(),
@@ -267,7 +312,9 @@ export const devBlueprint = (
 
 /**
  * Build the resume blueprint for an existing persistent installation.
- * Re-enables debug constants and reinstalls the dev auto-login, YouTube
+ * Re-enables debug constants, keeps core opted into every WordPress release
+ * (see {@link coreAutoUpdateStep}), resets the site language to English (see
+ * {@link siteLanguageStep}), and reinstalls the dev auto-login, YouTube
  * oEmbed stub and LiveReload mu-plugins pointed at the resolved port; the
  * plugin is already active in the persisted database, so activation is
  * skipped. Does not use the shared `login` step — see {@link autoLoginMuPlugin}
@@ -282,6 +329,8 @@ export const devResumeBlueprint = (
 	...base,
 	steps: [
 		...debugStep,
+		...coreAutoUpdateStep,
+		...siteLanguageStep,
 		...autoLoginStep(),
 		...youtubeOembedStubStep(),
 		...liveReloadStep( liveReloadPort ),

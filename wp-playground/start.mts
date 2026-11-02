@@ -95,8 +95,11 @@ const isExistingSite =
  * wp-playground/wordpress/ so data persists between restarts. The plugin
  * directory is mounted before installation to give wp-cli full filesystem
  * access. On first run the dev blueprint logs in as admin, enables debug
- * constants, and activates the plugin; on subsequent runs only login and
- * debug constants are re-applied. phpMyAdmin is available at /phpmyadmin.
+ * constants, and activates the plugin; on subsequent runs the login, debug
+ * constants, English site language and core auto-updates are re-applied.
+ * WordPress itself keeps the persisted core current, so `latest` is only
+ * resolved when the site is first downloaded. phpMyAdmin is available at
+ * /phpmyadmin.
  *
  * Pass --reset to wipe the existing site and start fresh.
  */
