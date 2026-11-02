@@ -9,8 +9,12 @@ import { PLUGIN_SLUG, liveReloadClientUrl } from './config.mts';
  * project's supported version and installs the latest WordPress release.
  * `latest` is resolved only when WordPress is downloaded: the e2e instances
  * download it on every run, while the persistent dev site downloads it once
- * and then keeps itself current through {@link coreAutoUpdateStep}. No extra
- * libraries are requested so boot never depends on fetching wp-cli.phar.
+ * and from then on is kept current by WordPress's own background updater,
+ * which installs every release, major ones included (the default since
+ * WordPress 5.6). That updater only runs while the dev server is up, so after
+ * a release lands while the server is off, the site boots on the previous
+ * version and updates itself once its twice-daily update check comes due. No
+ * extra libraries are requested so boot never depends on fetching wp-cli.phar.
  */
 const base = {
 	preferredVersions: {
@@ -36,25 +40,6 @@ const debugStep: BlueprintV1Declaration[ 'steps' ] = [
 			WP_DEBUG_DISPLAY: true,
 			SCRIPT_DEBUG: true,
 			WP_ENVIRONMENT_TYPE: 'development',
-		},
-	},
-];
-
-/**
- * Let the persistent dev site follow every WordPress release. Its install
- * is created once from `latest` and then reused, and WordPress on its own
- * only auto-updates minor releases, so without this a new major release
- * would never reach the dev site short of `pnpm playground:fresh`. `true`
- * opts core into major updates through WordPress's own background updater.
- * Dev-only on purpose: the e2e instances download the latest release on
- * every run already, and a core update starting mid-suite would only add
- * noise.
- */
-const coreAutoUpdateStep: BlueprintV1Declaration[ 'steps' ] = [
-	{
-		step: 'defineWpConfigConsts',
-		consts: {
-			WP_AUTO_UPDATE_CORE: true,
 		},
 	},
 ];
@@ -282,8 +267,7 @@ export const youtubeOembedStubStep = (): NonNullable<
 
 /**
  * Build the development blueprint for a first-run or non-persistent instance.
- * Enables debug constants, opts core into every WordPress release (see
- * {@link coreAutoUpdateStep}), pins the site language to English (see
+ * Enables debug constants, pins the site language to English (see
  * {@link siteLanguageStep}), activates the plugin, installs the dev
  * auto-login mu-plugin, installs the YouTube oEmbed stub (so the video course
  * page renders a real, controllable embed without needing outbound network —
@@ -301,7 +285,6 @@ export const devBlueprint = (
 	...base,
 	steps: [
 		...debugStep,
-		...coreAutoUpdateStep,
 		...siteLanguageStep,
 		...activatePluginStep,
 		...autoLoginStep(),
@@ -312,8 +295,7 @@ export const devBlueprint = (
 
 /**
  * Build the resume blueprint for an existing persistent installation.
- * Re-enables debug constants, keeps core opted into every WordPress release
- * (see {@link coreAutoUpdateStep}), resets the site language to English (see
+ * Re-enables debug constants, resets the site language to English (see
  * {@link siteLanguageStep}), and reinstalls the dev auto-login, YouTube
  * oEmbed stub and LiveReload mu-plugins pointed at the resolved port; the
  * plugin is already active in the persisted database, so activation is
@@ -329,7 +311,6 @@ export const devResumeBlueprint = (
 	...base,
 	steps: [
 		...debugStep,
-		...coreAutoUpdateStep,
 		...siteLanguageStep,
 		...autoLoginStep(),
 		...youtubeOembedStubStep(),
