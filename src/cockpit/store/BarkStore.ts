@@ -82,7 +82,8 @@ export const barkStore: StorePart = {
 		 * CSS-spec-guaranteed restart trigger, unlike a duration/custom-property
 		 * tweak alone, which would not restart two consecutive barks that
 		 * happen to share the same key and announced duration (e.g. two
-		 * `moveOn` or two `selectSnippet` barks in a row).
+		 * `moveOn` barks in a row, or two `selectSnippet` barks over snippets
+		 * of the same length).
 		 */
 		get barkEbbName(): string {
 			return getContext< CockpitContext >().barkGeneration % 2 === 0
