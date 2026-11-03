@@ -14,9 +14,23 @@ Find out how fast web surfing really drains your battery, with a benchmark that 
 
 Battery Surf Bench is a WordPress plugin that measures your device's real-world battery drain. It unleashes a simulated web surfer on a course of content pages, samples your battery for the whole run, and projects an honest drain rate from what it actually measured.
 
-No lab hardware and nothing to sign up for: just your browser, your battery, and a surfer that never gets tired.
+No lab hardware and no server of your own: just your browser, your battery, and a surfer that never gets tired.
 
 https://www.youtube.com/watch?v=X8CwzH_P4-g
+
+= Made for WordPress Playground =
+
+Battery Surf Bench is built to run in WordPress Playground, which runs a complete WordPress site, server and database included, inside your browser tab. Open this link and Playground starts a fresh site with the plugin installed and its cockpit open, with no server to rent, nothing to install and no account to create:
+
+https://playground.wordpress.net/?plugin=battery-surf-bench&url=/wp-admin/admin.php?page=bsb-start-benchmark
+
+A battery benchmark should be something anyone with a laptop can run, not only people who already run a WordPress site. It measures the device in front of you, so the whole test, site included, runs on that device. Every Playground starts from the same clean WordPress, which keeps results comparable across laptops and browsers and keeps benchmarking away from any real site you run. The site, its database and your recorded sessions stay in your browser.
+
+Playground autosaves your recent sites in the browser; choose Save in browser storage to keep a site and its sessions for good. In Playground the page server runs on your device too, so a run also counts the work of serving each page: compare Playground runs with other Playground runs. The plugin installs on any WordPress site as well, if you'd rather use your own.
+
+= An experiment in browser-native software =
+
+Battery Surf Bench is also an experiment. Software that needs a server usually needs someone to host it, and software that doesn't usually has to stay small. We wanted to find out whether a desktop-grade application, with live dashboards, real-time charts, settings and a database of results, can skip that trade-off. WordPress provides the application platform, WordPress Playground handles everything a server and a database would, and you open a link and use the app.
 
 = Highlights =
 
@@ -106,11 +120,19 @@ To build it yourself, install Node.js 24 with pnpm, and PHP 8.1 or later with Co
 
 == Installation ==
 
+The quickest way to run a benchmark is WordPress Playground, with nothing to install: open https://playground.wordpress.net/?plugin=battery-surf-bench&url=/wp-admin/admin.php?page=bsb-start-benchmark, unplug your laptop, and start a benchmark from the cockpit.
+
+To install it on your own site:
+
 1. Upload the plugin to `wp-content/plugins/battery-surf-bench`, or install it through the Plugins screen.
 2. Activate the plugin through the Plugins screen in WordPress.
 3. Unplug your laptop, open the Battery Surf Bench admin menu (or the Start Benchmark shortcut in the admin bar), and start a benchmark from the cockpit.
 
 == Frequently Asked Questions ==
+
+= Do I need my own WordPress site? =
+
+No. Open the plugin in WordPress Playground (see Installation) and it runs on a fresh WordPress site inside your browser, with nothing to host or install. It works on your own site too.
 
 = Who can run a benchmark? =
 
