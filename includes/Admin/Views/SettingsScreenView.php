@@ -7,6 +7,7 @@
 
 namespace ErdemBircan\BatterySurfBench\Admin\Views;
 
+use ErdemBircan\BatterySurfBench\Support\Template;
 use ErdemBircan\BatterySurfBench\Support\View;
 
 defined( 'ABSPATH' ) || exit;
@@ -15,7 +16,7 @@ defined( 'ABSPATH' ) || exit;
  * Renders the chrome of the settings screen: a full-bleed coastal "deck" that
  * covers the admin content area, carrying the shared {@see AdminHeaderView}
  * brand header above the empty container the settings bundle mounts its app
- * into. It owns this markup in a heredoc, behind the {@see View::render()}
+ * into. It owns this markup in its templates, behind the {@see View::render()}
  * contract, so the {@see \ErdemBircan\BatterySurfBench\Admin\SettingsScreen}
  * manager prepares the dynamic, raw values and never assembles HTML itself.
  * Escaping is delegated to the composed views ({@see AdminHeaderView},
@@ -53,9 +54,10 @@ class SettingsScreenView implements View {
 		);
 
 		// The app portals its own Reset and Save buttons into this empty slot.
-		$actions = <<<HTML
-{$launch_pill}<span class="bsb-settings__save-slot"></span>
-HTML;
+		$actions = Template::render(
+			__DIR__ . '/Templates/SettingsScreenActions.php',
+			array( 'launch_pill' => $launch_pill )
+		);
 
 		$header = ( new AdminHeaderView() )->render(
 			array(
@@ -65,11 +67,9 @@ HTML;
 			)
 		);
 
-		return <<<HTML
-<div class="bsb-settings">
-	{$header}
-	<div id="bsb-settings-app"></div>
-</div>
-HTML;
+		return Template::render(
+			__DIR__ . '/Templates/SettingsScreen.php',
+			array( 'header' => $header )
+		);
 	}
 }

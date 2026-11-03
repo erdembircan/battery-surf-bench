@@ -7,11 +7,8 @@
 
 namespace ErdemBircan\BatterySurfBench\Admin\Views;
 
+use ErdemBircan\BatterySurfBench\Support\Template;
 use ErdemBircan\BatterySurfBench\Support\View;
-
-use function esc_attr;
-use function esc_html;
-use function esc_url;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -32,31 +29,44 @@ class AdminPillView implements View {
 	/**
 	 * Renders the pill around the given values.
 	 *
-	 * @param array<string, mixed> $data Raw values the view escapes: `label`, `variant` (`solid`|`outline`, defaults to `solid`), `href` (renders an `<a>` instead of a `<button>` when non-empty), `target`, `icon` (e.g. `external`).
+	 * @param array<string, mixed> $data Raw values the template escapes: `label`, `variant` (`solid`|`outline`, defaults to `solid`), `href` (renders an `<a>` instead of a `<button>` when non-empty), `target`, `icon` (e.g. `external`).
 	 * @return string The rendered pill markup.
 	 */
 	public function render( array $data = array() ): string {
-		$label   = esc_html( (string) ( $data['label'] ?? '' ) );
+		$label   = (string) ( $data['label'] ?? '' );
 		$variant = isset( $data['variant'] ) && 'outline' === $data['variant'] ? 'outline' : 'solid';
-		$href    = isset( $data['href'] ) && '' !== $data['href'] ? esc_url( (string) $data['href'] ) : '';
-		$target  = esc_attr( (string) ( $data['target'] ?? '' ) );
-		$icon    = esc_attr( (string) ( $data['icon'] ?? '' ) );
+		$href    = isset( $data['href'] ) && '' !== $data['href'] ? (string) $data['href'] : '';
+		$target  = (string) ( $data['target'] ?? '' );
+		$icon    = (string) ( $data['icon'] ?? '' );
 
-		$class       = "bsb-admin-pill bsb-admin-pill--{$variant}";
 		$icon_markup = '' === $icon
 			? ''
-			: "<span class=\"bsb-admin-pill__icon bsb-admin-pill__icon--{$icon}\" aria-hidden=\"true\"></span>";
+			: Template::render( __DIR__ . '/Templates/AdminPillIcon.php', array( 'icon' => $icon ) );
 
 		if ( '' !== $href ) {
-			$target_attr = '' === $target ? '' : " target=\"{$target}\" rel=\"noopener noreferrer\"";
+			$target_attr = '' === $target
+				? ''
+				: ' ' . Template::render( __DIR__ . '/Templates/AdminPillTarget.php', array( 'target' => $target ) );
 
-			return <<<HTML
-<a class="{$class}" href="{$href}"{$target_attr}>{$icon_markup}{$label}</a>
-HTML;
+			return Template::render(
+				__DIR__ . '/Templates/AdminPill.php',
+				array(
+					'variant'     => $variant,
+					'href'        => $href,
+					'target_attr' => $target_attr,
+					'icon_markup' => $icon_markup,
+					'label'       => $label,
+				)
+			);
 		}
 
-		return <<<HTML
-<button type="button" class="{$class}">{$icon_markup}{$label}</button>
-HTML;
+		return Template::render(
+			__DIR__ . '/Templates/AdminPillButton.php',
+			array(
+				'variant'     => $variant,
+				'icon_markup' => $icon_markup,
+				'label'       => $label,
+			)
+		);
 	}
 }

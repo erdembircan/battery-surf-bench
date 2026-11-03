@@ -110,6 +110,11 @@ classDiagram
         +render(array data) string
     }
 
+    class Template {
+        <<utility>>
+        +render(string file, array args)$ string
+    }
+
     class Capability {
         +__construct(string capability)
         +allows() bool
@@ -375,10 +380,13 @@ classDiagram
     SettingsScreen --> CourseOrderSanitizer : sanitizes the saved order on every read
     SettingsScreen ..> SettingsScreenView : renders via
     SettingsScreenView ..|> View : implements
+    SettingsScreenView ..> Template : renders markup via
     SettingsScreenView ..> AdminHeaderView : composes (shared header)
     SettingsScreenView ..> AdminPillView : composes (New Benchmark outline pill)
     AdminHeaderView ..|> View : implements
+    AdminHeaderView ..> Template : renders markup via
     AdminPillView ..|> View : implements
+    AdminPillView ..> Template : renders markup via
     OptionRegistry ..|> Manager : implements
     OptionRegistry ..> OptionProvider : calls definition() on init
     CourseOrderOption ..|> OptionProvider : implements
@@ -401,6 +409,7 @@ classDiagram
     DevTools --> DevToolsPanelView : renders via
     DevTools --> CourseOrderSanitizer : reads & sanitizes the same saved course order CourseRouter resolves indexes against, to hand the panel its ordered page slugs
     DevToolsPanelView ..|> View : implements
+    DevToolsPanelView ..> Template : renders markup via
     %% Filter-mediated, not a direct dependency: DevTools hooks
     %% `battery_surf_bench_devtools_panel` (only Cockpit applies it, when
     %% building its view data) and
@@ -416,6 +425,7 @@ classDiagram
     SessionsScreen --> Capability : gates via
     SessionsScreen ..> SessionsScreenView : renders via
     SessionsScreenView ..|> View : implements
+    SessionsScreenView ..> Template : renders markup via
     SessionsScreenView ..> AdminHeaderView : composes (shared header)
     SessionsScreenView ..> AdminPillView : composes (New Benchmark outline pill)
     StartBenchmark ..|> Manager : implements
@@ -423,6 +433,7 @@ classDiagram
     StartBenchmark --> Capability : gates via
     StartBenchmark ..> StartBenchmarkView : renders via
     StartBenchmarkView ..|> View : implements
+    StartBenchmarkView ..> Template : renders markup via
     CourseRouter ..|> Manager : implements
     CourseRouter --> CourseCatalog : uses
     CourseRouter --> Assets : uses
@@ -430,6 +441,7 @@ classDiagram
     CourseRouter --> CourseOrderSanitizer : reads & sanitizes the saved order to resolve an authorized index request (gated on capability + bsb_surf nonce, checked before any entry is resolved#59; bundled pages are no longer force-re-added — a saved order missing one stays missing)
     CourseRouter ..> UserPageView : renders via (user pages only)
     UserPageView ..|> View : implements
+    UserPageView ..> Template : renders markup via
     CourseRouter --> YouTubeEmbed : registers per served course page
     CourseCatalog ..> CoursePage : produces
     Cockpit ..|> Manager : implements
@@ -439,12 +451,19 @@ classDiagram
     Cockpit --> StandaloneChrome : strips via
     Cockpit ..> CockpitView : renders via (block template)
     CockpitDashboard ..|> View : implements
+    CockpitDashboard ..> Template : renders markup via
     CockpitView ..|> View : implements
+    CockpitView ..> Template : renders markup via
     SessionDetailView ..|> View : implements
+    SessionDetailView ..> Template : renders markup via
     SummaryCard ..|> View : implements
+    SummaryCard ..> Template : renders markup via
     PostcardPhoto ..|> View : implements
+    PostcardPhoto ..> Template : renders markup via
     FrankedStamp ..|> View : implements
+    FrankedStamp ..> Template : renders markup via
     FlipPostcard ..|> View : implements
+    FlipPostcard ..> Template : renders markup via
     CockpitView ..> FlipPostcard : composes (startup)
     CockpitView ..> PostcardPhoto : composes (startup + summary)
     CockpitView ..> FrankedStamp : composes (startup blank + summary franked)

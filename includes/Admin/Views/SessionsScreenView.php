@@ -7,6 +7,7 @@
 
 namespace ErdemBircan\BatterySurfBench\Admin\Views;
 
+use ErdemBircan\BatterySurfBench\Support\Template;
 use ErdemBircan\BatterySurfBench\Support\View;
 
 defined( 'ABSPATH' ) || exit;
@@ -15,7 +16,7 @@ defined( 'ABSPATH' ) || exit;
  * Renders the chrome of the benchmark sessions listing: a full-bleed coastal
  * "deck" that covers the admin content area, carrying the shared
  * {@see AdminHeaderView} brand header above the empty container the DataViews
- * bundle mounts the grid into. It owns this markup in a heredoc, behind the
+ * bundle mounts the grid into. It owns this markup in its templates, behind the
  * {@see View::render()} contract, so the
  * {@see \ErdemBircan\BatterySurfBench\Admin\SessionsScreen} manager prepares the
  * dynamic, raw values and never assembles HTML itself. Escaping is delegated
@@ -47,12 +48,13 @@ class SessionsScreenView implements View {
 		);
 
 		// The running total is filled in live by the grid bundle (it has the
-		// fetched records and stays correct after a delete); this static
-		// fragment carries no dynamic value, so it needs no escaping of its own,
-		// and starts empty so a stale server-rendered number can't double up.
-		$actions = <<<HTML
-<span class="bsb-sessions__count"></span>{$cockpit_pill}
-HTML;
+		// fetched records and stays correct after a delete); the actions template
+		// carries no dynamic value of its own, and its count slot starts empty so a
+		// stale server-rendered number can't double up.
+		$actions = Template::render(
+			__DIR__ . '/Templates/SessionsScreenActions.php',
+			array( 'cockpit_pill' => $cockpit_pill )
+		);
 
 		$header = ( new AdminHeaderView() )->render(
 			array(
@@ -62,11 +64,9 @@ HTML;
 			)
 		);
 
-		return <<<HTML
-<div class="bsb-sessions">
-	{$header}
-	<div id="bsb-sessions-app"></div>
-</div>
-HTML;
+		return Template::render(
+			__DIR__ . '/Templates/SessionsScreen.php',
+			array( 'header' => $header )
+		);
 	}
 }

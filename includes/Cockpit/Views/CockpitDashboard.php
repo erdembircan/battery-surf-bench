@@ -7,24 +7,19 @@
 
 namespace ErdemBircan\BatterySurfBench\Cockpit\Views;
 
+use ErdemBircan\BatterySurfBench\Support\Template;
 use ErdemBircan\BatterySurfBench\Support\View;
 
-use function esc_attr;
-use function esc_html__;
+use function __;
 use function get_bloginfo;
-use function get_language_attributes;
-use function ob_get_clean;
-use function ob_start;
-use function wp_footer;
-use function wp_head;
 
 defined( 'ABSPATH' ) || exit;
 
 /**
  * Renders the standalone HTML document the cockpit dashboard is served as. It
- * owns only the page's structure — doctype, head, body — held in a heredoc, and
+ * owns only the page's structure — doctype, head, body — held in its template, and
  * places the pre-rendered cockpit body inside it. `wp_head()`/`wp_footer()` are
- * captured into the document so core still prints the head tags, the dashboard
+ * printed into the document so core still prints the head tags, the dashboard
  * stylesheet (the one style the cockpit route spares) and the Interactivity API
  * script modules. Keeping the markup here, behind the {@see View::render()}
  * contract, keeps the {@see Cockpit} manager free of inline HTML and lets each
@@ -46,34 +41,17 @@ class CockpitDashboard implements View {
 	public function render( array $data = array() ): string {
 		$body           = isset( $data['body'] ) ? (string) $data['body'] : '';
 		$devtools_panel = isset( $data['devtools_panel'] ) ? (string) $data['devtools_panel'] : '';
-		$lang           = get_language_attributes();
-		$charset        = esc_attr( get_bloginfo( 'charset' ) );
-		$title          = esc_html__( 'Battery Surf Bench — Cockpit', 'battery-surf-bench' );
+		$charset        = get_bloginfo( 'charset' );
+		$title          = __( 'Battery Surf Bench — Cockpit', 'battery-surf-bench' );
 
-		ob_start();
-		wp_head();
-		$head = (string) ob_get_clean();
-
-		ob_start();
-		wp_footer();
-		$footer = (string) ob_get_clean();
-
-		return <<<HTML
-<!DOCTYPE html>
-<html {$lang}>
-<head>
-	<meta charset="{$charset}" />
-	<meta name="viewport" content="width=device-width, initial-scale=1" />
-	<meta name="robots" content="noindex" />
-	<title>{$title}</title>
-	{$head}
-</head>
-<body class="bsb-cockpit-dashboard">
-	{$body}
-	{$devtools_panel}
-	{$footer}
-</body>
-</html>
-HTML;
+		return Template::render(
+			__DIR__ . '/Templates/CockpitDashboard.php',
+			array(
+				'charset'        => $charset,
+				'title'          => $title,
+				'body'           => $body,
+				'devtools_panel' => $devtools_panel,
+			)
+		);
 	}
 }

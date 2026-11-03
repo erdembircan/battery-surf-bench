@@ -7,11 +7,10 @@
 
 namespace ErdemBircan\BatterySurfBench\DevTools\Views;
 
+use ErdemBircan\BatterySurfBench\Support\Template;
 use ErdemBircan\BatterySurfBench\Support\View;
 
 use function array_map;
-use function esc_attr;
-use function esc_html;
 use function wp_json_encode;
 
 defined( 'ABSPATH' ) || exit;
@@ -74,8 +73,8 @@ defined( 'ABSPATH' ) || exit;
  * `data-wp-interactive="bsb/cockpit"` region but has no cockpit context — every
  * binding below reads shared `state` (never a `getContext()`-derived getter),
  * and every member it reads or writes carries the `devtools` prefix so it can
- * never collide with a production store member. It is escaped and pre-rendered
- * here, then interpolated as trusted markup by the cockpit dashboard, which
+ * never collide with a production store member. It is rendered here from its
+ * templates, then printed as trusted markup by the cockpit dashboard, which
  * places it via the `battery_surf_bench_devtools_panel` filter.
  */
 class DevToolsPanelView implements View {
@@ -125,180 +124,75 @@ class DevToolsPanelView implements View {
 	 * @return string The panel markup.
 	 */
 	public function render( array $data = array() ): string {
-		$dev               = esc_html( (string) ( $data['dev_label'] ?? '' ) );
-		$eyebrow           = esc_html( (string) ( $data['eyebrow_label'] ?? '' ) );
-		$armed             = esc_html( (string) ( $data['armed_label'] ?? '' ) );
-		$reset             = esc_attr( (string) ( $data['reset_label'] ?? '' ) );
-		$close             = esc_attr( (string) ( $data['close_label'] ?? '' ) );
-		$shark             = esc_attr( (string) ( $data['shark_label'] ?? '' ) );
-		$battery           = esc_html( (string) ( $data['battery_label'] ?? '' ) );
-		$charging_group    = esc_attr( (string) ( $data['charging_group_label'] ?? '' ) );
-		$system            = esc_html( (string) ( $data['system_label'] ?? '' ) );
-		$charging_choice   = esc_html( (string) ( $data['charging_label'] ?? '' ) );
-		$discharging       = esc_html( (string) ( $data['discharging_label'] ?? '' ) );
-		$level             = esc_attr( (string) ( $data['level_label'] ?? '' ) );
-		$discharge         = esc_html( (string) ( $data['discharge_label'] ?? '' ) );
-		$from              = esc_html( (string) ( $data['from_label'] ?? '' ) );
-		$from_decrease     = esc_attr( (string) ( $data['from_decrease_label'] ?? '' ) );
-		$from_increase     = esc_attr( (string) ( $data['from_increase_label'] ?? '' ) );
-		$to                = esc_html( (string) ( $data['to_label'] ?? '' ) );
-		$to_decrease       = esc_attr( (string) ( $data['to_decrease_label'] ?? '' ) );
-		$to_increase       = esc_attr( (string) ( $data['to_increase_label'] ?? '' ) );
-		$duration          = esc_html( (string) ( $data['duration_label'] ?? '' ) );
-		$duration_decrease = esc_attr( (string) ( $data['duration_decrease_label'] ?? '' ) );
-		$duration_increase = esc_attr( (string) ( $data['duration_increase_label'] ?? '' ) );
-		$percent_unit      = esc_html( (string) ( $data['percent_unit_label'] ?? '' ) );
-		$minutes_unit      = esc_html( (string) ( $data['minutes_unit_label'] ?? '' ) );
-		$start             = esc_html( (string) ( $data['start_label'] ?? '' ) );
-		$stop              = esc_html( (string) ( $data['stop_label'] ?? '' ) );
-		$surf              = esc_html( (string) ( $data['surf_label'] ?? '' ) );
-		$natural           = esc_html( (string) ( $data['natural_label'] ?? '' ) );
-		$sterile           = esc_html( (string) ( $data['sterile_label'] ?? '' ) );
-		$auction_override  = esc_attr( (string) ( $data['auction_override_label'] ?? '' ) );
-		$page              = esc_html( (string) ( $data['page_label'] ?? '' ) );
-		$page_prev         = esc_attr( (string) ( $data['page_prev_label'] ?? '' ) );
-		$page_next         = esc_attr( (string) ( $data['page_next_label'] ?? '' ) );
-		$behavior_keys     = isset( $data['behavior_keys'] ) && is_array( $data['behavior_keys'] ) ? $data['behavior_keys'] : array();
-		$course_slugs      = isset( $data['course_slugs'] ) && is_array( $data['course_slugs'] ) ? $data['course_slugs'] : array();
+		$behavior_keys = isset( $data['behavior_keys'] ) && is_array( $data['behavior_keys'] ) ? $data['behavior_keys'] : array();
+		$course_slugs  = isset( $data['course_slugs'] ) && is_array( $data['course_slugs'] ) ? $data['course_slugs'] : array();
 
 		// The ordered course-page slugs, as a JSON data attribute the client
 		// parses in devtoolsInitSurf() — developer identifiers, not translated
-		// text, so this is a plain escaped JSON encode, never __(). A failed
-		// encode (should not happen for a plain string list) falls back to an
-		// empty array rather than emitting `false` into the attribute.
+		// text, so this is a plain JSON encode, never __(); the template escapes it
+		// into the attribute. A failed encode (should not happen for a plain string
+		// list) falls back to an empty array rather than emitting `false` into the
+		// attribute.
 		$encoded_course_slugs = wp_json_encode( array_map( 'strval', $course_slugs ) );
-		$course_slugs_json    = esc_attr( false === $encoded_course_slugs ? '[]' : $encoded_course_slugs );
+		$course_slugs_json    = false === $encoded_course_slugs ? '[]' : $encoded_course_slugs;
 
 		// One chip per behavior, in the engine's own boot order. Each key is a
 		// developer identifier — rendered verbatim as the chip's visible text,
-		// never translated — so it is escaped for HTML/attribute safety only,
-		// not passed through `__()`. `moveOn` additionally carries the caution
-		// modifier class: it navigates the course, everything else stays on
+		// never translated — so the template escapes it for HTML/attribute safety
+		// only, not passed through `__()`. `moveOn` additionally carries the
+		// caution modifier class: it navigates the course, everything else stays on
 		// the page.
 		$bsb_surf_chips = '';
 		foreach ( $behavior_keys as $bsb_behavior_key ) {
-			$bsb_key_html    = esc_html( (string) $bsb_behavior_key );
-			$bsb_key_attr    = esc_attr( (string) $bsb_behavior_key );
-			$bsb_chip_class  = 'bsb-devtools__chip' . ( 'moveOn' === $bsb_behavior_key ? ' bsb-devtools__chip--caution' : '' );
-			$bsb_surf_chips .= <<<CHIP
-<button type="button" class="{$bsb_chip_class}" data-devtools-behavior="{$bsb_key_attr}" data-wp-on--click="actions.devtoolsSurfSteer" data-wp-bind--disabled="state.devtoolsSurfChipDisabled" data-wp-class--is-gated="state.devtoolsSurfChipGated" data-wp-class--is-running="state.devtoolsSurfChipRunning" data-wp-style----chip-dur="state.devtoolsSurfChipDurationCss"><span class="bsb-devtools__chip-tide" aria-hidden="true"></span><span class="bsb-devtools__chip-ico" aria-hidden="true"></span><span class="bsb-devtools__chip-key">{$bsb_key_html}</span></button>
-CHIP;
+			$bsb_surf_chips .= Template::render(
+				__DIR__ . '/Templates/DevToolsPanelSurfChip.php',
+				array(
+					'chip_class' => 'bsb-devtools__chip' . ( 'moveOn' === $bsb_behavior_key ? ' bsb-devtools__chip--caution' : '' ),
+					'key_attr'   => (string) $bsb_behavior_key,
+					'key_html'   => (string) $bsb_behavior_key,
+				)
+			);
 		}
 
-		return <<<HTML
-<div class="bsb-devtools" data-wp-interactive="bsb/cockpit" data-wp-watch---devtools-persist="callbacks.devtoolsPersist" data-wp-watch---devtools-surf-run="callbacks.devtoolsSyncSurfRun" data-wp-init---devtools-surf="callbacks.devtoolsInitSurf" data-devtools-course-slugs="{$course_slugs_json}">
-	<div class="bsb-devtools__swap">
-		<button type="button" class="bsb-devtools__pill" id="bsb-devtools-pill" data-wp-bind--hidden="state.devtools.open" data-wp-class--is-armed="state.devtoolsIsArmed" data-wp-on--click="actions.devtoolsToggleOpen" aria-expanded="false" data-wp-bind--aria-expanded="state.devtools.open" aria-controls="bsb-devtools-card">{$dev}</button>
-
-		<div class="bsb-devtools__card" id="bsb-devtools-card" hidden data-wp-bind--hidden="!state.devtools.open">
-			<div class="bsb-devtools__card-header">
-				<span class="bsb-devtools__card-eyebrow">{$eyebrow}</span>
-				<span class="bsb-devtools__card-armed" hidden data-wp-bind--hidden="!state.devtoolsIsArmed">{$armed}</span>
-				<div class="bsb-devtools__card-actions">
-					<button type="button" class="bsb-devtools__card-reset" hidden data-wp-bind--hidden="!state.devtoolsIsArmed" data-wp-on--click="actions.devtoolsReset" aria-label="{$reset}"><span class="bsb-devtools__card-reset-icon" aria-hidden="true"></span></button>
-					<button type="button" class="bsb-devtools__card-shark" data-wp-on--click="actions.devtoolsReleaseShark" data-wp-bind--disabled="state.devtoolsSharkDisabled" aria-label="{$shark}"><span class="bsb-devtools__card-shark-icon" aria-hidden="true"></span></button>
-					<button type="button" class="bsb-devtools__card-close" data-wp-on--click="actions.devtoolsToggleOpen" aria-label="{$close}">&times;</button>
-				</div>
-			</div>
-			<div class="bsb-devtools__card-divider"></div>
-
-			<div class="bsb-devtools__card-body">
-				<div class="bsb-devtools__group">
-					<div class="bsb-devtools__group-head">
-						<span class="bsb-devtools__group-title">{$battery}</span>
-					</div>
-					<div class="bsb-devtools__group-divider"></div>
-
-					<div class="bsb-devtools__group-body" data-wp-class--is-disabled="state.devtoolsIsSimRunning">
-						<div class="bsb-devtools__seg" role="group" aria-label="{$charging_group}">
-							<button type="button" class="bsb-devtools__seg-option" data-devtools-charging="system" data-wp-class--is-selected="state.devtoolsIsChargingSystem" data-wp-on--click="actions.devtoolsSetCharging" data-wp-bind--disabled="state.devtoolsIsSimRunning">{$system}</button>
-							<button type="button" class="bsb-devtools__seg-option" data-devtools-charging="charging" data-wp-class--is-selected="state.devtoolsIsChargingOn" data-wp-on--click="actions.devtoolsSetCharging" data-wp-bind--disabled="state.devtoolsIsSimRunning">{$charging_choice}</button>
-							<button type="button" class="bsb-devtools__seg-option" data-devtools-charging="discharging" data-wp-class--is-selected="state.devtoolsIsChargingOff" data-wp-on--click="actions.devtoolsSetCharging" data-wp-bind--disabled="state.devtoolsIsSimRunning">{$discharging}</button>
-						</div>
-
-						<div class="bsb-devtools__level" data-wp-class--is-inactive="!state.devtoolsIsLevelForced">
-							<button type="button" class="bsb-devtools__seg-option" data-wp-class--is-selected="!state.devtoolsIsLevelForced" data-wp-on--click="actions.devtoolsResetLevel" data-wp-bind--disabled="state.devtoolsIsSimRunning">{$system}</button>
-							<input type="range" min="0" max="100" step="5" aria-label="{$level}" data-wp-bind--value="state.devtoolsLevelPercent" data-wp-style----fill="state.devtoolsLevelFillPercent" data-wp-on--input="actions.devtoolsSetLevel" data-wp-bind--disabled="state.devtoolsIsSimRunning" />
-							<span class="bsb-devtools__level-value" data-wp-text="state.devtoolsLevelFillPercent"></span>
-						</div>
-					</div>
-				</div>
-
-				<div class="bsb-devtools__group">
-					<div class="bsb-devtools__group-head">
-						<span class="bsb-devtools__group-title">{$discharge}</span>
-						<span class="bsb-devtools__group-countdown" hidden data-wp-bind--hidden="!state.devtoolsIsSimRunning" data-wp-text="state.devtoolsSimRemainingDisplay"></span>
-					</div>
-					<div class="bsb-devtools__group-divider"></div>
-
-					<div class="bsb-devtools__group-body">
-						<div class="bsb-devtools__sim-steppers" data-wp-class--is-disabled="state.devtoolsIsSimRunning">
-							<div class="bsb-devtools__stepper-row">
-								<span class="bsb-devtools__stepper-label">{$from}</span>
-								<div class="bsb-devtools__stepper">
-									<button type="button" class="bsb-devtools__stepper-btn" data-devtools-sim-field="from" data-step="-5" data-wp-on--click="actions.devtoolsStepSim" data-wp-bind--disabled="state.devtoolsIsSimRunning" aria-label="{$from_decrease}">&minus;</button>
-									<span class="bsb-devtools__stepper-readout"><span data-wp-text="state.devtoolsSimFromDisplay"></span><span class="bsb-devtools__stepper-unit">{$percent_unit}</span></span>
-									<button type="button" class="bsb-devtools__stepper-btn" data-devtools-sim-field="from" data-step="5" data-wp-on--click="actions.devtoolsStepSim" data-wp-bind--disabled="state.devtoolsIsSimRunning" aria-label="{$from_increase}">+</button>
-								</div>
-							</div>
-
-							<div class="bsb-devtools__stepper-row">
-								<span class="bsb-devtools__stepper-label">{$to}</span>
-								<div class="bsb-devtools__stepper">
-									<button type="button" class="bsb-devtools__stepper-btn" data-devtools-sim-field="to" data-step="-5" data-wp-on--click="actions.devtoolsStepSim" data-wp-bind--disabled="state.devtoolsIsSimRunning" aria-label="{$to_decrease}">&minus;</button>
-									<span class="bsb-devtools__stepper-readout"><span data-wp-text="state.devtoolsSimToDisplay"></span><span class="bsb-devtools__stepper-unit">{$percent_unit}</span></span>
-									<button type="button" class="bsb-devtools__stepper-btn" data-devtools-sim-field="to" data-step="5" data-wp-on--click="actions.devtoolsStepSim" data-wp-bind--disabled="state.devtoolsIsSimRunning" aria-label="{$to_increase}">+</button>
-								</div>
-							</div>
-
-							<div class="bsb-devtools__stepper-row">
-								<span class="bsb-devtools__stepper-label">{$duration}</span>
-								<div class="bsb-devtools__stepper">
-									<button type="button" class="bsb-devtools__stepper-btn" data-devtools-sim-field="minutes" data-step="-5" data-wp-on--click="actions.devtoolsStepSim" data-wp-bind--disabled="state.devtoolsIsSimRunning" aria-label="{$duration_decrease}">&minus;</button>
-									<span class="bsb-devtools__stepper-readout"><span data-wp-text="state.devtoolsSimMinutesDisplay"></span><span class="bsb-devtools__stepper-unit">{$minutes_unit}</span></span>
-									<button type="button" class="bsb-devtools__stepper-btn" data-devtools-sim-field="minutes" data-step="5" data-wp-on--click="actions.devtoolsStepSim" data-wp-bind--disabled="state.devtoolsIsSimRunning" aria-label="{$duration_increase}">+</button>
-								</div>
-							</div>
-						</div>
-
-						<button type="button" class="bsb-devtools__sim-toggle" data-wp-class--is-running="state.devtoolsIsSimRunning" data-wp-on--click="actions.devtoolsToggleSim" data-wp-bind--disabled="state.devtoolsIsSimStartBlocked">
-							<span class="bsb-devtools__sim-toggle-text bsb-devtools__sim-toggle-text--start">{$start}</span>
-							<span class="bsb-devtools__sim-toggle-text bsb-devtools__sim-toggle-text--stop">{$stop}</span>
-						</button>
-					</div>
-				</div>
-
-				<div class="bsb-devtools__group">
-					<div class="bsb-devtools__group-head">
-						<span class="bsb-devtools__group-title">{$surf}</span>
-						<span class="bsb-devtools__group-countdown" hidden data-wp-bind--hidden="!state.devtoolsSurfIsRunning" data-wp-text="state.devtoolsSurfCountdownDisplay"></span>
-					</div>
-					<div class="bsb-devtools__group-divider"></div>
-
-					<div class="bsb-devtools__group-body">
-						<div class="bsb-devtools__seg" role="group" aria-label="{$auction_override}">
-							<button type="button" class="bsb-devtools__seg-option" data-devtools-surf-mode="natural" data-wp-class--is-selected="state.devtoolsIsSurfNatural" data-wp-on--click="actions.devtoolsSurfSetMode" data-wp-bind--disabled="state.devtoolsSurfModeDisabled">{$natural}</button>
-							<button type="button" class="bsb-devtools__seg-option bsb-devtools__seg-option--sterile" data-devtools-surf-mode="sterile" data-wp-class--is-selected="state.devtoolsIsSurfSterile" data-wp-on--click="actions.devtoolsSurfSetMode" data-wp-bind--disabled="state.devtoolsSurfModeDisabled">{$sterile}</button>
-						</div>
-
-						<div class="bsb-devtools__stepper-row">
-							<span class="bsb-devtools__stepper-label">{$page}</span>
-							<div class="bsb-devtools__stepper">
-								<button type="button" class="bsb-devtools__stepper-btn" data-step="-1" data-wp-on--click="actions.devtoolsSurfStep" data-wp-bind--disabled="state.devtoolsSurfStepDisabled" aria-label="{$page_prev}">&lsaquo;</button>
-								<span class="bsb-devtools__stepper-readout bsb-devtools__stepper-readout--slug" data-wp-text="state.devtoolsSurfPageSlug"></span>
-								<button type="button" class="bsb-devtools__stepper-btn" data-step="1" data-wp-on--click="actions.devtoolsSurfStep" data-wp-bind--disabled="state.devtoolsSurfStepDisabled" aria-label="{$page_next}">&rsaquo;</button>
-							</div>
-						</div>
-
-						<div class="bsb-devtools__chips">
-							{$bsb_surf_chips}
-						</div>
-					</div>
-				</div>
-			</div>
-		</div>
-	</div>
-</div>
-HTML;
+		return Template::render(
+			__DIR__ . '/Templates/DevToolsPanel.php',
+			array(
+				'dev'               => (string) ( $data['dev_label'] ?? '' ),
+				'eyebrow'           => (string) ( $data['eyebrow_label'] ?? '' ),
+				'armed'             => (string) ( $data['armed_label'] ?? '' ),
+				'reset'             => (string) ( $data['reset_label'] ?? '' ),
+				'close'             => (string) ( $data['close_label'] ?? '' ),
+				'shark'             => (string) ( $data['shark_label'] ?? '' ),
+				'battery'           => (string) ( $data['battery_label'] ?? '' ),
+				'charging_group'    => (string) ( $data['charging_group_label'] ?? '' ),
+				'system'            => (string) ( $data['system_label'] ?? '' ),
+				'charging_choice'   => (string) ( $data['charging_label'] ?? '' ),
+				'discharging'       => (string) ( $data['discharging_label'] ?? '' ),
+				'level'             => (string) ( $data['level_label'] ?? '' ),
+				'discharge'         => (string) ( $data['discharge_label'] ?? '' ),
+				'from'              => (string) ( $data['from_label'] ?? '' ),
+				'from_decrease'     => (string) ( $data['from_decrease_label'] ?? '' ),
+				'from_increase'     => (string) ( $data['from_increase_label'] ?? '' ),
+				'to'                => (string) ( $data['to_label'] ?? '' ),
+				'to_decrease'       => (string) ( $data['to_decrease_label'] ?? '' ),
+				'to_increase'       => (string) ( $data['to_increase_label'] ?? '' ),
+				'duration'          => (string) ( $data['duration_label'] ?? '' ),
+				'duration_decrease' => (string) ( $data['duration_decrease_label'] ?? '' ),
+				'duration_increase' => (string) ( $data['duration_increase_label'] ?? '' ),
+				'percent_unit'      => (string) ( $data['percent_unit_label'] ?? '' ),
+				'minutes_unit'      => (string) ( $data['minutes_unit_label'] ?? '' ),
+				'start'             => (string) ( $data['start_label'] ?? '' ),
+				'stop'              => (string) ( $data['stop_label'] ?? '' ),
+				'surf'              => (string) ( $data['surf_label'] ?? '' ),
+				'natural'           => (string) ( $data['natural_label'] ?? '' ),
+				'sterile'           => (string) ( $data['sterile_label'] ?? '' ),
+				'auction_override'  => (string) ( $data['auction_override_label'] ?? '' ),
+				'page'              => (string) ( $data['page_label'] ?? '' ),
+				'page_prev'         => (string) ( $data['page_prev_label'] ?? '' ),
+				'page_next'         => (string) ( $data['page_next_label'] ?? '' ),
+				'course_slugs_json' => $course_slugs_json,
+				'surf_chips'        => $bsb_surf_chips,
+			)
+		);
 	}
 }

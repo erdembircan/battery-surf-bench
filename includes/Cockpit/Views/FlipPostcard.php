@@ -7,10 +7,8 @@
 
 namespace ErdemBircan\BatterySurfBench\Cockpit\Views;
 
+use ErdemBircan\BatterySurfBench\Support\Template;
 use ErdemBircan\BatterySurfBench\Support\View;
-
-use function esc_attr;
-use function esc_html;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -21,7 +19,7 @@ defined( 'ABSPATH' ) || exit;
  * card turn identically — only their contents and the store wiring differ.
  *
  * The face contents (`front` and `back`) arrive as already-escaped child markup
- * and are placed verbatim; this view escapes only its own slots (the flip label
+ * and are placed verbatim; its template escapes only its own slots (the flip label
  * and the directive attributes). The flip state binding and the flip action are
  * passed by the consumer so the same shell can serve different store fields
  * (the startup card's `idleFlipped` vs the summary card's `flipped`).
@@ -36,7 +34,7 @@ class FlipPostcard implements View {
 	 *
 	 *     @type string $front       Already-escaped markup for the picture front face.
 	 *     @type string $back        Already-escaped markup for the written back face.
-	 *     @type string $flip_label  Raw label for the flip badge (the view escapes it).
+	 *     @type string $flip_label  Raw label for the flip badge (the template escapes it).
 	 *     @type string $flip_action Store action reference for the flip badge click
 	 *                               (e.g. `actions.toggleFlip`).
 	 *     @type string $flip_state  Store getter bound to the card's flipped class
@@ -51,10 +49,10 @@ class FlipPostcard implements View {
 	public function render( array $data = array() ): string {
 		$front        = isset( $data['front'] ) ? (string) $data['front'] : '';
 		$back         = isset( $data['back'] ) ? (string) $data['back'] : '';
-		$flip_label   = esc_html( isset( $data['flip_label'] ) ? (string) $data['flip_label'] : '' );
-		$flip_action  = esc_attr( isset( $data['flip_action'] ) ? (string) $data['flip_action'] : '' );
-		$flip_state   = esc_attr( isset( $data['flip_state'] ) ? (string) $data['flip_state'] : '' );
-		$modifier     = isset( $data['modifier'] ) ? ' ' . esc_attr( (string) $data['modifier'] ) : '';
+		$flip_label   = isset( $data['flip_label'] ) ? (string) $data['flip_label'] : '';
+		$flip_action  = isset( $data['flip_action'] ) ? (string) $data['flip_action'] : '';
+		$flip_state   = isset( $data['flip_state'] ) ? (string) $data['flip_state'] : '';
+		$modifier     = isset( $data['modifier'] ) ? ' ' . (string) $data['modifier'] : '';
 		$back_actions = isset( $data['back_actions'] ) ? (string) $data['back_actions'] : '';
 
 		// The outer card owns the 3D perspective on a card-sized wrapper; the inner
@@ -62,19 +60,17 @@ class FlipPostcard implements View {
 		// Perspective on this tight wrapper — rather than a larger ancestor — is part
 		// of what lets Safari backface-cull the away face (the faces also isolate
 		// their stacking contexts; see the stylesheet).
-		return <<<HTML
-<div class="bsb-flipcard{$modifier}" data-wp-class--is-flipped="{$flip_state}">
-	<div class="bsb-flipcard__inner">
-		<div class="bsb-flipcard__face bsb-flipcard__face--front">
-			{$front}
-			<div class="bsb-flipcard__corner"><button type="button" class="bsb-flipcard__flip" data-wp-on--click="{$flip_action}"><span class="bsb-flipcard__flip-icon" aria-hidden="true"></span>{$flip_label}</button></div>
-		</div>
-		<div class="bsb-flipcard__face bsb-flipcard__face--back">
-			{$back}
-			<div class="bsb-flipcard__corner">{$back_actions}<button type="button" class="bsb-flipcard__flip bsb-flipcard__flip--paper" data-wp-on--click="{$flip_action}"><span class="bsb-flipcard__flip-icon" aria-hidden="true"></span>{$flip_label}</button></div>
-		</div>
-	</div>
-</div>
-HTML;
+		return Template::render(
+			__DIR__ . '/Templates/FlipPostcard.php',
+			array(
+				'modifier'     => $modifier,
+				'flip_state'   => $flip_state,
+				'front'        => $front,
+				'flip_action'  => $flip_action,
+				'flip_label'   => $flip_label,
+				'back'         => $back,
+				'back_actions' => $back_actions,
+			)
+		);
 	}
 }
