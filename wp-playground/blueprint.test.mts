@@ -342,6 +342,15 @@ describe( 'screenshotsBlueprint', () => {
 		);
 	} );
 
+	it( 'turns off the admin\'s "Show Toolbar when viewing site" preference, so the surfed pages show no toolbar', () => {
+		const step = steps.find(
+			( { step: name } ) => name === 'updateUserMeta'
+		);
+
+		expect( step?.userId ).toBe( 1 );
+		expect( step?.meta ).toEqual( { show_admin_bar_front: 'false' } );
+	} );
+
 	it( 'activates the plugin', () => {
 		expect( steps.some( ( step ) => step.step === 'activatePlugin' ) ).toBe(
 			true

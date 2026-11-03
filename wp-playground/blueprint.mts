@@ -359,11 +359,12 @@ export const e2eUnauthenticatedBlueprint: BlueprintDeclaration = {
  * than a dev box. It sets the `production` environment type with debugging
  * off, so the dev-tools panel stays closed and no debug output reaches the
  * page; pins the site language to English (see {@link siteLanguageStep});
- * names the site "Coastline Tech Notes"; activates the plugin; and installs
- * the YouTube oEmbed stub (see {@link youtubeOembedStubMuPlugin}) so the
- * bundled video page renders its embed without outbound network. Like
- * {@link e2eBlueprint} it carries no login step: the screenshot run's own
- * setup project logs in through the form.
+ * names the site "Coastline Tech Notes"; turns off the admin's "Show Toolbar
+ * when viewing site" preference, so the surfed pages show no toolbar;
+ * activates the plugin; and installs the YouTube oEmbed stub (see
+ * {@link youtubeOembedStubMuPlugin}) so the bundled video page renders its
+ * embed without outbound network. Like {@link e2eBlueprint} it carries no
+ * login step: the screenshot run's own setup project logs in through the form.
  */
 export const screenshotsBlueprint: BlueprintDeclaration = {
 	...base,
@@ -382,6 +383,11 @@ export const screenshotsBlueprint: BlueprintDeclaration = {
 		{
 			step: 'setSiteOptions',
 			options: { blogname: 'Coastline Tech Notes' },
+		},
+		{
+			step: 'updateUserMeta',
+			userId: 1,
+			meta: { show_admin_bar_front: 'false' },
 		},
 		...activatePluginStep,
 		...youtubeOembedStubStep(),
