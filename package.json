@@ -23,6 +23,7 @@
     "playground:fresh": "tsx wp-playground/start.mts --reset",
     "playground:test": "tsx wp-playground/start-test.mts",
     "playground:test:unauth": "tsx wp-playground/start-unauth-test.mts",
+    "playground:screenshots": "tsx wp-playground/StartScreenshots.mts",
     "dev:sync": "tsx wp-playground/live-reload.mts",
     "dev": "concurrently --kill-others --names \"build,wp,sync\" -c \"blue,magenta,green\" \"pnpm:start\" \"pnpm:playground\" \"pnpm:dev:sync\"",
     "test:e2e": "playwright test --config playwright.config.mts",
@@ -30,7 +31,9 @@
     "test:e2e:unauth": "E2E_TARGET=unauth playwright test --config playwright.config.mts",
     "pretest:e2e:unauth": "pnpm run build",
     "test:e2e:all": "pnpm run test:e2e && pnpm run test:e2e:unauth",
-    "test:e2e:install": "playwright install chromium"
+    "test:e2e:install": "playwright install chromium",
+    "prescreenshots": "pnpm run build",
+    "screenshots": "playwright test --config playwright.screenshots.config.mts"
   },
   "devDependencies": {
     "@fontsource/anton": "^5.2.7",

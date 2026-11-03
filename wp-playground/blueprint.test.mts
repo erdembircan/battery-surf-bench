@@ -34,6 +34,7 @@ import {
 	devResumeBlueprint,
 	e2eBlueprint,
 	e2eUnauthenticatedBlueprint,
+	screenshotsBlueprint,
 	autoLoginMuPlugin,
 	youtubeOembedStubMuPlugin,
 } from './blueprint.mts';
@@ -309,6 +310,57 @@ describe( 'e2eUnauthenticatedBlueprint', () => {
 				'WPLANG'
 			)
 		).toBeUndefined();
+	} );
+} );
+
+describe( 'screenshotsBlueprint', () => {
+	const blueprint = asV1( screenshotsBlueprint );
+	const steps = blueprint.steps as Record< string, unknown >[];
+
+	/**
+	 * Read the wp-config constants the blueprint defines.
+	 *
+	 * @return The constants map, or undefined if no step defines any.
+	 */
+	function definedConsts(): Record< string, unknown > | undefined {
+		return steps.find( ( step ) => step.step === 'defineWpConfigConsts' )
+			?.consts as Record< string, unknown > | undefined;
+	}
+
+	it( 'sets the production environment type, so the dev-tools panel stays closed', () => {
+		expect( definedConsts()?.WP_ENVIRONMENT_TYPE ).toBe( 'production' );
+	} );
+
+	it( 'turns debugging and debug output off', () => {
+		expect( definedConsts()?.WP_DEBUG ).toBe( false );
+		expect( definedConsts()?.WP_DEBUG_DISPLAY ).toBe( false );
+	} );
+
+	it( 'names the site Coastline Tech Notes', () => {
+		expect( findSiteOption( steps, 'blogname' ) ).toBe(
+			'Coastline Tech Notes'
+		);
+	} );
+
+	it( 'activates the plugin', () => {
+		expect( steps.some( ( step ) => step.step === 'activatePlugin' ) ).toBe(
+			true
+		);
+	} );
+
+	it( 'installs the YouTube oEmbed stub mu-plugin', () => {
+		expect(
+			findWriteFileStep( steps, YOUTUBE_OEMBED_STUB_PATH )
+		).toBeDefined();
+	} );
+
+	it( 'installs neither the dev auto-login nor the LiveReload mu-plugin', () => {
+		expect( findWriteFileStep( steps, AUTO_LOGIN_PATH ) ).toBeUndefined();
+		expect( findWriteFileStep( steps, LIVE_RELOAD_PATH ) ).toBeUndefined();
+	} );
+
+	it( 'does not include the login step -- the screenshot run logs in through the form', () => {
+		expect( steps.some( ( step ) => step.step === 'login' ) ).toBe( false );
 	} );
 } );
 
