@@ -89,6 +89,41 @@ jobs:
       - run: composer zip
       - run: pnpm package:verify
 
+  plugin-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+      # PHP without the shared vendor/ cache: bin/Release.sh reinstalls vendor/
+      # without dev packages, and the cache action would save that lean tree
+      # under the key the lint and test jobs restore their dev tools from.
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.1"
+          tools: composer
+          coverage: none
+      - run: composer install --no-interaction --no-progress --prefer-dist
+      - uses: ./.github/actions/setup-node
+      # Build and verify the release zip exactly as a release does: compiled
+      # bundles, a production-only vendor/, then package:verify --release.
+      - run: bin/Release.sh
+      # Plugin Check scans a plugin folder rather than a zip, and takes the
+      # plugin's slug from the folder's name.
+      - run: unzip -q zip/battery-surf-bench.zip -d dist/battery-surf-bench
+      # The checks WordPress.org's upload form runs on a new plugin, with the
+      # form's settings: the plugin_repo category without prefixing, errors
+      # from severity 7 and warnings from severity 6. Like the form, the job
+      # fails on errors only and shows warnings as annotations.
+      - uses: wordpress/plugin-check-action@v1
+        with:
+          build-dir: dist/battery-surf-bench
+          slug: battery-surf-bench
+          categories: plugin_repo
+          exclude-checks: prefixing
+          error-severity: 7
+          warning-severity: 6
+          include-low-severity-errors: true
+
   i18n:
     runs-on: ubuntu-latest
     timeout-minutes: 10
