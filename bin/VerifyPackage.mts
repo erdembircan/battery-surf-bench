@@ -14,7 +14,8 @@
  */
 
 import { execFileSync } from 'node:child_process';
-import { findPackageViolations } from './PackageRules.mts';
+import { statSync } from 'node:fs';
+import { findPackageViolations, findSizeViolations } from './PackageRules.mts';
 
 /**
  * Checks the zip named on the command line and reports the result.
@@ -39,9 +40,11 @@ function main( args: readonly string[] ): number {
 		.split( '\n' )
 		.filter( ( entry ) => entry !== '' );
 
-	const violations = findPackageViolations( entries, {
-		release: args.includes( '--release' ),
-	} );
+	const release = args.includes( '--release' );
+	const violations = [
+		...findPackageViolations( entries, { release } ),
+		...findSizeViolations( statSync( zipPath ).size, { release } ),
+	];
 
 	if ( violations.length > 0 ) {
 		const list = violations

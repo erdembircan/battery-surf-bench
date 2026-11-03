@@ -2,9 +2,9 @@
 Contributors: erdembircan
 Tags: battery, benchmark, performance, power, testing
 Requires at least: 7.0
-Tested up to: 7.0
+Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.0.0-dev
+Stable tag: 1.0.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -14,9 +14,23 @@ Find out how fast web surfing really drains your battery, with a benchmark that 
 
 Battery Surf Bench is a WordPress plugin that measures your device's real-world battery drain. It unleashes a simulated web surfer on a course of content pages, samples your battery for the whole run, and projects an honest drain rate from what it actually measured.
 
-No lab hardware. No external services. Just your browser, your battery, and a surfer that never gets tired.
+No lab hardware and no server of your own: just your browser, your battery, and a surfer that never gets tired.
 
 https://www.youtube.com/watch?v=X8CwzH_P4-g
+
+= Made for WordPress Playground =
+
+Battery Surf Bench is built to run in WordPress Playground, which runs a complete WordPress site, server and database included, inside your browser tab. Open this link and Playground starts a fresh site with the plugin installed and its cockpit open, with no server to rent, nothing to install and no account to create:
+
+https://playground.wordpress.net/?plugin=battery-surf-bench&url=/wp-admin/admin.php?page=bsb-start-benchmark
+
+A battery benchmark should be something anyone with a laptop can run, not only people who already run a WordPress site. It measures the device in front of you, so the whole test, site included, runs on that device. Every Playground starts from the same clean WordPress, which keeps results comparable across laptops and browsers and keeps benchmarking away from any real site you run. The site, its database and your recorded sessions stay in your browser.
+
+Playground autosaves your recent sites in the browser; choose Save in browser storage to keep a site and its sessions for good. In Playground the page server runs on your device too, so a run also counts the work of serving each page: compare Playground runs with other Playground runs. The plugin installs on any WordPress site as well, if you'd rather use your own.
+
+= An experiment in browser-native software =
+
+Battery Surf Bench is also an experiment. Software that needs a server usually needs someone to host it, and software that doesn't usually has to stay small. We wanted to find out whether a desktop-grade application, with live dashboards, real-time charts, settings and a database of results, can skip that trade-off. WordPress provides the application platform, WordPress Playground handles everything a server and a database would, and you open a link and use the app.
 
 = Highlights =
 
@@ -73,23 +87,52 @@ Every run, whether it finished, was stopped early, or got interrupted, is stored
 
 * **Operator-only, everywhere.** The cockpit, the surf pages, the sessions, the settings: all gated behind a dedicated capability. Public visitors can't reach any of it.
 * **No footprint.** Course pages are served as ephemeral, in-memory pages. Nothing is written to your database and nothing new appears on your site.
-* **No telemetry.** All sampling and math happen locally in your browser; the only network traffic is your session saving to your own site.
+* **No telemetry.** All sampling and math happen locally in your browser, and sessions save only to your own site. The one outside contact is YouTube, which serves the video on the bundled course's video page (see External services below).
 
 = Speaks your language =
 
 Fully translation-ready, with German, Spanish, French, Brazilian Portuguese, and Turkish shipped out of the box.
 
-= External content note =
+== External services ==
 
-The bundled video-feature page embeds a YouTube video through WordPress's own native `core/embed` block, resolved by WordPress's own real oEmbed handling exactly as it would be on any WordPress site, including the outbound request that handling makes to YouTube's oEmbed endpoint to resolve the embed. The plugin does not replace or short-circuit that handling; it only adjusts the returned embed so the simulation can start and stop playback itself. The surfer starts the video (muted) when it decides to watch and pauses it again when its dwell ends, rather than the embed autoplaying on page load. This embed is only rendered on the operator-gated benchmark page (it requires the operator's capability plus a valid nonce) and is never output on the public-facing site. It is a deliberate part of the battery-drain workload, not tracking or advertising. The same handling applies automatically to any YouTube embed on a site owner's own selected surf pages.
+Battery Surf Bench connects to one external service: YouTube, which hosts the video on the bundled course's video page, "Watch: Inside a Modern Laptop's Power Path". Video is part of everyday browsing and one of the heaviest loads a browser puts on a battery, so the course includes it.
+
+Nothing is sent until an operator starts a benchmark, and the video only ever appears on the operator-gated benchmark page, never on your public site. When the surfer reaches the video page during a run:
+
+* Your site's server fetches the video's embed code from YouTube's oEmbed endpoint, sending the video's address, as WordPress does for any YouTube link in a post.
+* The operator's browser loads YouTube's embedded player from youtube.com. As with any YouTube embed, YouTube receives the operator's IP address and browser details, and may set cookies and collect usage data under its own terms and privacy policy.
+
+The same happens for a YouTube video on any of your own pages that you add to the course. The plugin itself sends no telemetry or analytics anywhere: every measurement stays in the operator's browser and is saved only to your own site.
+
+* YouTube: https://www.youtube.com/
+* YouTube Terms of Service: https://www.youtube.com/t/terms
+* Google Privacy Policy: https://policies.google.com/privacy
+
+== Source code ==
+
+The scripts and styles in the plugin's `build/` folder are compiled from TypeScript and SCSS. The complete source, with its build configuration, is public on GitHub: https://github.com/erdembircan/battery-surf-bench
+
+To build it yourself, install Node.js 24 with pnpm, and PHP 8.1 or later with Composer. Then, in a clone of the repository:
+
+1. `pnpm install` and `composer install` install the dependencies.
+2. `pnpm build` compiles `src/` into `build/`.
+3. `bin/Release.sh` builds the finished plugin zip in `zip/`, exactly as it ships.
 
 == Installation ==
+
+The quickest way to run a benchmark is WordPress Playground, with nothing to install: open https://playground.wordpress.net/?plugin=battery-surf-bench&url=/wp-admin/admin.php?page=bsb-start-benchmark, unplug your laptop, and start a benchmark from the cockpit.
+
+To install it on your own site:
 
 1. Upload the plugin to `wp-content/plugins/battery-surf-bench`, or install it through the Plugins screen.
 2. Activate the plugin through the Plugins screen in WordPress.
 3. Unplug your laptop, open the Battery Surf Bench admin menu (or the Start Benchmark shortcut in the admin bar), and start a benchmark from the cockpit.
 
 == Frequently Asked Questions ==
+
+= Do I need my own WordPress site? =
+
+No. Open the plugin in WordPress Playground (see Installation) and it runs on a fresh WordPress site inside your browser, with nothing to host or install. It works on your own site too.
 
 = Who can run a benchmark? =
 
@@ -105,13 +148,21 @@ Yes. The settings screen lets you compose the surf course from your own posts an
 
 = Does the plugin contact external servers or track users? =
 
-The plugin itself performs no telemetry, analytics or phone-home requests of its own. The one external contact is the bundled simulated-surf YouTube embed described above: WordPress's own real oEmbed handling contacts YouTube's oEmbed endpoint to resolve it, exactly as it would for any YouTube URL on any WordPress site. That request is part of the measured workload (real video-page browsing genuinely does this) and is only made while the operator-gated benchmark page is being rendered to the operator running a benchmark.
+The plugin itself sends no telemetry, analytics or phone-home requests. Its one outside contact is YouTube, for the video on the bundled course's video page: during a run, your site fetches that video's embed code from YouTube, and the operator's browser loads YouTube's player. The External services section of the description lists what is sent and when, with links to YouTube's terms and privacy policy.
 
 = Why is there a YouTube video in the surf course? =
 
 Because real-world browsing includes video, and video is one of the heaviest things a browser asks of a battery; leaving it out would understate the drain. The video plays the same way WordPress plays any embedded video: it never autoplays, it stays muted, and the surfer decides when to watch and when to move on. It is only ever shown to the operator running a benchmark, and a YouTube embed on your own selected surf pages behaves the same way during a run.
 
+== Screenshots ==
+
+1. The cockpit mid-run: the surfer reads its way through a bundled article while the cockpit's header tracks the battery, both drain rates and the projected full-battery runtime.
+2. A finished run's postcard, reopened from the Sessions screen: the measured drain staircase against the projected full discharge, with the run's key figures.
+3. Setting up a run: a fixed duration or a target drop, a ready-made surfer personality or your own mix, and the playback speed.
+4. The Sessions screen keeps every run, with its status, battery span, drain rates and projected full-battery runtime.
+5. The settings screen: choose the pages the surfer visits from the five bundled pages and your own posts and pages, and put them in order.
+
 == Changelog ==
 
-= 1.0.0-dev =
-* Initial development release.
+= 1.0.0 =
+* Initial release.

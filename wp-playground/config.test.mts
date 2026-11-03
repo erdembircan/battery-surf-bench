@@ -14,6 +14,7 @@ import {
 	playgroundTestUrl,
 	parsePlaygroundTestPortEnv,
 	parsePlaygroundUnauthTestPortEnv,
+	parsePlaygroundScreenshotsPortEnv,
 	parsePlaygroundPortEnv,
 	playgroundReadyLine,
 	playgroundReadyPattern,
@@ -23,6 +24,9 @@ import {
 	PLAYGROUND_UNAUTH_READY_PATTERN,
 	PLAYGROUND_UNAUTH_READY_MARKER,
 	PLAYGROUND_UNAUTH_TEST_PORT_ENV_VAR,
+	PLAYGROUND_SCREENSHOTS_READY_PATTERN,
+	PLAYGROUND_SCREENSHOTS_READY_MARKER,
+	PLAYGROUND_SCREENSHOTS_PORT_ENV_VAR,
 } from './config.mts';
 
 describe( 'playgroundTestUrl', () => {
@@ -71,6 +75,24 @@ describe( 'parsePlaygroundUnauthTestPortEnv', () => {
 		expect( () =>
 			parsePlaygroundUnauthTestPortEnv( 'not-a-port' )
 		).toThrow( /PLAYGROUND_UNAUTH_TEST_PORT/ );
+	} );
+} );
+
+describe( 'parsePlaygroundScreenshotsPortEnv', () => {
+	it( 'returns undefined when the variable is unset', () => {
+		expect(
+			parsePlaygroundScreenshotsPortEnv( undefined )
+		).toBeUndefined();
+	} );
+
+	it( 'parses a valid port string to a number', () => {
+		expect( parsePlaygroundScreenshotsPortEnv( '9700' ) ).toBe( 9700 );
+	} );
+
+	it( 'throws on a non-numeric value, naming its own env var in the message', () => {
+		expect( () =>
+			parsePlaygroundScreenshotsPortEnv( 'not-a-port' )
+		).toThrow( /PLAYGROUND_SCREENSHOTS_PORT/ );
 	} );
 } );
 
@@ -222,6 +244,55 @@ describe( 'PLAYGROUND_UNAUTH_READY_PATTERN', () => {
 		expect( PLAYGROUND_READY_PATTERN.test( unauthLine ) ).toBe( false );
 		expect( PLAYGROUND_UNAUTH_READY_PATTERN.test( authLine ) ).toBe(
 			false
+		);
+	} );
+} );
+
+describe( 'PLAYGROUND_SCREENSHOTS_READY_PATTERN', () => {
+	it( 'matches a screenshots ready line and captures the port under its own env var name', () => {
+		const line = playgroundReadyLine(
+			9700,
+			PLAYGROUND_SCREENSHOTS_READY_MARKER
+		);
+
+		const match = PLAYGROUND_SCREENSHOTS_READY_PATTERN.exec( line );
+
+		expect( match ).not.toBeNull();
+		expect( match?.groups?.[ PLAYGROUND_SCREENSHOTS_PORT_ENV_VAR ] ).toBe(
+			'9700'
+		);
+	} );
+
+	it( "does not match the e2e servers' ready lines, nor they its", () => {
+		const screenshotsLine = playgroundReadyLine(
+			9700,
+			PLAYGROUND_SCREENSHOTS_READY_MARKER
+		);
+
+		expect(
+			PLAYGROUND_SCREENSHOTS_READY_PATTERN.test(
+				playgroundReadyLine( 9500 )
+			)
+		).toBe( false );
+		expect(
+			PLAYGROUND_SCREENSHOTS_READY_PATTERN.test(
+				playgroundReadyLine( 9600, PLAYGROUND_UNAUTH_READY_MARKER )
+			)
+		).toBe( false );
+		expect( PLAYGROUND_READY_PATTERN.test( screenshotsLine ) ).toBe(
+			false
+		);
+		expect( PLAYGROUND_UNAUTH_READY_PATTERN.test( screenshotsLine ) ).toBe(
+			false
+		);
+	} );
+
+	it( 'captures into a different named group than the e2e patterns', () => {
+		expect( PLAYGROUND_SCREENSHOTS_PORT_ENV_VAR ).not.toBe(
+			PLAYGROUND_TEST_PORT_ENV_VAR
+		);
+		expect( PLAYGROUND_SCREENSHOTS_PORT_ENV_VAR ).not.toBe(
+			PLAYGROUND_UNAUTH_TEST_PORT_ENV_VAR
 		);
 	} );
 } );

@@ -22,6 +22,7 @@ sequenceDiagram
         M->>M: pnpm license:verify
         M->>M: pnpm contracts:verify (every contract chart parses in Mermaid)
         M->>M: composer zip → pnpm package:verify (zip ships plugin files only)
+        M->>M: composer install → bin/Release.sh → Plugin Check Action on the release build (the upload form's checks#59; separate job)
         M->>M: pnpm i18n:make-pot (validate extraction, no commit)
         deactivate M
         M-->>FB: checks pass
@@ -39,6 +40,7 @@ sequenceDiagram
         M->>M: pnpm license:verify
         M->>M: pnpm contracts:verify (every contract chart parses in Mermaid)
         M->>M: composer zip → pnpm package:verify (zip ships plugin files only)
+        M->>M: composer install → bin/Release.sh → Plugin Check Action on the release build (the upload form's checks#59; separate job)
         M->>M: pnpm i18n:make-pot → commit .pot to master (WP-CLI, EndBug/add-and-commit)
         M->>M: pnpm test:e2e (Playwright + WP Playground, authenticated server#59; separate job)
         M->>M: pnpm test:e2e:unauth (Playwright + WP Playground, login-free server#59; separate job)

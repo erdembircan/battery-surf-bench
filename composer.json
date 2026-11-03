@@ -41,7 +41,7 @@
         "lint:fix": "phpcbf",
         "test": "phpunit",
         "test:coverage": "phpunit --coverage-html coverage",
-        "zip": "@composer archive --format=zip --dir=zip --file=battery-surf-bench",
+        "zip": "bin/PackageZip.sh",
         "build:container": "@php bin/BuildContainer.php",
         "validate:container": "@php bin/BuildContainer.php --check"
     }

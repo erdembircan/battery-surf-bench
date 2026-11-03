@@ -352,3 +352,44 @@ export const e2eUnauthenticatedBlueprint: BlueprintDeclaration = {
 	...base,
 	steps: [ ...debugStep, ...activatePluginStep ],
 };
+
+/**
+ * Blueprint for the listing-screenshot instance (`pnpm screenshots`): a
+ * deterministic, non-persistent site that looks like a real install rather
+ * than a dev box. It sets the `production` environment type with debugging
+ * off, so the dev-tools panel stays closed and no debug output reaches the
+ * page; pins the site language to English (see {@link siteLanguageStep});
+ * names the site "Coastline Tech Notes"; turns off the admin's "Show Toolbar
+ * when viewing site" preference, so the surfed pages show no toolbar;
+ * activates the plugin; and installs the YouTube oEmbed stub (see
+ * {@link youtubeOembedStubMuPlugin}) so the bundled video page renders its
+ * embed without outbound network. Like {@link e2eBlueprint} it carries no
+ * login step: the screenshot run's own setup project logs in through the form.
+ */
+export const screenshotsBlueprint: BlueprintDeclaration = {
+	...base,
+	steps: [
+		{
+			step: 'defineWpConfigConsts',
+			consts: {
+				WP_DEBUG: false,
+				WP_DEBUG_LOG: false,
+				WP_DEBUG_DISPLAY: false,
+				SCRIPT_DEBUG: false,
+				WP_ENVIRONMENT_TYPE: 'production',
+			},
+		},
+		...siteLanguageStep,
+		{
+			step: 'setSiteOptions',
+			options: { blogname: 'Coastline Tech Notes' },
+		},
+		{
+			step: 'updateUserMeta',
+			userId: 1,
+			meta: { show_admin_bar_front: 'false' },
+		},
+		...activatePluginStep,
+		...youtubeOembedStubStep(),
+	],
+};

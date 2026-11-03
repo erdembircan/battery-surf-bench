@@ -3,7 +3,7 @@
  * Plugin Name:       Battery Surf Bench
  * Plugin URI:        https://github.com/erdembircan/battery-surf-bench
  * Description:       Benchmarks battery drain by simulating real-world web surfing.
- * Version:           1.0.0-dev
+ * Version:           1.0.0
  * Requires at least: 7.0
  * Requires PHP:      8.1
  * Author:            Erdem Bircan

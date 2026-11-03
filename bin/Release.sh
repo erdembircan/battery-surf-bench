@@ -14,9 +14,11 @@
 #   3. composer install --no-dev   — reinstall vendor/ without dev-only packages
 #                                    (phpunit, phpcs, mockery, ...) so the zip
 #                                    doesn't leak them.
-#   4. composer zip                — package the plugin (composer archive ships the
-#                                    untracked build/ assets + production vendor/,
-#                                    per .gitattributes).
+#   4. composer zip                — package the plugin under one top-level
+#                                    battery-surf-bench/ folder (bin/PackageZip.sh;
+#                                    composer archive ships the untracked build/
+#                                    assets + production vendor/, per
+#                                    .gitattributes).
 #   5. pnpm package:verify         — check the zip against the package contract in
 #                                    bin/PackageRules.mts. --release also requires
 #                                    build/ and vendor/, so a leaked file or a

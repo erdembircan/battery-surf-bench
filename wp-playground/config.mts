@@ -279,3 +279,49 @@ export const PLAYGROUND_UNAUTH_READY_PATTERN = playgroundReadyPattern(
 
 /** File the authenticated admin session is persisted to by the e2e setup project. */
 export const ADMIN_STORAGE_STATE = 'test-results/.auth/admin.json';
+
+/**
+ * Preferred port for the listing-screenshot Playground server, clear of the
+ * dev server's and the two e2e servers' ports so a capture can run beside
+ * them. `StartScreenshots.mts` binds the first free port from here up.
+ */
+export const PLAYGROUND_SCREENSHOTS_PORT = 9700;
+
+/**
+ * Environment variable, and ready-pattern capture group, that carries the
+ * screenshot server's bound port from its ready line to Playwright's worker
+ * processes. See {@link PLAYGROUND_UNAUTH_TEST_PORT_ENV_VAR} for why every
+ * server needs a name of its own.
+ */
+export const PLAYGROUND_SCREENSHOTS_PORT_ENV_VAR =
+	'PLAYGROUND_SCREENSHOTS_PORT';
+
+/** Ready-line marker for the screenshot server, distinct from the e2e servers' markers. */
+export const PLAYGROUND_SCREENSHOTS_READY_MARKER =
+	'[playground:screenshots] ready';
+
+/** Matches the screenshot server's ready line and captures its port into {@link PLAYGROUND_SCREENSHOTS_PORT_ENV_VAR}. */
+export const PLAYGROUND_SCREENSHOTS_READY_PATTERN = playgroundReadyPattern(
+	PLAYGROUND_SCREENSHOTS_READY_MARKER,
+	PLAYGROUND_SCREENSHOTS_PORT_ENV_VAR
+);
+
+/**
+ * Reads the screenshot server's bound port from its environment variable.
+ *
+ * @param value - The raw environment variable value, or undefined if unset.
+ * @return The parsed port number, or undefined if the variable is unset.
+ * @throws If the variable is set but is not a valid port number.
+ */
+export function parsePlaygroundScreenshotsPortEnv(
+	value: string | undefined
+): number | undefined {
+	return parsePlaygroundPortEnv( value, PLAYGROUND_SCREENSHOTS_PORT_ENV_VAR );
+}
+
+/**
+ * Where the screenshot run's setup project saves the logged-in admin session
+ * for the capture spec, apart from the e2e suite's own saved login.
+ */
+export const SCREENSHOTS_STORAGE_STATE =
+	'test-results/.auth/screenshots-admin.json';

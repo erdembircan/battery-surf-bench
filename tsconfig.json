@@ -22,7 +22,9 @@
 		"wp-playground/**/*.mts",
 		"bin/**/*.mts",
 		"playwright.config.mts",
+		"playwright.screenshots.config.mts",
 		"tests/e2e/**/*.mts",
+		"tests/screenshots/**/*.mts",
 		"vitest.config.mts",
 		"vitest.setup.ts"
 	]
