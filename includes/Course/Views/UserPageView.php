@@ -7,9 +7,8 @@
 
 namespace ErdemBircan\BatterySurfBench\Course\Views;
 
+use ErdemBircan\BatterySurfBench\Support\Template;
 use ErdemBircan\BatterySurfBench\Support\View;
-
-use function esc_html;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -35,21 +34,15 @@ class UserPageView implements View {
 	 * @param array<string, mixed> $data {
 	 *     View data.
 	 *
-	 *     @type string $title   Raw page title (the view escapes it).
-	 *     @type string $content Serialized block markup for the page body, already trusted and interpolated as-is.
+	 *     @type string $title   Raw page title (the template escapes it).
+	 *     @type string $content Serialized block markup for the page body, already trusted and appended as-is.
 	 * }
 	 * @return string The title heading followed by the page's content, as serialized block markup.
 	 */
 	public function render( array $data = array() ): string {
-		$title   = esc_html( isset( $data['title'] ) ? (string) $data['title'] : '' );
+		$title   = isset( $data['title'] ) ? (string) $data['title'] : '';
 		$content = isset( $data['content'] ) ? (string) $data['content'] : '';
 
-		return <<<HTML
-<!-- wp:heading {"level":1} -->
-<h1 class="wp-block-heading">{$title}</h1>
-<!-- /wp:heading -->
-
-{$content}
-HTML;
+		return Template::render( __DIR__ . '/Templates/UserPageHeading.php', array( 'title' => $title ) ) . "\n\n" . $content;
 	}
 }

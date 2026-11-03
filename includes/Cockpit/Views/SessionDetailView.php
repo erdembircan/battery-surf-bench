@@ -7,11 +7,8 @@
 
 namespace ErdemBircan\BatterySurfBench\Cockpit\Views;
 
+use ErdemBircan\BatterySurfBench\Support\Template;
 use ErdemBircan\BatterySurfBench\Support\View;
-
-use function esc_html;
-use function esc_url;
-use function sprintf;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -29,7 +26,7 @@ defined( 'ABSPATH' ) || exit;
  * the card's corner beside the flip badge, the same slot and ghost-pill
  * treatment the live cockpit gives its "New run" button — instead of that live
  * button. The block render template prepares the raw (translated) values and the
- * seeded context; this view escapes each into its slot and owns the wrapper markup.
+ * seeded context; its templates escape each into its slot and own the wrapper markup.
  */
 class SessionDetailView implements View {
 
@@ -63,8 +60,8 @@ class SessionDetailView implements View {
 		$greeting_lead = isset( $data['greeting_lead'] ) ? (string) $data['greeting_lead'] : '';
 		$brand_title   = isset( $data['brand_title'] ) ? (string) $data['brand_title'] : '';
 		$summary_brand = isset( $data['summary_brand'] ) ? (string) $data['summary_brand'] : '';
-		$back_label    = esc_html( isset( $data['back_label'] ) ? (string) $data['back_label'] : '' );
-		$back_url      = esc_url( isset( $data['back_url'] ) ? (string) $data['back_url'] : '' );
+		$back_label    = isset( $data['back_label'] ) ? (string) $data['back_label'] : '';
+		$back_url      = isset( $data['back_url'] ) ? (string) $data['back_url'] : '';
 
 		// The shared postcard pieces: the picture front (greeting) and the franked
 		// (cancelled) stamp, built from the raw values — each child view escapes
@@ -83,10 +80,12 @@ class SessionDetailView implements View {
 		// run" button — so the detail card reads identically. It is an <a>
 		// (navigation), wearing the shared pill via `.bsb-summary__newrun` plus its
 		// own anchor resets and a back-arrow glyph.
-		$back_actions = sprintf(
-			'<a class="bsb-summary__newrun bsb-summary__back" href="%s"><span class="bsb-summary__back-icon" aria-hidden="true"></span>%s</a>',
-			$back_url,
-			$back_label
+		$back_actions = Template::render(
+			__DIR__ . '/Templates/SessionDetailBackLink.php',
+			array(
+				'back_url'   => $back_url,
+				'back_label' => $back_label,
+			)
 		);
 
 		$summary = ( new SummaryCard() )->render(
@@ -115,10 +114,12 @@ class SessionDetailView implements View {
 		// these in the live dashboard). It is an Interactivity region on the
 		// `bsb/cockpit` store; `callbacks.initDetail` builds the graph and arms the
 		// auto-flip on hydration.
-		return <<<HTML
-<div class="bsb-session-detail" data-wp-interactive="bsb/cockpit" {$context} data-wp-init="callbacks.initDetail">
-	{$summary}
-</div>
-HTML;
+		return Template::render(
+			__DIR__ . '/Templates/SessionDetail.php',
+			array(
+				'context' => $context,
+				'summary' => $summary,
+			)
+		);
 	}
 }

@@ -7,9 +7,8 @@
 
 namespace ErdemBircan\BatterySurfBench\Cockpit\Views;
 
+use ErdemBircan\BatterySurfBench\Support\Template;
 use ErdemBircan\BatterySurfBench\Support\View;
-
-use function esc_html;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -28,7 +27,7 @@ defined( 'ABSPATH' ) || exit;
  * cockpit's "New run" button, placed beside the flip badge in the shared card
  * corner; the detail page leaves it empty). The picture front, the franked
  * stamp, the footer and the back_actions arrive as already-escaped markup and
- * are placed verbatim; this view escapes only its own text slots.
+ * are placed verbatim; its template escapes only its own text slots.
  */
 class SummaryCard implements View {
 
@@ -45,7 +44,7 @@ class SummaryCard implements View {
 	 *     @type string $back_actions       Already-escaped markup placed in the card's corner
 	 *                                      beside the flip badge (e.g. the cockpit's "New run"
 	 *                                      button).
-	 *     @type string $flip_label         Raw label for the flip badge (the view escapes it).
+	 *     @type string $flip_label         Raw label for the flip badge (the template escapes it).
 	 *     @type string $tte_label          Raw label for the time-to-empty stat.
 	 *     @type string $rate_session_label Raw label for the session drain-rate stat.
 	 *     @type string $rate10_label       Raw label for the 10-minute drain-rate stat.
@@ -65,51 +64,44 @@ class SummaryCard implements View {
 		$footer             = isset( $data['footer'] ) ? (string) $data['footer'] : '';
 		$back_actions       = isset( $data['back_actions'] ) ? (string) $data['back_actions'] : '';
 		$flip_label         = isset( $data['flip_label'] ) ? (string) $data['flip_label'] : '';
-		$tte_label          = esc_html( isset( $data['tte_label'] ) ? (string) $data['tte_label'] : '' );
-		$rate_session_label = esc_html( isset( $data['rate_session_label'] ) ? (string) $data['rate_session_label'] : '' );
-		$rate10_label       = esc_html( isset( $data['rate10_label'] ) ? (string) $data['rate10_label'] : '' );
-		$battery_label      = esc_html( isset( $data['battery_label'] ) ? (string) $data['battery_label'] : '' );
-		$dropped_label      = esc_html( isset( $data['dropped_label'] ) ? (string) $data['dropped_label'] : '' );
-		$pts_label          = esc_html( isset( $data['pts_label'] ) ? (string) $data['pts_label'] : '' );
-		$elapsed_run_label  = esc_html( isset( $data['elapsed_run_label'] ) ? (string) $data['elapsed_run_label'] : '' );
-		$measured_label     = esc_html( isset( $data['measured_label'] ) ? (string) $data['measured_label'] : '' );
-		$projected_label    = esc_html( isset( $data['projected_label'] ) ? (string) $data['projected_label'] : '' );
+		$tte_label          = isset( $data['tte_label'] ) ? (string) $data['tte_label'] : '';
+		$rate_session_label = isset( $data['rate_session_label'] ) ? (string) $data['rate_session_label'] : '';
+		$rate10_label       = isset( $data['rate10_label'] ) ? (string) $data['rate10_label'] : '';
+		$battery_label      = isset( $data['battery_label'] ) ? (string) $data['battery_label'] : '';
+		$dropped_label      = isset( $data['dropped_label'] ) ? (string) $data['dropped_label'] : '';
+		$pts_label          = isset( $data['pts_label'] ) ? (string) $data['pts_label'] : '';
+		$elapsed_run_label  = isset( $data['elapsed_run_label'] ) ? (string) $data['elapsed_run_label'] : '';
+		$measured_label     = isset( $data['measured_label'] ) ? (string) $data['measured_label'] : '';
+		$projected_label    = isset( $data['projected_label'] ) ? (string) $data['projected_label'] : '';
 		$start_hidden       = ! isset( $data['start_hidden'] ) || (bool) $data['start_hidden'];
 
-		$actions = '' === $footer ? '' : <<<HTML
-			<div class="bsb-summary__actions">
-				{$footer}
-			</div>
-		HTML;
+		$actions = '' === $footer
+			? ''
+			: Template::render(
+				__DIR__ . '/Templates/SummaryCardActions.php',
+				array( 'footer' => $footer )
+			);
 
 		// The drain chart draws left to right in every locale, so its SVG pins
 		// `direction="ltr"` instead of inheriting the page's: on a right-to-left
 		// page its labels' start and end anchors would otherwise swap sides and
 		// run off the plot.
-		$summary_back = <<<HTML
-{$frank}
-		<div class="bsb-summary__report">
-			<h2 class="bsb-summary__head" data-wp-text="state.summaryHeading"></h2>
-			<p class="bsb-summary__sig" data-wp-text="state.summarySig"></p>
-			<span class="bsb-summary__divide" aria-hidden="true"></span>
-			<div class="bsb-summary__graph" data-wp-bind--hidden="!context.hasGraph">
-				<svg class="bsb-summary__chart" viewBox="0 0 480 90" direction="ltr" aria-hidden="true"></svg>
-				<div class="bsb-summary__legend" aria-hidden="true">
-					<span class="bsb-summary__legend-item"><span class="bsb-summary__legend-swatch"></span>{$measured_label}</span>
-					<span class="bsb-summary__legend-item"><span class="bsb-summary__legend-swatch bsb-summary__legend-swatch--fit"></span>{$projected_label}</span>
-				</div>
-			</div>
-			<div class="bsb-summary__stats">
-				<div class="bsb-stat"><span class="bsb-stat__label">{$tte_label}</span><span class="bsb-stat__value" data-wp-text="state.timeToEmptyDisplay"></span></div>
-				<div class="bsb-stat"><span class="bsb-stat__label">{$rate_session_label}</span><span class="bsb-stat__value"><span data-wp-text="state.rateSessionDisplay"></span><span class="bsb-stat__unit">%/h</span></span></div>
-				<div class="bsb-stat"><span class="bsb-stat__label">{$rate10_label}</span><span class="bsb-stat__value"><span data-wp-text="state.rate10Display"></span><span class="bsb-stat__unit">%/h</span></span></div>
-				<div class="bsb-stat"><span class="bsb-stat__label">{$battery_label}</span><span class="bsb-stat__value bsb-stat__value--arrow"><span data-wp-text="context.summaryBatteryStart"></span><span class="bsb-stat__arrow" aria-hidden="true"></span><span data-wp-text="context.summaryBatteryEnd"></span></span></div>
-				<div class="bsb-stat"><span class="bsb-stat__label">{$dropped_label}</span><span class="bsb-stat__value"><span data-wp-text="context.summaryDropped"></span><span class="bsb-stat__unit">{$pts_label}</span></span></div>
-				<div class="bsb-stat"><span class="bsb-stat__label">{$elapsed_run_label}</span><span class="bsb-stat__value" data-wp-text="state.summaryElapsed"></span></div>
-			</div>
-			{$actions}
-		</div>
-HTML;
+		$summary_back = Template::render(
+			__DIR__ . '/Templates/SummaryCardBack.php',
+			array(
+				'frank'              => $frank,
+				'measured_label'     => $measured_label,
+				'projected_label'    => $projected_label,
+				'tte_label'          => $tte_label,
+				'rate_session_label' => $rate_session_label,
+				'rate10_label'       => $rate10_label,
+				'battery_label'      => $battery_label,
+				'dropped_label'      => $dropped_label,
+				'pts_label'          => $pts_label,
+				'elapsed_run_label'  => $elapsed_run_label,
+				'actions'            => $actions,
+			)
+		);
 
 		$summary_card = ( new FlipPostcard() )->render(
 			array(
@@ -125,10 +117,12 @@ HTML;
 
 		$hidden = $start_hidden ? ' hidden' : '';
 
-		return <<<HTML
-<div class="bsb-summary"{$hidden} data-wp-bind--hidden="!state.isEnded" data-wp-watch="callbacks.renderSummary">
-		{$summary_card}
-	</div>
-HTML;
+		return Template::render(
+			__DIR__ . '/Templates/SummaryCard.php',
+			array(
+				'hidden'       => $hidden,
+				'summary_card' => $summary_card,
+			)
+		);
 	}
 }

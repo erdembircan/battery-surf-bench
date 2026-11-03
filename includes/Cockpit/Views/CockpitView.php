@@ -7,11 +7,11 @@
 
 namespace ErdemBircan\BatterySurfBench\Cockpit\Views;
 
+use ErdemBircan\BatterySurfBench\Support\Template;
 use ErdemBircan\BatterySurfBench\Support\View;
 
-use function esc_attr;
-use function esc_html;
-use function sprintf;
+use function preg_replace;
+use function str_repeat;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -25,7 +25,7 @@ defined( 'ABSPATH' ) || exit;
  * template ({@see src/cockpit/render.php}) prepares the dynamic, raw (translated)
  * values — wrapper attributes, the per-instance `data-wp-context`, and the
  * translated labels — and hands them here; this view owns the structure and the
- * escaping, held in a heredoc, so no HTML is written or escaped inline in the
+ * escaping, held in its templates, so no HTML is written or escaped inline in the
  * render template.
  */
 class CockpitView implements View {
@@ -34,7 +34,7 @@ class CockpitView implements View {
 	 * Renders the cockpit block markup.
 	 *
 	 * @param array<string, mixed> $data {
-	 *     Raw (translated) values from the block render template; this view escapes
+	 *     Raw (translated) values from the block render template; its templates escape
 	 *     each into its slot (text with esc_html, attributes with esc_attr).
 	 *
 	 *     @type string $wrapper           Block wrapper attributes from `get_block_wrapper_attributes()`.
@@ -155,8 +155,8 @@ class CockpitView implements View {
 		// Shared postcard components, rendered once and placed in both the startup
 		// postcard and the run-summary card so the illustration and the stamp are a
 		// single source, not divergent copies. They are built from the raw values
-		// first — each child view escapes what it is handed — before this view
-		// escapes the same values for its own slots below. The photo fills a flip
+		// first — each child view escapes what it is handed — and the templates
+		// escape the same values for their own slots. The photo fills a flip
 		// face in both places; the summary stamp is franked (a cancellation reads
 		// as "the run is done") while the startup stamp is left blank.
 		$photo_fill  = ( new PostcardPhoto() )->render(
@@ -181,67 +181,10 @@ class CockpitView implements View {
 			)
 		);
 
-		// This view owns its markup, so it escapes every value it interpolates:
-		// text slots with esc_html(), attribute slots with esc_attr(). The wrapper
-		// attributes and the data-wp-context attribute arrive pre-built by WordPress
-		// and stay as-is, as do the composed child-view markups above. `mode_label`
-		// and `speed_label` appear in both a text slot and an aria-label, so each
-		// also gets an attribute-escaped variant.
-		$mode_label_attr     = esc_attr( $mode_label );
-		$speed_label_attr    = esc_attr( $speed_label );
-		$brand_title         = esc_html( $brand_title );
-		$brand_subtitle      = esc_html( $brand_subtitle );
-		$mode_label          = esc_html( $mode_label );
-		$duration_mode       = esc_html( $duration_mode );
-		$target_drop_mode    = esc_html( $target_drop_mode );
-		$duration_label      = esc_html( $duration_label );
-		$minutes_label       = esc_html( $minutes_label );
-		$decrease_label      = esc_attr( $decrease_label );
-		$increase_label      = esc_attr( $increase_label );
-		$target_label        = esc_html( $target_label );
-		$target_aria         = esc_attr( $target_aria );
-		$speed_label         = esc_html( $speed_label );
-		$battery_label       = esc_html( $battery_label );
-		$rate10_label        = esc_html( $rate10_label );
-		$rate_session_label  = esc_html( $rate_session_label );
-		$tte_label           = esc_html( $tte_label );
-		$target_short_label  = esc_html( $target_short_label );
-		$surfing_label       = esc_html( $surfing_label );
-		$sterile_label       = esc_html( $sterile_label );
-		$elapsed_label       = esc_html( $elapsed_label );
-		$remaining_label     = esc_html( $remaining_label );
-		$start_label         = esc_html( $start_label );
-		$stop_label          = esc_html( $stop_label );
-		$plugged_label       = esc_html( $plugged_label );
-		$compact_label       = esc_attr( $compact_label );
-		$expand_label        = esc_attr( $expand_label );
-		$sound_label         = esc_attr( $sound_label );
-		$viewport_title      = esc_attr( $viewport_title );
-		$toast_dismiss_label = esc_attr( $toast_dismiss_label );
-		$idle_heading        = esc_html( $idle_heading );
-		$idle_subtitle       = esc_html( $idle_subtitle );
-		$idle_step1_title    = esc_html( $idle_step1_title );
-		$idle_step1_text     = esc_html( $idle_step1_text );
-		$idle_step2_title    = esc_html( $idle_step2_title );
-		$idle_step2_text     = esc_html( $idle_step2_text );
-		$idle_step3_title    = esc_html( $idle_step3_title );
-		$idle_step3_text     = esc_html( $idle_step3_text );
-		$idle_notice_title   = esc_html( $idle_notice_title );
-		$idle_notice_text    = esc_html( $idle_notice_text );
-		$unsupported_head    = esc_html( $unsupported_head );
-		$unsupported_sub     = esc_html( $unsupported_sub );
-		$unsupported_lead    = esc_html( $unsupported_lead );
-		$unsupported_body    = esc_html( $unsupported_body );
-		$unsupported_browse  = esc_html( $unsupported_browse );
-		$new_run_label       = esc_html( $new_run_label );
-
 		// Each duration-odometer wheel is a strip of 0–9 repeated three times; the
 		// client store (rollDuration) slides it to roll the digit. Built here so
 		// the wheel markup stays a single repeated unit owned by the view.
-		$bsb_digit_cells = <<<'CELLS'
-<span class="bsb-odometer__cell">0</span><span class="bsb-odometer__cell">1</span><span class="bsb-odometer__cell">2</span><span class="bsb-odometer__cell">3</span><span class="bsb-odometer__cell">4</span><span class="bsb-odometer__cell">5</span><span class="bsb-odometer__cell">6</span><span class="bsb-odometer__cell">7</span><span class="bsb-odometer__cell">8</span><span class="bsb-odometer__cell">9</span>
-CELLS;
-		$odometer_cells  = str_repeat( $bsb_digit_cells, 3 );
+		$odometer_cells = str_repeat( Template::render( __DIR__ . '/Templates/CockpitDigitCells.php' ), 3 );
 
 		// The live readouts, split so the same bindings render in two places: the
 		// deck's vertical pill (normal) and the stage's horizontal top pill
@@ -264,53 +207,26 @@ CELLS;
 		// family — the only ones exposing the Battery Status API this cockpit
 		// depends on) resolve a gradient reference out of a `display: none`
 		// subtree fine.
-		$status_head = <<<HEAD
-<div class="bsb-deck__status-head">
-				<span class="bsb-deck__status-mark" aria-hidden="true" data-wp-class--is-sterile="state.isSterileRun" data-wp-style----bsb-wave-speed="context.speed"></span>
-				<span class="bsb-deck__status-text">{$surfing_label} &middot; <span class="bsb-deck__clock" data-wp-text="state.runClock"></span> <span data-wp-bind--hidden="state.isModeDuration">{$elapsed_label}</span><span data-wp-bind--hidden="state.isModeTargetDrop">{$remaining_label}</span><span class="bsb-deck__sterile-chip" hidden data-wp-bind--hidden="!state.isSterileRun">{$sterile_label}</span></span>
-			</div>
-HEAD;
+		$status_head = Template::render(
+			__DIR__ . '/Templates/CockpitStatusHead.php',
+			array(
+				'surfing_label'   => $surfing_label,
+				'elapsed_label'   => $elapsed_label,
+				'remaining_label' => $remaining_label,
+				'sterile_label'   => $sterile_label,
+			)
+		);
 
-		$pill_body = <<<BODY
-<div class="bsb-deck__readouts">
-				<div class="bsb-stat bsb-stat--battery" data-wp-class--is-charging="state.isCharging">
-					<span class="bsb-stat__label">{$battery_label}</span>
-					<span class="bsb-stat__value bsb-stat__value--lg" data-wp-style--color="state.batteryColor"><span data-wp-text="state.batteryDisplay"></span>%<span class="bsb-stat__bolt" aria-hidden="true"></span></span>
-				</div>
-				<div class="bsb-stat bsb-stat--target" data-wp-bind--hidden="state.isModeDuration">
-					<span class="bsb-stat__label">{$target_short_label}</span>
-					<span class="bsb-stat__value" data-wp-text="state.targetDisplay" data-wp-style--color="state.targetColor"></span>
-				</div>
-				<div class="bsb-stat">
-					<span class="bsb-stat__label">{$tte_label}</span>
-					<span class="bsb-stat__value" data-wp-text="state.timeToEmptyDisplay"></span>
-				</div>
-				<div class="bsb-stat">
-					<span class="bsb-stat__label">{$rate10_label}</span>
-					<span class="bsb-stat__value"><span data-wp-text="state.rate10Display"></span><span class="bsb-stat__unit">%/h</span></span>
-				</div>
-				<div class="bsb-stat">
-					<span class="bsb-stat__label">{$rate_session_label}</span>
-					<span class="bsb-stat__value"><span data-wp-text="state.rateSessionDisplay"></span><span class="bsb-stat__unit">%/h</span></span>
-				</div>
-			</div>
-
-			<span class="bsb-deck__waves" aria-hidden="true" data-wp-style----bsb-wave-speed="context.speed">
-				<span class="bsb-deck__wave bsb-deck__wave--back"></span>
-				<span class="bsb-deck__wave bsb-deck__wave--mid"></span>
-				<span class="bsb-deck__fin-lane" aria-hidden="true">
-					<span class="bsb-fin" hidden data-wp-bind--hidden="!state.hasShark" data-wp-style----fin-start="state.sharkStartCss" data-wp-style----fin-end="state.sharkEndCss" data-wp-style----fin-total="state.sharkTotalCss" data-wp-style----fin-bob="state.sharkBobCss">
-						<span class="bsb-fin__swimmer"><span class="bsb-fin__bob"><span class="bsb-fin__riser"><svg class="bsb-fin__body" viewBox="0 0 72 44" preserveAspectRatio="none"><defs><linearGradient id="bsb-fin-grad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1d5f78"/><stop offset="1" stop-color="#0b2d3c"/></linearGradient></defs><path d="M60 44 C55 28 46 13 27 3 C30 15 28 30 19 44 Z" fill="url(#bsb-fin-grad)"/></svg><span class="bsb-fin__foam"></span><span class="bsb-fin__splash"></span></span></span></span>
-						<span class="bsb-fin__swimmer bsb-fin__swimmer--ghost1"><span class="bsb-fin__bob"><span class="bsb-fin__riser"><span class="bsb-fin__droplet"></span></span></span></span>
-						<span class="bsb-fin__swimmer bsb-fin__swimmer--ghost2"><span class="bsb-fin__bob"><span class="bsb-fin__riser"><span class="bsb-fin__droplet"></span></span></span></span>
-						<span class="bsb-fin__swimmer bsb-fin__swimmer--ghost3"><span class="bsb-fin__bob"><span class="bsb-fin__riser"><span class="bsb-fin__droplet"></span></span></span></span>
-						<span class="bsb-fin__swimmer bsb-fin__swimmer--ghost4"><span class="bsb-fin__bob"><span class="bsb-fin__riser"><span class="bsb-fin__droplet"></span></span></span></span>
-						<span class="bsb-fin__swimmer bsb-fin__swimmer--ghost5"><span class="bsb-fin__bob"><span class="bsb-fin__riser"><span class="bsb-fin__droplet"></span></span></span></span>
-					</span>
-				</span>
-				<span class="bsb-deck__wave bsb-deck__wave--front"></span>
-			</span>
-BODY;
+		$pill_body = Template::render(
+			__DIR__ . '/Templates/CockpitPillBody.php',
+			array(
+				'battery_label'      => $battery_label,
+				'target_short_label' => $target_short_label,
+				'tte_label'          => $tte_label,
+				'rate10_label'       => $rate10_label,
+				'rate_session_label' => $rate_session_label,
+			)
+		);
 
 		// The startup flip postcard: its picture front greets the visitor with the
 		// deck tucked away; flipping it (actions.toggleIdleFlip) turns to the written
@@ -320,32 +236,28 @@ BODY;
 		// away). The guide ships visible and the warning hidden; the client swaps
 		// them on hydration only where the API is missing, so a supported browser
 		// never sees the warning and there is no flash.
-		$idle_back = <<<HTML
-<div class="bsb-cockpit__postcard-side bsb-cockpit__postcard-side--guide" data-wp-bind--hidden="state.isBatteryUnsupported">
-			{$frank_blank}
-			<div class="bsb-cockpit__postcard-note">
-				<h2 class="bsb-cockpit__postcard-heading">{$idle_heading}</h2>
-				<p class="bsb-cockpit__postcard-subtitle">{$idle_subtitle}</p>
-				<span class="bsb-cockpit__postcard-divide" aria-hidden="true"></span>
-				<ol class="bsb-cockpit__postcard-steps">
-					<li><span class="bsb-cockpit__postcard-num">1</span><span class="bsb-cockpit__postcard-step"><b>{$idle_step1_title}</b>{$idle_step1_text}</span></li>
-					<li><span class="bsb-cockpit__postcard-num">2</span><span class="bsb-cockpit__postcard-step"><b>{$idle_step2_title}</b>{$idle_step2_text}</span></li>
-					<li><span class="bsb-cockpit__postcard-num">3</span><span class="bsb-cockpit__postcard-step"><b>{$idle_step3_title}</b>{$idle_step3_text}</span></li>
-				</ol>
-				<p class="bsb-cockpit__postcard-notice"><b>{$idle_notice_title}</b>{$idle_notice_text}</p>
-			</div>
-		</div>
-		<div class="bsb-cockpit__postcard-side bsb-cockpit__postcard-side--warning" hidden data-wp-bind--hidden="!state.isBatteryUnsupported">
-			{$frank_warning}
-			<div class="bsb-cockpit__postcard-note bsb-cockpit__postcard-note--warning">
-				<h2 class="bsb-cockpit__postcard-heading">{$unsupported_head}</h2>
-				<p class="bsb-cockpit__postcard-subtitle">{$unsupported_sub}</p>
-				<span class="bsb-cockpit__postcard-divide" aria-hidden="true"></span>
-				<p class="bsb-cockpit__postcard-body"><b>{$unsupported_lead}</b>{$unsupported_body}</p>
-				<p class="bsb-cockpit__postcard-browsers"><span class="bsb-cockpit__postcard-globe" aria-hidden="true"></span>{$unsupported_browse}</p>
-			</div>
-		</div>
-HTML;
+		$idle_back = Template::render(
+			__DIR__ . '/Templates/CockpitIdleBack.php',
+			array(
+				'frank_blank'        => $frank_blank,
+				'idle_heading'       => $idle_heading,
+				'idle_subtitle'      => $idle_subtitle,
+				'idle_step1_title'   => $idle_step1_title,
+				'idle_step1_text'    => $idle_step1_text,
+				'idle_step2_title'   => $idle_step2_title,
+				'idle_step2_text'    => $idle_step2_text,
+				'idle_step3_title'   => $idle_step3_title,
+				'idle_step3_text'    => $idle_step3_text,
+				'idle_notice_title'  => $idle_notice_title,
+				'idle_notice_text'   => $idle_notice_text,
+				'frank_warning'      => $frank_warning,
+				'unsupported_head'   => $unsupported_head,
+				'unsupported_sub'    => $unsupported_sub,
+				'unsupported_lead'   => $unsupported_lead,
+				'unsupported_body'   => $unsupported_body,
+				'unsupported_browse' => $unsupported_browse,
+			)
+		);
 		$idle_card = ( new FlipPostcard() )->render(
 			array(
 				'front'       => $photo_fill,
@@ -367,9 +279,9 @@ HTML;
 			array(
 				'front'              => $photo_fill,
 				'frank'              => $frank,
-				'back_actions'       => sprintf(
-					'<button type="button" class="bsb-summary__newrun" data-wp-on--click="actions.newRun"><span class="bsb-summary__newrun-icon" aria-hidden="true"></span>%s</button>',
-					$new_run_label
+				'back_actions'       => Template::render(
+					__DIR__ . '/Templates/CockpitNewRunButton.php',
+					array( 'new_run_label' => $new_run_label )
 				),
 				'flip_label'         => $data['flip_label'] ?? '',
 				'tte_label'          => $data['tte_label'] ?? '',
@@ -395,180 +307,74 @@ HTML;
 		// `state.traitValue<i>` / `state.traitTrack<i>`.
 		$bsb_chips = '';
 		foreach ( $trait_classes as $bsb_class ) {
-			$bsb_chip_key   = isset( $bsb_class['key'] ) ? (string) $bsb_class['key'] : '';
-			$bsb_chip_attr  = esc_attr( $bsb_chip_key );
-			$bsb_chip_state = esc_attr( 'state.isClass' . preg_replace( '/[^a-zA-Z0-9]/', '', $bsb_chip_key ) );
-			$bsb_chip_text  = esc_html( isset( $bsb_class['label'] ) ? (string) $bsb_class['label'] : '' );
-			$bsb_chips     .= <<<CHIP
-<button type="button" class="bsb-chip" data-class="{$bsb_chip_attr}" data-wp-on--click="actions.selectClass" data-wp-bind--aria-pressed="{$bsb_chip_state}" data-wp-class--is-active="{$bsb_chip_state}">{$bsb_chip_text}</button>
-CHIP;
+			$bsb_chip_key = isset( $bsb_class['key'] ) ? (string) $bsb_class['key'] : '';
+			$bsb_chips   .= Template::render(
+				__DIR__ . '/Templates/CockpitChip.php',
+				array(
+					'chip_attr'  => $bsb_chip_key,
+					'chip_state' => 'state.isClass' . preg_replace( '/[^a-zA-Z0-9]/', '', $bsb_chip_key ),
+					'chip_text'  => isset( $bsb_class['label'] ) ? (string) $bsb_class['label'] : '',
+				)
+			);
 		}
 
 		$bsb_stat_rows = '';
 		foreach ( $trait_stats as $bsb_index => $bsb_stat ) {
-			$bsb_stat_i     = (int) $bsb_index;
-			$bsb_stat_name  = esc_html( isset( $bsb_stat['name'] ) ? (string) $bsb_stat['name'] : '' );
-			$bsb_stat_lever = esc_html( isset( $bsb_stat['lever'] ) ? (string) $bsb_stat['lever'] : '' );
-			$bsb_stat_aria  = esc_attr( isset( $bsb_stat['name'] ) ? (string) $bsb_stat['name'] : '' );
-			$bsb_stat_rows .= <<<ROW
-<div class="bsb-stat">
-						<div class="bsb-stat__top"><span class="bsb-stat__name">{$bsb_stat_name}</span><span class="bsb-stat__val" data-wp-text="state.traitValue{$bsb_stat_i}"></span></div>
-						<span class="bsb-stat__lever">{$bsb_stat_lever}</span>
-						<input class="bsb-stat__slider" type="range" min="0" max="10" step="1" data-index="{$bsb_stat_i}" aria-label="{$bsb_stat_aria}" data-wp-bind--value="state.traitValue{$bsb_stat_i}" data-wp-style--background="state.traitTrack{$bsb_stat_i}" data-wp-on--input="actions.setTrait" />
-					</div>
-ROW;
+			$bsb_stat_rows .= Template::render(
+				__DIR__ . '/Templates/CockpitStatRow.php',
+				array(
+					'stat_name'  => isset( $bsb_stat['name'] ) ? (string) $bsb_stat['name'] : '',
+					'stat_i'     => $bsb_index,
+					'stat_lever' => isset( $bsb_stat['lever'] ) ? (string) $bsb_stat['lever'] : '',
+					'stat_aria'  => isset( $bsb_stat['name'] ) ? (string) $bsb_stat['name'] : '',
+				)
+			);
 		}
 
-		$surfer_label    = esc_html( $surfer_label );
-		$customize_label = esc_html( $customize_label );
-		$reset_label     = esc_html( $reset_label );
-		$points_label    = esc_html( $points_label );
+		$bsb_surfer_field = Template::render(
+			__DIR__ . '/Templates/CockpitSurferField.php',
+			array(
+				'surfer_label'    => $surfer_label,
+				'chips'           => $bsb_chips,
+				'customize_label' => $customize_label,
+				'points_label'    => $points_label,
+				'reset_label'     => $reset_label,
+				'stat_rows'       => $bsb_stat_rows,
+			)
+		);
 
-		$bsb_surfer_field = <<<HTML
-<section class="bsb-field bsb-field--surfer">
-					<span class="bsb-field__label">{$surfer_label} <span class="bsb-surfer__build" data-wp-text="state.archetypeLabel"></span></span>
-					<div class="bsb-chips">{$bsb_chips}</div>
-					<button type="button" class="bsb-surfer__customize" data-wp-on--click="actions.toggleCustomize" data-wp-bind--aria-expanded="state.isCustomizeOpen" data-wp-class--is-open="state.isCustomizeOpen">{$customize_label}</button>
-					<div class="bsb-surfer__stats" data-wp-class--is-open="state.isCustomizeOpen">
-						<div class="bsb-surfer__pool" data-wp-class--is-empty="state.isBudgetEmpty">
-							<span class="bsb-surfer__points" data-wp-text="state.pointsLeftDisplay"></span>
-							<span class="bsb-surfer__points-label">{$points_label}</span>
-							<button type="button" class="bsb-surfer__reset" data-wp-on--click="actions.resetTraits">{$reset_label}</button>
-						</div>
-						{$bsb_stat_rows}
-					</div>
-				</section>
-HTML;
-
-		return <<<HTML
-<div {$wrapper} data-wp-interactive="bsb/cockpit" {$context} data-wp-init---battery="callbacks.initBattery" data-wp-init---wake-lock="callbacks.initWakeLock" data-wp-init---sound="callbacks.initSound" data-wp-init---page-advance="callbacks.initPageAdvance" data-wp-init---exit-guard="callbacks.initExitGuard" data-wp-init---bark="callbacks.initBark" data-wp-init---shark="callbacks.initShark" data-wp-watch---run-activity="callbacks.syncRunActivity" data-wp-watch---viewport-watchdog="callbacks.syncViewportWatchdog" data-wp-watch---devtools-battery="callbacks.syncBatteryOverride" data-wp-watch---devtools-surf="callbacks.syncDevtoolsSurf" data-wp-watch---shark-compact="callbacks.syncSharkCompact" data-wp-watch---devtools-shark="callbacks.syncDevtoolsShark" data-wp-class--is-compact="state.isCompact" data-wp-class--is-deck-shown="state.isDeckShown">
-	<aside class="bsb-cockpit__deck">
-		<header class="bsb-deck__brand">
-			<span class="bsb-deck__mark" aria-hidden="true"></span>
-			<span class="bsb-deck__title">{$brand_title}</span>
-			<span class="bsb-deck__subtitle">{$brand_subtitle}</span>
-			<span class="bsb-deck__actions">
-				<button type="button" class="bsb-deck__compact" data-wp-on--click="actions.toggleCompact" data-wp-class--is-hidden="state.isIdle" aria-label="{$compact_label}"></button>
-				<button type="button" class="bsb-deck__sound" data-wp-on--click="actions.toggleSound" data-wp-class--is-on="state.isSoundOn" data-wp-bind--aria-pressed="state.isSoundOn" aria-label="{$sound_label}"></button>
-			</span>
-		</header>
-
-		<div class="bsb-deck__body">
-			<div class="bsb-deck__swap" data-wp-class--is-running="state.isRunning">
-			<div class="bsb-deck__config">
-			<section class="bsb-field">
-				<span class="bsb-field__label">{$mode_label}</span>
-				<div class="bsb-seg" role="group" aria-label="{$mode_label_attr}">
-					<button type="button" class="bsb-seg__option" data-mode="duration" data-wp-on--click="actions.selectMode" data-wp-class--is-active="state.isModeDuration" data-wp-bind--aria-pressed="state.isModeDuration">{$duration_mode}</button>
-					<button type="button" class="bsb-seg__option" data-mode="targetDrop" data-wp-on--click="actions.selectMode" data-wp-class--is-active="state.isModeTargetDrop" data-wp-bind--aria-pressed="state.isModeTargetDrop">{$target_drop_mode}</button>
-				</div>
-			</section>
-
-			<section class="bsb-field bsb-field--duration" data-wp-bind--hidden="state.isModeTargetDrop">
-				<span class="bsb-field__label">{$duration_label}</span>
-				<div class="bsb-stepper">
-					<button type="button" class="bsb-stepper__btn" data-step="-5" data-wp-on--click="actions.stepDuration" aria-label="{$decrease_label}">&minus;</button>
-					<span class="bsb-stepper__readout">
-						<span class="bsb-odometer" data-wp-watch="callbacks.rollDuration" aria-hidden="true">
-							<span class="bsb-odometer__wheel bsb-odometer__wheel--lead is-collapsed"><span class="bsb-odometer__strip">{$odometer_cells}</span></span>
-							<span class="bsb-odometer__wheel bsb-odometer__wheel--lead is-collapsed"><span class="bsb-odometer__strip">{$odometer_cells}</span></span>
-							<span class="bsb-odometer__wheel"><span class="bsb-odometer__strip">{$odometer_cells}</span></span>
-						</span>
-						<span class="bsb-stepper__sr" data-wp-text="state.durationDisplay"></span>
-						<span class="bsb-stepper__unit">{$minutes_label}</span>
-					</span>
-					<button type="button" class="bsb-stepper__btn" data-step="5" data-wp-on--click="actions.stepDuration" aria-label="{$increase_label}">+</button>
-				</div>
-			</section>
-
-			<section class="bsb-field bsb-field--target" hidden data-wp-bind--hidden="state.isModeDuration">
-				<span class="bsb-field__label">{$target_label}</span>
-				<div class="bsb-target">
-					<span class="bsb-target__gauge">
-						<span class="bsb-target__battery" role="slider" tabindex="0" aria-valuemin="5" data-wp-bind--aria-valuemax="state.targetCap" aria-label="{$target_aria}" data-wp-bind--aria-valuenow="context.targetPercent" data-wp-bind--aria-valuetext="state.targetDisplay" data-wp-on--pointerdown="actions.targetPointerDown" data-wp-on--pointermove="actions.targetPointerMove" data-wp-on--pointerup="actions.targetPointerUp" data-wp-on--keydown="actions.targetKeyDown">
-							<span class="bsb-target__fill" data-wp-style--width="state.targetDisplay" data-wp-style--background="state.targetColor"></span>
-							<span class="bsb-target__handle" data-wp-style--left="state.targetDisplay"></span>
-						</span>
-						<span class="bsb-target__cap" aria-hidden="true"></span>
-					</span>
-					<span class="bsb-target__value" data-wp-text="state.targetDisplay" data-wp-style--color="state.targetColor"></span>
-				</div>
-			</section>
-
-			{$bsb_surfer_field}
-
-			<section class="bsb-field">
-				<span class="bsb-field__label">{$speed_label}</span>
-				<div class="bsb-seg bsb-seg--speed" role="group" aria-label="{$speed_label_attr}">
-					<button type="button" class="bsb-seg__option" data-speed="1" data-wp-on--click="actions.selectSpeed" data-wp-class--is-active="state.isSpeed1" data-wp-bind--aria-pressed="state.isSpeed1">1&times;</button>
-					<button type="button" class="bsb-seg__option" data-speed="4" data-wp-on--click="actions.selectSpeed" data-wp-class--is-active="state.isSpeed4" data-wp-bind--aria-pressed="state.isSpeed4">4&times;</button>
-					<button type="button" class="bsb-seg__option" data-speed="10" data-wp-on--click="actions.selectSpeed" data-wp-class--is-active="state.isSpeed10" data-wp-bind--aria-pressed="state.isSpeed10">10&times;</button>
-				</div>
-			</section>
-			</div>
-
-			<div class="bsb-deck__status">
-			{$status_head}
-			{$pill_body}
-			</div>
-			</div>
-		</div>
-
-		<footer class="bsb-deck__foot">
-			<button type="button" class="bsb-run" data-wp-on--click="actions.toggleRun" data-wp-class--is-running="state.isRunning" data-wp-class--is-blocked="state.isStartBlocked" data-wp-bind--disabled="state.isStartBlocked">
-				<span class="bsb-run__glyph" aria-hidden="true"></span>
-				<span class="bsb-run__text bsb-run__text--start">{$start_label}</span>
-				<span class="bsb-run__text bsb-run__text--stop">{$stop_label}</span>
-				<span class="bsb-run__text bsb-run__text--blocked">{$plugged_label}</span>
-			</button>
-		</footer>
-	</aside>
-
-	<div class="bsb-cockpit__stage">
-		<div class="bsb-cockpit__topbar">
-			<div class="bsb-deck__status">
-				<div class="bsb-cockpit__lockup">
-					<span class="bsb-cockpit__brandmark">{$brand_title}</span>
-				{$status_head}
-				</div>
-			{$pill_body}
-				<div class="bsb-deck__readout-ctrl">
-					<button type="button" class="bsb-deck__readout-stop" data-wp-on--click="actions.toggleRun">{$stop_label}</button>
-					<button type="button" class="bsb-deck__expand" data-wp-on--click="actions.toggleCompact" aria-label="{$expand_label}"></button>
-					<button type="button" class="bsb-deck__readout-sound" data-wp-on--click="actions.toggleSound" data-wp-class--is-on="state.isSoundOn" data-wp-bind--aria-pressed="state.isSoundOn" aria-label="{$sound_label}"></button>
-				</div>
-			</div>
-		</div>
-		<div class="bsb-cockpit__idle" data-wp-bind--hidden="state.isRunning">
-			{$idle_card}
-		</div>
-		<div class="bsb-cockpit__viewport-wrap" hidden data-wp-bind--hidden="state.isIdle" data-wp-on--pointerenter="actions.viewportEnter">
-			<iframe class="bsb-cockpit__viewport" title="{$viewport_title}" data-wp-bind--src="state.currentSrc" data-wp-on--load="actions.guardViewport" data-wp-on--error="actions.guardViewport"></iframe>
-			<div class="bsb-cockpit__bark-layer" aria-hidden="true">
-				<div class="bsb-cockpit__bark" hidden data-wp-bind--hidden="!state.hasBark" data-wp-bind--data-bark="state.barkKey" data-wp-class--is-entering="state.isBarkEntering" data-wp-class--is-leaving="state.isBarkLeaving">
-					<span class="bsb-cockpit__bark-tide" aria-hidden="true" data-wp-style----bark-dur="state.barkDurationCss" data-wp-style----bark-ebb-name="state.barkEbbName" data-wp-style----bsb-wave-speed="context.speed">
-						<span class="bsb-cockpit__bark-tide-wave bsb-cockpit__bark-tide-wave--back" aria-hidden="true"></span>
-						<span class="bsb-cockpit__bark-tide-wave bsb-cockpit__bark-tide-wave--mid" aria-hidden="true"></span>
-						<span class="bsb-cockpit__bark-tide-wave bsb-cockpit__bark-tide-wave--front" aria-hidden="true"></span>
-					</span>
-					<span class="bsb-cockpit__bark-icon" aria-hidden="true"></span>
-					<span class="bsb-cockpit__bark-msg" data-wp-text="state.barkMessage"></span>
-				</div>
-			</div>
-			<div class="bsb-cockpit__shield" aria-hidden="true"></div>
-		</div>
-	</div>
-
-	{$summary}
-
-	<div class="bsb-cockpit__toast-layer">
-		<div class="bsb-cockpit__toast" hidden role="status" data-wp-bind--hidden="!state.hasToast" data-wp-bind--role="state.toastRole" data-wp-class--is-error="state.isToastError" data-wp-class--is-notice="state.isToastNotice" data-wp-class--is-entering="state.isToastEntering" data-wp-class--is-holding="state.isToastHolding" data-wp-class--is-leaving="state.isToastLeaving" data-wp-on--animationend="callbacks.onToastAnimationEnd">
-			<span class="bsb-cockpit__toast-icon" aria-hidden="true"></span>
-			<span class="bsb-cockpit__toast-msg" data-wp-text="state.toastMessage"></span>
-			<button type="button" class="bsb-cockpit__toast-close" data-wp-on--click="actions.dismissToast" aria-label="{$toast_dismiss_label}"></button>
-		</div>
-	</div>
-</div>
-HTML;
+		return Template::render(
+			__DIR__ . '/Templates/Cockpit.php',
+			array(
+				'wrapper'             => $wrapper,
+				'context'             => $context,
+				'brand_title'         => $brand_title,
+				'brand_subtitle'      => $brand_subtitle,
+				'compact_label'       => $compact_label,
+				'sound_label'         => $sound_label,
+				'mode_label'          => $mode_label,
+				'duration_mode'       => $duration_mode,
+				'target_drop_mode'    => $target_drop_mode,
+				'duration_label'      => $duration_label,
+				'decrease_label'      => $decrease_label,
+				'odometer_cells'      => $odometer_cells,
+				'minutes_label'       => $minutes_label,
+				'increase_label'      => $increase_label,
+				'target_label'        => $target_label,
+				'target_aria'         => $target_aria,
+				'surfer_field'        => $bsb_surfer_field,
+				'speed_label'         => $speed_label,
+				'status_head'         => $status_head,
+				'pill_body'           => $pill_body,
+				'start_label'         => $start_label,
+				'stop_label'          => $stop_label,
+				'plugged_label'       => $plugged_label,
+				'expand_label'        => $expand_label,
+				'idle_card'           => $idle_card,
+				'viewport_title'      => $viewport_title,
+				'summary'             => $summary,
+				'toast_dismiss_label' => $toast_dismiss_label,
+			)
+		);
 	}
 }

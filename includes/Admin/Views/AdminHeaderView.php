@@ -7,9 +7,8 @@
 
 namespace ErdemBircan\BatterySurfBench\Admin\Views;
 
+use ErdemBircan\BatterySurfBench\Support\Template;
 use ErdemBircan\BatterySurfBench\Support\View;
-
-use function esc_html;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -23,7 +22,7 @@ defined( 'ABSPATH' ) || exit;
  *
  * The `actions` slot carries composed markup — another view's already-escaped
  * output (typically one or more {@see AdminPillView} renders), or a screen's
- * own trusted static fragment — and is interpolated as-is, never re-escaped,
+ * own trusted static fragment — and is printed as-is, never re-escaped,
  * per the View composition rule.
  */
 class AdminHeaderView implements View {
@@ -31,23 +30,17 @@ class AdminHeaderView implements View {
 	/**
 	 * Renders the header around the given values.
 	 *
-	 * @param array<string, mixed> $data Raw values: `title`, `subtitle` (escaped here), and pre-rendered, trusted `actions` markup (interpolated as-is).
+	 * @param array<string, mixed> $data Raw values: `title`, `subtitle` (escaped by the template), and pre-rendered, trusted `actions` markup (printed as-is).
 	 * @return string The rendered header markup.
 	 */
 	public function render( array $data = array() ): string {
-		$title    = esc_html( (string) ( $data['title'] ?? '' ) );
-		$subtitle = esc_html( (string) ( $data['subtitle'] ?? '' ) );
-		$actions  = (string) ( $data['actions'] ?? '' );
-
-		return <<<HTML
-<header class="bsb-admin-head">
-	<span class="bsb-admin-head__mark" aria-hidden="true"></span>
-	<span class="bsb-admin-head__wordmark">
-		<h1 class="bsb-admin-head__title">{$title}</h1>
-		<span class="bsb-admin-head__subtitle">{$subtitle}</span>
-	</span>
-	<span class="bsb-admin-head__actions">{$actions}</span>
-</header>
-HTML;
+		return Template::render(
+			__DIR__ . '/Templates/AdminHeader.php',
+			array(
+				'title'    => (string) ( $data['title'] ?? '' ),
+				'subtitle' => (string) ( $data['subtitle'] ?? '' ),
+				'actions'  => (string) ( $data['actions'] ?? '' ),
+			)
+		);
 	}
 }
