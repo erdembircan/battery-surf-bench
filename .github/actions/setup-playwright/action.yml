@@ -7,12 +7,16 @@ runs:
     # The cache key must be pinned to the exact installed Playwright version:
     # the CLI refuses to drive a browser binary that doesn't match its own
     # version, so a stale cached binary would break the run rather than speed
-    # it up. Reading it from the installed package (via `playwright --version`)
-    # keeps the key in lockstep with whatever version the lockfile resolves,
-    # without hand-maintaining a version string here. This step must run
-    # before the cache step below, since the cache key references its output.
+    # it up. Reading it from the installed package's package.json keeps the key
+    # in lockstep with whatever version the lockfile resolves, without
+    # hand-maintaining a version string here. Node reads it directly instead of
+    # parsing `pnpm exec playwright --version`: pnpm can print its own notices,
+    # version numbers included, on the same output, and one extra line breaks
+    # the $GITHUB_ENV file. This step must run before the cache step below,
+    # since the cache key references its output.
     - run: |
-        echo "PLAYWRIGHT_VERSION=$(pnpm exec playwright --version | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')" >> "$GITHUB_ENV"
+        version=$(node -p "require('@playwright/test/package.json').version")
+        echo "PLAYWRIGHT_VERSION=$version" >> "$GITHUB_ENV"
       shell: bash
 
     - uses: actions/cache@v5
