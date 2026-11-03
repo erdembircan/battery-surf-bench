@@ -15,7 +15,8 @@ runs:
     # the $GITHUB_ENV file. This step must run before the cache step below,
     # since the cache key references its output.
     - run: |
-        echo "PLAYWRIGHT_VERSION=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_ENV"
+        version=$(node -p "require('@playwright/test/package.json').version")
+        echo "PLAYWRIGHT_VERSION=$version" >> "$GITHUB_ENV"
       shell: bash
 
     - uses: actions/cache@v5
