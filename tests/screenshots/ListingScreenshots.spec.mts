@@ -77,20 +77,76 @@ async function restNonce( request: APIRequestContext ): Promise< string > {
 	return ( await response.text() ).trim();
 }
 
+/** The admin shots' window: the 1440 x 900 content area plus the admin menu and toolbar. */
+const ADMIN_VIEWPORT = { width: 1600, height: 932 };
+
+/** The admin menu's width and the toolbar's height, which the crop skips. */
+const ADMIN_MENU_WIDTH = 160;
+const ADMIN_BAR_HEIGHT = 32;
+
 /**
  * Writes one screenshot of the viewport into `.wordpress-org/`.
  *
- * @param page   - The page to capture.
- * @param number - The screenshot's number, as WordPress.org orders them.
- * @param path   - Where to write it; defaults to the listing's file for the number.
+ * @param page                - The page to capture.
+ * @param number              - The screenshot's number, as WordPress.org orders them.
+ * @param options             - Where to write it and which part to keep.
+ * @param options.path        - The file to write; defaults to the listing's file for the number.
+ * @param options.clip        - The part of the page to keep; defaults to the whole viewport.
+ * @param options.clip.x
+ * @param options.clip.y
+ * @param options.clip.width
+ * @param options.clip.height
  */
 async function capture(
 	page: Page,
 	number: number,
-	path = `.wordpress-org/screenshot-${ number }.png`
+	{
+		path = `.wordpress-org/screenshot-${ number }.png`,
+		clip,
+	}: {
+		path?: string;
+		clip?: { x: number; y: number; width: number; height: number };
+	} = {}
 ): Promise< void > {
 	await page.evaluate( () => document.fonts.ready );
-	await page.screenshot( { path, animations: 'disabled', caret: 'hide' } );
+	await page.screenshot( {
+		path,
+		clip,
+		animations: 'disabled',
+		caret: 'hide',
+	} );
+}
+
+/**
+ * Captures a plugin admin screen without WordPress's admin menu and toolbar:
+ * the page is shown in a window larger than the shot, and the shot crops to
+ * the plugin's own content area. The crop assumes the menu and toolbar have
+ * their stock size, so it checks that before capturing.
+ *
+ * @param page   - The admin page to capture, shown in the larger window.
+ * @param number - The screenshot's number, as WordPress.org orders them.
+ */
+async function captureAdminScreen(
+	page: Page,
+	number: number
+): Promise< void > {
+	await expect( page.locator( '#adminmenuwrap' ) ).toHaveCSS(
+		'width',
+		`${ ADMIN_MENU_WIDTH }px`
+	);
+	await expect( page.locator( '#wpadminbar' ) ).toHaveCSS(
+		'height',
+		`${ ADMIN_BAR_HEIGHT }px`
+	);
+
+	await capture( page, number, {
+		clip: {
+			x: ADMIN_MENU_WIDTH,
+			y: ADMIN_BAR_HEIGHT,
+			width: 1440,
+			height: 900,
+		},
+	} );
 }
 
 /**
@@ -206,6 +262,7 @@ test.beforeAll( async ( { browser } ) => {
 } );
 
 test( 'screenshot-5: the settings screen', async ( { page } ) => {
+	await page.setViewportSize( ADMIN_VIEWPORT );
 	await page.goto( '/wp-admin/admin.php?page=battery-surf-bench' );
 	await expect( page.locator( '.bsb-settings' ) ).toBeVisible();
 
@@ -213,20 +270,22 @@ test( 'screenshot-5: the settings screen', async ( { page } ) => {
 	await expect( selectedRows ).toHaveCount( 6 );
 	await expect( selectedRows.last() ).toContainText( DEMO_POST.title );
 
-	await capture( page, 5 );
+	await captureAdminScreen( page, 5 );
 } );
 
 test( 'screenshot-4: the Sessions screen', async ( { page } ) => {
+	await page.setViewportSize( ADMIN_VIEWPORT );
 	await page.goto( '/wp-admin/admin.php?page=bsb-sessions' );
 	await expect( page.locator( '.bsb-sessions' ) ).toBeVisible();
 	await expect(
 		page.locator( '#bsb-sessions-app .dataviews-view-table tbody tr' )
 	).toHaveCount( SEEDED_SESSION_COUNT );
 
-	await capture( page, 4 );
+	await captureAdminScreen( page, 4 );
 } );
 
 test( 'screenshot-2: a finished session postcard', async ( { page } ) => {
+	await page.setViewportSize( ADMIN_VIEWPORT );
 	await page.goto(
 		`/wp-admin/post.php?post=${ postcardSessionId }&action=edit`
 	);
@@ -244,7 +303,7 @@ test( 'screenshot-2: a finished session postcard', async ( { page } ) => {
 
 	await expect( chart ).toBeVisible();
 
-	await capture( page, 2 );
+	await captureAdminScreen( page, 2 );
 } );
 
 test( 'screenshot-3: the cockpit run setup', async ( { page } ) => {
@@ -267,6 +326,17 @@ test( 'screenshot-1: the cockpit mid-run', async ( { page } ) => {
 	await page.locator( '.bsb-run' ).click();
 	await expect( page.locator( '.bsb-run' ) ).toHaveClass( /is-running/ );
 
+	// The cockpit's header sits on top of the surfed page, its compact running
+	// layout: collapse the deck to it if the run started with the deck open.
+	const cockpit = page.locator( '.wp-block-bsb-cockpit' );
+	const isCompact = ( await cockpit.getAttribute( 'class' ) )?.includes(
+		'is-compact'
+	);
+	if ( ! isCompact ) {
+		await page.locator( '.bsb-deck__compact' ).click();
+	}
+	await expect( cockpit ).toHaveClass( /is-compact/ );
+
 	// Three 1 % steps in: the deck's rates are numbers, not "calibrating".
 	const battery = page
 		.locator( '[data-wp-text="state.batteryDisplay"]' )
@@ -285,12 +355,6 @@ test( 'screenshot-1: the cockpit mid-run', async ( { page } ) => {
 			{ timeout: 60_000 }
 		)
 		.toBe( true );
-
-	// Expand the deck if it opened in its compact form.
-	const expand = page.locator( '.bsb-deck__expand' );
-	if ( await expand.isVisible() ) {
-		await expand.click();
-	}
 
 	const viewport = page.locator( '.bsb-cockpit__viewport' );
 	const deadline = Date.now() + CHART_WAIT_MS;
@@ -340,7 +404,9 @@ test( 'screenshot-1: the cockpit mid-run', async ( { page } ) => {
 		await page.waitForTimeout( 250 );
 	}
 
-	await capture( page, 1, 'test-results/screenshot-1-fallback.png' );
+	await capture( page, 1, {
+		path: 'test-results/screenshot-1-fallback.png',
+	} );
 	throw new Error(
 		'The article and its power draw chart never came fully into view within 20 minutes.'
 	);
