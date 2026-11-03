@@ -350,6 +350,8 @@ describe( 'findPackageViolations', () => {
 			'includes/DevTools/DevTools.php',
 			'includes/DevTools/Views/Templates/DevToolsPanel.php',
 			'build/devtools/view.js',
+			'build/devtools.js',
+			'build/devtools.asset.php',
 			'build/style-devtools.css',
 		];
 		const violations = findPackageViolations(

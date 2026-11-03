@@ -78,7 +78,7 @@ const FORBIDDEN_EXTENSIONS: readonly string[] = [
 const UNNEEDED_FILES: readonly { pattern: RegExp; reason: string }[] = [
 	{
 		pattern:
-			/^(?:includes\/DevTools|build\/devtools)(?:\/|$)|^build\/style-devtools\.css$/,
+			/^(?:includes\/DevTools|build\/devtools)(?:\/|$)|^build\/(?:style-devtools\.css|devtools\.(?:js|asset\.php))$/,
 		reason: 'the dev-tools panel only runs in local and development environments',
 	},
 	{
