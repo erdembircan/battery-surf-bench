@@ -52,3 +52,20 @@
 # macOS Finder metadata is never tracked, but composer archive also packs
 # untracked files, so match it at any depth.
 .DS_Store              export-ignore
+
+# Files a live site never loads. bin/PackageRules.mts fails the build when a
+# dev-tools file, a translation source or assets/ ships.
+#
+# The dev-tools panel only runs in local and development environments, and the
+# plugin boots it only from a checkout that has its files.
+/includes/DevTools        export-ignore
+/build/devtools           export-ignore
+/build/style-devtools.css export-ignore
+# The stylesheets inline these images at build time.
+/assets                   export-ignore
+# WordPress loads the .l10n.php translations, never their sources.
+/languages/*.po           export-ignore
+/languages/*.pot          export-ignore
+# Bundled libraries' own repository files and readmes.
+/vendor/**/.*             export-ignore
+/vendor/**/README.md      export-ignore

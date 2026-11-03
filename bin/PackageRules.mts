@@ -7,12 +7,12 @@
  * entry names, so they are testable without a real zip. They hold the zip to
  * its own contract (every entry inside one top-level `battery-surf-bench/`
  * folder, allowed and required entries at the top of that folder, no hidden
- * files or folders outside `vendor/`, `composer.json` alongside `vendor/`) and
- * to the file checks WordPress.org's upload form runs before anything else: no
- * version-control folder, and no archive, `.phar` or `.sh` file, anywhere in
- * the zip. Plugin Check's own file checks, which the form runs next, are left
- * to Plugin Check itself: the `plugin-check` CI job runs it on the release
- * build.
+ * files or folders outside `vendor/`, no file a live site never loads,
+ * `composer.json` alongside `vendor/`) and to the file checks WordPress.org's
+ * upload form runs before anything else: no version-control folder, and no
+ * archive, `.phar` or `.sh` file, anywhere in the zip. Plugin Check's own file
+ * checks, which the form runs next, are left to Plugin Check itself: the
+ * `plugin-check` CI job runs it on the release build.
  */
 
 /**
@@ -24,16 +24,16 @@
 const PLUGIN_FOLDER = 'battery-surf-bench';
 
 /**
- * Entries the plugin folder may hold at its top: the plugin's code, assets and
- * translations, its production Composer dependencies with the `composer.json`
- * WordPress.org asks for, and the plugin's readme and license.
+ * Entries the plugin folder may hold at its top: the plugin's code, compiled
+ * bundles and translations, its production Composer dependencies with the
+ * `composer.json` WordPress.org asks for, and the plugin's readme and license.
+ * `assets/` isn't one: the stylesheets inline its images at build time.
  */
 const ALLOWED_ROOTS: readonly string[] = [
 	'battery-surf-bench.php',
 	'readme.txt',
 	'LICENSE',
 	'composer.json',
-	'assets',
 	'build',
 	'includes',
 	'languages',
@@ -68,6 +68,23 @@ const FORBIDDEN_EXTENSIONS: readonly string[] = [
 	'7z',
 	'phar',
 	'sh',
+];
+
+/**
+ * Files inside the plugin folder that a live site never loads, each with the
+ * reason. `.gitattributes` export-ignores them, so a zip that holds one has
+ * slipped past it.
+ */
+const UNNEEDED_FILES: readonly { pattern: RegExp; reason: string }[] = [
+	{
+		pattern:
+			/^(?:includes\/DevTools|build\/devtools)(?:\/|$)|^build\/style-devtools\.css$/,
+		reason: 'the dev-tools panel only runs in local and development environments',
+	},
+	{
+		pattern: /^languages\/[^/]+\.pot?$/,
+		reason: 'WordPress loads the .l10n.php translations, never their .po and .pot sources',
+	},
 ];
 
 /** The size the upload form takes zips under, in bytes: 10 MB, read as decimal megabytes, the stricter reading. */
@@ -251,6 +268,18 @@ export function findPackageViolations(
 		violations.push(
 			`Forbidden file "${ entry }": WordPress.org's upload form refuses a zip that contains a .${ extension } file, so delete it or export-ignore it.`
 		);
+	}
+
+	for ( const entry of pluginEntries ) {
+		const unneeded = UNNEEDED_FILES.find( ( { pattern } ) =>
+			pattern.test( entry )
+		);
+
+		if ( unneeded !== undefined ) {
+			violations.push(
+				`Unneeded file "${ entry }": ${ unneeded.reason }, so export-ignore it in .gitattributes.`
+			);
+		}
 	}
 
 	const required = options.release

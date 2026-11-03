@@ -4,16 +4,21 @@
  * Extends the default `@wordpress/scripts` config. Because the source tree now
  * has a script module (the cockpit's `viewScriptModule`), the default export is
  * a pair of configs: a classic script config and a module config. The script
- * config builds the front-end placeholder, the admin sessions screen and the
- * admin start-benchmark nav script, and copies each block's `block.json` and
- * `render.php` into `build/`; the module
- * config builds the cockpit's Interactivity API view as an ES module with
- * `@wordpress/interactivity` externalized. Both are returned untouched apart
- * from the script config's explicit entry points, the module config's added
+ * config builds the admin screens, the start-benchmark nav script, the surfer
+ * and the plugin's stylesheets, and copies each block's `block.json` and
+ * `render.php` into `build/`; the module config builds the cockpit's
+ * Interactivity API view as an ES module with `@wordpress/interactivity`
+ * externalized. Both are returned untouched apart from the script config's
+ * explicit entry points and stylesheet-only cleanup, the module config's added
  * dev-tools entry, the DataViews stylesheet alias, the `@` → `src` path alias
  * (mirroring the TypeScript/Vitest configs) and the dropped right-to-left
  * stylesheet step (see below), so blocks, modules and bundles all bind to
  * WordPress's own packages.
+ *
+ * Several script entries are a single stylesheet. Webpack still writes a
+ * JavaScript bundle and an `.asset.php` file for each, which nothing loads, so
+ * `StyleOnlyEntriesPlugin` (`bin/StyleOnlyEntriesPlugin.cjs`) deletes them and
+ * only their stylesheets reach `build/`.
  *
  * The dev-tools view module (`src/devtools/view.ts`) is not tied to a
  * `block.json`, so `@wordpress/scripts`' automatic module-entry discovery (which
@@ -32,6 +37,7 @@
 const path = require( 'path' );
 const defaultConfig = require( '@wordpress/scripts/config/webpack.config' );
 const RtlCssPlugin = require( '@wordpress/scripts/plugins/rtlcss-webpack-plugin' );
+const StyleOnlyEntriesPlugin = require( './bin/StyleOnlyEntriesPlugin.cjs' );
 
 // `@wordpress/scripts` returns `[ scriptConfig, moduleConfig ]` once the source
 // tree contains a script module, or a lone script config otherwise. Normalize
@@ -55,7 +61,6 @@ const dataviewsStyle = path.resolve(
 const customScriptConfig = {
 	...scriptConfig,
 	entry: {
-		index: path.resolve( process.cwd(), 'src', 'index.ts' ),
 		sessions: path.resolve( process.cwd(), 'src', 'sessions', 'index.tsx' ),
 		settings: path.resolve( process.cwd(), 'src', 'settings', 'index.tsx' ),
 		'admin-menu': path.resolve(
@@ -112,6 +117,12 @@ const customScriptConfig = {
 			...scriptConfig.module.rules,
 		],
 	},
+	// Deletes the stylesheet-only entries' empty bundles and asset files (see
+	// the note at the top of this file).
+	plugins: [
+		...( scriptConfig.plugins ?? [] ),
+		new StyleOnlyEntriesPlugin(),
+	],
 };
 
 const devtoolsViewEntry = path.resolve(

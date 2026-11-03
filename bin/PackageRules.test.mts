@@ -17,9 +17,8 @@ const CHECKOUT_FILES = [
 	'battery-surf-bench.php',
 	'composer.json',
 	'readme.txt',
-	'assets/images/menu-icon.svg',
 	'includes/Core/Config.php',
-	'languages/battery-surf-bench.pot',
+	'languages/battery-surf-bench-fr_FR.l10n.php',
 	'vendor/autoload.php',
 ];
 
@@ -58,7 +57,7 @@ describe( 'findPackageViolations', () => {
 					FOLDER,
 					...packed( [
 						...CHECKOUT_FILES,
-						'assets/',
+						'languages/',
 						'includes/Core/',
 					] ),
 				],
@@ -96,7 +95,7 @@ describe( 'findPackageViolations', () => {
 			release: true,
 		} );
 
-		expect( violations ).toHaveLength( 8 );
+		expect( violations ).toHaveLength( 7 );
 		expect( violations ).toEqual(
 			expect.arrayContaining( [
 				expect.stringContaining(
@@ -158,7 +157,7 @@ describe( 'findPackageViolations', () => {
 		const violations = findPackageViolations(
 			packed( [
 				...CHECKOUT_FILES,
-				'assets/.DS_Store',
+				'includes/.DS_Store',
 				'languages/.gitkeep',
 			] ),
 			{ release: false }
@@ -167,7 +166,7 @@ describe( 'findPackageViolations', () => {
 		expect( violations ).toHaveLength( 2 );
 		expect( violations ).toEqual(
 			expect.arrayContaining( [
-				expect.stringContaining( '"assets/.DS_Store"' ),
+				expect.stringContaining( '"includes/.DS_Store"' ),
 				expect.stringContaining( '"languages/.gitkeep"' ),
 			] )
 		);
@@ -177,14 +176,14 @@ describe( 'findPackageViolations', () => {
 		const violations = findPackageViolations(
 			packed( [
 				...CHECKOUT_FILES,
-				'assets/.cache/one.png',
-				'assets/.cache/two.png',
+				'includes/.cache/one.php',
+				'includes/.cache/two.php',
 			] ),
 			{ release: false }
 		);
 
 		expect( violations ).toEqual( [
-			expect.stringContaining( '"assets/.cache"' ),
+			expect.stringContaining( '"includes/.cache"' ),
 		] );
 	} );
 
@@ -282,11 +281,11 @@ describe( 'findPackageViolations', () => {
 	it( 'flags a version-control folder entry', () => {
 		expect(
 			findPackageViolations(
-				packed( [ ...CHECKOUT_FILES, 'assets/.hg/' ] ),
+				packed( [ ...CHECKOUT_FILES, 'languages/.hg/' ] ),
 				{ release: false }
 			)
 		).toEqual( [
-			expect.stringContaining( 'Version-control folder "assets/.hg"' ),
+			expect.stringContaining( 'Version-control folder "languages/.hg"' ),
 		] );
 	} );
 
@@ -295,7 +294,7 @@ describe( 'findPackageViolations', () => {
 			packed( [
 				...RELEASE_FILES,
 				'includes/tools/setup.sh',
-				'assets/archive.ZIP',
+				'includes/archive.ZIP',
 				'build/bundle.tar',
 			] ),
 			{ release: true }
@@ -327,8 +326,75 @@ describe( 'findPackageViolations', () => {
 	it( 'judges a file by its last extension', () => {
 		expect(
 			findPackageViolations(
-				packed( [ ...CHECKOUT_FILES, 'assets/notes.zip.txt' ] ),
+				packed( [ ...CHECKOUT_FILES, 'includes/notes.zip.txt' ] ),
 				{ release: false }
+			)
+		).toEqual( [] );
+	} );
+
+	it( 'flags assets/, whose images the stylesheets inline', () => {
+		expect(
+			findPackageViolations(
+				packed( [ ...CHECKOUT_FILES, 'assets/images/menu-icon.svg' ] ),
+				{ release: false }
+			)
+		).toEqual( [
+			expect.stringContaining(
+				'Unexpected entry "assets" in the plugin folder'
+			),
+		] );
+	} );
+
+	it( 'flags every dev-tools file', () => {
+		const devTools = [
+			'includes/DevTools/DevTools.php',
+			'includes/DevTools/Views/Templates/DevToolsPanel.php',
+			'build/devtools/view.js',
+			'build/style-devtools.css',
+		];
+		const violations = findPackageViolations(
+			packed( [ ...RELEASE_FILES, ...devTools ] ),
+			{ release: true }
+		);
+
+		expect( violations ).toEqual(
+			devTools.map( ( path ) =>
+				expect.stringContaining(
+					`Unneeded file "${ path }": the dev-tools panel only runs in local and development environments`
+				)
+			)
+		);
+	} );
+
+	it( 'flags translation sources but keeps the compiled translations', () => {
+		const violations = findPackageViolations(
+			packed( [
+				...CHECKOUT_FILES,
+				'languages/battery-surf-bench-fr_FR.po',
+				'languages/battery-surf-bench.pot',
+			] ),
+			{ release: false }
+		);
+
+		expect( violations ).toEqual( [
+			expect.stringContaining(
+				'Unneeded file "languages/battery-surf-bench-fr_FR.po"'
+			),
+			expect.stringContaining(
+				'Unneeded file "languages/battery-surf-bench.pot"'
+			),
+		] );
+	} );
+
+	it( 'keeps files whose names only start like the dev tools', () => {
+		expect(
+			findPackageViolations(
+				packed( [
+					...RELEASE_FILES,
+					'includes/DevToolsHelper.php',
+					'build/devtoolsish.js',
+				] ),
+				{ release: true }
 			)
 		).toEqual( [] );
 	} );

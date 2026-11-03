@@ -23,7 +23,10 @@
     "autoload": {
         "psr-4": {
             "ErdemBircan\\BatterySurfBench\\": "includes/"
-        }
+        },
+        "exclude-from-classmap": [
+            "includes/DevTools/"
+        ]
     },
     "autoload-dev": {
         "psr-4": {
