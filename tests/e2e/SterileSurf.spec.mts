@@ -315,10 +315,15 @@ test.describe( 'Dev-tools Surf group', () => {
 		// animation frame, stamped with the frame's time, from before the
 		// steer until the highlight has grown and been cleared again (or
 		// 20 s pass with no highlight).
-		const sampling = coursePage.evaluate(
-			( body ) =>
-				new Promise< [ number, number ][] >( ( resolve ) => {
-					const view = body.ownerDocument.defaultView!;
+		await coursePage.evaluate( ( body ) => {
+			const view = body.ownerDocument.defaultView!;
+
+			(
+				view as Window & {
+					bsbHighlightSamples?: Promise< [ number, number ][] >;
+				}
+			 ).bsbHighlightSamples = new Promise< [ number, number ][] >(
+				( resolve ) => {
 					const samples: [ number, number ][] = [];
 					const sample = ( t: number ): void => {
 						const length = ( view.getSelection()?.toString() ?? '' )
@@ -339,12 +344,23 @@ test.describe( 'Dev-tools Surf group', () => {
 
 					view.requestAnimationFrame( sample );
 					view.setTimeout( () => resolve( samples ), 20_000 );
-				} )
-		);
+				}
+			);
+		} );
 
+		// The sampler is already running — the evaluate above resolved only
+		// once it was installed — so the measured window can't open late.
 		await selectSnippetChip.click();
 
-		const samples = await sampling;
+		// Waits for the sampler to see the highlight grow and clear again.
+		const samples = await coursePage.evaluate(
+			( body ) =>
+				(
+					body.ownerDocument.defaultView as Window & {
+						bsbHighlightSamples?: Promise< [ number, number ][] >;
+					}
+				 ).bsbHighlightSamples!
+		);
 		const snippetLength = Math.max(
 			...samples.map( ( [ , length ] ) => length )
 		);
