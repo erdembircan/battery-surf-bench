@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { findPackageViolations } from './PackageRules.mts';
+import { findPackageViolations, findSizeViolations } from './PackageRules.mts';
 
 /** Entry names of a clean `composer zip` of a checkout, without build output. */
 const CHECKOUT_ZIP = [
@@ -51,7 +51,7 @@ describe( 'findPackageViolations', () => {
 				...CHECKOUT_ZIP,
 				'.github/workflows/checks.yml',
 				'.github/actions/setup-php/action.yml',
-				'bin/Release.sh',
+				'bin/Release.mts',
 				'.wordpress-org/icon-256x256.png',
 			],
 			{ release: false }
@@ -138,5 +138,108 @@ describe( 'findPackageViolations', () => {
 
 		expect( violations ).toHaveLength( 1 );
 		expect( violations[ 0 ] ).toContain( 'composer.json' );
+	} );
+
+	it( 'flags a version-control folder inside vendor/ of a release zip', () => {
+		expect(
+			findPackageViolations(
+				[ ...RELEASE_ZIP, 'vendor/psr/container/.git/HEAD' ],
+				{ release: true }
+			)
+		).toEqual( [
+			expect.stringContaining( '"vendor/psr/container/.git"' ),
+		] );
+	} );
+
+	it( 'leaves a version-control folder inside vendor/ of a checkout zip alone', () => {
+		expect(
+			findPackageViolations(
+				[ ...CHECKOUT_ZIP, 'vendor/psr/container/.git/HEAD' ],
+				{ release: false }
+			)
+		).toEqual( [] );
+	} );
+
+	it( 'reports a version-control folder outside vendor/ as one, not also as hidden', () => {
+		const violations = findPackageViolations(
+			[ ...CHECKOUT_ZIP, 'includes/.svn/entries' ],
+			{ release: false }
+		);
+
+		expect( violations ).toEqual( [
+			expect.stringContaining( 'Version-control folder "includes/.svn"' ),
+		] );
+	} );
+
+	it( 'flags a version-control folder entry', () => {
+		expect(
+			findPackageViolations( [ ...CHECKOUT_ZIP, 'assets/.hg/' ], {
+				release: false,
+			} )
+		).toEqual( [
+			expect.stringContaining( 'Version-control folder "assets/.hg"' ),
+		] );
+	} );
+
+	it( 'flags archive and shell files, whatever their case', () => {
+		const violations = findPackageViolations(
+			[
+				...RELEASE_ZIP,
+				'includes/tools/setup.sh',
+				'assets/archive.ZIP',
+				'build/bundle.tar',
+			],
+			{ release: true }
+		);
+
+		expect( violations ).toEqual( [
+			expect.stringContaining( 'contains a .sh file' ),
+			expect.stringContaining( 'contains a .zip file' ),
+			expect.stringContaining( 'contains a .tar file' ),
+		] );
+	} );
+
+	it( 'flags a script under vendor/ in a release zip only', () => {
+		const entries = [ ...CHECKOUT_ZIP, 'vendor/bin/install.sh' ];
+
+		expect( findPackageViolations( entries, { release: true } ) ).toEqual(
+			expect.arrayContaining( [
+				expect.stringContaining( '"vendor/bin/install.sh"' ),
+			] )
+		);
+		expect( findPackageViolations( entries, { release: false } ) ).toEqual(
+			[]
+		);
+	} );
+
+	it( 'judges a file by its last extension', () => {
+		expect(
+			findPackageViolations(
+				[ ...CHECKOUT_ZIP, 'assets/notes.zip.txt' ],
+				{
+					release: false,
+				}
+			)
+		).toEqual( [] );
+	} );
+} );
+
+describe( 'findSizeViolations', () => {
+	it( 'accepts a release zip under 10 MB', () => {
+		expect( findSizeViolations( 9_999_999, { release: true } ) ).toEqual(
+			[]
+		);
+	} );
+
+	it( 'flags a release zip of 10 MB or more', () => {
+		expect( findSizeViolations( 10_000_000, { release: true } ) ).toEqual( [
+			expect.stringContaining( 'Zip is 10.0 MB' ),
+		] );
+	} );
+
+	it( 'does not hold a checkout zip to the limit', () => {
+		expect( findSizeViolations( 50_000_000, { release: false } ) ).toEqual(
+			[]
+		);
 	} );
 } );
