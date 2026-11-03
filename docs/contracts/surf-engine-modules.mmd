@@ -147,10 +147,23 @@ classDiagram
         +position Point
         +mode CursorMode
         +moveTo(Point) void
-        +travelTo(Point, Rng, frames?) Promise
+        +travelTo(Point, Rng, ms?) Promise
         +setMode(CursorMode) void
         +click() Promise
-        +framesForDistance(distance) number$
+        +travelMsForDistance(distance) number$
+    }
+
+    %% Paces motion by delta time: built on a frame source resolving with
+    %% each frame's timestamp (requestAnimationFrame in production), it
+    %% advances every animation by how long each frame actually took, so a
+    %% motion lasts its stated duration at any refresh rate. DomMotor and
+    %% its FakeCursor share one; only the motor call a behavior made
+    %% restarts it, so idle time between choreographies never counts.
+    class FramePacer {
+        +elapsed number
+        +restart() void
+        +animate(durationMs, step) Promise
+        +hold(ms) Promise
     }
 
     %% Starts, stops and replays whatever element playVideo attended -- a
@@ -311,6 +324,8 @@ classDiagram
     EngineBoot --> PageLoad : gates start on document load
     EngineBoot --> DomMotor : creates
     DomMotor --> FakeCursor : creates & owns (composition)
+    DomMotor --> FramePacer : creates & owns, shares with its FakeCursor
+    FakeCursor --> FramePacer : paces travel, settle & click
     EngineBoot --> RealClock : creates
     EngineBoot --> Rng : seeds the one PRNG instance
     EngineBoot --> Affordances : provides senseAffordances

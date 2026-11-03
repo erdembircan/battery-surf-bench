@@ -2,37 +2,11 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import {
 	FakeCursor,
 	SURFING_CLASS,
-	framesForDistance,
+	travelMsForDistance,
 	type Point,
 } from '@/surfer/FakeCursor';
-
-/**
- * A frame source that resolves instantly after invoking `onFrame` first, so a
- * test can sample DOM state mid-flight — the same pattern `Motor.test.ts`
- * uses for its own recording frame sources.
- * @param onFrame
- */
-const sampledFrames = ( onFrame: () => void ): ( () => Promise< void > ) => {
-	return () => {
-		onFrame();
-		return Promise.resolve();
-	};
-};
-
-/** A fake frame source that resolves instantly and counts how often it's called. */
-const countingFrames = (): {
-	next: () => Promise< void >;
-	count: () => number;
-} => {
-	let calls = 0;
-	return {
-		next: () => {
-			calls++;
-			return Promise.resolve();
-		},
-		count: () => calls,
-	};
-};
+import { FramePacer } from '@/surfer/FramePacer';
+import { steppedFrames } from '@/surfer/TestFixtures';
 
 /**
  * A seeded rng stub cycling through fixed values, for deterministic curves.
@@ -50,7 +24,11 @@ beforeEach( () => {
 
 describe( 'FakeCursor construction', () => {
 	it( 'injects a cursor element into the document', () => {
-		new FakeCursor( document, { x: 0, y: 0 }, () => Promise.resolve() );
+		new FakeCursor(
+			document,
+			{ x: 0, y: 0 },
+			new FramePacer( steppedFrames() )
+		);
 
 		expect( document.querySelector( '.bsb-surf-cursor' ) ).not.toBeNull();
 	} );
@@ -60,7 +38,11 @@ describe( 'FakeCursor construction', () => {
 			document.documentElement.classList.contains( SURFING_CLASS )
 		).toBe( false );
 
-		new FakeCursor( document, { x: 0, y: 0 }, () => Promise.resolve() );
+		new FakeCursor(
+			document,
+			{ x: 0, y: 0 },
+			new FramePacer( steppedFrames() )
+		);
 
 		expect(
 			document.documentElement.classList.contains( SURFING_CLASS )
@@ -68,7 +50,11 @@ describe( 'FakeCursor construction', () => {
 	} );
 
 	it( 'paints the starting position immediately', () => {
-		new FakeCursor( document, { x: 12, y: 34 }, () => Promise.resolve() );
+		new FakeCursor(
+			document,
+			{ x: 12, y: 34 },
+			new FramePacer( steppedFrames() )
+		);
 
 		const el = document.querySelector< HTMLElement >( '.bsb-surf-cursor' );
 		expect( el?.style.transform ).toBe( 'translate(12px, 34px)' );
@@ -77,8 +63,10 @@ describe( 'FakeCursor construction', () => {
 
 describe( 'FakeCursor.moveTo', () => {
 	it( 'updates position, the painted transform, and dispatches a mousemove', () => {
-		const cursor = new FakeCursor( document, { x: 0, y: 0 }, () =>
-			Promise.resolve()
+		const cursor = new FakeCursor(
+			document,
+			{ x: 0, y: 0 },
+			new FramePacer( steppedFrames() )
 		);
 		let received: MouseEvent | null = null;
 		document.addEventListener( 'mousemove', ( e ) => {
@@ -96,88 +84,111 @@ describe( 'FakeCursor.moveTo', () => {
 	} );
 } );
 
-describe( 'framesForDistance', () => {
+describe( 'travelMsForDistance', () => {
 	it( 'grows with distance', () => {
-		expect( framesForDistance( 1000 ) ).toBeGreaterThan(
-			framesForDistance( 100 )
+		expect( travelMsForDistance( 1000 ) ).toBeGreaterThan(
+			travelMsForDistance( 100 )
 		);
 	} );
 
-	it( 'clamps short distances to a minimum frame count', () => {
-		expect( framesForDistance( 1 ) ).toBeGreaterThanOrEqual( 8 );
+	it( 'clamps short distances to a minimum duration', () => {
+		expect( travelMsForDistance( 1 ) ).toBe( travelMsForDistance( 10 ) );
+		expect( travelMsForDistance( 1 ) ).toBeGreaterThan( 0 );
 	} );
 
-	it( 'clamps long distances to a maximum frame count', () => {
-		expect( framesForDistance( 100000 ) ).toBeLessThanOrEqual( 60 );
+	it( 'clamps long distances to a maximum duration', () => {
+		expect( travelMsForDistance( 100000 ) ).toBe(
+			travelMsForDistance( 1000000 )
+		);
 	} );
 } );
 
 describe( 'FakeCursor.travelTo', () => {
 	it( 'ends exactly on the target after settling', async () => {
-		const frames = countingFrames();
-		const cursor = new FakeCursor( document, { x: 0, y: 0 }, frames.next );
+		const pacer = new FramePacer( steppedFrames() );
+		const cursor = new FakeCursor( document, { x: 0, y: 0 }, pacer );
 
 		// Distance ~223px clears the overshoot threshold.
-		await cursor.travelTo( { x: 100, y: 200 }, cycleRng( [ 0.5 ] ), 10 );
+		await cursor.travelTo( { x: 100, y: 200 }, cycleRng( [ 0.5 ] ), 160 );
 
 		expect( cursor.position ).toEqual( { x: 100, y: 200 } );
 	} );
 
-	it( 'consumes one frame per travel step plus one for the settle on a long move', async () => {
-		const frames = countingFrames();
-		const cursor = new FakeCursor( document, { x: 0, y: 0 }, frames.next );
+	it( 'takes its travel time plus a brief settle on a long move', async () => {
+		const pacer = new FramePacer( steppedFrames() );
+		const cursor = new FakeCursor( document, { x: 0, y: 0 }, pacer );
 
 		// Distance 250px is past the overshoot threshold.
-		await cursor.travelTo( { x: 250, y: 0 }, cycleRng( [ 0.5 ] ), 10 );
+		await cursor.travelTo( { x: 250, y: 0 }, cycleRng( [ 0.5 ] ), 160 );
 
-		expect( frames.count() ).toBe( 11 ); // 10 travel steps + 1 settle step
+		expect( pacer.elapsed ).toBeGreaterThan( 160 );
+		expect( pacer.elapsed ).toBeLessThanOrEqual( 160 + 32 );
 	} );
 
-	it( 'consumes only the travel steps, with no settle, on a short move', async () => {
-		const frames = countingFrames();
-		const cursor = new FakeCursor( document, { x: 0, y: 0 }, frames.next );
+	it( 'takes exactly its travel time, with no settle, on a short move', async () => {
+		const pacer = new FramePacer( steppedFrames() );
+		const cursor = new FakeCursor( document, { x: 0, y: 0 }, pacer );
 
 		// Distance ~70px stays under the overshoot threshold; y=50 keeps the
 		// target clear of the viewport-edge clamp margin.
-		await cursor.travelTo( { x: 50, y: 50 }, cycleRng( [ 0.5 ] ), 10 );
+		await cursor.travelTo( { x: 50, y: 50 }, cycleRng( [ 0.5 ] ), 160 );
 
-		expect( frames.count() ).toBe( 10 );
+		expect( pacer.elapsed ).toBe( 160 );
 		expect( cursor.position ).toEqual( { x: 50, y: 50 } );
 	} );
 
-	it( 'never runs fewer than one travel step', async () => {
-		const frames = countingFrames();
-		const cursor = new FakeCursor( document, { x: 0, y: 0 }, frames.next );
+	it( 'still lands on the target when given no time', async () => {
+		let frames = 0;
+		const pacer = new FramePacer(
+			steppedFrames( 16, () => {
+				frames++;
+			} )
+		);
+		const cursor = new FakeCursor( document, { x: 0, y: 0 }, pacer );
 
 		await cursor.travelTo( { x: 10, y: 10 }, cycleRng( [ 0.5 ] ), 0 );
 
-		expect( frames.count() ).toBe( 1 ); // 1 travel step, short move, no settle
+		expect( frames ).toBeGreaterThanOrEqual( 1 );
 		expect( cursor.position ).toEqual( { x: 10, y: 10 } );
 	} );
 
-	it( 'derives its frame count from travel distance when no override is given', async () => {
-		const nearFrames = countingFrames();
+	it( 'derives its duration from travel distance when no override is given', async () => {
+		const nearPacer = new FramePacer( steppedFrames() );
 		const nearCursor = new FakeCursor(
 			document,
 			{ x: 0, y: 0 },
-			nearFrames.next
+			nearPacer
 		);
 		await nearCursor.travelTo( { x: 50, y: 0 }, cycleRng( [ 0.5 ] ) );
 
-		const farFrames = countingFrames();
-		const farCursor = new FakeCursor(
-			document,
-			{ x: 0, y: 0 },
-			farFrames.next
-		);
+		const farPacer = new FramePacer( steppedFrames() );
+		const farCursor = new FakeCursor( document, { x: 0, y: 0 }, farPacer );
 		await farCursor.travelTo( { x: 150, y: 0 }, cycleRng( [ 0.5 ] ) );
 
-		expect( farFrames.count() ).toBeGreaterThan( nearFrames.count() );
+		expect( farPacer.elapsed ).toBeGreaterThan( nearPacer.elapsed );
+	} );
+
+	it( 'travels for the same time at 60 Hz and 120 Hz', async () => {
+		const elapsedAt = async ( frameMs: number ): Promise< number > => {
+			const pacer = new FramePacer( steppedFrames( frameMs ) );
+			const cursor = new FakeCursor( document, { x: 0, y: 0 }, pacer );
+			await cursor.travelTo( { x: 50, y: 50 }, cycleRng( [ 0.5 ] ), 300 );
+
+			return pacer.elapsed;
+		};
+
+		const sixty = await elapsedAt( 16 );
+		const oneTwenty = await elapsedAt( 8 );
+
+		expect( Math.abs( sixty - oneTwenty ) ).toBeLessThan( 16 );
 	} );
 
 	it( 'bends off the straight line partway through, given curve-jitter randomness', async () => {
-		const frames = countingFrames();
-		const cursor = new FakeCursor( document, { x: 0, y: 0 }, frames.next );
+		const cursor = new FakeCursor(
+			document,
+			{ x: 0, y: 0 },
+			new FramePacer( steppedFrames() )
+		);
 		const positions: { x: number; y: number }[] = [];
 		document.addEventListener( 'mousemove', ( e ) => {
 			const event = e as MouseEvent;
@@ -185,15 +196,18 @@ describe( 'FakeCursor.travelTo', () => {
 		} );
 
 		// A large rng draw pushes the control point far off the straight line.
-		await cursor.travelTo( { x: 100, y: 0 }, cycleRng( [ 1 ] ), 4 );
+		await cursor.travelTo( { x: 100, y: 0 }, cycleRng( [ 1 ] ), 64 );
 
 		const midpoint = positions[ 1 ];
 		expect( midpoint.y ).not.toBe( 0 );
 	} );
 
 	it( 'eases in and out rather than advancing at constant speed', async () => {
-		const frames = countingFrames();
-		const cursor = new FakeCursor( document, { x: 0, y: 0 }, frames.next );
+		const cursor = new FakeCursor(
+			document,
+			{ x: 0, y: 0 },
+			new FramePacer( steppedFrames() )
+		);
 		const positions: { x: number; y: number }[] = [];
 		document.addEventListener( 'mousemove', ( e ) => {
 			const event = e as MouseEvent;
@@ -202,7 +216,7 @@ describe( 'FakeCursor.travelTo', () => {
 
 		// rng() = 0.5 zeroes the control-point bend, so the path is a
 		// straight line and only the eased progress shapes the spacing.
-		await cursor.travelTo( { x: 100, y: 0 }, cycleRng( [ 0.5 ] ), 10 );
+		await cursor.travelTo( { x: 100, y: 0 }, cycleRng( [ 0.5 ] ), 160 );
 
 		const deltas: number[] = [];
 		for ( let i = 1; i < positions.length; i++ ) {
@@ -227,8 +241,10 @@ describe( 'FakeCursor viewport clamping', () => {
 			value: 400,
 			configurable: true,
 		} );
-		const cursor = new FakeCursor( document, { x: 0, y: 0 }, () =>
-			Promise.resolve()
+		const cursor = new FakeCursor(
+			document,
+			{ x: 0, y: 0 },
+			new FramePacer( steppedFrames() )
 		);
 
 		cursor.moveTo( { x: -100, y: 9000 } );
@@ -248,13 +264,12 @@ describe( 'FakeCursor viewport clamping', () => {
 			value: 800,
 			configurable: true,
 		} );
-		const frames = countingFrames();
 		// Both endpoints sit near the left edge; a vertical leg bends the
 		// bezier control point horizontally, off-screen, at a max rng draw.
 		const cursor = new FakeCursor(
 			document,
 			{ x: 10, y: 10 },
-			frames.next
+			new FramePacer( steppedFrames() )
 		);
 		const positions: Point[] = [];
 		document.addEventListener( 'mousemove', ( e ) => {
@@ -262,7 +277,7 @@ describe( 'FakeCursor viewport clamping', () => {
 			positions.push( { x: event.clientX, y: event.clientY } );
 		} );
 
-		await cursor.travelTo( { x: 10, y: 100 }, cycleRng( [ 1 ] ), 10 );
+		await cursor.travelTo( { x: 10, y: 100 }, cycleRng( [ 1 ] ), 160 );
 
 		expect( positions.length ).toBeGreaterThan( 0 );
 		for ( const position of positions ) {
@@ -276,16 +291,20 @@ describe( 'FakeCursor viewport clamping', () => {
 
 describe( 'FakeCursor.mode / setMode', () => {
 	it( 'starts in arrow mode', () => {
-		const cursor = new FakeCursor( document, { x: 0, y: 0 }, () =>
-			Promise.resolve()
+		const cursor = new FakeCursor(
+			document,
+			{ x: 0, y: 0 },
+			new FramePacer( steppedFrames() )
 		);
 
 		expect( cursor.mode ).toBe( 'arrow' );
 	} );
 
 	it( "setMode('caret') adds the caret class and reports the mode", () => {
-		const cursor = new FakeCursor( document, { x: 0, y: 0 }, () =>
-			Promise.resolve()
+		const cursor = new FakeCursor(
+			document,
+			{ x: 0, y: 0 },
+			new FramePacer( steppedFrames() )
 		);
 
 		cursor.setMode( 'caret' );
@@ -298,8 +317,10 @@ describe( 'FakeCursor.mode / setMode', () => {
 	} );
 
 	it( "setMode('arrow') removes any modifier class", () => {
-		const cursor = new FakeCursor( document, { x: 0, y: 0 }, () =>
-			Promise.resolve()
+		const cursor = new FakeCursor(
+			document,
+			{ x: 0, y: 0 },
+			new FramePacer( steppedFrames() )
 		);
 		const el = document.querySelector< HTMLElement >( '.bsb-surf-cursor' );
 
@@ -316,8 +337,10 @@ describe( 'FakeCursor.mode / setMode', () => {
 	} );
 
 	it( 'switching from caret to hand never leaves both classes on', () => {
-		const cursor = new FakeCursor( document, { x: 0, y: 0 }, () =>
-			Promise.resolve()
+		const cursor = new FakeCursor(
+			document,
+			{ x: 0, y: 0 },
+			new FramePacer( steppedFrames() )
 		);
 		const el = document.querySelector< HTMLElement >( '.bsb-surf-cursor' );
 
@@ -343,17 +366,20 @@ describe( 'FakeCursor.click', () => {
 		const cursor = new FakeCursor(
 			document,
 			{ x: 0, y: 0 },
-			sampledFrames( () => {
-				const el = document.querySelector( '.bsb-surf-cursor' );
-				samples.push( {
-					pressing:
-						el?.classList.contains( 'bsb-surf-cursor--pressing' ) ??
-						false,
-					ripples: document.querySelectorAll(
-						'.bsb-surf-click-ripple'
-					).length,
-				} );
-			} )
+			new FramePacer(
+				steppedFrames( 16, () => {
+					const el = document.querySelector( '.bsb-surf-cursor' );
+					samples.push( {
+						pressing:
+							el?.classList.contains(
+								'bsb-surf-cursor--pressing'
+							) ?? false,
+						ripples: document.querySelectorAll(
+							'.bsb-surf-click-ripple'
+						).length,
+					} );
+				} )
+			)
 		);
 
 		await cursor.click();
@@ -375,19 +401,40 @@ describe( 'FakeCursor.click', () => {
 
 	it( "positions the ripple at the cursor's current point", async () => {
 		let ripple: HTMLElement | null = null;
-		const sampling = sampledFrames( () => {
+		const sampling = steppedFrames( 16, () => {
 			if ( null === ripple ) {
 				ripple = document.querySelector< HTMLElement >(
 					'.bsb-surf-click-ripple'
 				);
 			}
 		} );
-		const cursor = new FakeCursor( document, { x: 42, y: 77 }, sampling );
+		const cursor = new FakeCursor(
+			document,
+			{ x: 42, y: 77 },
+			new FramePacer( sampling )
+		);
 
 		await cursor.click();
 
 		expect( ripple ).not.toBeNull();
 		expect( ( ripple as HTMLElement | null )?.style.left ).toBe( '42px' );
 		expect( ( ripple as HTMLElement | null )?.style.top ).toBe( '77px' );
+	} );
+
+	it( 'holds a click for the same time at 60 Hz and 120 Hz', async () => {
+		const elapsedAt = async ( frameMs: number ): Promise< number > => {
+			const pacer = new FramePacer( steppedFrames( frameMs ) );
+			const cursor = new FakeCursor( document, { x: 0, y: 0 }, pacer );
+			await cursor.click();
+
+			return pacer.elapsed;
+		};
+
+		const sixty = await elapsedAt( 16 );
+		const oneTwenty = await elapsedAt( 8 );
+
+		expect( sixty ).toBeGreaterThan( 0 );
+		expect( oneTwenty ).toBeGreaterThan( 0 );
+		expect( Math.abs( sixty - oneTwenty ) ).toBeLessThan( 16 );
 	} );
 } );

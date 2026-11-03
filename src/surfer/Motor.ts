@@ -6,7 +6,12 @@
  */
 
 import type { Rng } from '@/surfer/Rng';
-import { FakeCursor, framesForDistance, type Point } from '@/surfer/FakeCursor';
+import {
+	FakeCursor,
+	travelMsForDistance,
+	type Point,
+} from '@/surfer/FakeCursor';
+import { FramePacer, type FrameSource } from '@/surfer/FramePacer';
 import { easeInOutQuad } from '@/surfer/Ease';
 import { contentRoot, VIDEO_EMBED_SELECTOR } from '@/surfer/Affordances';
 import { createVideoControl, type VideoControl } from '@/surfer/VideoControl';
@@ -70,26 +75,16 @@ export interface Motor {
 }
 
 /**
- * Waits for the next animation frame, falling back to a short timeout where
- * `requestAnimationFrame` is unavailable (e.g. a backgrounded iframe tab).
+ * Waits for the next animation frame and resolves with its timestamp, in
+ * ms, falling back to a short timeout stamped with the current time where
+ * `requestAnimationFrame` is unavailable.
  */
-const nextFrame = (): Promise< void > =>
+const defaultFrameSource: FrameSource = () =>
 	new Promise( ( resolve ) =>
 		typeof requestAnimationFrame === 'function'
-			? requestAnimationFrame( () => resolve() )
-			: setTimeout( resolve, 16 )
+			? requestAnimationFrame( resolve )
+			: setTimeout( () => resolve( performance.now() ), 16 )
 	);
-
-/** Assumed animation-frame length, for converting a duration to a frame count. */
-const FRAME_MS = 16;
-
-/**
- * Converts a duration to a frame count at {@link FRAME_MS} per frame, never
- * fewer than one so a zero/negative duration still completes.
- * @param ms
- */
-const msToFrames = ( ms: number ): number =>
-	Math.max( 1, Math.round( ms / FRAME_MS ) );
 
 /** Radius band each `pointerDrift` wander leg's random offset is drawn from, in px. */
 const WANDER_RADIUS_MIN_PX = 80;
@@ -342,8 +337,11 @@ const NEXT_TARGET_POOL_SIZE = 3;
 /** Production motor: performs real, eased DOM motion. */
 export class DomMotor implements Motor {
 	private readonly rng: Rng;
-	private readonly nextFrameFn: () => Promise< void >;
+	/** Paces every motion by frame delta time; the cursor shares it. */
+	private readonly pacer: FramePacer;
 	private readonly cursor: FakeCursor;
+	/** How many motor calls are in flight, so only the outermost restarts the pacer. */
+	private depth = 0;
 	/** The control `playVideo` last started, so `stopVideo` stops the same element. */
 	private activeVideo: VideoControl | null = null;
 	/** Unsubscribes `activeVideo`'s `onEnded` auto-replay; cleared alongside it. */
@@ -353,294 +351,287 @@ export class DomMotor implements Motor {
 
 	/**
 	 * @param rng
-	 * @param nextFrameFn Animation tick source the cursor advances on.
+	 * @param nextFrame Frame source resolving with each frame's timestamp.
 	 */
-	constructor( rng: Rng, nextFrameFn: () => Promise< void > = nextFrame ) {
+	constructor( rng: Rng, nextFrame: FrameSource = defaultFrameSource ) {
 		this.rng = rng;
-		this.nextFrameFn = nextFrameFn;
+		this.pacer = new FramePacer( nextFrame );
 		this.cursor = new FakeCursor(
 			document,
 			{ x: window.innerWidth / 2, y: window.innerHeight / 2 },
-			nextFrameFn
+			this.pacer
 		);
 	}
 
-	async scrollBy( px: number, ms: number ): Promise< void > {
-		const start = performance.now();
-		let moved = 0;
-		let t = 0;
+	scrollBy( px: number, ms: number ): Promise< void > {
+		return this.choreograph( async () => {
+			let moved = 0;
 
-		while ( t < 1 ) {
-			const elapsed = performance.now() - start;
-			t = ms > 0 ? Math.min( 1, elapsed / ms ) : 1;
-			const target = px * easeInOutQuad( t );
-			window.scrollBy( 0, target - moved );
-			moved = target;
-
-			if ( t < 1 ) {
-				await nextFrame();
-			}
-		}
+			await this.pacer.animate( ms, ( progress ) => {
+				const target = px * easeInOutQuad( progress );
+				window.scrollBy( 0, target - moved );
+				moved = target;
+			} );
+		} );
 	}
 
-	async pointerDrift( ms: number ): Promise< void > {
-		let framesLeft = msToFrames( ms );
+	pointerDrift( ms: number ): Promise< void > {
+		return this.choreograph( async () => {
+			const end = this.pacer.elapsed + ms;
 
-		while ( framesLeft > 0 ) {
-			const from = this.cursor.position;
-			const target = wanderTarget( from, this.rng );
-			const distance = Math.hypot( target.x - from.x, target.y - from.y );
-			const legFrames = Math.min(
-				framesLeft,
-				framesForDistance( distance )
-			);
+			while ( this.pacer.elapsed < end ) {
+				const from = this.cursor.position;
+				const target = wanderTarget( from, this.rng );
+				const distance = Math.hypot(
+					target.x - from.x,
+					target.y - from.y
+				);
 
-			await this.cursor.travelTo( target, this.rng, legFrames );
-			framesLeft -= legFrames;
+				await this.cursor.travelTo(
+					target,
+					this.rng,
+					Math.min(
+						end - this.pacer.elapsed,
+						travelMsForDistance( distance )
+					)
+				);
 
-			if ( framesLeft <= 0 ) {
-				break;
+				if ( this.pacer.elapsed >= end ) {
+					break;
+				}
+
+				await this.pacer.hold(
+					Math.min(
+						end - this.pacer.elapsed,
+						WANDER_PAUSE_MS_MIN +
+							this.rng() *
+								( WANDER_PAUSE_MS_MAX - WANDER_PAUSE_MS_MIN )
+					)
+				);
+			}
+		} );
+	}
+
+	selectSnippet(
+		onPlanned?: ( durationMs: number ) => void
+	): Promise< void > {
+		return this.choreograph( async () => {
+			const root = contentRoot( document );
+			const candidates = Array.from(
+				root.querySelectorAll( 'p, li, blockquote' )
+			)
+				.filter( isInViewport )
+				.flatMap( ( el ) => {
+					const textNode = firstTextRun( el );
+					const plan = textNode
+						? planSnippet( textNode.textContent ?? '' )
+						: null;
+
+					return textNode && plan ? [ { el, textNode, plan } ] : [];
+				} );
+
+			if ( candidates.length === 0 ) {
+				return;
 			}
 
-			const pauseFrames = Math.min(
-				framesLeft,
-				msToFrames(
-					WANDER_PAUSE_MS_MIN +
-						this.rng() *
-							( WANDER_PAUSE_MS_MAX - WANDER_PAUSE_MS_MIN )
+			const { el, textNode, plan } =
+				candidates[ Math.floor( this.rng() * candidates.length ) ];
+			const selection = el.ownerDocument.defaultView?.getSelection();
+
+			if ( ! selection ) {
+				return;
+			}
+
+			const chars = plan.ends.length;
+			const sweepMs = snippetSweepMs( chars );
+			const rect = el.getBoundingClientRect();
+
+			onPlanned?.( SNIPPET_APPROACH_MS + sweepMs + SNIPPET_HOLD_MS );
+
+			await this.cursor.travelTo(
+				textStartPoint( textNode, plan.start ) ?? {
+					x: rect.left,
+					y: rect.top + rect.height / 2,
+				},
+				this.rng,
+				SNIPPET_APPROACH_MS
+			);
+			this.cursor.setMode( 'caret' );
+
+			const range = el.ownerDocument.createRange();
+			range.setStart( textNode, plan.start );
+			range.setEnd( textNode, plan.start );
+			selection.removeAllRanges();
+			selection.addRange( range );
+
+			// Extends the selection at the snippet's steady pace and rides its
+			// caret edge with the cursor, frame by frame, following the
+			// selection's real geometry across wrapped lines rather than gliding
+			// along the block's bounding box. Progress counts visible characters,
+			// so a run of source whitespace costs one character's time, not one
+			// per tab or newline. At least one character stays selected from the
+			// first frame, so the caret edge is always measurable.
+			await this.pacer.animate( sweepMs, ( progress ) => {
+				const covered = Math.max(
+					1,
+					Math.floor( sweptChars( progress * sweepMs, chars ) )
+				);
+				range.setEnd( textNode, plan.ends[ covered - 1 ] );
+				this.cursor.moveTo(
+					selectionEdgePoint( range ) ?? {
+						x: rect.left + rect.width * ( covered / chars ),
+						y: rect.top + rect.height / 2,
+					}
+				);
+			} );
+
+			await this.pacer.hold( SNIPPET_HOLD_MS );
+
+			selection.removeAllRanges();
+			this.cursor.setMode( 'arrow' );
+		} );
+	}
+
+	playVideo(): Promise< void > {
+		return this.choreograph( async () => {
+			const root = contentRoot( document );
+			// One combined query preserves DOM order across both real <video>
+			// elements and recognized embed iframes — the same pool-then-pick
+			// pattern lingerImage/read/selectSnippet already use, so other
+			// videos on a multi-video page genuinely get watched across wins
+			// instead of the first one forever.
+			const candidates = Array.from(
+				root.querySelectorAll( `video, ${ VIDEO_EMBED_SELECTOR }` )
+			);
+
+			if ( candidates.length === 0 ) {
+				return;
+			}
+
+			const target =
+				candidates[ Math.floor( this.rng() * candidates.length ) ];
+
+			if ( ! isInViewport( target ) ) {
+				await this.scrollToMiddle( target.getBoundingClientRect() );
+			}
+
+			await this.cursor.travelTo(
+				this.jitteredPointOn( target.getBoundingClientRect() ),
+				this.rng
+			);
+			this.cursor.setMode( 'hand' );
+			await this.cursor.click();
+
+			// Unsubscribe and dispose any control from a prior watch cycle before
+			// replacing it — otherwise its message listener (for a YouTube embed)
+			// and its auto-replay subscription would both leak.
+			this.activeVideoEndedUnsubscribe?.();
+			this.activeVideo?.dispose();
+
+			const control = createVideoControl( target );
+			this.activeVideo = control;
+			this.activeVideoElement = target;
+			// Subscribed for as long as this control stays active: the player's
+			// own 'ended' event replays it, so a video shorter than the watch
+			// window rewatches itself with no polling from this Motor at all.
+			this.activeVideoEndedUnsubscribe = control.onEnded( () => {
+				void control.play();
+			} );
+			await control.play();
+		} );
+	}
+
+	stopVideo(): Promise< void > {
+		return this.choreograph( async () => {
+			const control = this.activeVideo;
+			const unsubscribe = this.activeVideoEndedUnsubscribe;
+			const element = this.activeVideoElement;
+			this.activeVideo = null;
+			this.activeVideoEndedUnsubscribe = null;
+			this.activeVideoElement = null;
+
+			// Unsubscribe FIRST so a replay can never race the stop.
+			unsubscribe?.();
+
+			if ( null !== control ) {
+				if ( null !== element && hasViewportOverlap( element ) ) {
+					const rect = element.getBoundingClientRect();
+					const { x, y } = this.cursor.position;
+					// A viewer pausing clicks where their pointer already hovers — only
+					// re-approach the player when the cursor genuinely left it.
+					const alreadyOnTarget =
+						x >= rect.left &&
+						x <= rect.right &&
+						y >= rect.top &&
+						y <= rect.bottom;
+
+					if ( ! alreadyOnTarget ) {
+						await this.cursor.travelTo(
+							this.jitteredPointOn( rect ),
+							this.rng
+						);
+					}
+
+					this.cursor.setMode( 'hand' );
+					await this.cursor.click();
+				}
+
+				await control.stop();
+				control.dispose();
+				this.cursor.setMode( 'arrow' );
+			}
+		} );
+	}
+
+	lingerImage( ms: number ): Promise< void > {
+		return this.choreograph( async () => {
+			const root = contentRoot( document );
+			const candidates = Array.from(
+				root.querySelectorAll( 'img, figure svg' )
+			).filter( ( el ) => {
+				const rect = el.getBoundingClientRect();
+
+				return (
+					rect.width >= MIN_IMAGE_SIZE_PX &&
+					rect.height >= MIN_IMAGE_SIZE_PX
+				);
+			} );
+
+			if ( candidates.length === 0 ) {
+				await this.pointerDrift( ms );
+				return;
+			}
+
+			const end = this.pacer.elapsed + ms;
+			const inView = candidates.filter( hasViewportOverlap );
+			const pool = inView.length > 0 ? inView : candidates;
+			const el = pool[ Math.floor( this.rng() * pool.length ) ];
+			let rect = el.getBoundingClientRect();
+
+			if ( inView.length === 0 ) {
+				await this.scrollToMiddle( rect );
+				// Scrolling moved the page, so the image's rect has changed.
+				rect = el.getBoundingClientRect();
+			}
+
+			const target = this.jitteredPointOn( rect );
+			const distance = Math.hypot(
+				target.x - this.cursor.position.x,
+				target.y - this.cursor.position.y
+			);
+			await this.cursor.travelTo(
+				target,
+				this.rng,
+				Math.min(
+					end - this.pacer.elapsed,
+					travelMsForDistance( distance )
 				)
 			);
 
-			for ( let i = 0; i < pauseFrames; i++ ) {
-				await this.nextFrameFn();
-			}
-
-			framesLeft -= pauseFrames;
-		}
-	}
-
-	async selectSnippet(
-		onPlanned?: ( durationMs: number ) => void
-	): Promise< void > {
-		const root = contentRoot( document );
-		const candidates = Array.from(
-			root.querySelectorAll( 'p, li, blockquote' )
-		)
-			.filter( isInViewport )
-			.flatMap( ( el ) => {
-				const textNode = firstTextRun( el );
-				const plan = textNode
-					? planSnippet( textNode.textContent ?? '' )
-					: null;
-
-				return textNode && plan ? [ { el, textNode, plan } ] : [];
-			} );
-
-		if ( candidates.length === 0 ) {
-			return;
-		}
-
-		const { el, textNode, plan } =
-			candidates[ Math.floor( this.rng() * candidates.length ) ];
-		const selection = el.ownerDocument.defaultView?.getSelection();
-
-		if ( ! selection ) {
-			return;
-		}
-
-		const chars = plan.ends.length;
-		const sweepMs = snippetSweepMs( chars );
-		const rect = el.getBoundingClientRect();
-
-		onPlanned?.( SNIPPET_APPROACH_MS + sweepMs + SNIPPET_HOLD_MS );
-
-		await this.cursor.travelTo(
-			textStartPoint( textNode, plan.start ) ?? {
-				x: rect.left,
-				y: rect.top + rect.height / 2,
-			},
-			this.rng,
-			msToFrames( SNIPPET_APPROACH_MS )
-		);
-		this.cursor.setMode( 'caret' );
-
-		const range = el.ownerDocument.createRange();
-		range.setStart( textNode, plan.start );
-		range.setEnd( textNode, plan.start );
-		selection.removeAllRanges();
-		selection.addRange( range );
-
-		// Extends the selection at the snippet's steady pace and rides its
-		// caret edge with the cursor, frame by frame, following the
-		// selection's real geometry across wrapped lines rather than gliding
-		// along the block's bounding box. Progress counts visible characters,
-		// so a run of source whitespace costs one character's time, not one
-		// per tab or newline. At least one character stays selected from the
-		// first frame, so the caret edge is always measurable.
-		const sweepFrames = msToFrames( sweepMs );
-
-		for ( let i = 1; i <= sweepFrames; i++ ) {
-			const covered = Math.max(
-				1,
-				Math.floor( sweptChars( ( i / sweepFrames ) * sweepMs, chars ) )
-			);
-			range.setEnd( textNode, plan.ends[ covered - 1 ] );
-			this.cursor.moveTo(
-				selectionEdgePoint( range ) ?? {
-					x: rect.left + rect.width * ( covered / chars ),
-					y: rect.top + rect.height / 2,
-				}
-			);
-			await this.nextFrameFn();
-		}
-
-		for ( let i = 0; i < msToFrames( SNIPPET_HOLD_MS ); i++ ) {
-			await this.nextFrameFn();
-		}
-
-		selection.removeAllRanges();
-		this.cursor.setMode( 'arrow' );
-	}
-
-	async playVideo(): Promise< void > {
-		const root = contentRoot( document );
-		// One combined query preserves DOM order across both real <video>
-		// elements and recognized embed iframes — the same pool-then-pick
-		// pattern lingerImage/read/selectSnippet already use, so other
-		// videos on a multi-video page genuinely get watched across wins
-		// instead of the first one forever.
-		const candidates = Array.from(
-			root.querySelectorAll( `video, ${ VIDEO_EMBED_SELECTOR }` )
-		);
-
-		if ( candidates.length === 0 ) {
-			return;
-		}
-
-		const target =
-			candidates[ Math.floor( this.rng() * candidates.length ) ];
-
-		if ( ! isInViewport( target ) ) {
-			await this.scrollToMiddle( target.getBoundingClientRect() );
-		}
-
-		await this.cursor.travelTo(
-			this.jitteredPointOn( target.getBoundingClientRect() ),
-			this.rng
-		);
-		this.cursor.setMode( 'hand' );
-		await this.cursor.click();
-
-		// Unsubscribe and dispose any control from a prior watch cycle before
-		// replacing it — otherwise its message listener (for a YouTube embed)
-		// and its auto-replay subscription would both leak.
-		this.activeVideoEndedUnsubscribe?.();
-		this.activeVideo?.dispose();
-
-		const control = createVideoControl( target );
-		this.activeVideo = control;
-		this.activeVideoElement = target;
-		// Subscribed for as long as this control stays active: the player's
-		// own 'ended' event replays it, so a video shorter than the watch
-		// window rewatches itself with no polling from this Motor at all.
-		this.activeVideoEndedUnsubscribe = control.onEnded( () => {
-			void control.play();
+			// Dwells on the image for whatever budget remains — the same hold
+			// selectSnippet ends with.
+			await this.pacer.hold( end - this.pacer.elapsed );
 		} );
-		await control.play();
-	}
-
-	async stopVideo(): Promise< void > {
-		const control = this.activeVideo;
-		const unsubscribe = this.activeVideoEndedUnsubscribe;
-		const element = this.activeVideoElement;
-		this.activeVideo = null;
-		this.activeVideoEndedUnsubscribe = null;
-		this.activeVideoElement = null;
-
-		// Unsubscribe FIRST so a replay can never race the stop.
-		unsubscribe?.();
-
-		if ( null !== control ) {
-			if ( null !== element && hasViewportOverlap( element ) ) {
-				const rect = element.getBoundingClientRect();
-				const { x, y } = this.cursor.position;
-				// A viewer pausing clicks where their pointer already hovers — only
-				// re-approach the player when the cursor genuinely left it.
-				const alreadyOnTarget =
-					x >= rect.left &&
-					x <= rect.right &&
-					y >= rect.top &&
-					y <= rect.bottom;
-
-				if ( ! alreadyOnTarget ) {
-					await this.cursor.travelTo(
-						this.jitteredPointOn( rect ),
-						this.rng
-					);
-				}
-
-				this.cursor.setMode( 'hand' );
-				await this.cursor.click();
-			}
-
-			await control.stop();
-			control.dispose();
-			this.cursor.setMode( 'arrow' );
-		}
-	}
-
-	async lingerImage( ms: number ): Promise< void > {
-		const root = contentRoot( document );
-		const candidates = Array.from(
-			root.querySelectorAll( 'img, figure svg' )
-		).filter( ( el ) => {
-			const rect = el.getBoundingClientRect();
-
-			return (
-				rect.width >= MIN_IMAGE_SIZE_PX &&
-				rect.height >= MIN_IMAGE_SIZE_PX
-			);
-		} );
-
-		if ( candidates.length === 0 ) {
-			await this.pointerDrift( ms );
-			return;
-		}
-
-		let framesLeft = msToFrames( ms );
-		const inView = candidates.filter( hasViewportOverlap );
-		const pool = inView.length > 0 ? inView : candidates;
-		const el = pool[ Math.floor( this.rng() * pool.length ) ];
-		let rect = el.getBoundingClientRect();
-
-		if ( inView.length === 0 ) {
-			const scrollFrames = Math.min(
-				framesLeft,
-				msToFrames( SCROLL_TO_MIDDLE_MS )
-			);
-			await this.scrollToMiddle( rect );
-			framesLeft -= scrollFrames;
-			// Scrolling moved the page, so the image's rect has changed.
-			rect = el.getBoundingClientRect();
-		}
-
-		const target = this.jitteredPointOn( rect );
-		const distance = Math.hypot(
-			target.x - this.cursor.position.x,
-			target.y - this.cursor.position.y
-		);
-		const travelFrames = Math.min(
-			framesLeft,
-			framesForDistance( distance )
-		);
-		await this.cursor.travelTo( target, this.rng, travelFrames );
-		framesLeft -= travelFrames;
-
-		// Dwells on the image for whatever budget remains, frame by frame —
-		// the same style as selectSnippet's hold.
-		for ( let i = 0; i < framesLeft; i++ ) {
-			await this.nextFrameFn();
-		}
 	}
 
 	/**
@@ -657,71 +648,91 @@ export class DomMotor implements Motor {
 	 * still idle.
 	 * @param ms
 	 */
-	async read( ms: number ): Promise< void > {
-		const root = contentRoot( document );
-		const pool = Array.from(
-			root.querySelectorAll( 'p, li, blockquote' )
-		).filter( ( el ) => ( el.textContent ?? '' ).trim().length > 20 );
+	read( ms: number ): Promise< void > {
+		return this.choreograph( async () => {
+			const root = contentRoot( document );
+			const pool = Array.from(
+				root.querySelectorAll( 'p, li, blockquote' )
+			).filter( ( el ) => ( el.textContent ?? '' ).trim().length > 20 );
 
-		if ( pool.length === 0 ) {
-			await this.idle( ms );
-			return;
-		}
-
-		let framesLeft = msToFrames( ms );
-		const readSet = new Set< Element >();
-		let first = true;
-
-		while ( framesLeft > 0 ) {
-			const target = this.pickReadTarget( pool, readSet, first );
-
-			if ( null === target ) {
-				break;
+			if ( pool.length === 0 ) {
+				await this.idle( ms );
+				return;
 			}
 
-			readSet.add( target );
-			first = false;
+			const end = this.pacer.elapsed + ms;
+			const readSet = new Set< Element >();
+			let first = true;
 
-			if ( ! hasViewportOverlap( target ) ) {
-				const scrollFrames = Math.min(
-					framesLeft,
-					msToFrames( SCROLL_TO_READ_MS )
+			while ( this.pacer.elapsed < end ) {
+				const target = this.pickReadTarget( pool, readSet, first );
+
+				if ( null === target ) {
+					break;
+				}
+
+				readSet.add( target );
+				first = false;
+
+				if ( ! hasViewportOverlap( target ) ) {
+					await this.scrollToReadAnchor(
+						target.getBoundingClientRect()
+					);
+				}
+
+				const chars = ( target.textContent ?? '' ).trim().length;
+				const desiredMs =
+					Math.min(
+						SEGMENT_DWELL_MS_MAX,
+						Math.max(
+							SEGMENT_DWELL_MS_MIN,
+							chars * SEGMENT_MS_PER_CHAR
+						)
+					) *
+					( 1 +
+						( this.rng() * 2 - 1 ) *
+							SEGMENT_DWELL_JITTER_FRACTION );
+				const segmentMs = Math.min(
+					end - this.pacer.elapsed,
+					desiredMs
 				);
-				await this.scrollToReadAnchor( target.getBoundingClientRect() );
-				framesLeft -= scrollFrames;
+
+				if ( this.rng() < TRACE_CHANCE ) {
+					await this.traceBlock( target, segmentMs );
+				} else {
+					await this.dwellBlock( target, segmentMs );
+				}
 			}
 
-			const chars = ( target.textContent ?? '' ).trim().length;
-			const desiredMs =
-				Math.min(
-					SEGMENT_DWELL_MS_MAX,
-					Math.max(
-						SEGMENT_DWELL_MS_MIN,
-						chars * SEGMENT_MS_PER_CHAR
-					)
-				) *
-				( 1 + ( this.rng() * 2 - 1 ) * SEGMENT_DWELL_JITTER_FRACTION );
-			const segmentFrames = Math.min(
-				framesLeft,
-				msToFrames( desiredMs )
-			);
-
-			if ( this.rng() < TRACE_CHANCE ) {
-				framesLeft -= await this.traceBlock( target, segmentFrames );
-			} else {
-				framesLeft -= await this.dwellBlock( target, segmentFrames );
-			}
-		}
-
-		// Every passage has been read (or none was left to pick) with budget
-		// still remaining — the reader rests rather than re-reading.
-		for ( let i = 0; i < framesLeft; i++ ) {
-			await this.nextFrameFn();
-		}
+			// Every passage has been read (or none was left to pick) with budget
+			// still remaining — the reader rests rather than re-reading.
+			await this.pacer.hold( end - this.pacer.elapsed );
+		} );
 	}
 
 	idle( ms: number ): Promise< void > {
 		return new Promise( ( resolve ) => setTimeout( resolve, ms ) );
+	}
+
+	/**
+	 * Runs one motor call on the shared pacer. Only the outermost call — the
+	 * one a behavior made — restarts the pacer's timeline; a call nested
+	 * inside another (`read` creeping the page through `scrollBy`, say)
+	 * continues it, so the outer call's budget keeps counting through it.
+	 * @param run
+	 */
+	private async choreograph< T >( run: () => Promise< T > ): Promise< T > {
+		if ( this.depth === 0 ) {
+			this.pacer.restart();
+		}
+
+		this.depth++;
+
+		try {
+			return await run();
+		} finally {
+			this.depth--;
+		}
 	}
 
 	/**
@@ -825,21 +836,19 @@ export class DomMotor implements Motor {
 	}
 
 	/**
-	 * Sweeps the cursor across `el` line by line, within `budgetFrames`,
-	 * returning the frames it actually spent so `read` can move on to the
-	 * next passage the moment this one's lines run out. Every line after the
-	 * first is entered through an animated carriage return — a brisk glide
-	 * back to the line's start — never an instant jump from the previous
-	 * line's right edge. Re-reads `el`'s rect at the start of every line so a
-	 * creep between lines never detaches the cursor from the passage; after
-	 * each line, a creep chance is drawn from whatever budget remains.
+	 * Sweeps the cursor across `el` line by line, within `budgetMs` of frame
+	 * time, stopping as soon as either its lines or its budget run out so
+	 * `read` can move on to the next passage. Every line after the first is
+	 * entered through an animated carriage return — a brisk glide back to
+	 * the line's start — never an instant jump from the previous line's right
+	 * edge. Re-reads `el`'s rect at the start of every line so a creep
+	 * between lines never detaches the cursor from the passage; after each
+	 * line, a creep chance is drawn from whatever budget remains.
 	 * @param el
-	 * @param budgetFrames
+	 * @param budgetMs
 	 */
-	private async traceBlock(
-		el: Element,
-		budgetFrames: number
-	): Promise< number > {
+	private async traceBlock( el: Element, budgetMs: number ): Promise< void > {
+		const deadline = this.pacer.elapsed + budgetMs;
 		const initialRect = el.getBoundingClientRect();
 		const lineHeight = lineHeightOf( el );
 		const lines = Math.max(
@@ -859,34 +868,29 @@ export class DomMotor implements Motor {
 			approachTarget.x - this.cursor.position.x,
 			approachTarget.y - this.cursor.position.y
 		);
-		const travelFrames = Math.min(
-			budgetFrames,
-			framesForDistance( distance )
+		await this.cursor.travelTo(
+			approachTarget,
+			this.rng,
+			Math.min( budgetMs, travelMsForDistance( distance ) )
 		);
-		await this.cursor.travelTo( approachTarget, this.rng, travelFrames );
 		this.cursor.setMode( 'caret' );
 
-		let framesLeft = budgetFrames - travelFrames;
-		let consumed = travelFrames;
-
-		for ( let line = 0; line < lines && framesLeft > 0; line++ ) {
+		for (
+			let line = 0;
+			line < lines && this.pacer.elapsed < deadline;
+			line++
+		) {
 			const rect = el.getBoundingClientRect();
 			const y = rect.top + lineHeight * ( line + 0.5 );
 
 			if ( line > 0 ) {
-				const returnFrames = Math.min(
-					framesLeft,
-					msToFrames( TRACE_RETURN_MS )
-				);
 				await this.cursor.travelTo(
 					{ x: rect.left, y },
 					this.rng,
-					returnFrames
+					Math.min( deadline - this.pacer.elapsed, TRACE_RETURN_MS )
 				);
-				framesLeft -= returnFrames;
-				consumed += returnFrames;
 
-				if ( framesLeft <= 0 ) {
+				if ( this.pacer.elapsed >= deadline ) {
 					break;
 				}
 			}
@@ -894,95 +898,81 @@ export class DomMotor implements Motor {
 			const lineMs =
 				TRACE_LINE_MS *
 				( 1 + ( this.rng() * 2 - 1 ) * TRACE_LINE_JITTER_FRACTION );
-			const nominalLineFrames = msToFrames( lineMs );
-			const lineFrames = Math.min( framesLeft, nominalLineFrames );
+			const sweepMs = Math.min( deadline - this.pacer.elapsed, lineMs );
 
-			for ( let i = 1; i <= lineFrames; i++ ) {
-				const t = i / nominalLineFrames;
-				this.cursor.moveTo( { x: rect.left + rect.width * t, y } );
-				await this.nextFrameFn();
-			}
+			await this.pacer.animate( sweepMs, ( progress ) =>
+				this.cursor.moveTo( {
+					x:
+						rect.left +
+						rect.width * ( ( progress * sweepMs ) / lineMs ),
+					y,
+				} )
+			);
 
-			framesLeft -= lineFrames;
-			consumed += lineFrames;
-
-			if ( framesLeft > 0 && this.rng() < READING_CREEP_CHANCE ) {
-				const creepFrames = await this.creepStep( framesLeft );
-				framesLeft -= creepFrames;
-				consumed += creepFrames;
+			if (
+				this.pacer.elapsed < deadline &&
+				this.rng() < READING_CREEP_CHANCE
+			) {
+				await this.creepStep( deadline - this.pacer.elapsed );
 			}
 		}
 
 		this.cursor.setMode( 'arrow' );
-
-		return consumed;
 	}
 
 	/**
 	 * An eyes-only read of `el`: travels the cursor onto it once, then holds
-	 * it there for `budgetFrames` in slots of {@link DWELL_SLOT_MS}, each
-	 * slot ending in a creep chance drawn from whatever budget remains.
-	 * Always consumes exactly `budgetFrames`, whatever mix of holding and
-	 * creeping filled it.
+	 * it there until `budgetMs` of frame time has passed, in slots of
+	 * {@link DWELL_SLOT_MS}, each slot ending in a creep chance drawn from
+	 * whatever budget remains.
 	 * @param el
-	 * @param budgetFrames
+	 * @param budgetMs
 	 */
-	private async dwellBlock(
-		el: Element,
-		budgetFrames: number
-	): Promise< number > {
+	private async dwellBlock( el: Element, budgetMs: number ): Promise< void > {
+		const deadline = this.pacer.elapsed + budgetMs;
 		const rect = el.getBoundingClientRect();
 		const target = this.jitteredPointOn( rect );
 		const distance = Math.hypot(
 			target.x - this.cursor.position.x,
 			target.y - this.cursor.position.y
 		);
-		const travelFrames = Math.min(
-			budgetFrames,
-			framesForDistance( distance )
+		await this.cursor.travelTo(
+			target,
+			this.rng,
+			Math.min( budgetMs, travelMsForDistance( distance ) )
 		);
-		await this.cursor.travelTo( target, this.rng, travelFrames );
 
-		let framesLeft = budgetFrames - travelFrames;
-
-		while ( framesLeft > 0 ) {
-			const slotFrames = Math.min(
-				framesLeft,
-				msToFrames( DWELL_SLOT_MS )
+		while ( this.pacer.elapsed < deadline ) {
+			await this.pacer.hold(
+				Math.min( deadline - this.pacer.elapsed, DWELL_SLOT_MS )
 			);
 
-			for ( let i = 0; i < slotFrames; i++ ) {
-				await this.nextFrameFn();
-			}
-
-			framesLeft -= slotFrames;
-
-			if ( framesLeft > 0 && this.rng() < READING_CREEP_CHANCE ) {
-				framesLeft -= await this.creepStep( framesLeft );
+			if (
+				this.pacer.elapsed < deadline &&
+				this.rng() < READING_CREEP_CHANCE
+			) {
+				await this.creepStep( deadline - this.pacer.elapsed );
 			}
 		}
-
-		return budgetFrames;
 	}
 
 	/**
 	 * A single slow, downward creep of the page — {@link READING_CREEP_PX_MIN}
 	 * to {@link READING_CREEP_PX_MAX} over {@link READING_CREEP_MS_MIN} to
-	 * {@link READING_CREEP_MS_MAX} — capped to `remainingFrames`, returning
-	 * the frames it spent.
-	 * @param remainingFrames
+	 * {@link READING_CREEP_MS_MAX}. A creep longer than `remainingMs` is cut
+	 * to fit and its distance scaled with it, so it keeps its slow speed and
+	 * never runs past the budget.
+	 * @param remainingMs
 	 */
-	private async creepStep( remainingFrames: number ): Promise< number > {
+	private async creepStep( remainingMs: number ): Promise< void > {
 		const px =
 			READING_CREEP_PX_MIN +
 			this.rng() * ( READING_CREEP_PX_MAX - READING_CREEP_PX_MIN );
 		const ms =
 			READING_CREEP_MS_MIN +
 			this.rng() * ( READING_CREEP_MS_MAX - READING_CREEP_MS_MIN );
-		const frames = Math.min( remainingFrames, msToFrames( ms ) );
+		const creepMs = Math.min( remainingMs, ms );
 
-		await this.scrollBy( px, ms );
-
-		return frames;
+		await this.scrollBy( px * ( creepMs / ms ), creepMs );
 	}
 }

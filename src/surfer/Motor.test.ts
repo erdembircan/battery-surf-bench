@@ -2,9 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { DomMotor } from '@/surfer/Motor';
 import { FakeCursor, SURFING_CLASS, type Point } from '@/surfer/FakeCursor';
 import { mulberry32 } from '@/surfer/Rng';
-
-/** An instant frame source, for tests that would otherwise wait on real rAF ticks. */
-const instantFrames = (): Promise< void > => Promise.resolve();
+import { steppedFrames } from '@/surfer/TestFixtures';
+import type { FrameSource } from '@/surfer/FramePacer';
 
 beforeEach( () => {
 	document.body.innerHTML = '';
@@ -74,7 +73,7 @@ describe( 'DomMotor.playVideo', () => {
 		const postMessageSpy = vi.spyOn( iframe.contentWindow!, 'postMessage' );
 
 		await expect(
-			new DomMotor( () => 0.5, instantFrames ).playVideo()
+			new DomMotor( () => 0.5, steppedFrames() ).playVideo()
 		).resolves.toBeUndefined();
 
 		expect( travelToSpy ).toHaveBeenCalled();
@@ -106,7 +105,7 @@ describe( 'DomMotor.playVideo', () => {
 			.spyOn( window, 'scrollBy' )
 			.mockImplementation( () => undefined );
 
-		await new DomMotor( () => 0.5, instantFrames ).playVideo();
+		await new DomMotor( () => 0.5, steppedFrames() ).playVideo();
 
 		expect( scrollBySpy ).toHaveBeenCalled();
 
@@ -139,7 +138,7 @@ describe( 'DomMotor.playVideo — selection among multiple videos', () => {
 		} );
 
 		// 3 candidates; rng() = 0.5 -> floor(0.5 * 3) = index 1, not the first.
-		await new DomMotor( () => 0.5, instantFrames ).playVideo();
+		await new DomMotor( () => 0.5, steppedFrames() ).playVideo();
 
 		expect( plays[ 0 ] ).not.toHaveBeenCalled();
 		expect( plays[ 1 ] ).toHaveBeenCalledTimes( 1 );
@@ -160,7 +159,7 @@ describe( 'DomMotor.playVideo — selection among multiple videos', () => {
 		} );
 
 		// 3 candidates; rng() = 0.99 -> floor(0.99 * 3) = index 2, the last one.
-		await new DomMotor( () => 0.99, instantFrames ).playVideo();
+		await new DomMotor( () => 0.99, steppedFrames() ).playVideo();
 
 		expect( plays[ 0 ] ).not.toHaveBeenCalled();
 		expect( plays[ 1 ] ).not.toHaveBeenCalled();
@@ -191,7 +190,7 @@ describe( 'DomMotor.playVideo — selection among multiple videos', () => {
 			.mockImplementation( () => undefined );
 
 		// 2 candidates; rng() = 0.5 -> floor(0.5 * 2) = index 1, the off-screen one.
-		await new DomMotor( () => 0.5, instantFrames ).playVideo();
+		await new DomMotor( () => 0.5, steppedFrames() ).playVideo();
 
 		expect( scrollBySpy ).toHaveBeenCalled();
 		expect( videos[ 1 ].play ).toHaveBeenCalledTimes( 1 );
@@ -211,7 +210,7 @@ describe( 'DomMotor.playVideo — selection among multiple videos', () => {
 		const postMessageSpy = vi.spyOn( iframe.contentWindow!, 'postMessage' );
 
 		// 2 candidates; rng() = 0.99 -> floor(0.99 * 2) = index 1, the iframe.
-		await new DomMotor( () => 0.99, instantFrames ).playVideo();
+		await new DomMotor( () => 0.99, steppedFrames() ).playVideo();
 
 		expect( video.play ).not.toHaveBeenCalled();
 		expect( postMessageSpy ).toHaveBeenCalledWith(
@@ -234,7 +233,7 @@ describe( 'DomMotor.playVideo — selection among multiple videos', () => {
 		const postMessageSpy = vi.spyOn( iframe.contentWindow!, 'postMessage' );
 
 		// 2 candidates; rng() = 0 -> floor(0 * 2) = index 0, the <video>.
-		await new DomMotor( () => 0, instantFrames ).playVideo();
+		await new DomMotor( () => 0, steppedFrames() ).playVideo();
 
 		expect( play ).toHaveBeenCalledTimes( 1 );
 		expect( postMessageSpy ).not.toHaveBeenCalled();
@@ -258,7 +257,7 @@ describe( 'DomMotor.stopVideo', () => {
 				height: 200,
 			} ) as DOMRect;
 		const postMessageSpy = vi.spyOn( iframe.contentWindow!, 'postMessage' );
-		const motor = new DomMotor( () => 0.5, instantFrames );
+		const motor = new DomMotor( () => 0.5, steppedFrames() );
 
 		await motor.playVideo();
 		postMessageSpy.mockClear();
@@ -290,7 +289,7 @@ describe( 'DomMotor.stopVideo', () => {
 				height: 200,
 			} ) as DOMRect;
 		const removeListenerSpy = vi.spyOn( window, 'removeEventListener' );
-		const motor = new DomMotor( () => 0.5, instantFrames );
+		const motor = new DomMotor( () => 0.5, steppedFrames() );
 
 		await motor.playVideo();
 		await motor.stopVideo();
@@ -310,7 +309,7 @@ describe( 'DomMotor.stopVideo', () => {
 		video.play = vi.fn().mockResolvedValue( undefined );
 		const pause = vi.fn();
 		video.pause = pause;
-		const motor = new DomMotor( () => 0.5, instantFrames );
+		const motor = new DomMotor( () => 0.5, steppedFrames() );
 
 		await motor.playVideo();
 		await motor.stopVideo();
@@ -321,7 +320,7 @@ describe( 'DomMotor.stopVideo', () => {
 
 	it( 'is a safe no-op when nothing was started', async () => {
 		await expect(
-			new DomMotor( () => 0.5, instantFrames ).stopVideo()
+			new DomMotor( () => 0.5, steppedFrames() ).stopVideo()
 		).resolves.toBeUndefined();
 	} );
 } );
@@ -341,7 +340,7 @@ describe( 'DomMotor.playVideo — repeated calls', () => {
 				height: 200,
 			} ) as DOMRect;
 		const removeListenerSpy = vi.spyOn( window, 'removeEventListener' );
-		const motor = new DomMotor( () => 0.5, instantFrames );
+		const motor = new DomMotor( () => 0.5, steppedFrames() );
 
 		await motor.playVideo();
 		expect( removeListenerSpy ).not.toHaveBeenCalledWith(
@@ -371,7 +370,7 @@ describe( 'DomMotor.playVideo — repeated calls', () => {
 				width: 400,
 				height: 200,
 			} ) as DOMRect;
-		const motor = new DomMotor( () => 0.5, instantFrames );
+		const motor = new DomMotor( () => 0.5, steppedFrames() );
 
 		// The second call disposes and unsubscribes the first control before
 		// building and subscribing a second one on the same underlying
@@ -418,7 +417,7 @@ describe( 'DomMotor.playVideo — auto-replay on ended', () => {
 				width: 400,
 				height: 200,
 			} ) as DOMRect;
-		const motor = new DomMotor( () => 0.5, instantFrames );
+		const motor = new DomMotor( () => 0.5, steppedFrames() );
 		await motor.playVideo();
 
 		const postMessageSpy = vi.spyOn( iframe.contentWindow!, 'postMessage' );
@@ -465,7 +464,7 @@ describe( 'DomMotor.stopVideo — unsubscribes the auto-replay', () => {
 				width: 400,
 				height: 200,
 			} ) as DOMRect;
-		const motor = new DomMotor( () => 0.5, instantFrames );
+		const motor = new DomMotor( () => 0.5, steppedFrames() );
 		await motor.playVideo();
 		await motor.stopVideo();
 
@@ -502,7 +501,7 @@ describe( 'DomMotor.lingerImage', () => {
 				height: 100,
 			} ) as DOMRect;
 
-		const motor = new DomMotor( () => 0.5, instantFrames );
+		const motor = new DomMotor( () => 0.5, steppedFrames() );
 		const cursorEl =
 			document.querySelector< HTMLElement >( '.bsb-surf-cursor' );
 
@@ -542,7 +541,7 @@ describe( 'DomMotor.lingerImage', () => {
 			.spyOn( window, 'scrollBy' )
 			.mockImplementation( () => undefined );
 		const travelToSpy = vi.spyOn( FakeCursor.prototype, 'travelTo' );
-		const motor = new DomMotor( () => 0.5, instantFrames );
+		const motor = new DomMotor( () => 0.5, steppedFrames() );
 
 		await motor.lingerImage( 2000 );
 
@@ -583,7 +582,7 @@ describe( 'DomMotor.lingerImage', () => {
 		const travelToSpy = vi.spyOn( FakeCursor.prototype, 'travelTo' );
 		// rng() = 0 would pick the first candidate array-wise if both
 		// qualified; the tiny one must be filtered out regardless of order.
-		const motor = new DomMotor( () => 0, instantFrames );
+		const motor = new DomMotor( () => 0, steppedFrames() );
 
 		await motor.lingerImage( 1000 );
 
@@ -596,7 +595,7 @@ describe( 'DomMotor.lingerImage', () => {
 
 	it( 'falls back to an aimless drift when the page has no image to linger on, and never throws', async () => {
 		document.body.innerHTML = '<p>no images here</p>';
-		const motor = new DomMotor( () => 0.5, instantFrames );
+		const motor = new DomMotor( () => 0.5, steppedFrames() );
 		const driftSpy = vi.spyOn( motor, 'pointerDrift' );
 
 		await expect( motor.lingerImage( 500 ) ).resolves.toBeUndefined();
@@ -609,7 +608,7 @@ describe( 'DomMotor.lingerImage', () => {
 
 describe( 'DomMotor.pointerDrift', () => {
 	it( 'drives the fake cursor away from its starting position', async () => {
-		const motor = new DomMotor( () => 0.9, instantFrames );
+		const motor = new DomMotor( () => 0.9, steppedFrames() );
 		const cursorEl =
 			document.querySelector< HTMLElement >( '.bsb-surf-cursor' );
 		const before = cursorEl?.style.transform;
@@ -620,7 +619,7 @@ describe( 'DomMotor.pointerDrift', () => {
 	} );
 
 	it( 'flags the document as engine-driven, hiding the real cursor', async () => {
-		const motor = new DomMotor( () => 0.5, instantFrames );
+		const motor = new DomMotor( () => 0.5, steppedFrames() );
 		await motor.pointerDrift( 50 );
 
 		expect(
@@ -639,7 +638,7 @@ describe( 'DomMotor.pointerDrift', () => {
 		} );
 
 		const travelToSpy = vi.spyOn( FakeCursor.prototype, 'travelTo' );
-		const motor = new DomMotor( mulberry32( 7 ), instantFrames );
+		const motor = new DomMotor( mulberry32( 7 ), steppedFrames() );
 		const start = { x: 500, y: 400 };
 
 		await motor.pointerDrift( 3000 );
@@ -667,34 +666,31 @@ describe( 'DomMotor.pointerDrift', () => {
 	} );
 
 	it( 'pauses briefly between wander legs instead of gliding continuously', async () => {
-		let ticks = 0;
-		const countingFrames = (): Promise< void > => {
-			ticks++;
-			return Promise.resolve();
-		};
-		const travelToSpy = vi.spyOn( FakeCursor.prototype, 'travelTo' );
-		const motor = new DomMotor( mulberry32( 3 ), countingFrames );
-		const start = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+		let now = 0;
+		const frames = steppedFrames( 16, () => {
+			now += 16;
+		} );
+		const legs: { start: number; end: number }[] = [];
+		const original = FakeCursor.prototype.travelTo;
+		const travelToSpy = vi
+			.spyOn( FakeCursor.prototype, 'travelTo' )
+			.mockImplementation( async function ( this: FakeCursor, ...args ) {
+				const start = now;
+				await original.apply( this, args );
+				legs.push( { start, end: now } );
+			} );
+		const motor = new DomMotor( mulberry32( 3 ), frames );
 
 		await motor.pointerDrift( 3000 );
 
-		const calls = travelToSpy.mock.calls;
-		expect( calls.length ).toBeGreaterThan( 1 );
+		expect( legs.length ).toBeGreaterThan( 1 );
 
-		// Every travel leg accounts for its own step count, plus one more
-		// tick if it was long enough to overshoot-and-settle. Any tick beyond
-		// that sum must be a between-legs pause tick.
-		let from = start;
-		let travelAndSettleTicks = 0;
-		for ( const call of calls ) {
-			const target = call[ 0 ] as Point;
-			const legFrames = call[ 2 ] as number;
-			const distance = Math.hypot( target.x - from.x, target.y - from.y );
-			travelAndSettleTicks += legFrames + ( distance > 200 ? 1 : 0 );
-			from = target;
-		}
-
-		expect( ticks ).toBeGreaterThan( travelAndSettleTicks );
+		// A leg's own travel and settle end where it ends; any gap before the
+		// next leg starts is a between-legs pause.
+		const gaps = legs
+			.slice( 1 )
+			.map( ( leg, i ) => leg.start - legs[ i ].end );
+		expect( Math.max( ...gaps ) ).toBeGreaterThan( 32 );
 
 		travelToSpy.mockRestore();
 	} );
@@ -712,10 +708,9 @@ describe( 'DomMotor.selectSnippet', () => {
 
 		await new DomMotor(
 			() => 0,
-			() => {
+			steppedFrames( 16, () => {
 				lengths.push( getSelection()?.toString().length ?? 0 );
-				return Promise.resolve();
-			}
+			} )
 		).selectSnippet();
 
 		return lengths;
@@ -746,7 +741,7 @@ describe( 'DomMotor.selectSnippet', () => {
 	it( 'does nothing when the page has no text long enough to select', async () => {
 		document.body.innerHTML = '<p>short</p>';
 		await expect(
-			new DomMotor( () => 0.1, instantFrames ).selectSnippet()
+			new DomMotor( () => 0.1, steppedFrames() ).selectSnippet()
 		).resolves.toBeUndefined();
 		expect( getSelection()?.toString() ).toBe( '' );
 	} );
@@ -754,10 +749,9 @@ describe( 'DomMotor.selectSnippet', () => {
 	it( 'extends the selection progressively across multiple frames, not all at once', async () => {
 		document.body.innerHTML = `<p>${ 'word '.repeat( 20 ) }</p>`;
 		const observedLengths: number[] = [];
-		const recordingFrames = (): Promise< void > => {
+		const recordingFrames = steppedFrames( 16, () => {
 			observedLengths.push( getSelection()?.toString().length ?? 0 );
-			return Promise.resolve();
-		};
+		} );
 
 		await new DomMotor( () => 0.1, recordingFrames ).selectSnippet();
 
@@ -770,7 +764,7 @@ describe( 'DomMotor.selectSnippet', () => {
 	it( 'clears the selection once the hold ends', async () => {
 		document.body.innerHTML = `<p>${ 'word '.repeat( 20 ) }</p>`;
 
-		await new DomMotor( () => 0.1, instantFrames ).selectSnippet();
+		await new DomMotor( () => 0.1, steppedFrames() ).selectSnippet();
 
 		expect( getSelection()?.toString() ).toBe( '' );
 	} );
@@ -803,12 +797,11 @@ describe( 'DomMotor.selectSnippet', () => {
 		// rng() = 0 always picks the first remaining candidate, so the
 		// offscreen paragraph would win if it weren't filtered out first.
 		const observedParents: ( Element | null )[] = [];
-		const recordingFrames = (): Promise< void > => {
+		const recordingFrames = steppedFrames( 16, () => {
 			observedParents.push(
 				getSelection()?.anchorNode?.parentElement ?? null
 			);
-			return Promise.resolve();
-		};
+		} );
 
 		await new DomMotor( () => 0, recordingFrames ).selectSnippet();
 
@@ -831,7 +824,7 @@ describe( 'DomMotor.selectSnippet', () => {
 
 		const travelToSpy = vi.spyOn( FakeCursor.prototype, 'travelTo' );
 
-		await new DomMotor( () => 0.1, instantFrames ).selectSnippet();
+		await new DomMotor( () => 0.1, steppedFrames() ).selectSnippet();
 
 		expect( getSelection()?.toString() ).toBe( '' );
 		expect( travelToSpy ).not.toHaveBeenCalled();
@@ -889,7 +882,7 @@ describe( 'DomMotor.selectSnippet', () => {
 		const moveToSpy = vi.spyOn( FakeCursor.prototype, 'moveTo' );
 
 		try {
-			await new DomMotor( () => 0.1, instantFrames ).selectSnippet();
+			await new DomMotor( () => 0.1, steppedFrames() ).selectSnippet();
 
 			const ys = moveToSpy.mock.calls.map(
 				( call ) => ( call[ 0 ] as Point ).y
@@ -943,10 +936,9 @@ describe( 'DomMotor.selectSnippet', () => {
 
 		await new DomMotor(
 			() => 0,
-			() => {
+			steppedFrames( 16, () => {
 				highlighted.push( getSelection()?.toString() ?? '' );
-				return Promise.resolve();
-			}
+			} )
 		).selectSnippet();
 
 		const longest = highlighted.reduce(
@@ -971,7 +963,7 @@ describe( 'DomMotor.selectSnippet', () => {
 
 		await new DomMotor(
 			() => 0,
-			() => {
+			steppedFrames( 16, () => {
 				const selection = getSelection();
 				const length = selection?.toString().length ?? 0;
 
@@ -980,8 +972,7 @@ describe( 'DomMotor.selectSnippet', () => {
 				}
 
 				lengths.push( length );
-				return Promise.resolve();
-			}
+			} )
 		).selectSnippet();
 
 		expect( firstOffset ).toBe( 4 );
@@ -997,19 +988,18 @@ describe( 'DomMotor.selectSnippet', () => {
 
 		await new DomMotor(
 			() => 0,
-			() => {
+			steppedFrames( 16, () => {
 				anchors.push(
 					getSelection()?.anchorNode?.parentElement ?? null
 				);
-				return Promise.resolve();
-			}
+			} )
 		).selectSnippet();
 
 		expect( anchors ).toContain( prose );
 		expect( anchors ).not.toContain( byline );
 	} );
 
-	it( 'reports its planned duration once, before any motion, matching the frames it then takes', async () => {
+	it( 'reports its planned duration once, before any motion, matching the time it then takes', async () => {
 		document.body.innerHTML = `<p>${ 'word '.repeat( 12 ).trimEnd() }</p>`;
 		let frames = 0;
 		let framesWhenPlanned: number | null = null;
@@ -1021,20 +1011,43 @@ describe( 'DomMotor.selectSnippet', () => {
 
 		await new DomMotor(
 			() => 0,
-			() => {
+			steppedFrames( 16, () => {
 				frames++;
-				return Promise.resolve();
-			}
+			} )
 		).selectSnippet( onPlanned );
 
 		expect( onPlanned ).toHaveBeenCalledTimes( 1 );
 		expect( framesWhenPlanned ).toBe( 0 );
 
-		// The motor paces its choreography on nominal 16 ms frames, so the
-		// announced duration matches the frames it actually took to within a
-		// frame per phase (approach, sweep, hold).
+		// The motor paces its choreography by frame time, so the announced
+		// duration matches the time it actually took to within a frame per
+		// phase (approach, settle, sweep, hold), plus the frame that opens
+		// the timeline.
 		expect( Math.abs( planned - frames * 16 ) ).toBeLessThanOrEqual(
-			3 * 16
+			5 * 16
+		);
+	} );
+
+	it( 'matches its planned duration at 120 Hz as well', async () => {
+		document.body.innerHTML = `<p>${ 'word '.repeat( 12 ).trimEnd() }</p>`;
+		let frames = 0;
+		let planned = 0;
+
+		await new DomMotor(
+			() => 0,
+			steppedFrames( 8, () => {
+				frames++;
+			} )
+		).selectSnippet( ( durationMs ) => {
+			planned = durationMs;
+		} );
+
+		// The motor paces its choreography by frame time, so the announced
+		// duration matches the time it actually took to within a frame per
+		// phase (approach, settle, sweep, hold), plus the frame that opens
+		// the timeline.
+		expect( Math.abs( planned - frames * 8 ) ).toBeLessThanOrEqual(
+			5 * 16
 		);
 	} );
 
@@ -1042,7 +1055,7 @@ describe( 'DomMotor.selectSnippet', () => {
 		document.body.innerHTML = '<p>short</p>';
 		const onPlanned = vi.fn();
 
-		await new DomMotor( () => 0.1, instantFrames ).selectSnippet(
+		await new DomMotor( () => 0.1, steppedFrames() ).selectSnippet(
 			onPlanned
 		);
 
@@ -1056,7 +1069,7 @@ describe( 'DomMotor.read', () => {
 		const travelToSpy = vi.spyOn( FakeCursor.prototype, 'travelTo' );
 
 		await expect(
-			new DomMotor( () => 0.5, instantFrames ).read( 20 )
+			new DomMotor( () => 0.5, steppedFrames() ).read( 20 )
 		).resolves.toBeUndefined();
 
 		expect( travelToSpy ).not.toHaveBeenCalled();
@@ -1083,7 +1096,7 @@ describe( 'DomMotor.read', () => {
 		const scrollBySpy = vi
 			.spyOn( window, 'scrollBy' )
 			.mockImplementation( () => undefined );
-		const motor = new DomMotor( () => 0.1, instantFrames );
+		const motor = new DomMotor( () => 0.1, steppedFrames() );
 		const cursorEl =
 			document.querySelector< HTMLElement >( '.bsb-surf-cursor' );
 
@@ -1147,7 +1160,7 @@ describe( 'DomMotor.read', () => {
 			} );
 
 		// rng() = 0.9 -> dwell mode (not traced), no creep ever fires.
-		await new DomMotor( () => 0.9, instantFrames ).read( 20000 );
+		await new DomMotor( () => 0.9, steppedFrames() ).read( 20000 );
 
 		const firstTravel = events.indexOf( 'travel' );
 		const firstScroll = events.indexOf( 'scroll' );
@@ -1200,7 +1213,7 @@ describe( 'DomMotor.read', () => {
 
 		// rng() = 0.4 -> dwell mode, no creep, and floor(0.4 * tier.length)
 		// always resolves to tier index 0.
-		await new DomMotor( () => 0.4, instantFrames ).read( 30000 );
+		await new DomMotor( () => 0.4, steppedFrames() ).read( 30000 );
 
 		// Anchor-scrolling to B (top 2000) is a single delta of
 		// rect.top - innerHeight/3 ~= 2000 - 256 = 1744 — far larger than any
@@ -1235,7 +1248,7 @@ describe( 'DomMotor.read', () => {
 
 		// rng() = 0.2 -> trace mode (0.2 < 0.35) and the creep chance always
 		// fires (0.2 < 0.25).
-		await new DomMotor( () => 0.2, instantFrames ).read( 8000 );
+		await new DomMotor( () => 0.2, steppedFrames() ).read( 8000 );
 
 		const creepCall = scrollBySpy.mock.calls.find( ( call ) => {
 			const px = call[ 0 ] as number;
@@ -1265,7 +1278,7 @@ describe( 'DomMotor.read', () => {
 
 		// rng() = 0.9 -> dwell mode, in view (no anchor scroll needed), and
 		// the creep chance never fires (0.9 is not < 0.25).
-		await new DomMotor( () => 0.9, instantFrames ).read( 8000 );
+		await new DomMotor( () => 0.9, steppedFrames() ).read( 8000 );
 
 		expect( scrollBySpy ).not.toHaveBeenCalled();
 
@@ -1292,7 +1305,7 @@ describe( 'DomMotor.read', () => {
 		const moveToSpy = vi.spyOn( FakeCursor.prototype, 'moveTo' );
 
 		await expect(
-			new DomMotor( () => 0.1, instantFrames ).read( 200 )
+			new DomMotor( () => 0.1, steppedFrames() ).read( 200 )
 		).resolves.toBeUndefined();
 
 		const linesVisited = new Set(
@@ -1328,7 +1341,7 @@ describe( 'DomMotor.read', () => {
 		// only unread candidate pool is empty and the session rests instead
 		// of picking the same passage again.
 		await expect(
-			new DomMotor( () => 0.9, instantFrames ).read( 60000 )
+			new DomMotor( () => 0.9, steppedFrames() ).read( 60000 )
 		).resolves.toBeUndefined();
 
 		expect( travelToSpy ).toHaveBeenCalledTimes( 1 );
@@ -1353,7 +1366,7 @@ describe( 'DomMotor.read', () => {
 		const moveToSpy = vi.spyOn( FakeCursor.prototype, 'moveTo' );
 
 		// rng() = 0.3 -> trace mode (0.3 < 0.35), creep never fires (0.3 > 0.25).
-		await new DomMotor( () => 0.3, instantFrames ).read( 20000 );
+		await new DomMotor( () => 0.3, steppedFrames() ).read( 20000 );
 
 		const points = moveToSpy.mock.calls.map(
 			( call ) => call[ 0 ] as Point
@@ -1385,14 +1398,14 @@ describe( 'DomMotor cursor glyph modes', () => {
 	 * its state at the very end — can be asserted on.
 	 */
 	const sampleCursor = (): {
-		next: () => Promise< void >;
+		next: FrameSource;
 		classes: string[];
 		ripples: number[];
 	} => {
 		const classes: string[] = [];
 		const ripples: number[] = [];
 		return {
-			next: () => {
+			next: steppedFrames( 16, () => {
 				classes.push(
 					document.querySelector( '.bsb-surf-cursor' )?.className ??
 						''
@@ -1400,8 +1413,7 @@ describe( 'DomMotor cursor glyph modes', () => {
 				ripples.push(
 					document.querySelectorAll( '.bsb-surf-click-ripple' ).length
 				);
-				return Promise.resolve();
-			},
+			} ),
 			classes,
 			ripples,
 		};
@@ -1538,14 +1550,13 @@ describe( 'DomMotor cursor glyph modes', () => {
 			document.querySelector< HTMLElement >( '.bsb-surf-cursor' )?.style
 				.transform ?? '';
 		const rippleTransforms: string[] = [];
-		const next = (): Promise< void > => {
+		const next = steppedFrames( 16, () => {
 			if (
 				document.querySelectorAll( '.bsb-surf-click-ripple' ).length > 0
 			) {
 				rippleTransforms.push( cursorTransform() );
 			}
-			return Promise.resolve();
-		};
+		} );
 		const motor = new DomMotor( () => 0.5, next );
 
 		await motor.playVideo();
@@ -1585,7 +1596,7 @@ describe( 'DomMotor cursor glyph modes', () => {
 			} ) as DOMRect;
 		video.play = vi.fn().mockResolvedValue( undefined );
 		video.pause = vi.fn();
-		const motor = new DomMotor( () => 0.5, instantFrames );
+		const motor = new DomMotor( () => 0.5, steppedFrames() );
 
 		await motor.playVideo();
 		// Move the cursor off the player, onto the unrelated image, before
@@ -1613,5 +1624,140 @@ describe( 'DomMotor cursor glyph modes', () => {
 
 		expect( cursorEl?.className ).toBe( initialClass );
 		expect( sampler.ripples.every( ( n ) => n === 0 ) ).toBe( true );
+	} );
+} );
+
+describe( 'DomMotor frame-rate independence', () => {
+	const rates = [ 16, 8 ];
+
+	/**
+	 * Runs `act` on a motor fed frames of `frameMs`, returning the total time
+	 * the frames it consumed add up to.
+	 * @param frameMs
+	 * @param rng
+	 * @param act
+	 */
+	const timeTaken = async (
+		frameMs: number,
+		rng: () => number,
+		act: ( motor: DomMotor ) => Promise< void >
+	): Promise< number > => {
+		let frames = 0;
+		const motor = new DomMotor(
+			rng,
+			steppedFrames( frameMs, () => {
+				frames++;
+			} )
+		);
+
+		await act( motor );
+
+		return frames * frameMs;
+	};
+
+	/**
+	 * Gives `el` a fixed viewport rect.
+	 * @param el
+	 * @param top
+	 */
+	const placeAt = ( el: Element, top: number ): void => {
+		el.getBoundingClientRect = () =>
+			( {
+				top,
+				bottom: top + 100,
+				left: 50,
+				right: 450,
+				width: 400,
+				height: 100,
+			} ) as DOMRect;
+	};
+
+	it( 'drifts for its budget at 60 Hz and 120 Hz alike', async () => {
+		for ( const frameMs of rates ) {
+			const total = await timeTaken( frameMs, mulberry32( 3 ), ( m ) =>
+				m.pointerDrift( 3000 )
+			);
+
+			expect( Math.abs( total - 3000 ) ).toBeLessThanOrEqual( 80 );
+		}
+	} );
+
+	it( 'lingers for its budget at 60 Hz and 120 Hz alike', async () => {
+		document.body.innerHTML = '<img src="a.jpg">';
+		placeAt( document.querySelector( 'img' )!, 100 );
+
+		for ( const frameMs of rates ) {
+			const total = await timeTaken(
+				frameMs,
+				() => 0.5,
+				( m ) => m.lingerImage( 2000 )
+			);
+
+			expect( Math.abs( total - 2000 ) ).toBeLessThanOrEqual( 80 );
+		}
+	} );
+
+	it( 'reads for its budget at 60 Hz and 120 Hz alike', async () => {
+		document.body.innerHTML = `<p>${ 'word '.repeat( 20 ) }</p>`;
+		placeAt( document.querySelector( 'p' )!, 100 );
+
+		for ( const frameMs of rates ) {
+			const total = await timeTaken(
+				frameMs,
+				() => 0.5,
+				( m ) => m.read( 5000 )
+			);
+
+			expect( Math.abs( total - 5000 ) ).toBeLessThanOrEqual( 80 );
+		}
+	} );
+
+	it( "keeps a nested scroll on the read's own budget", async () => {
+		document.body.innerHTML = `<p>${ 'word '.repeat(
+			20
+		) }</p><p>${ 'word '.repeat( 20 ) }</p>`;
+		const [ first, second ] = document.querySelectorAll( 'p' );
+		placeAt( first, 100 );
+		placeAt( second, 2000 );
+		const scrollBySpy = vi
+			.spyOn( window, 'scrollBy' )
+			.mockImplementation( () => {} );
+
+		// The read dwells on the first passage, then reaches the second
+		// through a nested scrollBy. Were that scroll to restart the pacer,
+		// the read would forget the first passage's time and overrun.
+		for ( const frameMs of rates ) {
+			const total = await timeTaken(
+				frameMs,
+				() => 0.5,
+				( m ) => m.read( 8000 )
+			);
+
+			expect( Math.abs( total - 8000 ) ).toBeLessThanOrEqual( 80 );
+		}
+
+		scrollBySpy.mockRestore();
+	} );
+
+	it( 'scrolls the whole distance over its duration at 60 Hz and 120 Hz alike', async () => {
+		for ( const frameMs of rates ) {
+			let scrolled = 0;
+			const scrollBySpy = vi
+				.spyOn( window, 'scrollBy' )
+				.mockImplementation( ( ( _x: number, y: number ) => {
+					scrolled += y;
+				} ) as typeof window.scrollBy );
+
+			const total = await timeTaken(
+				frameMs,
+				() => 0.5,
+				( m ) => m.scrollBy( 300, 600 )
+			);
+
+			expect( scrolled ).toBeCloseTo( 300, 6 );
+			expect( Math.abs( total - 600 ) ).toBeLessThanOrEqual( 32 );
+
+			scrollBySpy.mockRestore();
+		}
 	} );
 } );

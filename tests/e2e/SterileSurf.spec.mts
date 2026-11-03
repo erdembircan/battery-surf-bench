@@ -283,11 +283,12 @@ test.describe( 'Dev-tools Surf group', () => {
 	} );
 
 	// The highlight's pace is set per character, not per sweep: whichever
-	// paragraph the engine picks, it highlights a bounded snippet and spends
-	// at least an animation frame per character growing it — a sweep
+	// paragraph the engine picks, it highlights a bounded snippet and takes
+	// at least 15 ms per character growing it (the design is 20) — a sweep
 	// squeezed into one fixed duration would race a long paragraph through
-	// in a fraction of that. Counted in frames, not milliseconds, so a fast
-	// display or a loaded runner can't tip it either way.
+	// in a fraction of that. Measured in milliseconds: the motor paces by
+	// each frame's delta time, so a faster display can't speed it up and a
+	// loaded runner only slows it down.
 	test( 'steering selectSnippet highlights a bounded snippet at a steady per-character pace', async ( {
 		page,
 	} ) => {
@@ -311,24 +312,25 @@ test.describe( 'Dev-tools Surf group', () => {
 			.locator( 'body.bsb-course-page' );
 
 		// Samples the visible length of the page's selection on every
-		// animation frame, from before the steer until the highlight has
-		// grown and been cleared again (or 20 s pass with no highlight).
+		// animation frame, stamped with the frame's time, from before the
+		// steer until the highlight has grown and been cleared again (or
+		// 20 s pass with no highlight).
 		const sampling = coursePage.evaluate(
 			( body ) =>
-				new Promise< number[] >( ( resolve ) => {
+				new Promise< [ number, number ][] >( ( resolve ) => {
 					const view = body.ownerDocument.defaultView!;
-					const lengths: number[] = [];
-					const sample = (): void => {
+					const samples: [ number, number ][] = [];
+					const sample = ( t: number ): void => {
 						const length = ( view.getSelection()?.toString() ?? '' )
 							.replace( /\s+/g, ' ' )
 							.trim().length;
-						lengths.push( length );
+						samples.push( [ t, length ] );
 
 						if (
 							length === 0 &&
-							lengths.some( ( seen ) => seen > 0 )
+							samples.some( ( [ , seen ] ) => seen > 0 )
 						) {
-							resolve( lengths );
+							resolve( samples );
 							return;
 						}
 
@@ -336,24 +338,28 @@ test.describe( 'Dev-tools Surf group', () => {
 					};
 
 					view.requestAnimationFrame( sample );
-					view.setTimeout( () => resolve( lengths ), 20_000 );
+					view.setTimeout( () => resolve( samples ), 20_000 );
 				} )
 		);
 
 		await selectSnippetChip.click();
 
-		const lengths = await sampling;
-		const snippetLength = Math.max( ...lengths );
-		const firstFrame = lengths.findIndex( ( length ) => length > 0 );
-		const fullFrame = lengths.indexOf( snippetLength );
+		const samples = await sampling;
+		const snippetLength = Math.max(
+			...samples.map( ( [ , length ] ) => length )
+		);
+		const firstSample = samples.find( ( [ , length ] ) => length > 0 )!;
+		const fullSample = samples.find(
+			( [ , length ] ) => length === snippetLength
+		)!;
 
 		// A bounded snippet: never a sliver, never a whole long paragraph.
 		expect( snippetLength ).toBeGreaterThanOrEqual( 21 );
 		expect( snippetLength ).toBeLessThanOrEqual( 160 );
 
-		// At least one frame per character, on average, while it grows.
-		expect( fullFrame - firstFrame ).toBeGreaterThanOrEqual(
-			snippetLength
+		// At least 15 ms per character, on average, while it grows.
+		expect( fullSample[ 0 ] - firstSample[ 0 ] ).toBeGreaterThanOrEqual(
+			snippetLength * 15
 		);
 
 		await expect( selectSnippetChip ).toBeEnabled( { timeout: 15_000 } );
