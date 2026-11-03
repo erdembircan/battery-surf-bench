@@ -8,6 +8,7 @@
 
 import type { Rng } from '@/surfer/Rng';
 import { easeInOutQuad } from '@/surfer/Ease';
+import type { FramePacer } from '@/surfer/FramePacer';
 
 /** A viewport position, in CSS pixels. */
 export interface Point {
@@ -43,8 +44,12 @@ const PRESSING_CLASS = 'bsb-surf-cursor--pressing';
 /** Class of the transient ripple element a click spawns. */
 const RIPPLE_CLASS = 'bsb-surf-click-ripple';
 
-/** Frames a click's press-and-ripple moment holds for — ~380 ms at 16 ms/frame. */
-const CLICK_FRAMES = 24;
+/**
+ * How long a click's press-and-ripple moment holds, in ms — the length of
+ * the ripple's own animation in the course stylesheet, so the ring finishes
+ * fading before it is removed.
+ */
+const CLICK_MS = 400;
 
 /** How far the cursor overshoots past a target before settling onto it, in px. */
 const OVERSHOOT_PX = 6;
@@ -60,26 +65,29 @@ const EDGE_MARGIN_PX = 4;
 /** Minimum leg distance, in px, that still gets an overshoot-and-settle; short nudges land directly. */
 const OVERSHOOT_DISTANCE_THRESHOLD_PX = 200;
 
-/** How many px of travel distance a single animation frame covers, for {@link framesForDistance}. */
-const TRAVEL_PX_PER_FRAME = 10;
+/**
+ * How long the cursor rests past its target before settling back onto it,
+ * in ms — a blink, just long enough to register as an overshoot.
+ */
+const OVERSHOOT_HOLD_MS = 16;
 
-/** Frame-count clamp band for a travelled leg, however far it goes. */
-const TRAVEL_MIN_FRAMES = 8;
-const TRAVEL_MAX_FRAMES = 60;
+/** How long each px of travel distance takes, in ms, for {@link travelMsForDistance}. */
+const TRAVEL_MS_PER_PX = 1.6;
+
+/** Duration clamp band for a travelled leg, in ms, however far it goes. */
+const TRAVEL_MIN_MS = 128;
+const TRAVEL_MAX_MS = 960;
 
 /**
- * The frame count a leg of `distance` px should take: proportional to
+ * How long a leg of `distance` px should take, in ms: proportional to
  * distance, so a short nudge is quick and a long sweep is unhurried, clamped
  * so neither collapses to an instant jump nor drags on indefinitely.
  * @param distance
  */
-export const framesForDistance = ( distance: number ): number =>
+export const travelMsForDistance = ( distance: number ): number =>
 	Math.min(
-		TRAVEL_MAX_FRAMES,
-		Math.max(
-			TRAVEL_MIN_FRAMES,
-			Math.round( distance / TRAVEL_PX_PER_FRAME )
-		)
+		TRAVEL_MAX_MS,
+		Math.max( TRAVEL_MIN_MS, distance * TRAVEL_MS_PER_PX )
 	);
 
 /**
@@ -163,7 +171,7 @@ export class FakeCursor {
 	private readonly doc: Document;
 	private readonly view: Window;
 	private readonly el: HTMLElement;
-	private readonly nextFrame: () => Promise< void >;
+	private readonly pacer: FramePacer;
 	private point: Point;
 	private currentMode: CursorMode = 'arrow';
 
@@ -171,19 +179,15 @@ export class FakeCursor {
 	 * Injects the cursor element and flags the document as engine-driven.
 	 * @param doc
 	 * @param start
-	 * @param nextFrame Animation tick source; a test injects an instant one.
+	 * @param pacer Paces every travel, settle and click; shared with the motor.
 	 */
-	constructor(
-		doc: Document,
-		start: Point,
-		nextFrame: () => Promise< void >
-	) {
+	constructor( doc: Document, start: Point, pacer: FramePacer ) {
 		this.doc = doc;
 		// `defaultView`, not a global `window`, so a test's own document can
 		// control the viewport dimensions clamping is measured against.
 		this.view = doc.defaultView ?? window;
 		this.point = start;
-		this.nextFrame = nextFrame;
+		this.pacer = pacer;
 		this.el = buildElement( doc );
 
 		doc.documentElement.classList.add( SURFING_CLASS );
@@ -221,9 +225,9 @@ export class FakeCursor {
 	/**
 	 * A brief press-and-ripple click at the current position: the glyph
 	 * squashes while a ring expands from the point and fades. Resolves once
-	 * the moment has played out; the ripple element is removed here, on the
-	 * frame budget, never via `animationend` — a test's instant frames would
-	 * otherwise leak it.
+	 * the moment has played out; the ripple element is removed here, after
+	 * {@link CLICK_MS} of frame time, never via `animationend` — a test's
+	 * stepped frames would otherwise leak it.
 	 */
 	async click(): Promise< void > {
 		this.el.classList.add( PRESSING_CLASS );
@@ -235,9 +239,7 @@ export class FakeCursor {
 		ripple.style.top = `${ this.point.y }px`;
 		this.doc.body.appendChild( ripple );
 
-		for ( let i = 0; i < CLICK_FRAMES; i++ ) {
-			await this.nextFrame();
-		}
+		await this.pacer.hold( CLICK_MS );
 
 		ripple.remove();
 		this.el.classList.remove( PRESSING_CLASS );
@@ -264,29 +266,25 @@ export class FakeCursor {
 	/**
 	 * Glides from the current position to `target` along a jittered
 	 * quadratic-bezier curve rather than a straight line, easing in and out
-	 * of the move rather than travelling at constant speed. The frame count
-	 * scales with travel distance ({@link framesForDistance}) unless `frames`
+	 * of the move rather than travelling at constant speed. The duration
+	 * scales with travel distance ({@link travelMsForDistance}) unless `ms`
 	 * overrides it; only a long-enough leg gets a small overshoot-and-settle
 	 * once it arrives — a short nudge lands directly on `target`.
 	 * @param target
 	 * @param rng
-	 * @param frames Overrides the distance-derived frame count when given.
+	 * @param ms     Overrides the distance-derived duration when given.
 	 */
-	async travelTo(
-		target: Point,
-		rng: Rng,
-		frames?: number
-	): Promise< void > {
+	async travelTo( target: Point, rng: Rng, ms?: number ): Promise< void > {
 		const start = this.point;
 		const control = jitteredControlPoint( start, target, rng );
 		const distance = Math.hypot( target.x - start.x, target.y - start.y );
-		const steps = Math.max( 1, frames ?? framesForDistance( distance ) );
+		const duration = ms ?? travelMsForDistance( distance );
 
-		for ( let i = 1; i <= steps; i++ ) {
-			const progress = easeInOutQuad( i / steps );
-			this.moveTo( bezierPoint( start, control, target, progress ) );
-			await this.nextFrame();
-		}
+		await this.pacer.animate( duration, ( progress ) =>
+			this.moveTo(
+				bezierPoint( start, control, target, easeInOutQuad( progress ) )
+			)
+		);
 
 		if ( distance > OVERSHOOT_DISTANCE_THRESHOLD_PX ) {
 			await this.settle( target, rng );
@@ -303,7 +301,7 @@ export class FakeCursor {
 			x: target.x + ( rng() * 2 - 1 ) * OVERSHOOT_PX,
 			y: target.y + ( rng() * 2 - 1 ) * OVERSHOOT_PX,
 		} );
-		await this.nextFrame();
+		await this.pacer.hold( OVERSHOOT_HOLD_MS );
 		this.moveTo( target );
 	}
 

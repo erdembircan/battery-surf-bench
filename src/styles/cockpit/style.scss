@@ -1474,9 +1474,10 @@ body.bsb-cockpit-dashboard {
 // between two byte-identical keyframes on every fresh bark. A change in
 // duration/custom-property alone is NOT a guaranteed CSS restart trigger
 // (two consecutive barks that share the same key can share the exact same
-// `--bark-dur` too, e.g. two `moveOn` or two `selectSnippet` barks in a
-// row), but a change in `animation-name`'s own computed value always is —
-// this is what makes the restart deterministic rather than incidental.
+// `--bark-dur` too, e.g. two `moveOn` barks in a row, or two `selectSnippet`
+// barks over snippets of the same length), but a change in `animation-name`'s
+// own computed value always is — this is what makes the restart
+// deterministic rather than incidental.
 .bsb-cockpit__bark.is-entering .bsb-cockpit__bark-tide,
 .bsb-cockpit__bark.is-leaving .bsb-cockpit__bark-tide {
 	animation-name: var(--bark-ebb-name, bsb-bark-ebb-a);

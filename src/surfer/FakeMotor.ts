@@ -15,12 +15,30 @@ export interface RecordedCommand {
 }
 
 /**
+ * What {@link FakeMotor}'s `selectSnippet` reports through `onPlanned` unless
+ * a test says otherwise — an arbitrary stand-in for the length-derived
+ * duration `DomMotor` plans.
+ */
+export const FAKE_SNIPPET_PLAN_MS = 2400;
+
+/**
  * Test double for {@link Motor}: never touches the DOM, just records every
  * command it was asked to perform so a test can assert on the sequence and
  * arguments without a real browser.
  */
 export class FakeMotor implements Motor {
 	readonly commands: RecordedCommand[] = [];
+
+	private readonly snippetPlanMs: number | null;
+
+	/**
+	 * Sets what `selectSnippet` reports through `onPlanned` — or null to mimic
+	 * a page with nothing to select, where it never fires.
+	 * @param snippetPlanMs
+	 */
+	constructor( snippetPlanMs: number | null = FAKE_SNIPPET_PLAN_MS ) {
+		this.snippetPlanMs = snippetPlanMs;
+	}
 
 	scrollBy( px: number, ms: number ): Promise< void > {
 		this.commands.push( { kind: 'scrollBy', args: [ px, ms ] } );
@@ -32,8 +50,15 @@ export class FakeMotor implements Motor {
 		return Promise.resolve();
 	}
 
-	selectSnippet(): Promise< void > {
+	selectSnippet(
+		onPlanned?: ( durationMs: number ) => void
+	): Promise< void > {
 		this.commands.push( { kind: 'selectSnippet', args: [] } );
+
+		if ( this.snippetPlanMs !== null ) {
+			onPlanned?.( this.snippetPlanMs );
+		}
+
 		return Promise.resolve();
 	}
 

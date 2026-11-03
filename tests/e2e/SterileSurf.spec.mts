@@ -282,6 +282,107 @@ test.describe( 'Dev-tools Surf group', () => {
 		expect( await page.content() ).not.toMatch( PHP_NOTICE );
 	} );
 
+	// The highlight's pace is set per character, not per sweep: whichever
+	// paragraph the engine picks, it highlights a bounded snippet and takes
+	// at least 15 ms per character growing it (the design is 20) — a sweep
+	// squeezed into one fixed duration would race a long paragraph through
+	// in a fraction of that. Measured in milliseconds: the motor paces by
+	// each frame's delta time, so a faster display can't speed it up and a
+	// loaded runner only slows it down.
+	test( 'steering selectSnippet highlights a bounded snippet at a steady per-character pace', async ( {
+		page,
+	} ) => {
+		await page.goto( '/?bsbSession=cockpit' );
+
+		await forceDischarging( page );
+		await armSterile( page );
+		await page.locator( '.bsb-devtools__card-close' ).click();
+
+		await startFastRun( page );
+		await page.locator( '.bsb-devtools__pill' ).click();
+
+		const selectSnippetChip = page.locator(
+			'[data-devtools-behavior="selectSnippet"]'
+		);
+		await expect( selectSnippetChip ).toBeEnabled( { timeout: 15_000 } );
+
+		const coursePage = page
+			.locator( 'iframe.bsb-cockpit__viewport' )
+			.contentFrame()
+			.locator( 'body.bsb-course-page' );
+
+		// Samples the visible length of the page's selection on every
+		// animation frame, stamped with the frame's time, from before the
+		// steer until the highlight has grown and been cleared again (or
+		// 20 s pass with no highlight).
+		await coursePage.evaluate( ( body ) => {
+			const view = body.ownerDocument.defaultView!;
+
+			(
+				view as Window & {
+					bsbHighlightSamples?: Promise< [ number, number ][] >;
+				}
+			 ).bsbHighlightSamples = new Promise< [ number, number ][] >(
+				( resolve ) => {
+					const samples: [ number, number ][] = [];
+					const sample = ( t: number ): void => {
+						const length = ( view.getSelection()?.toString() ?? '' )
+							.replace( /\s+/g, ' ' )
+							.trim().length;
+						samples.push( [ t, length ] );
+
+						if (
+							length === 0 &&
+							samples.some( ( [ , seen ] ) => seen > 0 )
+						) {
+							resolve( samples );
+							return;
+						}
+
+						view.requestAnimationFrame( sample );
+					};
+
+					view.requestAnimationFrame( sample );
+					view.setTimeout( () => resolve( samples ), 20_000 );
+				}
+			);
+		} );
+
+		// The sampler is already running — the evaluate above resolved only
+		// once it was installed — so the measured window can't open late.
+		await selectSnippetChip.click();
+
+		// Waits for the sampler to see the highlight grow and clear again.
+		const samples = await coursePage.evaluate(
+			( body ) =>
+				(
+					body.ownerDocument.defaultView as Window & {
+						bsbHighlightSamples?: Promise< [ number, number ][] >;
+					}
+				 ).bsbHighlightSamples!
+		);
+		const snippetLength = Math.max(
+			...samples.map( ( [ , length ] ) => length )
+		);
+		const firstSample = samples.find( ( [ , length ] ) => length > 0 )!;
+		const fullSample = samples.find(
+			( [ , length ] ) => length === snippetLength
+		)!;
+
+		// A bounded snippet: never a sliver, never a whole long paragraph.
+		expect( snippetLength ).toBeGreaterThanOrEqual( 21 );
+		expect( snippetLength ).toBeLessThanOrEqual( 160 );
+
+		// At least 15 ms per character, on average, while it grows.
+		expect( fullSample[ 0 ] - firstSample[ 0 ] ).toBeGreaterThanOrEqual(
+			snippetLength * 15
+		);
+
+		await expect( selectSnippetChip ).toBeEnabled( { timeout: 15_000 } );
+
+		expect( await page.content() ).not.toMatch( PHP_NOTICE );
+	} );
+
 	test( 'steering watchVideo wears the hand cursor shortly after, without waiting out the full watch dwell', async ( {
 		page,
 	} ) => {

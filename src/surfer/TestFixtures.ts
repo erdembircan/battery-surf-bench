@@ -1,6 +1,7 @@
 import type { BehaviorContext } from '@/surfer/Behavior';
 import type { Affordances } from '@/surfer/Affordances';
 import type { Clock } from '@/surfer/Clock';
+import type { FrameSource } from '@/surfer/FramePacer';
 
 /** An rng stub that neutralizes bid noise to exactly `1` (see `Bid.noise`). */
 export const neutralRng = (): number => 0.5;
@@ -35,3 +36,26 @@ export const makeContext = (
 	elapsedMs: 60000,
 	...overrides,
 } );
+
+/**
+ * A frame source for motion tests: resolves at once with a timestamp that
+ * advances by `frameMs` per frame — 16 ms by default, about 60 Hz — so a
+ * motion's pacing is deterministic and its duration is frames × `frameMs`.
+ * Calls `onFrame` before advancing, so a test can sample state mid-flight.
+ * Each call starts its own timeline at zero.
+ * @param frameMs
+ * @param onFrame
+ */
+export const steppedFrames = (
+	frameMs = 16,
+	onFrame?: () => void
+): FrameSource => {
+	let now = 0;
+
+	return () => {
+		onFrame?.();
+		now += frameMs;
+
+		return Promise.resolve( now );
+	};
+};
