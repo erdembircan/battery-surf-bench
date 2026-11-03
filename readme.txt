@@ -2,9 +2,9 @@
 Contributors: erdembircan
 Tags: battery, benchmark, performance, power, testing
 Requires at least: 7.0
-Tested up to: 7.0
+Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.0.0-dev
+Stable tag: 1.0.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -14,7 +14,7 @@ Find out how fast web surfing really drains your battery, with a benchmark that 
 
 Battery Surf Bench is a WordPress plugin that measures your device's real-world battery drain. It unleashes a simulated web surfer on a course of content pages, samples your battery for the whole run, and projects an honest drain rate from what it actually measured.
 
-No lab hardware. No external services. Just your browser, your battery, and a surfer that never gets tired.
+No lab hardware and nothing to sign up for: just your browser, your battery, and a surfer that never gets tired.
 
 https://www.youtube.com/watch?v=X8CwzH_P4-g
 
@@ -73,15 +73,36 @@ Every run, whether it finished, was stopped early, or got interrupted, is stored
 
 * **Operator-only, everywhere.** The cockpit, the surf pages, the sessions, the settings: all gated behind a dedicated capability. Public visitors can't reach any of it.
 * **No footprint.** Course pages are served as ephemeral, in-memory pages. Nothing is written to your database and nothing new appears on your site.
-* **No telemetry.** All sampling and math happen locally in your browser; the only network traffic is your session saving to your own site.
+* **No telemetry.** All sampling and math happen locally in your browser, and sessions save only to your own site. The one outside contact is YouTube, which serves the video on the bundled course's video page (see External services below).
 
 = Speaks your language =
 
 Fully translation-ready, with German, Spanish, French, Brazilian Portuguese, and Turkish shipped out of the box.
 
-= External content note =
+== External services ==
 
-The bundled video-feature page embeds a YouTube video through WordPress's own native `core/embed` block, resolved by WordPress's own real oEmbed handling exactly as it would be on any WordPress site, including the outbound request that handling makes to YouTube's oEmbed endpoint to resolve the embed. The plugin does not replace or short-circuit that handling; it only adjusts the returned embed so the simulation can start and stop playback itself. The surfer starts the video (muted) when it decides to watch and pauses it again when its dwell ends, rather than the embed autoplaying on page load. This embed is only rendered on the operator-gated benchmark page (it requires the operator's capability plus a valid nonce) and is never output on the public-facing site. It is a deliberate part of the battery-drain workload, not tracking or advertising. The same handling applies automatically to any YouTube embed on a site owner's own selected surf pages.
+Battery Surf Bench connects to one external service: YouTube, which hosts the video on the bundled course's video page, "Watch: Inside a Modern Laptop's Power Path". Video is part of everyday browsing and one of the heaviest loads a browser puts on a battery, so the course includes it.
+
+Nothing is sent until an operator starts a benchmark, and the video only ever appears on the operator-gated benchmark page, never on your public site. When the surfer reaches the video page during a run:
+
+* Your site's server fetches the video's embed code from YouTube's oEmbed endpoint, sending the video's address, as WordPress does for any YouTube link in a post.
+* The operator's browser loads YouTube's embedded player from youtube.com. As with any YouTube embed, YouTube receives the operator's IP address and browser details, and may set cookies and collect usage data under its own terms and privacy policy.
+
+The same happens for a YouTube video on any of your own pages that you add to the course. The plugin itself sends no telemetry or analytics anywhere: every measurement stays in the operator's browser and is saved only to your own site.
+
+* YouTube: https://www.youtube.com/
+* YouTube Terms of Service: https://www.youtube.com/t/terms
+* Google Privacy Policy: https://policies.google.com/privacy
+
+== Source code ==
+
+The scripts and styles in the plugin's `build/` folder are compiled from TypeScript and SCSS. The complete source, with its build configuration, is public on GitHub: https://github.com/erdembircan/battery-surf-bench
+
+To build it yourself, install Node.js 24 with pnpm, and PHP 8.1 or later with Composer. Then, in a clone of the repository:
+
+1. `pnpm install` and `composer install` install the dependencies.
+2. `pnpm build` compiles `src/` into `build/`.
+3. `bin/Release.sh` builds the finished plugin zip in `zip/`, exactly as it ships.
 
 == Installation ==
 
@@ -105,7 +126,7 @@ Yes. The settings screen lets you compose the surf course from your own posts an
 
 = Does the plugin contact external servers or track users? =
 
-The plugin itself performs no telemetry, analytics or phone-home requests of its own. The one external contact is the bundled simulated-surf YouTube embed described above: WordPress's own real oEmbed handling contacts YouTube's oEmbed endpoint to resolve it, exactly as it would for any YouTube URL on any WordPress site. That request is part of the measured workload (real video-page browsing genuinely does this) and is only made while the operator-gated benchmark page is being rendered to the operator running a benchmark.
+The plugin itself sends no telemetry, analytics or phone-home requests. Its one outside contact is YouTube, for the video on the bundled course's video page: during a run, your site fetches that video's embed code from YouTube, and the operator's browser loads YouTube's player. The External services section of the description lists what is sent and when, with links to YouTube's terms and privacy policy.
 
 = Why is there a YouTube video in the surf course? =
 
@@ -113,5 +134,5 @@ Because real-world browsing includes video, and video is one of the heaviest thi
 
 == Changelog ==
 
-= 1.0.0-dev =
-* Initial development release.
+= 1.0.0 =
+* Initial release.

@@ -80,7 +80,7 @@ Every run, whether it finished, was stopped early, or got interrupted, is stored
 
 - **Operator-only, everywhere.** The cockpit, the surf pages, the sessions, the settings: all gated behind a dedicated capability. Public visitors can't reach any of it.
 - **No footprint.** Course pages are served as ephemeral, in-memory pages. Nothing is written to your database and nothing new appears on your site.
-- **No telemetry.** All sampling and math happen locally in your browser; the only network traffic is your session saving to your own site.
+- **No telemetry.** All sampling and math happen locally in your browser, and sessions save only to your own site. The one outside contact is YouTube, which serves the video on the bundled course's video page.
 - **Self-healing configuration.** If a page you added to the course is later removed or unpublished, it quietly drops out of the rotation instead of breaking the run.
 
 ## Speaks your language
