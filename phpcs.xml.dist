@@ -74,10 +74,10 @@
 	  Scoped exceptions for test-infrastructure findings with no in-code fix.
 	  Each is narrowed to the exact rule and path so the sniff still guards the
 	  rest of the codebase. These are deliberate and maintainer-approved, not
-	  blanket silencing. (The small set of production sites that echo a
-	  pre-escaped View document — six as of this writing, including
-	  */render.php and Cockpit.php — are handled with a line-scoped inline
-	  ignore instead, so a future stray echo there is still caught.)
+	  blanket silencing. (Production code that prints markup it knows is
+	  already escaped, such as composed view output inside a template or a
+	  manager echoing a rendered view, uses a line-scoped inline ignore with its
+	  reason instead, so a future stray echo is still caught.)
 	-->
 
 	<!-- Tests inject mocks by setting the WordPress globals the code under test

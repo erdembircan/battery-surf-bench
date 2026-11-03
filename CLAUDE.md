@@ -93,10 +93,12 @@ All source files (both JS/TS and PHP) must use **CamelCase** (e.g. `BatteryMonit
 
 ## Markup & Views
 
-**Never write HTML or inline styles inside PHP.** No literal markup in `?> … <?php` template islands, no HTML strings assembled inline in a method, and no `style="…"` attributes or `<style>` blocks emitted from PHP.
+**Never write HTML or inline styles in PHP logic.** Markup lives only in view templates: never in a manager, a block `render.php`, or a view's own methods, and no `style="…"` attribute or `<style>` block is ever printed from PHP.
 
-- All markup lives in a **view**: a class implementing the `View` interface (`ErdemBircan\BatterySurfBench\Support\View`) that owns its HTML inside a heredoc and returns it from `render()`. Concrete views live in a `Views/` subfolder of their domain (e.g. `includes/Cockpit/Views/`).
-- PHP that needs markup — a manager, a block `render.php` — prepares the dynamic, already-escaped values and hands them to a view; it never builds HTML itself.
+- **A view is a class and its templates.** A view implements the `View` interface (`ErdemBircan\BatterySurfBench\Support\View`) and lives in a `Views/` subfolder of its domain (e.g. `includes/Cockpit/Views/`). Its markup lives in PHP template files in that folder's `Templates/` subfolder: inline HTML after the file's opening PHP block, with `<?php … ?>` only where the template prints a value. The view's `render()` prepares the raw values, renders a template with `Template::render()` (`ErdemBircan\BatterySurfBench\Support\Template`), and returns the markup.
+- **Escape late, in the template.** Every dynamic value is escaped where the template prints it, with the function that fits the slot: `esc_html()` for text, `esc_attr()` for attributes, `esc_url()` for URLs. A view never escapes ahead of its template. Markup that is already escaped, such as another view's rendered output, is printed as it is, with a line-scoped `// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- <reason>` that says why it's safe.
+- **No heredoc or nowdoc.** WordPress.org's Plugin Check rejects heredoc syntax, and its review guidelines forbid heredoc and nowdoc, because code scanners can't see escaping inside them.
+- PHP that needs markup — a manager, a block `render.php` — prepares raw values and hands them to a view; it never builds HTML itself.
 - Styling belongs in a stylesheet (see **Styles**), never in inline `style` attributes or `<style>` tags printed from PHP.
 
 ## Styles
