@@ -125,6 +125,9 @@ jobs:
           error-severity: 7
           warning-severity: 6
           include-low-severity-errors: true
+          # Findings already show as annotations and in the job log, so skip the
+          # action's PR comment, which the read-only token can't post anyway.
+          repo-token: ''
 
   i18n:
     runs-on: ubuntu-latest
