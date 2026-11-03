@@ -5,8 +5,8 @@
 ## Already in place
 
 - **`.wordpress-org/`** holds the directory artwork and screenshots: the icon, the banner, and `screenshot-1.png` to `screenshot-5.png`, captioned by the `== Screenshots ==` list in `readme.txt`. None of it ships in the plugin zip. Nothing else may live in the folder: the deploy action mirrors it into the SVN `assets/` directory and deletes anything that isn't there. `docs/images/wordpress-org/` holds the icon and banner sources, and its README explains how `pnpm screenshots` retakes the screenshots.
-- **`bin/Release.sh`** builds `zip/battery-surf-bench.zip`: the JS/CSS bundles, a production-only `vendor/`, `composer zip`, then `pnpm package:verify --release`.
-- **`pnpm package:verify`** (rules in `bin/PackageRules.mts`) fails CI and the release build when the zip has a top-level entry outside the allowed list, a hidden file or folder outside `vendor/`, a missing required entry, or a `vendor/` without `composer.json`. It also enforces the checks WordPress.org's upload form runs before anything else: no version-control folder and no `.zip`, `.gz`, `.tgz`, `.rar`, `.tar`, `.7z`, `.phar` or `.sh` file anywhere in the zip (`vendor/` included, in a release zip), and a release zip under 10 MB.
+- **`bin/Release.sh`** builds `zip/battery-surf-bench.zip`: the JS/CSS bundles, a production-only `vendor/`, `composer zip`, then `pnpm package:verify --release`. The zip holds the plugin in one top-level `battery-surf-bench/` folder, so installing it by hand puts the plugin in `wp-content/plugins/battery-surf-bench/`. A zip with its files at the root would install into a randomly named folder, which WordPress.org updates never reach.
+- **`pnpm package:verify`** (rules in `bin/PackageRules.mts`) fails CI and the release build when the zip has an entry outside its one top-level `battery-surf-bench/` folder, an entry at the top of that folder outside the allowed list, a hidden file or folder outside `vendor/`, a missing required entry, or a `vendor/` without `composer.json`. It also enforces the checks WordPress.org's upload form runs before anything else: no version-control folder and no `.zip`, `.gz`, `.tgz`, `.rar`, `.tar`, `.7z`, `.phar` or `.sh` file anywhere in the zip (`vendor/` included, in a release zip), and a release zip under 10 MB.
 - **Plugin Check in CI.** The `plugin-check` job in `.github/workflows/checks.yml` builds the release zip and runs WordPress.org's Plugin Check Action on it with the upload form's settings, on every pull request and every push to `master`. Like the form, it fails on errors only and shows warnings as annotations.
 - **`readme.txt`** carries the release version, `1.0.0`, matching `Version:` in `battery-surf-bench.php`; `Tested up to: 7.1`; an External services section on the bundled course's YouTube video; and a Source code section that links the repository and lists the build commands.
 - **Listing video.** The 60-second spot is on YouTube as Unlisted at https://youtu.be/X8CwzH_P4-g; its source is the `listing-video` branch. `readme.txt` puts the video's URL alone on its own line in the Description, which the plugin page turns into an embedded player: WordPress.org keeps oEmbed in readmes for YouTube, Vimeo and a short list of other providers, and strips raw HTML. There is no video field in the submission form, and WordPress.org builds the page from `readme.txt` alone (`README.md` is export-ignored, so it never reaches the zip or SVN).
@@ -58,17 +58,18 @@ The dev-tools panel (`includes/DevTools/`, `build/devtools/`) ships in the zip b
          - uses: ./.github/actions/setup-node
          # Builds and verifies zip/battery-surf-bench.zip.
          - run: bin/Release.sh
-         # The deploy action takes a folder, not a zip.
+         # The deploy action takes a folder, not a zip. The zip unpacks into
+         # dist/battery-surf-bench/.
          - run: unzip -q zip/battery-surf-bench.zip -d dist
          - uses: 10up/action-wordpress-plugin-deploy@stable
            env:
              SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
              SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}
              SLUG: battery-surf-bench
-             BUILD_DIR: dist
+             BUILD_DIR: dist/battery-surf-bench
    ```
 
-   By default the action packages the plugin with `git archive`, which leaves out the untracked `build/` bundles and `vendor/` tree. `BUILD_DIR` points it at the unzipped release zip instead, so SVN receives exactly what `bin/Release.sh` built and verified. The action still copies `.wordpress-org/` from the repository root. For the first run, add `with: { dry-run: true }` to the deploy step to see the result without committing to SVN.
+   By default the action packages the plugin with `git archive`, which leaves out the untracked `build/` bundles and `vendor/` tree. `BUILD_DIR` points it at the plugin folder unpacked from the release zip instead, and the action copies that folder's contents into SVN's `trunk/`, so SVN receives exactly what `bin/Release.sh` built and verified. The action still copies `.wordpress-org/` from the repository root. For the first run, add `with: { dry-run: true }` to the deploy step to see the result without committing to SVN.
 4. **Tags.** Tag each release with its bare version, such as `1.0.0`. The action uses the tag name as the SVN tag (dropping a leading `v`) and skips any version already in SVN.
 5. **Contract chart.** Add the deploy workflow to `docs/contracts/ci-workflow.mmd`, and delete this plan, in the same PR.
 

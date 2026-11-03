@@ -108,10 +108,9 @@ jobs:
       # bundles, a production-only vendor/, then package:verify --release.
       - run: bin/Release.sh
       # Plugin Check scans a plugin folder rather than a zip, and takes the
-      # plugin's slug from the folder's name.
-      - run: |
-          mkdir -p dist/battery-surf-bench
-          unzip -q zip/battery-surf-bench.zip -d dist/battery-surf-bench
+      # plugin's slug from the folder's name. The zip holds the plugin in its
+      # battery-surf-bench/ folder, so this unpacks dist/battery-surf-bench/.
+      - run: unzip -q zip/battery-surf-bench.zip -d dist
       # The checks WordPress.org's upload form runs on a new plugin, with the
       # form's settings: the plugin_repo category without prefixing, errors
       # from severity 7 and warnings from severity 6. Like the form, the job

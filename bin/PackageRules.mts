@@ -5,9 +5,10 @@
  * rules, and anything those rules miss ships silently: repository tooling, CI
  * configuration, untracked macOS metadata. These rules read only the archive's
  * entry names, so they are testable without a real zip. They hold the zip to
- * its own contract (allowed and required top-level entries, no hidden files
- * or folders outside `vendor/`, `composer.json` alongside `vendor/`) and to
- * the file checks WordPress.org's upload form runs before anything else: no
+ * its own contract (every entry inside one top-level `battery-surf-bench/`
+ * folder, allowed and required entries at the top of that folder, no hidden
+ * files or folders outside `vendor/`, `composer.json` alongside `vendor/`) and
+ * to the file checks WordPress.org's upload form runs before anything else: no
  * version-control folder, and no archive, `.phar` or `.sh` file, anywhere in
  * the zip. Plugin Check's own file checks, which the form runs next, are left
  * to Plugin Check itself: the `plugin-check` CI job runs it on the release
@@ -15,7 +16,15 @@
  */
 
 /**
- * Top-level entries the zip may contain: the plugin's code, assets and
+ * The one top-level folder that holds the plugin in the zip. A manual install
+ * names the plugin's folder in `wp-content/plugins/` after it, and a zip
+ * without it installs into a randomly named folder instead (see
+ * `bin/PackageZip.sh`).
+ */
+const PLUGIN_FOLDER = 'battery-surf-bench';
+
+/**
+ * Entries the plugin folder may hold at its top: the plugin's code, assets and
  * translations, its production Composer dependencies with the `composer.json`
  * WordPress.org asks for, and the plugin's readme and license.
  */
@@ -31,7 +40,7 @@ const ALLOWED_ROOTS: readonly string[] = [
 	'vendor',
 ];
 
-/** Top-level entries every zip must contain. */
+/** Entries the plugin folder must hold at its top, in every zip. */
 const REQUIRED_ROOTS: readonly string[] = [
 	'battery-surf-bench.php',
 	'readme.txt',
@@ -40,9 +49,9 @@ const REQUIRED_ROOTS: readonly string[] = [
 ];
 
 /**
- * Top-level entries only a release zip must contain: the compiled bundles and
- * the production `vendor/` tree `bin/Release.sh` builds. A plain `composer zip`
- * of a checkout has neither.
+ * Entries only a release zip's plugin folder must hold: the compiled bundles
+ * and the production `vendor/` tree `bin/Release.sh` builds. A plain
+ * `composer zip` of a checkout has neither.
  */
 const RELEASE_ROOTS: readonly string[] = [ 'build', 'vendor' ];
 
@@ -140,7 +149,9 @@ function forbiddenExtensionOf( entry: string ): string | null {
 }
 
 /**
- * Checks a plugin zip's entry names against the package contract.
+ * Checks a plugin zip's entry names against the package contract. An entry
+ * outside the plugin folder is reported by its top-level name, once; every
+ * other rule reads, and reports, paths inside the folder.
  *
  * @param entries - Every entry name in the zip, as `unzip -Z1` lists them.
  * @param options - Set `release` to also require the release-only entries.
@@ -151,7 +162,34 @@ export function findPackageViolations(
 	options: PackageRulesOptions
 ): string[] {
 	const violations: string[] = [];
-	const roots = new Set( entries.map( rootOf ) );
+	const folderPrefix = `${ PLUGIN_FOLDER }/`;
+	const outsideRoots = new Set(
+		entries
+			.filter( ( entry ) => ! entry.startsWith( folderPrefix ) )
+			.map( rootOf )
+	);
+
+	for ( const root of outsideRoots ) {
+		violations.push(
+			`Entry "${ root }" is outside the "${ folderPrefix }" folder: the zip must hold the whole plugin in that one top-level folder, as composer zip builds it, or a manual install puts the plugin in a randomly named folder.`
+		);
+	}
+
+	// Every other rule reads, and reports, paths inside the plugin folder. The
+	// folder's own entry, when the zip has one, names nothing inside it.
+	const pluginEntries = entries
+		.filter( ( entry ) => entry.startsWith( folderPrefix ) )
+		.map( ( entry ) => entry.slice( folderPrefix.length ) )
+		.filter( ( entry ) => entry !== '' );
+
+	// A zip with nothing in the folder, such as one with the plugin's files at
+	// its root, would also miss every required entry. Its outside entries
+	// already say what is wrong.
+	if ( pluginEntries.length === 0 && outsideRoots.size > 0 ) {
+		return violations;
+	}
+
+	const roots = new Set( pluginEntries.map( rootOf ) );
 	const hiddenPaths = new Set< string >();
 	const vcsPaths = new Set< string >();
 	const forbiddenFiles = new Map< string, string >();
@@ -159,14 +197,14 @@ export function findPackageViolations(
 	for ( const root of roots ) {
 		if ( ! ALLOWED_ROOTS.includes( root ) ) {
 			violations.push(
-				`Unexpected top-level entry "${ root }": export-ignore it in .gitattributes, or add it to ALLOWED_ROOTS in bin/PackageRules.mts if the plugin needs it.`
+				`Unexpected entry "${ root }" in the plugin folder: export-ignore it in .gitattributes, or add it to ALLOWED_ROOTS in bin/PackageRules.mts if the plugin needs it.`
 			);
 		}
 	}
 
 	// A checkout zip's vendor/ holds dev packages that never ship, so the
 	// upload form's file rules only apply to it in a release zip.
-	const upload = entries.filter(
+	const upload = pluginEntries.filter(
 		( entry ) => options.release || rootOf( entry ) !== 'vendor'
 	);
 
@@ -182,7 +220,7 @@ export function findPackageViolations(
 		}
 	}
 
-	for ( const entry of entries ) {
+	for ( const entry of pluginEntries ) {
 		const root = rootOf( entry );
 		const hiddenPath = hiddenPathOf( entry );
 
