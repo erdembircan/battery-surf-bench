@@ -28,7 +28,9 @@ zip_path="$PWD/zip/$slug.zip"
 stage="$(mktemp -d)"
 trap 'rm -rf "$stage"' EXIT
 
-composer archive --format=zip --dir="$stage" --file="$slug"
+# --quiet keeps composer from reporting the staging archive, which is deleted
+# on exit. Errors still print.
+composer archive --quiet --format=zip --dir="$stage" --file="$slug"
 unzip -q "$stage/$slug.zip" -d "$stage/$slug"
 
 # zip adds to an existing archive instead of replacing it, so remove the old
