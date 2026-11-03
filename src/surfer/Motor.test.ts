@@ -14,7 +14,7 @@ describe( 'DomMotor.playVideo', () => {
 	it( 'does nothing when the page has no video', async () => {
 		document.body.innerHTML = '';
 		await expect(
-			new DomMotor( () => 0.5 ).playVideo()
+			new DomMotor( () => 0.5, steppedFrames() ).playVideo()
 		).resolves.toBeUndefined();
 	} );
 
@@ -24,7 +24,7 @@ describe( 'DomMotor.playVideo', () => {
 		const play = vi.fn().mockResolvedValue( undefined );
 		video.play = play;
 
-		await new DomMotor( () => 0.5 ).playVideo();
+		await new DomMotor( () => 0.5, steppedFrames() ).playVideo();
 
 		expect( play ).toHaveBeenCalledTimes( 1 );
 		expect( video.muted ).toBe( false );
@@ -39,7 +39,7 @@ describe( 'DomMotor.playVideo', () => {
 			.mockResolvedValueOnce( undefined );
 		video.play = play;
 
-		await new DomMotor( () => 0.5 ).playVideo();
+		await new DomMotor( () => 0.5, steppedFrames() ).playVideo();
 
 		expect( play ).toHaveBeenCalledTimes( 2 );
 		expect( video.muted ).toBe( true );
@@ -51,7 +51,7 @@ describe( 'DomMotor.playVideo', () => {
 		video.play = vi.fn().mockRejectedValue( new Error( 'still blocked' ) );
 
 		await expect(
-			new DomMotor( () => 0.5 ).playVideo()
+			new DomMotor( () => 0.5, steppedFrames() ).playVideo()
 		).resolves.toBeUndefined();
 		expect( video.muted ).toBe( true );
 	} );
