@@ -132,6 +132,14 @@ The plugin itself sends no telemetry, analytics or phone-home requests. Its one 
 
 Because real-world browsing includes video, and video is one of the heaviest things a browser asks of a battery; leaving it out would understate the drain. The video plays the same way WordPress plays any embedded video: it never autoplays, it stays muted, and the surfer decides when to watch and when to move on. It is only ever shown to the operator running a benchmark, and a YouTube embed on your own selected surf pages behaves the same way during a run.
 
+== Screenshots ==
+
+1. The cockpit mid-run: the surfer reads its way through a bundled article while the deck tracks the battery, both drain rates and the projected full-battery runtime.
+2. A finished run's postcard, reopened from the Sessions screen: the measured drain staircase against the projected full discharge, with the run's key figures.
+3. Setting up a run: a fixed duration or a target drop, a ready-made surfer personality or your own mix, and the playback speed.
+4. The Sessions screen keeps every run, with its status, battery span, drain rates and projected full-battery runtime.
+5. The settings screen: choose the pages the surfer visits from the five bundled pages and your own posts and pages, and put them in order.
+
 == Changelog ==
 
 = 1.0.0 =
