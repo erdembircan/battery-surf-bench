@@ -134,7 +134,7 @@ Because real-world browsing includes video, and video is one of the heaviest thi
 
 == Screenshots ==
 
-1. The cockpit mid-run: the surfer reads its way through a bundled article while the deck tracks the battery, both drain rates and the projected full-battery runtime.
+1. The cockpit mid-run: the surfer reads its way through a bundled article while the cockpit's header tracks the battery, both drain rates and the projected full-battery runtime.
 2. A finished run's postcard, reopened from the Sessions screen: the measured drain staircase against the projected full discharge, with the run's key figures.
 3. Setting up a run: a fixed duration or a target drop, a ready-made surfer personality or your own mix, and the playback speed.
 4. The Sessions screen keeps every run, with its status, battery span, drain rates and projected full-battery runtime.

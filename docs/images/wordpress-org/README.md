@@ -47,7 +47,7 @@ They are captured from the running plugin and never edited by hand. To retake al
 pnpm screenshots
 ```
 
-The command builds the plugin, boots a throwaway WordPress Playground in the `production` environment type (so the dev-tools panel stays off), stages the site, and overwrites the five files at 1440 × 900 CSS pixels, twice that in device pixels. It takes 15 to 30 minutes, almost all of it the live run in `screenshot-1.png`: the cockpit computes its drain rates from real elapsed time, so the capture waits for three real 1 % battery steps and then for the surfer to scroll the article's chart into view. The capture scripts are in `tests/screenshots/`.
+The command builds the plugin, boots a throwaway WordPress Playground in the `production` environment type (so the dev-tools panel stays off), stages the site, and overwrites the five files at 1440 × 900 CSS pixels, twice that in device pixels. The three admin screens are captured in a larger window and cropped to the plugin's own screen, leaving out WordPress's admin menu and toolbar. It takes 15 to 30 minutes, almost all of it the live run in `screenshot-1.png`: the cockpit computes its drain rates from real elapsed time, so the capture waits for three real 1 % battery steps and then for the surfer to scroll the article's chart into view. The capture scripts are in `tests/screenshots/`.
 
 What the screenshots show is staged the way the listing video was:
 
