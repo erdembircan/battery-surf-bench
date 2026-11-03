@@ -1,6 +1,6 @@
 {
   "name": "battery-surf-bench",
-  "version": "1.0.0-dev",
+  "version": "1.0.0",
   "description": "WordPress plugin that benchmarks battery drain while simulating browsing.",
   "private": true,
   "packageManager": "pnpm@11.7.0",
