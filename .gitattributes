@@ -47,6 +47,7 @@
 /vitest.config.mts     export-ignore
 /vitest.setup.ts       export-ignore
 /playwright.config.mts export-ignore
+/playwright.screenshots.config.mts export-ignore
 *.map                  export-ignore
 # macOS Finder metadata is never tracked, but composer archive also packs
 # untracked files, so match it at any depth.
