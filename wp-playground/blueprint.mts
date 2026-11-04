@@ -139,6 +139,12 @@ const liveReloadStep = (
  * even boots, entirely outside the ready-flag race) and it authenticates the
  * current request directly with `wp_set_current_user()` plus `wp_set_auth_cookie()`
  * instead of redirecting.
+ *
+ * The production preview server isn't persistent, so it writes this mu-plugin
+ * with the rest of its blueprint, which the CLI runs after flipping that ready
+ * flag. `runCLI` resolves only once the blueprint has run, though, and
+ * `startTestServer` prints its ready line after that, so a browser opened at
+ * the ready line is signed in from its first request.
  */
 export const autoLoginMuPlugin = `<?php
 /**
@@ -420,8 +426,9 @@ export const screenshotsBlueprint: BlueprintDeclaration = {
  * oEmbed stub (see {@link youtubeOembedStubMuPlugin}) so the bundled video page
  * renders its embed without outbound network. Unlike a real install, it signs
  * the browser in as `admin`: it defines `BSB_PLAYGROUND_AUTO_LOGIN` and installs
- * the auto-login mu-plugin (see {@link autoLoginMuPlugin}), since the shared
- * `login` step races the server's ready flag.
+ * the dev site's auto-login mu-plugin (see {@link autoLoginMuPlugin}), which
+ * signs each request in where it lands instead of redirecting, as the shared
+ * `login` step's mu-plugin does.
  */
 export const productionBlueprint: BlueprintDeclaration = {
 	...base,
