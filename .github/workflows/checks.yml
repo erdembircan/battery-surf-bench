@@ -73,48 +73,25 @@ jobs:
       # the build instead of going unnoticed.
       - run: pnpm contracts:verify
 
-  package:
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v6
-      # PHP provides Composer for `composer zip`; Node runs the checker.
-      - uses: ./.github/actions/setup-php
-      - uses: ./.github/actions/setup-node
-      # Archive the checkout under the release zip's export-ignore rules and
-      # check it against the package contract. This proves the exclusions, not
-      # a full release: no JS build or production-only install runs here, so
-      # build/ is absent and vendor/ holds dev packages, both of which the
-      # check allows outside --release.
-      - run: composer zip
-      - run: pnpm package:verify
-
   plugin-check:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v6
-      # PHP without the shared vendor/ cache: bin/Release.sh reinstalls vendor/
-      # without dev packages, and the cache action would save that lean tree
-      # under the key the lint and test jobs restore their dev tools from.
-      - uses: shivammathur/setup-php@v2
-        with:
-          php-version: "8.1"
-          tools: composer
-          coverage: none
-      - run: composer install --no-interaction --no-progress --prefer-dist
+      - uses: ./.github/actions/setup-php
       - uses: ./.github/actions/setup-node
-      # Build and verify the release zip exactly as a release does: compiled
-      # bundles, a production-only vendor/, then package:verify --release.
-      - run: bin/Release.sh
-      # Plugin Check scans a plugin folder rather than a zip, and takes the
-      # plugin's slug from the folder's name. The zip holds the plugin in its
-      # battery-surf-bench/ folder, so this unpacks dist/battery-surf-bench/.
-      - run: unzip -q zip/battery-surf-bench.zip -d dist
+      # Build, zip and verify the production plugin exactly as a release does:
+      # every check, the production build, the zip, then package:verify. The
+      # build installs vendor/ without dev packages for the zip and puts them
+      # back before it ends, so the vendor/ cache, saved only after a green
+      # job, never holds the lean tree.
+      - run: composer zip:production
       # The checks WordPress.org's upload form runs on a new plugin, with the
       # form's settings: the plugin_repo category without prefixing, errors
       # from severity 7 and warnings from severity 6. Like the form, the job
-      # fails on errors only and shows warnings as annotations.
+      # fails on errors only and shows warnings as annotations. Plugin Check
+      # scans a folder rather than a zip: the plugin folder the zip holds,
+      # which the build leaves in dist/battery-surf-bench/.
       - uses: wordpress/plugin-check-action@v1
         with:
           build-dir: dist/battery-surf-bench
