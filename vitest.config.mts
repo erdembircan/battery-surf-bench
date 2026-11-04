@@ -45,6 +45,9 @@ const dataviewsSelfContained = path.resolve(
 );
 
 export default defineConfig( {
+	define: {
+		BSB_DEV_TOOLS: 'true',
+	},
 	plugins: [ react() ],
 	resolve: {
 		alias: [

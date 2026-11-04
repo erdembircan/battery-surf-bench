@@ -35,6 +35,7 @@ import {
 	e2eBlueprint,
 	e2eUnauthenticatedBlueprint,
 	screenshotsBlueprint,
+	productionBlueprint,
 	autoLoginMuPlugin,
 	youtubeOembedStubMuPlugin,
 } from './blueprint.mts';
@@ -373,10 +374,72 @@ describe( 'screenshotsBlueprint', () => {
 	} );
 } );
 
+describe( 'productionBlueprint', () => {
+	const blueprint = asV1( productionBlueprint );
+	const steps = blueprint.steps as Record< string, unknown >[];
+
+	/**
+	 * Read the wp-config constants the blueprint defines.
+	 *
+	 * @return The constants map, or undefined if no step defines any.
+	 */
+	function definedConsts(): Record< string, unknown > | undefined {
+		return steps.find( ( step ) => step.step === 'defineWpConfigConsts' )
+			?.consts as Record< string, unknown > | undefined;
+	}
+
+	it( 'sets the production environment type, like a real install', () => {
+		expect( definedConsts()?.WP_ENVIRONMENT_TYPE ).toBe( 'production' );
+	} );
+
+	it( 'turns debugging and debug output off', () => {
+		expect( definedConsts()?.WP_DEBUG ).toBe( false );
+		expect( definedConsts()?.WP_DEBUG_DISPLAY ).toBe( false );
+	} );
+
+	it( 'activates the plugin', () => {
+		expect( steps.some( ( step ) => step.step === 'activatePlugin' ) ).toBe(
+			true
+		);
+	} );
+
+	it( 'installs the YouTube oEmbed stub mu-plugin', () => {
+		expect(
+			findWriteFileStep( steps, YOUTUBE_OEMBED_STUB_PATH )
+		).toBeDefined();
+	} );
+
+	it( 'installs the auto-login mu-plugin and opts in to it, so the browser lands signed in', () => {
+		expect( findWriteFileStep( steps, AUTO_LOGIN_PATH ) ).toBeDefined();
+		expect(
+			steps.some(
+				( step ) =>
+					step.step === 'defineWpConfigConsts' &&
+					( step.consts as Record< string, unknown > )
+						.BSB_PLAYGROUND_AUTO_LOGIN === true
+			)
+		).toBe( true );
+	} );
+
+	it( 'does not install the LiveReload mu-plugin', () => {
+		expect( findWriteFileStep( steps, LIVE_RELOAD_PATH ) ).toBeUndefined();
+	} );
+
+	it( 'does not include the shared login step -- the auto-login mu-plugin signs the browser in instead', () => {
+		expect( steps.some( ( step ) => step.step === 'login' ) ).toBe( false );
+	} );
+} );
+
 describe( 'autoLoginMuPlugin', () => {
 	it( 'guards on the development environment type', () => {
 		expect( autoLoginMuPlugin ).toContain(
 			"'development' !== wp_get_environment_type()"
+		);
+	} );
+
+	it( 'also acts where the blueprint opts in with BSB_PLAYGROUND_AUTO_LOGIN', () => {
+		expect( autoLoginMuPlugin ).toContain(
+			"defined( 'BSB_PLAYGROUND_AUTO_LOGIN' ) && BSB_PLAYGROUND_AUTO_LOGIN"
 		);
 	} );
 

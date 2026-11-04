@@ -240,7 +240,8 @@ export const runStore: StorePart = {
 			// precedent for a production seam reading dev-tools state.
 			const { state: sharedState } =
 				store< SharedDevtoolsSurfStore >( 'bsb/cockpit' );
-			context.sterile = Boolean( sharedState.devtools?.surf?.sterile );
+			context.sterile =
+				BSB_DEV_TOOLS && Boolean( sharedState.devtools?.surf?.sterile );
 			// Runs open in the compact stage view; the user can expand to the
 			// full dashboard mid-run via the stage's expand control.
 			context.compact = true;
@@ -559,6 +560,10 @@ export const runStore: StorePart = {
 		 * has actually joined the store.
 		 */
 		syncDevtoolsSurf(): void {
+			if ( ! BSB_DEV_TOOLS ) {
+				return;
+			}
+
 			const { state: sharedState } =
 				store< SharedDevtoolsSurfStore >( 'bsb/cockpit' );
 			const surf = sharedState.devtools?.surf;

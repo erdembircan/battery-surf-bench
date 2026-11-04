@@ -1,15 +1,21 @@
-# Files and folders excluded from the distributable plugin archive
-# (`composer archive`). Everything not listed here ships in the zip,
-# including the untracked build/ assets and the production vendor/ tree.
+# Files and folders left out of every plugin build. The `archive:plugin`
+# step of `composer build:development` and `composer build:production` packs
+# everything not listed here, including the untracked build/ assets and the
+# production vendor/ tree, and the build assembles the plugin from that
+# archive.
 #
 # composer.json ships on purpose: WordPress.org asks plugins that bundle
 # Composer dependencies to include it alongside vendor/.
 #
-# `pnpm package:verify` checks the built zip against the allowed contents in
-# bin/PackageRules.mts. CI runs it on every pull request and merge, and
-# bin/Release.sh on every release build, so a stray top-level path or a hidden
-# file or folder that these rules miss fails the build instead of reaching
-# WordPress.org.
+# The dev-tools panel isn't listed: the development build ships it, and the
+# production build leaves it out on its own (webpack.config.js,
+# bin/Assemble.mts).
+#
+# `pnpm run package:verify` checks each zip against the allowed contents in
+# bin/PackageRules.mts at the end of `composer zip:development` and
+# `composer zip:production`, and CI runs `composer zip:production` on every
+# pull request and merge, so a stray top-level path or a hidden file or folder
+# that these rules miss fails the build instead of reaching WordPress.org.
 /.git                  export-ignore
 /.github               export-ignore
 /.wordpress-org        export-ignore
@@ -27,6 +33,7 @@
 /test-results          export-ignore
 /playwright-report     export-ignore
 /zip                   export-ignore
+/dist                  export-ignore
 /.gitignore            export-ignore
 /.gitattributes        export-ignore
 /.editorconfig         export-ignore
@@ -52,3 +59,15 @@
 # macOS Finder metadata is never tracked, but composer archive also packs
 # untracked files, so match it at any depth.
 .DS_Store              export-ignore
+
+# Files a live site never loads. bin/PackageRules.mts fails the build when a
+# translation source or assets/ ships.
+#
+# The stylesheets inline these images at build time.
+/assets                   export-ignore
+# WordPress loads the .l10n.php translations, never their sources.
+/languages/*.po           export-ignore
+/languages/*.pot          export-ignore
+# Bundled libraries' own repository files and readmes.
+/vendor/**/.*             export-ignore
+/vendor/**/README.md      export-ignore

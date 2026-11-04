@@ -123,8 +123,9 @@ const liveReloadStep = (
 ];
 
 /**
- * Source for a dev-only must-use plugin that logs the browser in as the
- * default admin user, deterministically and without a redirect.
+ * Source for the must-use plugin that logs the browser in as the default
+ * admin user on the dev server and the production preview server,
+ * deterministically and without a redirect.
  *
  * The pinned `@wp-playground/cli` (3.1.39) flips its HTTP server's ready flag
  * before the blueprint's `login` step has run, so the constant that step
@@ -138,19 +139,31 @@ const liveReloadStep = (
  * even boots, entirely outside the ready-flag race) and it authenticates the
  * current request directly with `wp_set_current_user()` plus `wp_set_auth_cookie()`
  * instead of redirecting.
+ *
+ * The production preview server isn't persistent, so it writes this mu-plugin
+ * with the rest of its blueprint, which the CLI runs after flipping that ready
+ * flag. `runCLI` resolves only once the blueprint has run, though, and
+ * `startTestServer` prints its ready line after that, so a browser opened at
+ * the ready line is signed in from its first request.
  */
 export const autoLoginMuPlugin = `<?php
 /**
- * Battery Surf Bench dev auto-login. Injected by the Playground dev blueprint so
- * the persistent dev server serves an authenticated admin session to the browser
- * without a manual wp-login.php round-trip. Never present outside the dev
- * playground: it is written only by the dev blueprints and additionally guards on
- * the development environment type.
+ * Battery Surf Bench Playground auto-login. Injected by the Playground dev
+ * blueprints and the production preview blueprint, so those servers serve an
+ * authenticated admin session to the browser without a manual wp-login.php
+ * round-trip. Never present outside those Playground sites: only their
+ * blueprints write it, and it acts only in the development environment type or
+ * where the blueprint defines BSB_PLAYGROUND_AUTO_LOGIN.
  */
 add_action( 'init', 'bsb_dev_auto_login', 0 );
 function bsb_dev_auto_login() {
-	// Defense in depth: only ever act inside the development playground.
-	if ( 'development' !== wp_get_environment_type() ) {
+	// Defense in depth: only ever act inside a Playground site that asks for it,
+	// the development playground or one whose blueprint defines
+	// BSB_PLAYGROUND_AUTO_LOGIN, such as the production preview.
+	if (
+		'development' !== wp_get_environment_type()
+		&& ! ( defined( 'BSB_PLAYGROUND_AUTO_LOGIN' ) && BSB_PLAYGROUND_AUTO_LOGIN )
+	) {
 		return;
 	}
 	// REST/AJAX requests authenticate via the cookie + nonce already; setting a
@@ -190,7 +203,8 @@ function bsb_dev_auto_login() {
 `;
 
 /**
- * Build the dev-only auto-login mu-plugin install step.
+ * Build the auto-login mu-plugin install step, shared by the dev blueprints and
+ * the production preview blueprint.
  *
  * @return The mkdir + writeFile steps that install the mu-plugin.
  */
@@ -354,6 +368,24 @@ export const e2eUnauthenticatedBlueprint: BlueprintDeclaration = {
 };
 
 /**
+ * Set the `production` environment type with debugging and debug output off,
+ * so a site runs like a real install: the dev-tools panel stays closed and no
+ * debug output reaches the page.
+ */
+const productionStep: BlueprintV1Declaration[ 'steps' ] = [
+	{
+		step: 'defineWpConfigConsts',
+		consts: {
+			WP_DEBUG: false,
+			WP_DEBUG_LOG: false,
+			WP_DEBUG_DISPLAY: false,
+			SCRIPT_DEBUG: false,
+			WP_ENVIRONMENT_TYPE: 'production',
+		},
+	},
+];
+
+/**
  * Blueprint for the listing-screenshot instance (`pnpm screenshots`): a
  * deterministic, non-persistent site that looks like a real install rather
  * than a dev box. It sets the `production` environment type with debugging
@@ -369,16 +401,7 @@ export const e2eUnauthenticatedBlueprint: BlueprintDeclaration = {
 export const screenshotsBlueprint: BlueprintDeclaration = {
 	...base,
 	steps: [
-		{
-			step: 'defineWpConfigConsts',
-			consts: {
-				WP_DEBUG: false,
-				WP_DEBUG_LOG: false,
-				WP_DEBUG_DISPLAY: false,
-				SCRIPT_DEBUG: false,
-				WP_ENVIRONMENT_TYPE: 'production',
-			},
-		},
+		...productionStep,
 		...siteLanguageStep,
 		{
 			step: 'setSiteOptions',
@@ -390,6 +413,34 @@ export const screenshotsBlueprint: BlueprintDeclaration = {
 			meta: { show_admin_bar_front: 'false' },
 		},
 		...activatePluginStep,
+		...youtubeOembedStubStep(),
+	],
+};
+
+/**
+ * Blueprint for the production preview server (`composer serve:production`): a
+ * fresh, non-persistent site that runs the production build the way a real
+ * install would. It sets the `production` environment type with debugging off
+ * (see {@link productionStep}), pins the site language to English (see
+ * {@link siteLanguageStep}), activates the plugin, and installs the YouTube
+ * oEmbed stub (see {@link youtubeOembedStubMuPlugin}) so the bundled video page
+ * renders its embed without outbound network. Unlike a real install, it signs
+ * the browser in as `admin`: it defines `BSB_PLAYGROUND_AUTO_LOGIN` and installs
+ * the dev site's auto-login mu-plugin (see {@link autoLoginMuPlugin}), which
+ * signs each request in where it lands instead of redirecting, as the shared
+ * `login` step's mu-plugin does.
+ */
+export const productionBlueprint: BlueprintDeclaration = {
+	...base,
+	steps: [
+		...productionStep,
+		{
+			step: 'defineWpConfigConsts',
+			consts: { BSB_PLAYGROUND_AUTO_LOGIN: true },
+		},
+		...siteLanguageStep,
+		...activatePluginStep,
+		...autoLoginStep(),
 		...youtubeOembedStubStep(),
 	],
 };

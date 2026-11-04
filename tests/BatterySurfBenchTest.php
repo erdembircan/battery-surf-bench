@@ -14,6 +14,7 @@ use ErdemBircan\BatterySurfBench\BatterySurfBench;
 use Mockery;
 
 use function has_action;
+use function has_filter;
 
 /**
  * Behavioral tests for the bootstrap's public contract.
@@ -31,6 +32,10 @@ final class BatterySurfBenchTest extends TestCase {
 		// The dev-tools manager gates its own registration on the environment;
 		// default it closed (production) so booting never depends on it.
 		Functions\when( 'wp_get_environment_type' )->justReturn( 'production' );
+		// No file is readable unless a test says so, so booting never depends
+		// on what's on disk: no compiled container left by a build, and no
+		// dev-tools files.
+		Functions\when( 'is_readable' )->justReturn( false );
 	}
 
 	/**
@@ -87,5 +92,34 @@ final class BatterySurfBenchTest extends TestCase {
 		$plugin->init();
 
 		$this->assertNotFalse( has_action( 'admin_menu' ) );
+	}
+
+	/**
+	 * A checkout that has the dev-tools files boots the panel in a development
+	 * environment, observable as its filter on the cockpit's panel slot.
+	 */
+	public function test_init_boots_the_dev_tools_when_their_files_are_present(): void {
+		Functions\when( 'wp_get_environment_type' )->justReturn( 'development' );
+		Functions\when( 'is_readable' )->alias(
+			static fn ( string $path ): bool => str_ends_with( $path, '/DevTools/DevTools.php' )
+		);
+
+		$plugin = new BatterySurfBench( '/path/to/plugin.php' );
+		$plugin->init();
+
+		$this->assertNotFalse( has_filter( 'battery_surf_bench_devtools_panel' ) );
+	}
+
+	/**
+	 * The production build leaves the dev-tools files out, so a site running
+	 * it never boots the panel, not even in a development environment.
+	 */
+	public function test_init_skips_the_dev_tools_when_their_files_are_missing(): void {
+		Functions\when( 'wp_get_environment_type' )->justReturn( 'development' );
+
+		$plugin = new BatterySurfBench( '/path/to/plugin.php' );
+		$plugin->init();
+
+		$this->assertFalse( has_filter( 'battery_surf_bench_devtools_panel' ) );
 	}
 }

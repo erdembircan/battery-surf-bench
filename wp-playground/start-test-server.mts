@@ -10,7 +10,7 @@ import {
 import { logServerReady } from './log-server.mts';
 
 const __dirname = dirname( fileURLToPath( import.meta.url ) );
-const pluginDir = resolve( __dirname, '..' );
+const repositoryDir = resolve( __dirname, '..' );
 
 interface StartTestServerOptions {
 	port: number;
@@ -18,6 +18,7 @@ interface StartTestServerOptions {
 	blueprint: BlueprintDeclaration;
 	/** Ready marker to emit on stdout; defaults to {@link PLAYGROUND_READY_MARKER}. */
 	readyMarker?: string;
+	pluginDir?: string;
 }
 
 /**
@@ -57,10 +58,11 @@ async function waitForReady(
 }
 
 /**
- * Start a non-persistent WordPress Playground test server.
+ * Start a non-persistent WordPress Playground server.
  *
- * Nothing is written to disk. The plugin directory is mounted into the virtual
- * filesystem so it can be tested without side effects. Once the server can
+ * Nothing is written to disk. The plugin folder (the repository by default, or
+ * a built plugin such as `dist/battery-surf-bench/`) is mounted into the
+ * virtual filesystem so it can be tested without side effects. Once the server can
  * handle requests, a stdout marker carrying the bound port is emitted so
  * Playwright's `webServer.wait.stdout` can both detect readiness and capture
  * the port for its own config re-evaluation (see
@@ -71,12 +73,14 @@ async function waitForReady(
  * @param options.url         - Base URL for readiness polling.
  * @param options.blueprint   - Blueprint declaration to apply.
  * @param options.readyMarker - Ready marker to emit on stdout; defaults to {@link PLAYGROUND_READY_MARKER}.
+ * @param options.pluginDir   - Plugin folder to mount; defaults to the repository root.
  */
 export async function startTestServer( {
 	port,
 	url,
 	blueprint,
 	readyMarker = PLAYGROUND_READY_MARKER,
+	pluginDir = repositoryDir,
 }: StartTestServerOptions ): Promise< void > {
 	const server = await runCLI( {
 		command: 'server',
