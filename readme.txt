@@ -115,8 +115,7 @@ The scripts and styles in the plugin's `build/` folder are compiled from TypeScr
 To build it yourself, install Node.js 24 with pnpm, and PHP 8.1 or later with Composer. Then, in a clone of the repository:
 
 1. `pnpm install` and `composer install` install the dependencies.
-2. `composer build:production` runs the lints and tests, compiles `src/` into `build/`, and assembles the finished plugin in `dist/battery-surf-bench/`.
-3. `composer zip:production` runs the same build and zips that folder into `zip/battery-surf-bench.zip`, exactly as it ships.
+2. `composer zip:production` runs the lints and tests, compiles `src/` into `build/`, assembles the finished plugin in `dist/battery-surf-bench/`, and zips it into `zip/battery-surf-bench.zip`, exactly as it ships.
 
 == Installation ==
 

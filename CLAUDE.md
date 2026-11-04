@@ -297,6 +297,8 @@ These scripts call only named scripts: other Composer scripts (`@name`) and pack
 
 Tests that need bundles compile their own: the e2e runs the development ones, `pnpm screenshots` the production ones. Both builds also write the checkout's own `build/`, so after a production build it has no dev-tools panel until the next development build or `composer serve:development`.
 
+`@stage` swaps `vendor/` to the production packages for the archive, then back. If a build stops between those two installs, `vendor/` is left without the dev packages and the next check can't find PHPCS or PHPUnit: run `composer vendor:development` to put them back.
+
 ## CI — Wait for Every Check to Finish Green
 
 CI runs after every push to a pull request and after every merge. Before treating any work as done — or moving on to anything that depends on it — **wait until all CI checks have finished and are green.**
