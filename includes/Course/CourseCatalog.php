@@ -38,7 +38,7 @@ class CourseCatalog {
 		'article-1' => 'The Hidden Cost of a Browser Tab',
 		'gallery'   => 'Inside the Machine',
 		'article-2' => 'What Drains a Laptop Battery, Ranked',
-		'video'     => "Watch: Inside a Modern Laptop's Power Path",
+		'video'     => 'Watch: Nineteen Seconds That Started It All',
 		'links'     => 'News Hub: Energy & Computing',
 	);
 

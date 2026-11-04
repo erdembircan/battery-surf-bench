@@ -95,7 +95,7 @@ Fully translation-ready, with German, Spanish, French, Brazilian Portuguese, and
 
 == External services ==
 
-Battery Surf Bench connects to one external service: YouTube, which hosts the video on the bundled course's video page, "Watch: Inside a Modern Laptop's Power Path". Video is part of everyday browsing and one of the heaviest loads a browser puts on a battery, so the course includes it.
+Battery Surf Bench connects to one external service: YouTube, which hosts the video on the bundled course's video page, "Watch: Nineteen Seconds That Started It All". Video is part of everyday browsing and one of the heaviest loads a browser puts on a battery, so the course includes it.
 
 Nothing is sent until an operator starts a benchmark, and the video only ever appears on the operator-gated benchmark page, never on your public site. When the surfer reaches the video page during a run:
 
