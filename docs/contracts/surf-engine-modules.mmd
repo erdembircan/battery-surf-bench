@@ -18,7 +18,9 @@ classDiagram
     %% the bsbSterile=1 param is ALSO present, builds and starts a SterileHelm
     %% instead of a SurfLoop — the auction never ticks; every other dep
     %% (motor, behaviors, traits, senseAffordances, speed, the shared
-    %% onPageDone/onBehaviorRun callbacks) is identical either way.
+    %% onPageDone/onBehaviorRun callbacks) is identical either way. A
+    %% production build (BSB_DEV_TOOLS false, see src/BuildFlags.d.ts)
+    %% compiles the sterile path out, so it always starts a SurfLoop.
     class EngineBoot {
         <<module>>
         boot guard on the traits URL param; builds and starts SurfLoop (or,
@@ -56,7 +58,8 @@ classDiagram
     %% 'bsb:behaviorEnd', fires onPageDone immediately — never runs an actual
     %% behavior. Every other steered behavior runs through its own run(),
     %% wired to announce/onBehaviorRun the same way the loop wires it; once
-    %% run() resolves, posts 'bsb:behaviorEnd'.
+    %% run() resolves, posts 'bsb:behaviorEnd'. Only a development build
+    %% compiles it in.
     class SterileHelm {
         +start() void
         +stop() void
@@ -320,7 +323,7 @@ classDiagram
     RealClock ..|> Clock
 
     EngineBoot --> SurfLoop : builds deps & starts (bsbSterile absent)
-    EngineBoot --> SterileHelm : builds deps & starts (bsbSterile=1)
+    EngineBoot --> SterileHelm : builds deps & starts (bsbSterile=1, development builds only)
     EngineBoot --> PageLoad : gates start on document load
     EngineBoot --> DomMotor : creates
     DomMotor --> FakeCursor : creates & owns (composition)

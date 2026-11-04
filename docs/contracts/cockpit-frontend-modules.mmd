@@ -236,7 +236,7 @@ classDiagram
     %% surf-engine-modules.mmd for the engine-side receiver).
     class SurferUrl {
         <<module>>
-        +withSurferParams(string, number[], number, sterile?) string — appends bsbSterile=1 only when sterile, omitted otherwise
+        +withSurferParams(string, number[], number, sterile?) string — appends bsbSterile=1 only when sterile, and never in a production build
     }
 
     %% Builds the opaque ?bsbSurfIndex=/&bsbNonce= base URL RunStore layers
@@ -505,7 +505,8 @@ classDiagram
     BatteryStore --> EffectiveBatteryOverride : resolves the effective dev-tools override
     RunStore --> BatteryStore : seeds the opening sample on run start
 
-    %% --- Dev-tools module (src/devtools/), enqueued only in a dev environment.
+    %% --- Dev-tools module (src/devtools/), compiled only into a development
+    %% build and enqueued only in a dev environment.
     %% A separate script module from CockpitView above; it joins the SAME
     %% `bsb/cockpit` namespace via the store-merge mechanism (later members
     %% override on collision), which is why every member it contributes carries
@@ -654,6 +655,10 @@ classDiagram
     ResetStore --> DischargeSimStore : calls resetDischargeSim()
     ResetStore --> SurfSteerStore : calls resetSurfSteer()
 
+    %% A production build (BSB_DEV_TOOLS false, see src/BuildFlags.d.ts)
+    %% compiles these seams out with the dev-tools module itself: BatteryStore
+    %% never reads an override, toggleRun never snapshots `sterile`, and
+    %% syncDevtoolsSurf and syncDevtoolsShark do nothing.
     DevtoolsStore ..> BatteryStore : joins bsb/cockpit store (state.devtools.battery)
     BatteryStore ..> DevtoolsStore : reads state.devtools.battery (undefined in production)
     DevtoolsStore ..> RunStore : joins bsb/cockpit store (state.devtools.surf)
