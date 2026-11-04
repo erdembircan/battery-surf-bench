@@ -13,8 +13,8 @@ import { startTestServer } from './start-test-server.mts';
  * folder `composer build:production` assembles, instead of the repository.
  * `composer serve:production` builds that folder and then runs this. It serves
  * {@link productionBlueprint} on the first free port from
- * {@link PLAYGROUND_PRODUCTION_PORT} up. Log in as `admin` with the password
- * `password`; stop the server with Ctrl+C.
+ * {@link PLAYGROUND_PRODUCTION_PORT} up, and the site signs the browser in as
+ * `admin`. Stop the server with Ctrl+C.
  */
 const pluginDir = resolve(
 	dirname( fileURLToPath( import.meta.url ) ),
@@ -39,5 +39,5 @@ await startTestServer( {
 } );
 
 process.stdout.write(
-	'  Log in as admin with the password "password", then open Battery Surf Bench.\n'
+	'  The site signs you in as admin: open Battery Surf Bench from the admin menu.\n'
 );

@@ -409,12 +409,23 @@ describe( 'productionBlueprint', () => {
 		).toBeDefined();
 	} );
 
-	it( 'installs neither the dev auto-login nor the LiveReload mu-plugin', () => {
-		expect( findWriteFileStep( steps, AUTO_LOGIN_PATH ) ).toBeUndefined();
+	it( 'installs the auto-login mu-plugin and opts in to it, so the browser lands signed in', () => {
+		expect( findWriteFileStep( steps, AUTO_LOGIN_PATH ) ).toBeDefined();
+		expect(
+			steps.some(
+				( step ) =>
+					step.step === 'defineWpConfigConsts' &&
+					( step.consts as Record< string, unknown > )
+						.BSB_PLAYGROUND_AUTO_LOGIN === true
+			)
+		).toBe( true );
+	} );
+
+	it( 'does not install the LiveReload mu-plugin', () => {
 		expect( findWriteFileStep( steps, LIVE_RELOAD_PATH ) ).toBeUndefined();
 	} );
 
-	it( 'does not include the login step -- like a fresh install, the site asks you to log in', () => {
+	it( 'does not include the shared login step -- the auto-login mu-plugin signs the browser in instead', () => {
 		expect( steps.some( ( step ) => step.step === 'login' ) ).toBe( false );
 	} );
 } );
@@ -423,6 +434,12 @@ describe( 'autoLoginMuPlugin', () => {
 	it( 'guards on the development environment type', () => {
 		expect( autoLoginMuPlugin ).toContain(
 			"'development' !== wp_get_environment_type()"
+		);
+	} );
+
+	it( 'also acts where the blueprint opts in with BSB_PLAYGROUND_AUTO_LOGIN', () => {
+		expect( autoLoginMuPlugin ).toContain(
+			"defined( 'BSB_PLAYGROUND_AUTO_LOGIN' ) && BSB_PLAYGROUND_AUTO_LOGIN"
 		);
 	} );
 

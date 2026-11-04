@@ -123,8 +123,9 @@ const liveReloadStep = (
 ];
 
 /**
- * Source for a dev-only must-use plugin that logs the browser in as the
- * default admin user, deterministically and without a redirect.
+ * Source for the must-use plugin that logs the browser in as the default
+ * admin user on the dev server and the production preview server,
+ * deterministically and without a redirect.
  *
  * The pinned `@wp-playground/cli` (3.1.39) flips its HTTP server's ready flag
  * before the blueprint's `login` step has run, so the constant that step
@@ -141,16 +142,22 @@ const liveReloadStep = (
  */
 export const autoLoginMuPlugin = `<?php
 /**
- * Battery Surf Bench dev auto-login. Injected by the Playground dev blueprint so
- * the persistent dev server serves an authenticated admin session to the browser
- * without a manual wp-login.php round-trip. Never present outside the dev
- * playground: it is written only by the dev blueprints and additionally guards on
- * the development environment type.
+ * Battery Surf Bench Playground auto-login. Injected by the Playground dev
+ * blueprints and the production preview blueprint, so those servers serve an
+ * authenticated admin session to the browser without a manual wp-login.php
+ * round-trip. Never present outside those Playground sites: only their
+ * blueprints write it, and it acts only in the development environment type or
+ * where the blueprint defines BSB_PLAYGROUND_AUTO_LOGIN.
  */
 add_action( 'init', 'bsb_dev_auto_login', 0 );
 function bsb_dev_auto_login() {
-	// Defense in depth: only ever act inside the development playground.
-	if ( 'development' !== wp_get_environment_type() ) {
+	// Defense in depth: only ever act inside a Playground site that asks for it,
+	// the development playground or one whose blueprint defines
+	// BSB_PLAYGROUND_AUTO_LOGIN, such as the production preview.
+	if (
+		'development' !== wp_get_environment_type()
+		&& ! ( defined( 'BSB_PLAYGROUND_AUTO_LOGIN' ) && BSB_PLAYGROUND_AUTO_LOGIN )
+	) {
 		return;
 	}
 	// REST/AJAX requests authenticate via the cookie + nonce already; setting a
@@ -190,7 +197,8 @@ function bsb_dev_auto_login() {
 `;
 
 /**
- * Build the dev-only auto-login mu-plugin install step.
+ * Build the auto-login mu-plugin install step, shared by the dev blueprints and
+ * the production preview blueprint.
  *
  * @return The mkdir + writeFile steps that install the mu-plugin.
  */
@@ -410,16 +418,22 @@ export const screenshotsBlueprint: BlueprintDeclaration = {
  * (see {@link productionStep}), pins the site language to English (see
  * {@link siteLanguageStep}), activates the plugin, and installs the YouTube
  * oEmbed stub (see {@link youtubeOembedStubMuPlugin}) so the bundled video page
- * renders its embed without outbound network. Like a fresh install, it carries
- * no login step and no dev auto-login: the site asks you to log in, as `admin`
- * with the password `password`.
+ * renders its embed without outbound network. Unlike a real install, it signs
+ * the browser in as `admin`: it defines `BSB_PLAYGROUND_AUTO_LOGIN` and installs
+ * the auto-login mu-plugin (see {@link autoLoginMuPlugin}), since the shared
+ * `login` step races the server's ready flag.
  */
 export const productionBlueprint: BlueprintDeclaration = {
 	...base,
 	steps: [
 		...productionStep,
+		{
+			step: 'defineWpConfigConsts',
+			consts: { BSB_PLAYGROUND_AUTO_LOGIN: true },
+		},
 		...siteLanguageStep,
 		...activatePluginStep,
+		...autoLoginStep(),
 		...youtubeOembedStubStep(),
 	],
 };
