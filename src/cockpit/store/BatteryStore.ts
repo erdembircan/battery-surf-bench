@@ -63,6 +63,10 @@ interface SharedBatteryStore {
  * @return The effective override, or undefined where dev tools have not joined the store.
  */
 const currentOverride = (): BatteryOverrideState | undefined => {
+	if ( ! BSB_DEV_TOOLS ) {
+		return undefined;
+	}
+
 	const { state } = store< SharedBatteryStore >( 'bsb/cockpit' );
 	const { devtools } = state;
 

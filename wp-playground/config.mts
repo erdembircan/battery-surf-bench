@@ -325,3 +325,10 @@ export function parsePlaygroundScreenshotsPortEnv(
  */
 export const SCREENSHOTS_STORAGE_STATE =
 	'test-results/.auth/screenshots-admin.json';
+
+/**
+ * Preferred port for the production preview server (`composer serve:production`),
+ * clear of the dev, e2e and screenshot servers' ports so it can run beside
+ * them. `StartProduction.mts` binds the first free port from here up.
+ */
+export const PLAYGROUND_PRODUCTION_PORT = 9800;

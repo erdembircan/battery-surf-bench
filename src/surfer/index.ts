@@ -84,7 +84,7 @@ if ( params.has( TRAITS_PARAM ) ) {
 	);
 	const speed = normalizeSpeed( Number( params.get( SPEED_PARAM ) ) );
 	const rng = mulberry32( randomSeed() );
-	const sterile = params.get( STERILE_PARAM ) === '1';
+	const sterile = BSB_DEV_TOOLS && params.get( STERILE_PARAM ) === '1';
 
 	const onPageDone = (): void => {
 		window.parent.postMessage( PAGE_DONE_MESSAGE, window.location.origin );
@@ -116,7 +116,7 @@ if ( params.has( TRAITS_PARAM ) ) {
 		speed,
 	};
 
-	if ( sterile ) {
+	if ( BSB_DEV_TOOLS && sterile ) {
 		// The auction never ticks: each behavior is instead fired manually from
 		// the dev-tools panel, and run exactly once over this same motor and
 		// context-sensing path.

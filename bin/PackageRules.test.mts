@@ -1,29 +1,41 @@
 /**
  * Tests for the plugin zip contract in `PackageRules.mts`.
  *
- * The rules read only entry names, so every case is a plain list shaped like
- * `unzip -Z1` output: no zip, no filesystem.
+ * The rules read only entry names, and the production zip's scripts, so every
+ * case is a plain list shaped like `unzip -Z1` output: no zip, no filesystem.
  */
 
 import { describe, it, expect } from 'vitest';
-import { findPackageViolations, findSizeViolations } from './PackageRules.mts';
+import {
+	findDevToolsCode,
+	findPackageViolations,
+	findSizeViolations,
+} from './PackageRules.mts';
 
 /** The one top-level folder every entry of a well-formed zip sits in. */
 const FOLDER = 'battery-surf-bench/';
 
-/** Paths in a clean `composer zip` of a checkout, without build output, inside the plugin folder. */
-const CHECKOUT_FILES = [
+/** Paths in a clean production zip, inside the plugin folder. */
+const PRODUCTION_FILES = [
 	'LICENSE',
 	'battery-surf-bench.php',
 	'composer.json',
 	'readme.txt',
+	'build/cockpit/view.js',
 	'includes/Core/Config.php',
 	'languages/battery-surf-bench-fr_FR.l10n.php',
 	'vendor/autoload.php',
 ];
 
-/** Paths in a clean release zip, with the compiled bundles, inside the plugin folder. */
-const RELEASE_FILES = [ ...CHECKOUT_FILES, 'build/cockpit/index.js' ];
+/** The dev-tools panel's files a development zip must carry. */
+const DEV_TOOLS_FILES = [
+	'includes/DevTools/DevTools.php',
+	'build/devtools/view.js',
+	'build/style-devtools.css',
+];
+
+/** Paths in a clean development zip, inside the plugin folder. */
+const DEVELOPMENT_FILES = [ ...PRODUCTION_FILES, ...DEV_TOOLS_FILES ];
 
 /**
  * Returns the zip entry names for paths inside the plugin folder.
@@ -36,17 +48,19 @@ function packed( paths: readonly string[] ): string[] {
 }
 
 describe( 'findPackageViolations', () => {
-	it( 'accepts a checkout zip that ships only plugin files', () => {
+	it( 'accepts a production zip that ships only plugin files', () => {
 		expect(
-			findPackageViolations( packed( CHECKOUT_FILES ), {
-				release: false,
+			findPackageViolations( packed( PRODUCTION_FILES ), {
+				variant: 'production',
 			} )
 		).toEqual( [] );
 	} );
 
-	it( 'accepts a release zip with the compiled bundles', () => {
+	it( 'accepts a development zip with the dev-tools panel', () => {
 		expect(
-			findPackageViolations( packed( RELEASE_FILES ), { release: true } )
+			findPackageViolations( packed( DEVELOPMENT_FILES ), {
+				variant: 'development',
+			} )
 		).toEqual( [] );
 	} );
 
@@ -56,12 +70,12 @@ describe( 'findPackageViolations', () => {
 				[
 					FOLDER,
 					...packed( [
-						...CHECKOUT_FILES,
+						...PRODUCTION_FILES,
 						'languages/',
 						'includes/Core/',
 					] ),
 				],
-				{ release: false }
+				{ variant: 'production' }
 			)
 		).toEqual( [] );
 	} );
@@ -69,12 +83,12 @@ describe( 'findPackageViolations', () => {
 	it( 'flags each entry outside the plugin folder once, by its top-level name', () => {
 		const violations = findPackageViolations(
 			[
-				...packed( CHECKOUT_FILES ),
+				...packed( PRODUCTION_FILES ),
 				'readme.txt',
 				'__MACOSX/battery-surf-bench/._LICENSE',
 				'__MACOSX/._battery-surf-bench',
 			],
-			{ release: false }
+			{ variant: 'production' }
 		);
 
 		expect( violations ).toHaveLength( 2 );
@@ -91,11 +105,11 @@ describe( 'findPackageViolations', () => {
 	} );
 
 	it( 'flags a zip with the plugin files at its root by its outside entries alone', () => {
-		const violations = findPackageViolations( CHECKOUT_FILES, {
-			release: true,
+		const violations = findPackageViolations( PRODUCTION_FILES, {
+			variant: 'production',
 		} );
 
-		expect( violations ).toHaveLength( 7 );
+		expect( violations ).toHaveLength( 8 );
 		expect( violations ).toEqual(
 			expect.arrayContaining( [
 				expect.stringContaining(
@@ -112,10 +126,10 @@ describe( 'findPackageViolations', () => {
 
 	it( 'flags a plugin folder with another name', () => {
 		const violations = findPackageViolations(
-			CHECKOUT_FILES.map(
+			PRODUCTION_FILES.map(
 				( path ) => `battery-surf-bench-main/${ path }`
 			),
-			{ release: false }
+			{ variant: 'production' }
 		);
 
 		expect( violations ).toEqual( [
@@ -128,13 +142,13 @@ describe( 'findPackageViolations', () => {
 	it( 'flags each unexpected entry in the plugin folder once', () => {
 		const violations = findPackageViolations(
 			packed( [
-				...CHECKOUT_FILES,
+				...PRODUCTION_FILES,
 				'.github/workflows/checks.yml',
 				'.github/actions/setup-php/action.yml',
-				'bin/Release.mts',
+				'bin/Assemble.mts',
 				'.wordpress-org/icon-256x256.png',
 			] ),
-			{ release: false }
+			{ variant: 'production' }
 		);
 
 		expect( violations ).toHaveLength( 3 );
@@ -156,11 +170,11 @@ describe( 'findPackageViolations', () => {
 	it( 'flags hidden files inside shipped folders', () => {
 		const violations = findPackageViolations(
 			packed( [
-				...CHECKOUT_FILES,
+				...PRODUCTION_FILES,
 				'includes/.DS_Store',
 				'languages/.gitkeep',
 			] ),
-			{ release: false }
+			{ variant: 'production' }
 		);
 
 		expect( violations ).toHaveLength( 2 );
@@ -175,11 +189,11 @@ describe( 'findPackageViolations', () => {
 	it( 'flags a hidden folder inside a shipped folder once', () => {
 		const violations = findPackageViolations(
 			packed( [
-				...CHECKOUT_FILES,
+				...PRODUCTION_FILES,
 				'includes/.cache/one.php',
 				'includes/.cache/two.php',
 			] ),
-			{ release: false }
+			{ variant: 'production' }
 		);
 
 		expect( violations ).toEqual( [
@@ -191,10 +205,10 @@ describe( 'findPackageViolations', () => {
 		expect(
 			findPackageViolations(
 				packed( [
-					...CHECKOUT_FILES,
+					...PRODUCTION_FILES,
 					'vendor/psr/container/.gitattributes',
 				] ),
-				{ release: false }
+				{ variant: 'production' }
 			)
 		).toEqual( [] );
 	} );
@@ -203,21 +217,23 @@ describe( 'findPackageViolations', () => {
 		expect(
 			findPackageViolations(
 				packed(
-					CHECKOUT_FILES.filter( ( path ) => path !== 'readme.txt' )
+					PRODUCTION_FILES.filter( ( path ) => path !== 'readme.txt' )
 				),
-				{ release: false }
+				{ variant: 'production' }
 			)
 		).toEqual( [ 'Missing required entry "readme.txt".' ] );
 	} );
 
-	it( 'requires the compiled bundles and vendor/ in release mode', () => {
+	it( 'requires the compiled bundles and vendor/ in every zip', () => {
 		const violations = findPackageViolations(
 			packed(
-				CHECKOUT_FILES.filter(
-					( path ) => ! path.startsWith( 'vendor/' )
+				PRODUCTION_FILES.filter(
+					( path ) =>
+						! path.startsWith( 'build/' ) &&
+						! path.startsWith( 'vendor/' )
 				)
 			),
-			{ release: true }
+			{ variant: 'production' }
 		);
 
 		expect( violations ).toHaveLength( 2 );
@@ -232,45 +248,33 @@ describe( 'findPackageViolations', () => {
 	it( 'flags vendor/ shipped without composer.json', () => {
 		const violations = findPackageViolations(
 			packed(
-				CHECKOUT_FILES.filter( ( path ) => path !== 'composer.json' )
+				PRODUCTION_FILES.filter( ( path ) => path !== 'composer.json' )
 			),
-			{ release: false }
+			{ variant: 'production' }
 		);
 
 		expect( violations ).toHaveLength( 1 );
 		expect( violations[ 0 ] ).toContain( 'composer.json' );
 	} );
 
-	it( 'flags a version-control folder inside vendor/ of a release zip', () => {
+	it( 'flags a version-control folder inside vendor/', () => {
 		expect(
 			findPackageViolations(
 				packed( [
-					...RELEASE_FILES,
+					...PRODUCTION_FILES,
 					'vendor/psr/container/.git/HEAD',
 				] ),
-				{ release: true }
+				{ variant: 'production' }
 			)
 		).toEqual( [
 			expect.stringContaining( '"vendor/psr/container/.git"' ),
 		] );
 	} );
 
-	it( 'leaves a version-control folder inside vendor/ of a checkout zip alone', () => {
-		expect(
-			findPackageViolations(
-				packed( [
-					...CHECKOUT_FILES,
-					'vendor/psr/container/.git/HEAD',
-				] ),
-				{ release: false }
-			)
-		).toEqual( [] );
-	} );
-
 	it( 'reports a version-control folder outside vendor/ as one, not also as hidden', () => {
 		const violations = findPackageViolations(
-			packed( [ ...CHECKOUT_FILES, 'includes/.svn/entries' ] ),
-			{ release: false }
+			packed( [ ...PRODUCTION_FILES, 'includes/.svn/entries' ] ),
+			{ variant: 'production' }
 		);
 
 		expect( violations ).toEqual( [
@@ -281,8 +285,8 @@ describe( 'findPackageViolations', () => {
 	it( 'flags a version-control folder entry', () => {
 		expect(
 			findPackageViolations(
-				packed( [ ...CHECKOUT_FILES, 'languages/.hg/' ] ),
-				{ release: false }
+				packed( [ ...PRODUCTION_FILES, 'languages/.hg/' ] ),
+				{ variant: 'production' }
 			)
 		).toEqual( [
 			expect.stringContaining( 'Version-control folder "languages/.hg"' ),
@@ -292,12 +296,12 @@ describe( 'findPackageViolations', () => {
 	it( 'flags archive and shell files, whatever their case', () => {
 		const violations = findPackageViolations(
 			packed( [
-				...RELEASE_FILES,
+				...PRODUCTION_FILES,
 				'includes/tools/setup.sh',
 				'includes/archive.ZIP',
 				'build/bundle.tar',
 			] ),
-			{ release: true }
+			{ variant: 'production' }
 		);
 
 		expect( violations ).toEqual( [
@@ -307,27 +311,20 @@ describe( 'findPackageViolations', () => {
 		] );
 	} );
 
-	it( 'flags a script under vendor/ in a release zip only', () => {
-		const entries = packed( [
-			...CHECKOUT_FILES,
-			'vendor/bin/install.sh',
-		] );
-
-		expect( findPackageViolations( entries, { release: true } ) ).toEqual(
-			expect.arrayContaining( [
-				expect.stringContaining( '"vendor/bin/install.sh"' ),
-			] )
-		);
-		expect( findPackageViolations( entries, { release: false } ) ).toEqual(
-			[]
-		);
+	it( 'flags a script under vendor/', () => {
+		expect(
+			findPackageViolations(
+				packed( [ ...PRODUCTION_FILES, 'vendor/bin/install.sh' ] ),
+				{ variant: 'production' }
+			)
+		).toEqual( [ expect.stringContaining( '"vendor/bin/install.sh"' ) ] );
 	} );
 
 	it( 'judges a file by its last extension', () => {
 		expect(
 			findPackageViolations(
-				packed( [ ...CHECKOUT_FILES, 'includes/notes.zip.txt' ] ),
-				{ release: false }
+				packed( [ ...PRODUCTION_FILES, 'includes/notes.zip.txt' ] ),
+				{ variant: 'production' }
 			)
 		).toEqual( [] );
 	} );
@@ -335,8 +332,11 @@ describe( 'findPackageViolations', () => {
 	it( 'flags assets/, whose images the stylesheets inline', () => {
 		expect(
 			findPackageViolations(
-				packed( [ ...CHECKOUT_FILES, 'assets/images/menu-icon.svg' ] ),
-				{ release: false }
+				packed( [
+					...PRODUCTION_FILES,
+					'assets/images/menu-icon.svg',
+				] ),
+				{ variant: 'production' }
 			)
 		).toEqual( [
 			expect.stringContaining(
@@ -345,37 +345,14 @@ describe( 'findPackageViolations', () => {
 		] );
 	} );
 
-	it( 'flags every dev-tools file', () => {
-		const devTools = [
-			'includes/DevTools/DevTools.php',
-			'includes/DevTools/Views/Templates/DevToolsPanel.php',
-			'build/devtools/view.js',
-			'build/devtools.js',
-			'build/devtools.asset.php',
-			'build/style-devtools.css',
-		];
-		const violations = findPackageViolations(
-			packed( [ ...RELEASE_FILES, ...devTools ] ),
-			{ release: true }
-		);
-
-		expect( violations ).toEqual(
-			devTools.map( ( path ) =>
-				expect.stringContaining(
-					`Unneeded file "${ path }": the dev-tools panel only runs in local and development environments`
-				)
-			)
-		);
-	} );
-
 	it( 'flags translation sources but keeps the compiled translations', () => {
 		const violations = findPackageViolations(
 			packed( [
-				...CHECKOUT_FILES,
+				...DEVELOPMENT_FILES,
 				'languages/battery-surf-bench-fr_FR.po',
 				'languages/battery-surf-bench.pot',
 			] ),
-			{ release: false }
+			{ variant: 'development' }
 		);
 
 		expect( violations ).toEqual( [
@@ -388,36 +365,168 @@ describe( 'findPackageViolations', () => {
 		] );
 	} );
 
+	it( 'flags every dev-tools file in the production zip', () => {
+		const devTools = [
+			'includes/DevTools/DevTools.php',
+			'includes/DevTools/Views/Templates/DevToolsPanel.php',
+			'build/devtools/view.js',
+			'build/devtools.js',
+			'build/devtools.asset.php',
+			'build/style-devtools.css',
+		];
+		const violations = findPackageViolations(
+			packed( [ ...PRODUCTION_FILES, ...devTools ] ),
+			{ variant: 'production' }
+		);
+
+		expect( violations ).toEqual(
+			devTools.map( ( path ) =>
+				expect.stringContaining(
+					`Dev-tools file "${ path }" in the production zip`
+				)
+			)
+		);
+	} );
+
+	it( 'keeps every dev-tools file in the development zip', () => {
+		expect(
+			findPackageViolations(
+				packed( [
+					...DEVELOPMENT_FILES,
+					'includes/DevTools/Views/Templates/DevToolsPanel.php',
+					'build/devtools/view.asset.php',
+				] ),
+				{ variant: 'development' }
+			)
+		).toEqual( [] );
+	} );
+
+	it( 'requires the dev-tools panel in the development zip', () => {
+		const violations = findPackageViolations( packed( PRODUCTION_FILES ), {
+			variant: 'development',
+		} );
+
+		expect( violations ).toEqual(
+			DEV_TOOLS_FILES.map( ( path ) =>
+				expect.stringContaining( `Missing dev-tools file "${ path }"` )
+			)
+		);
+	} );
+
 	it( 'keeps files whose names only start like the dev tools', () => {
 		expect(
 			findPackageViolations(
 				packed( [
-					...RELEASE_FILES,
+					...PRODUCTION_FILES,
 					'includes/DevToolsHelper.php',
 					'build/devtoolsish.js',
 				] ),
-				{ release: true }
+				{ variant: 'production' }
+			)
+		).toEqual( [] );
+	} );
+} );
+
+describe( 'findDevToolsCode', () => {
+	it( 'flags a production script that carries the sterile-run parameter', () => {
+		expect(
+			findDevToolsCode(
+				[
+					{
+						path: 'build/surfer.js',
+						content: 'const p="bsbSterile";',
+					},
+				],
+				{ variant: 'production' }
+			)
+		).toEqual( [
+			expect.stringContaining(
+				'Script "build/surfer.js" carries dev-tools code (it contains "bsbSterile")'
+			),
+		] );
+	} );
+
+	it( 'flags a production script that carries the sterile steering', () => {
+		expect(
+			findDevToolsCode(
+				[
+					{
+						path: 'build/surfer.js',
+						content: 'if(t.type!=="bsb:steerBehavior")return;',
+					},
+				],
+				{ variant: 'production' }
+			)
+		).toEqual( [
+			expect.stringContaining(
+				'Script "build/surfer.js" carries dev-tools code (it contains "bsb:steerBehavior")'
+			),
+		] );
+	} );
+
+	it( 'flags a production script that reads the shared dev-tools state', () => {
+		expect(
+			findDevToolsCode(
+				[
+					{
+						path: 'build/cockpit/view.js',
+						content: 'const s=e.devtools?.surf;',
+					},
+				],
+				{ variant: 'production' }
+			)
+		).toEqual( [
+			expect.stringContaining(
+				'Script "build/cockpit/view.js" carries dev-tools code (it contains ".devtools")'
+			),
+		] );
+	} );
+
+	it( 'accepts production scripts without dev-tools code', () => {
+		expect(
+			findDevToolsCode(
+				[
+					{
+						path: 'build/cockpit/view.js',
+						content: 'syncDevtoolsSurf(){}',
+					},
+				],
+				{ variant: 'production' }
+			)
+		).toEqual( [] );
+	} );
+
+	it( 'never checks the development zip, which carries that code on purpose', () => {
+		expect(
+			findDevToolsCode(
+				[
+					{
+						path: 'build/surfer.js',
+						content: 'const p="bsbSterile";',
+					},
+				],
+				{ variant: 'development' }
 			)
 		).toEqual( [] );
 	} );
 } );
 
 describe( 'findSizeViolations', () => {
-	it( 'accepts a release zip under 10 MB', () => {
-		expect( findSizeViolations( 9_999_999, { release: true } ) ).toEqual(
-			[]
-		);
+	it( 'accepts a production zip under 10 MB', () => {
+		expect(
+			findSizeViolations( 9_999_999, { variant: 'production' } )
+		).toEqual( [] );
 	} );
 
-	it( 'flags a release zip of 10 MB or more', () => {
-		expect( findSizeViolations( 10_000_000, { release: true } ) ).toEqual( [
-			expect.stringContaining( 'Zip is 10.0 MB' ),
-		] );
+	it( 'flags a production zip of 10 MB or more', () => {
+		expect(
+			findSizeViolations( 10_000_000, { variant: 'production' } )
+		).toEqual( [ expect.stringContaining( 'Zip is 10.0 MB' ) ] );
 	} );
 
-	it( 'does not hold a checkout zip to the limit', () => {
-		expect( findSizeViolations( 50_000_000, { release: false } ) ).toEqual(
-			[]
-		);
+	it( 'does not hold the development zip to the limit', () => {
+		expect(
+			findSizeViolations( 50_000_000, { variant: 'development' } )
+		).toEqual( [] );
 	} );
 } );

@@ -34,6 +34,7 @@
         }
     },
     "config": {
+        "process-timeout": 0,
         "sort-packages": true,
         "allow-plugins": {
             "dealerdirect/phpcodesniffer-composer-installer": true
@@ -44,8 +45,74 @@
         "lint:fix": "phpcbf",
         "test": "phpunit",
         "test:coverage": "phpunit --coverage-html coverage",
-        "zip": "bin/PackageZip.sh",
+        "validate:container": "@php bin/BuildContainer.php --check",
         "build:container": "@php bin/BuildContainer.php",
-        "validate:container": "@php bin/BuildContainer.php --check"
+        "vendor:production": "@composer install --no-dev --optimize-autoloader --no-interaction",
+        "vendor:development": "@composer install --no-interaction",
+        "archive:plugin": "@composer archive --quiet --format=zip --dir=dist --file=battery-surf-bench-archive",
+        "check": [
+            "@lint",
+            "@validate:container",
+            "@test",
+            "pnpm run typecheck",
+            "pnpm run lint:js",
+            "pnpm run test",
+            "pnpm run contracts:verify",
+            "pnpm run license:verify"
+        ],
+        "stage": [
+            "@build:container",
+            "@vendor:production",
+            "@archive:plugin",
+            "@vendor:development"
+        ],
+        "build:development": [
+            "@check",
+            "pnpm run clean",
+            "pnpm run assets:development",
+            "@stage",
+            "pnpm run assemble -- --development"
+        ],
+        "build:production": [
+            "@check",
+            "pnpm run clean",
+            "pnpm run assets:production",
+            "@stage",
+            "pnpm run assemble -- --production"
+        ],
+        "zip:development": [
+            "@build:development",
+            "pnpm run package:zip -- --development",
+            "pnpm run package:verify -- --development"
+        ],
+        "zip:production": [
+            "@build:production",
+            "pnpm run package:zip -- --production",
+            "pnpm run package:verify -- --production"
+        ],
+        "serve:development": "pnpm run dev",
+        "serve:production": [
+            "@build:production",
+            "pnpm run playground:production"
+        ]
+    },
+    "scripts-descriptions": {
+        "lint": "Lint the PHP with PHPCS.",
+        "lint:fix": "Fix the PHPCS findings PHPCBF can fix.",
+        "test": "Run the PHP unit tests.",
+        "test:coverage": "Run the PHP unit tests with an HTML coverage report in coverage/.",
+        "validate:container": "Check the service container recipes without compiling them.",
+        "build:container": "Compile the service container into build/Services.compiled.php.",
+        "vendor:production": "Install the Composer packages the plugin ships, without the dev ones.",
+        "vendor:development": "Install every Composer package, dev ones included.",
+        "archive:plugin": "Archive the files .gitattributes lets through into dist/.",
+        "check": "Run every lint, type check and unit test, plus the chart and license checks. Builds run it first.",
+        "stage": "Compile the container and archive the plugin with its production packages.",
+        "build:development": "Check, then build the plugin with the dev-tools panel into dist/battery-surf-bench/.",
+        "build:production": "Check, then build the plugin without the dev-tools panel into dist/battery-surf-bench/.",
+        "zip:development": "Build the development plugin and zip it into zip/battery-surf-bench-development.zip.",
+        "zip:production": "Build the production plugin and zip it into zip/battery-surf-bench.zip.",
+        "serve:development": "Start the development site: watch build, Playground with the dev tools, live reload.",
+        "serve:production": "Build the production plugin and serve it on a fresh Playground site."
     }
 }

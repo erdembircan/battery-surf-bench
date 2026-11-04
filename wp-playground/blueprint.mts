@@ -354,6 +354,24 @@ export const e2eUnauthenticatedBlueprint: BlueprintDeclaration = {
 };
 
 /**
+ * Set the `production` environment type with debugging and debug output off,
+ * so a site runs like a real install: the dev-tools panel stays closed and no
+ * debug output reaches the page.
+ */
+const productionStep: BlueprintV1Declaration[ 'steps' ] = [
+	{
+		step: 'defineWpConfigConsts',
+		consts: {
+			WP_DEBUG: false,
+			WP_DEBUG_LOG: false,
+			WP_DEBUG_DISPLAY: false,
+			SCRIPT_DEBUG: false,
+			WP_ENVIRONMENT_TYPE: 'production',
+		},
+	},
+];
+
+/**
  * Blueprint for the listing-screenshot instance (`pnpm screenshots`): a
  * deterministic, non-persistent site that looks like a real install rather
  * than a dev box. It sets the `production` environment type with debugging
@@ -369,16 +387,7 @@ export const e2eUnauthenticatedBlueprint: BlueprintDeclaration = {
 export const screenshotsBlueprint: BlueprintDeclaration = {
 	...base,
 	steps: [
-		{
-			step: 'defineWpConfigConsts',
-			consts: {
-				WP_DEBUG: false,
-				WP_DEBUG_LOG: false,
-				WP_DEBUG_DISPLAY: false,
-				SCRIPT_DEBUG: false,
-				WP_ENVIRONMENT_TYPE: 'production',
-			},
-		},
+		...productionStep,
 		...siteLanguageStep,
 		{
 			step: 'setSiteOptions',
@@ -389,6 +398,27 @@ export const screenshotsBlueprint: BlueprintDeclaration = {
 			userId: 1,
 			meta: { show_admin_bar_front: 'false' },
 		},
+		...activatePluginStep,
+		...youtubeOembedStubStep(),
+	],
+};
+
+/**
+ * Blueprint for the production preview server (`composer serve:production`): a
+ * fresh, non-persistent site that runs the production build the way a real
+ * install would. It sets the `production` environment type with debugging off
+ * (see {@link productionStep}), pins the site language to English (see
+ * {@link siteLanguageStep}), activates the plugin, and installs the YouTube
+ * oEmbed stub (see {@link youtubeOembedStubMuPlugin}) so the bundled video page
+ * renders its embed without outbound network. Like a fresh install, it carries
+ * no login step and no dev auto-login: the site asks you to log in, as `admin`
+ * with the password `password`.
+ */
+export const productionBlueprint: BlueprintDeclaration = {
+	...base,
+	steps: [
+		...productionStep,
+		...siteLanguageStep,
 		...activatePluginStep,
 		...youtubeOembedStubStep(),
 	],

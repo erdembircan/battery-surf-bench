@@ -174,6 +174,10 @@ export const sharkStore: StorePart = {
 		 * dev-tools module has actually joined the store.
 		 */
 		syncDevtoolsShark(): void {
+			if ( ! BSB_DEV_TOOLS ) {
+				return;
+			}
+
 			const { state: sharedState } =
 				store< SharedDevtoolsSharkStore >( 'bsb/cockpit' );
 			const shark = sharedState.devtools?.shark;

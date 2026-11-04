@@ -47,7 +47,7 @@ export const withSurferParams = (
 		String( normalizeSpeed( speed ) )
 	);
 
-	if ( sterile ) {
+	if ( BSB_DEV_TOOLS && sterile ) {
 		withParams.searchParams.set( STERILE_PARAM, '1' );
 	}
 
