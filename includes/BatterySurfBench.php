@@ -37,8 +37,7 @@ class BatterySurfBench {
 	/**
 	 * Fully-qualified class names of the plugin's managers, in the order
 	 * their `register()` must be called. The dev-tools manager isn't one:
-	 * it registers after them, and only from a checkout that has its files
-	 * (see `init()`).
+	 * it registers after them, and only where its files are (see `init()`).
 	 *
 	 * @var string[]
 	 */
@@ -68,7 +67,7 @@ class BatterySurfBench {
 	 * Boots the plugin: builds the DI collaborators from the plugin's
 	 * configuration and service recipes, then builds and registers every
 	 * manager through the instantiator, and the dev-tools manager when its
-	 * files are present: the release zip leaves them out.
+	 * files are present: the production build leaves them out.
 	 *
 	 * The service recipes load from the build-time compiled artifact —
 	 * {@see \ErdemBircan\BatterySurfBench\Container\ContainerCompiler}, run by
@@ -109,9 +108,10 @@ class BatterySurfBench {
 			$instantiator->make( $manager )->register();
 		}
 
-		// The release zip leaves the dev-tools panel out (see .gitattributes),
-		// so it boots only from a checkout that has its files. There it still
-		// gates itself to local and development environments.
+		// The production build leaves the dev-tools panel out (see
+		// bin/Assemble.mts), so it boots only where its files are: a checkout
+		// or a development build. There it still gates itself to local and
+		// development environments.
 		if ( is_readable( __DIR__ . '/DevTools/DevTools.php' ) ) {
 			$instantiator->make( DevTools::class )->register();
 		}

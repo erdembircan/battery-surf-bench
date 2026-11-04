@@ -285,6 +285,18 @@ When you notice a defect — a bug, a failing or skipped test, a lint violation,
 - **A pipe masks the exit code.** In `cmd | tail`, the shell reports `tail`'s status (always `0`), hiding a real non-zero failure.
 - **Instead:** run the command with full output and confirm the genuine exit code, e.g. `composer lint; echo "EXIT=$?"`. Read the whole report, or `grep` for the error summary. Reserve truncation for genuinely verbose commands that clearly succeed at the end (installs, builds), and even then check the real status (e.g. `${PIPESTATUS[0]}`).
 
+## Builds, Zips and Servers — Start From Composer
+
+Every plugin build, zip and local site starts from a Composer script. `composer.json` lists each one's steps in order, so the whole sequence reads in one place:
+
+- **`composer build:development`** and **`composer build:production`** run `composer check` (every PHP and JS lint, type check and unit test, plus the chart and license checks), then compile the bundles and assemble the plugin in `dist/battery-surf-bench/`. The production build leaves the dev-tools panel out: webpack compiles it, and the dev-tools code in the cockpit and the surfer, out of the bundles (the `BSB_DEV_TOOLS` flag, see `src/BuildFlags.d.ts`), and the assembly drops its PHP.
+- **`composer zip:development`** and **`composer zip:production`** run the matching build, zip `dist/battery-surf-bench/` into `zip/`, and check the zip with `package:verify`. `zip/battery-surf-bench.zip` is the one WordPress.org gets; never upload `zip/battery-surf-bench-development.zip`.
+- **`composer serve:development`** starts the development site: the watch build, Playground with the dev tools, and live reload. **`composer serve:production`** builds the production plugin and serves it on a fresh Playground site, so a production build can be tried without a zip.
+
+These scripts call only named scripts: other Composer scripts (`@name`) and package.json scripts (`pnpm run name`). They never run a shell script, a file in `bin/` or a tool directly; each such step is a leaf script of its own, such as `@build:container` or `pnpm run assemble`. Add a new step the same way, so the order stays readable in `composer.json`. Composer skips a script named after one of its own commands, such as `archive`, so give each step a name of its own (`archive:plugin`).
+
+Tests that need bundles compile their own: the e2e runs the development ones, `pnpm screenshots` the production ones. Both builds also write the checkout's own `build/`, so after a production build it has no dev-tools panel until the next development build or `composer serve:development`.
+
 ## CI — Wait for Every Check to Finish Green
 
 CI runs after every push to a pull request and after every merge. Before treating any work as done — or moving on to anything that depends on it — **wait until all CI checks have finished and are green.**

@@ -13,10 +13,10 @@
 %% tokens, type mismatches, unmapped interfaces) in one pass; the build
 %% aborts with the full error list rather than emitting a compiled artifact
 %% when any are found.
-%% DevTools boots only from a checkout that has its files: the release zip
-%% leaves them out (see .gitattributes), so BatterySurfBench checks for
-%% DevTools.php before booting it, and DevTools still gates itself to
-%% local/development environments.
+%% DevTools boots only where its files are, in a checkout or a development
+%% build: the production build leaves them out (see bin/Assemble.mts), so
+%% BatterySurfBench checks for DevTools.php before booting it, and DevTools
+%% still gates itself to local/development environments.
 %% Characters Mermaid would misread inside a label are written as entity codes,
 %% which render as the character itself: #58; ':', #59; ';', #40; '(', #41; ')',
 %% #123; '{', #125; '}'. See "Keeping Charts Parseable" in CLAUDE.md.

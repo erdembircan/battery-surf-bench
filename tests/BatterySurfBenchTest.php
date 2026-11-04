@@ -33,8 +33,8 @@ final class BatterySurfBenchTest extends TestCase {
 		// default it closed (production) so booting never depends on it.
 		Functions\when( 'wp_get_environment_type' )->justReturn( 'production' );
 		// No file is readable unless a test says so, so booting never depends
-		// on what's on disk: no compiled container left by a release build, and
-		// no dev-tools files.
+		// on what's on disk: no compiled container left by a build, and no
+		// dev-tools files.
 		Functions\when( 'is_readable' )->justReturn( false );
 	}
 
@@ -111,8 +111,8 @@ final class BatterySurfBenchTest extends TestCase {
 	}
 
 	/**
-	 * The release zip leaves the dev-tools files out, so a site running it
-	 * never boots the panel, not even in a development environment.
+	 * The production build leaves the dev-tools files out, so a site running
+	 * it never boots the panel, not even in a development environment.
 	 */
 	public function test_init_skips_the_dev_tools_when_their_files_are_missing(): void {
 		Functions\when( 'wp_get_environment_type' )->justReturn( 'development' );
