@@ -67,7 +67,7 @@ test.describe( 'Settings screen', () => {
 		await expect( cockpitLink ).toBeVisible();
 		await expect( cockpitLink ).toHaveAttribute(
 			'href',
-			/bsbSession=cockpit/
+			/bsbenchSession=cockpit/
 		);
 
 		// The app mounted and rendered the picker.
@@ -386,14 +386,14 @@ test.describe( 'Settings screen', () => {
 	} );
 } );
 
-/** The `/wp/v2/settings` collection: hosts the `bsb_course_order` field. */
+/** The `/wp/v2/settings` collection: hosts the `bsbench_course_order` field. */
 const SETTINGS_ENDPOINT = '/wp-json/wp/v2/settings';
 
 /** The `/wp/v2/pages` collection, used to mint a throwaway published page as a "user" entry. */
 const PAGES_ENDPOINT = '/wp-json/wp/v2/pages';
 
 /** The option's REST field name. */
-const OPTION_KEY = 'bsb_course_order';
+const OPTION_KEY = 'bsbench_course_order';
 
 /** The bundled catalog's slugs, in course order — mirrors `CourseCatalog::PAGES`. */
 const BUNDLED_SLUGS_IN_ORDER = [

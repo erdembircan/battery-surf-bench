@@ -35,7 +35,7 @@ vi.mock( '@/sessions/App', () => ( {
 } ) );
 
 const config = {
-	postType: 'bsb_session',
+	postType: 'bsbench_session',
 	fields: [],
 	defaultColumns: [],
 };
@@ -47,7 +47,7 @@ beforeEach( () => {
 
 afterEach( () => {
 	document.body.innerHTML = '';
-	delete window.bsbSessions;
+	delete window.bsbenchSessions;
 } );
 
 describe( 'sessions entry point', () => {
@@ -55,7 +55,7 @@ describe( 'sessions entry point', () => {
 		const container = document.createElement( 'div' );
 		container.id = 'bsb-sessions-app';
 		document.body.append( container );
-		window.bsbSessions = config;
+		window.bsbenchSessions = config;
 
 		await import( '@/sessions/index' );
 
@@ -68,7 +68,7 @@ describe( 'sessions entry point', () => {
 	} );
 
 	it( 'does nothing when the container is absent', async () => {
-		window.bsbSessions = config;
+		window.bsbenchSessions = config;
 
 		await import( '@/sessions/index' );
 

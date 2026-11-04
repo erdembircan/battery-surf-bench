@@ -9,17 +9,17 @@ import { normalizeTraits } from '@/shared/SurferStats';
 import { normalizeSpeed } from '@/cockpit/RunConfig';
 
 /** URL param carrying the comma-separated trait vector. */
-export const TRAITS_PARAM = 'bsbTraits';
+export const TRAITS_PARAM = 'bsbenchTraits';
 
 /** URL param carrying the demo speed multiplier. */
-export const SPEED_PARAM = 'bsbSpeed';
+export const SPEED_PARAM = 'bsbenchSpeed';
 
 /**
  * URL param whose presence (`1`) tells `EngineBoot` to boot a `SterileHelm`
  * instead of the auction-driven `SurfLoop`. Only ever appended, never set to
  * `0` — its plain absence is what a natural run's URL carries.
  */
-export const STERILE_PARAM = 'bsbSterile';
+export const STERILE_PARAM = 'bsbenchSterile';
 
 /**
  * Appends the normalized traits, speed and (when armed) the sterile flag to a
@@ -29,7 +29,7 @@ export const STERILE_PARAM = 'bsbSterile';
  * @param url
  * @param traits
  * @param speed
- * @param sterile Whether the live run is sterile; appends `bsbSterile=1` when true, omits the param entirely otherwise.
+ * @param sterile Whether the live run is sterile; appends `bsbenchSterile=1` when true, omits the param entirely otherwise.
  */
 export const withSurferParams = (
 	url: string,

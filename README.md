@@ -30,7 +30,7 @@ A one-minute tour: the surfer at work, the live cockpit, and the postcard every 
 
 [WordPress Playground](https://playground.wordpress.net/) is the WordPress project's way of running a complete WordPress site in a browser tab: PHP compiled to WebAssembly, with the database kept in the browser too. Battery Surf Bench is built to be used there. One link starts a fresh site with the plugin installed and its cockpit open, with no server to rent, nothing to install and no account to create.
 
-**[Open Battery Surf Bench in WordPress Playground](https://playground.wordpress.net/?plugin=battery-surf-bench&url=/wp-admin/admin.php?page=bsb-start-benchmark)**
+**[Open Battery Surf Bench in WordPress Playground](https://playground.wordpress.net/?plugin=battery-surf-bench&url=/wp-admin/admin.php?page=bsbench-start-benchmark)**
 
 The link installs the plugin from the WordPress.org plugin directory, so it works once the plugin is listed there.
 
@@ -119,7 +119,7 @@ Fully translation-ready, with German, Spanish, French, Brazilian Portuguese, and
 
 **In WordPress Playground** (the intended way):
 
-1. Open [Battery Surf Bench in WordPress Playground](https://playground.wordpress.net/?plugin=battery-surf-bench&url=/wp-admin/admin.php?page=bsb-start-benchmark). The cockpit opens on a fresh site.
+1. Open [Battery Surf Bench in WordPress Playground](https://playground.wordpress.net/?plugin=battery-surf-bench&url=/wp-admin/admin.php?page=bsbench-start-benchmark). The cockpit opens on a fresh site.
 2. Unplug your laptop.
 3. Pick a surfer, pick a mode, and press start.
 

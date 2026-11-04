@@ -18,7 +18,7 @@ use function rest_authorization_required_code;
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Overrides the default posts controller so the admin-only `bsb_session`
+ * Overrides the default posts controller so the admin-only `bsbench_session`
  * collection refuses anonymous reads.
  *
  * Core's {@see \WP_REST_Posts_Controller} treats a `view`-context list of
@@ -27,7 +27,7 @@ defined( 'ABSPATH' ) || exit;
  * and `get_item_permissions_check()` defers to `check_read_permission()`, which
  * returns `true` for any published post — neither ever consulting the post
  * type's capability map. For an ordinary public post type that is correct, but
- * `bsb_session` is registered admin-only ({@see SessionType}) with every
+ * `bsbench_session` is registered admin-only ({@see SessionType}) with every
  * capability mapped onto the plugin capability, so those two read paths would
  * otherwise leak published sessions to a logged-out visitor. This subclass
  * reinstates the capability check on both reads before delegating the rest of

@@ -10,7 +10,7 @@
 
 defined( 'ABSPATH' ) || exit;
 ?>
-<div class="bsb-session-detail" data-wp-interactive="bsb/cockpit" <?php echo $args['context']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped by wp_interactivity_data_wp_context(). ?> data-wp-init="callbacks.initDetail">
+<div class="bsb-session-detail" data-wp-interactive="battery-surf-bench/cockpit" <?php echo $args['context']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped by wp_interactivity_data_wp_context(). ?> data-wp-init="callbacks.initDetail">
 	<?php echo $args['summary']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- trusted pre-escaped view markup. ?>
 
 </div>

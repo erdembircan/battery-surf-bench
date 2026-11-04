@@ -28,23 +28,23 @@ use function has_filter;
 
 /**
  * The router serves the surfer's whole page sequence off a single opaque
- * index: on the main query, `?bsbSurfIndex=<n>&bsbNonce=<nonce>` resolves —
+ * index: on the main query, `?bsbenchSurfIndex=<n>&bsbenchNonce=<nonce>` resolves —
  * entirely server-side, wrapping via modulo — to the saved order's `n`-th
  * entry, turned into a single virtual page the theme renders. Its observable
  * contract is the posts it returns and the query flags it sets.
  *
- * The gate — capability AND a valid `bsb_surf` nonce — is checked BEFORE any
+ * The gate — capability AND a valid `bsbench_surf` nonce — is checked BEFORE any
  * entry is resolved, so it guards every entry the index could name, bundled
  * or user alike: a request failing either check is left completely
  * untouched, whatever index it names.
  */
 final class CourseRouterTest extends TestCase {
 
-	private const INDEX_PARAM  = 'bsbSurfIndex';
-	private const NONCE_PARAM  = 'bsbNonce';
-	private const NONCE_ACTION = 'bsb_surf';
+	private const INDEX_PARAM  = 'bsbenchSurfIndex';
+	private const NONCE_PARAM  = 'bsbenchNonce';
+	private const NONCE_ACTION = 'bsbench_surf';
 	private const BODY_CLASS   = 'bsb-course-page';
-	private const OPTION       = 'bsb_course_order';
+	private const OPTION       = 'bsbench_course_order';
 
 	/**
 	 * Builds a router over the real catalog and a real sanitizer restricted to

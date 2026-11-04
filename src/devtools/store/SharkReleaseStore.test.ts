@@ -3,7 +3,7 @@
  * button. Its consumer is the panel's own shark button markup, which binds
  * its `disabled` attribute to `devtoolsSharkDisabled` and its click to
  * `devtoolsReleaseShark`. These stub the Interactivity runtime's shared
- * `bsb/cockpit` state, mirroring `./DevtoolsStore.test.ts`'s own mocking
+ * `battery-surf-bench/cockpit` state, mirroring `./DevtoolsStore.test.ts`'s own mocking
  * setup.
  */
 

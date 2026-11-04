@@ -24,12 +24,12 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * Teaches the default posts REST controller to sort and filter the
- * `bsb_session` collection by its meta, so the DataViews listing can page
+ * `bsbench_session` collection by its meta, so the DataViews listing can page
  * through the whole dataset on the server instead of fetching it all and
  * slicing client-side.
  *
  * The grid sends the view config as query args — `orderby` as a meta key and
- * `bsb_status` / `bsb_mode` as filter values. This maps each onto `WP_Query`:
+ * `bsbench_status` / `bsbench_mode` as filter values. This maps each onto `WP_Query`:
  * meta-key ordering ({@see WP_Query} `meta_value` / `meta_value_num`) and a
  * `meta_query` `IN` clause per active filter. The set of sortable keys, numeric
  * keys and filterable columns is derived from the same {@see SessionSchema}

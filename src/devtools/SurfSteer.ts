@@ -4,7 +4,7 @@
  * gating rule, and the countdown/page-slug display formats. Kept free of any
  * store/DOM dependency so the gating and formatting logic can be
  * unit-tested in isolation — the store slice ({@link ./store/SurfSteerStore}) only
- * wires this against the shared `bsb/cockpit` state and the iframe message
+ * wires this against the shared `battery-surf-bench/cockpit` state and the iframe message
  * handshake.
  */
 

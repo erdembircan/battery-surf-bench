@@ -4,7 +4,7 @@
  * a released shark is a moment, not a setting. Kept free of any store/DOM
  * dependency, mirroring {@link ./SurfSteer} — the store slice
  * ({@link ./store/SharkReleaseStore}) only wires this against the shared
- * `bsb/cockpit` state.
+ * `battery-surf-bench/cockpit` state.
  */
 
 /** A shark-launch command the cockpit's own watch consumes once, keyed by a monotonic sequence so a repeat release still re-fires the watch. */

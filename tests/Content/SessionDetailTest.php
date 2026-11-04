@@ -32,11 +32,11 @@ use function has_filter;
  */
 final class SessionDetailTest extends TestCase {
 
-	private const POST_TYPE   = 'bsb_session';
-	private const PREFIX      = 'bsb_';
+	private const POST_TYPE   = 'bsbench_session';
+	private const PREFIX      = 'bsbench_';
 	private const CAPABILITY  = 'manage_options';
-	private const BLOCK_NAME  = 'bsb/cockpit';
-	private const SCREEN_SLUG = 'bsb-sessions';
+	private const BLOCK_NAME  = 'battery-surf-bench/cockpit';
+	private const SCREEN_SLUG = 'bsbench-sessions';
 	private const STYLE       = 'build/style-cockpit-dashboard.css';
 
 	/**
@@ -145,8 +145,8 @@ final class SessionDetailTest extends TestCase {
 	 */
 	public function test_enqueue_loads_assets_on_a_session_edit_screen(): void {
 		Functions\when( 'get_current_screen' )->justReturn( (object) array( 'post_type' => self::POST_TYPE ) );
-		Functions\when( 'generate_block_asset_handle' )->justReturn( 'bsb-cockpit-view-script-module' );
-		Functions\expect( 'wp_enqueue_script_module' )->once()->with( 'bsb-cockpit-view-script-module' );
+		Functions\when( 'generate_block_asset_handle' )->justReturn( 'battery-surf-bench-cockpit-view-script-module' );
+		Functions\expect( 'wp_enqueue_script_module' )->once()->with( 'battery-surf-bench-cockpit-view-script-module' );
 
 		$assets = Mockery::mock( Assets::class );
 		$assets->expects( 'enqueue' )->once()->with( self::STYLE )->andReturn( 'bsb-cockpit' );

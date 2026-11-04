@@ -36,9 +36,9 @@ final class DevToolsTest extends TestCase {
 	private const ENVIRONMENTS  = array( 'local', 'development' );
 	private const MODULE        = 'build/devtools/view.js';
 	private const STYLE         = 'build/style-devtools.css';
-	private const COCKPIT_PARAM = 'bsbSession';
+	private const COCKPIT_PARAM = 'bsbenchSession';
 	private const COCKPIT_VALUE = 'cockpit';
-	private const COURSE_OPTION = 'bsb_course_order';
+	private const COURSE_OPTION = 'bsbench_course_order';
 
 	/**
 	 * Builds the manager under test.

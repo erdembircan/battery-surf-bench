@@ -31,7 +31,7 @@ import { launchShark, clearShark } from '@/cockpit/Shark';
 import { nextKonamiProgress, isKonamiComplete } from '@/cockpit/KonamiCode';
 
 /**
- * The slice of the merged `bsb/cockpit` state the shark-release dev-tool
+ * The slice of the merged `battery-surf-bench/cockpit` state the shark-release dev-tool
  * contributes, read defensively (production reads `state.devtools`
  * optionally, exactly as {@link ./RunStore}'s `syncDevtoolsSurf` precedent
  * requires — it may not exist at all with no dev-tools module loaded).
@@ -52,7 +52,7 @@ interface SharedDevtoolsSharkStore {
 	state: SharedDevtoolsSharkState;
 }
 
-/** The shark-fin slice of the `bsb/cockpit` store. */
+/** The shark-fin slice of the `battery-surf-bench/cockpit` store. */
 export const sharkStore: StorePart = {
 	state: {
 		/** Whether a shark is currently swimming — drives the fin's visibility. */
@@ -178,8 +178,9 @@ export const sharkStore: StorePart = {
 				return;
 			}
 
-			const { state: sharedState } =
-				store< SharedDevtoolsSharkStore >( 'bsb/cockpit' );
+			const { state: sharedState } = store< SharedDevtoolsSharkStore >(
+				'battery-surf-bench/cockpit'
+			);
 			const shark = sharedState.devtools?.shark;
 
 			if ( ! shark ) {

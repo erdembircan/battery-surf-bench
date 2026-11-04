@@ -29,13 +29,13 @@ use function has_action;
 final class StartBenchmarkTest extends TestCase {
 
 	private const PARENT        = 'battery-surf-bench';
-	private const PAGE_SLUG     = 'bsb-start-benchmark';
+	private const PAGE_SLUG     = 'bsbench-start-benchmark';
 	private const CAPABILITY    = 'manage_options';
-	private const COCKPIT_PARAM = 'bsbSession';
+	private const COCKPIT_PARAM = 'bsbenchSession';
 	private const COCKPIT_VALUE = 'cockpit';
 	private const NAV_SCRIPT    = 'build/admin-start-benchmark.js';
 	private const MENU_STYLE    = 'build/style-admin-menu.css';
-	private const HOOK          = 'battery-surf-bench_page_bsb-start-benchmark';
+	private const HOOK          = 'battery-surf-bench_page_bsbench-start-benchmark';
 
 	/**
 	 * Builds an entry with representative configuration. The capability is a
@@ -135,7 +135,7 @@ final class StartBenchmarkTest extends TestCase {
 
 		Functions\expect( 'wp_safe_redirect' )
 			->once()
-			->with( Mockery::pattern( '/bsbSession=cockpit/' ) )
+			->with( Mockery::pattern( '/bsbenchSession=cockpit/' ) )
 			->andThrow( $sentinel );
 
 		try {
@@ -162,9 +162,9 @@ final class StartBenchmarkTest extends TestCase {
 				Mockery::on(
 					static function ( $node ): bool {
 						return is_array( $node )
-							&& 'bsb-start-benchmark' === $node['id']
+							&& 'bsbench-start-benchmark' === $node['id']
 							&& '_blank' === $node['meta']['target']
-							&& 1 === preg_match( '/bsbSession=cockpit/', $node['href'] );
+							&& 1 === preg_match( '/bsbenchSession=cockpit/', $node['href'] );
 					}
 				)
 			);
@@ -202,7 +202,7 @@ final class StartBenchmarkTest extends TestCase {
 			->andReturn( 'bsb-admin-start-benchmark' );
 		$assets->shouldReceive( 'localize' )
 			->once()
-			->with( 'bsb-admin-start-benchmark', 'bsbStartBenchmark', Mockery::type( 'array' ) );
+			->with( 'bsb-admin-start-benchmark', 'bsbenchStartBenchmark', Mockery::type( 'array' ) );
 		$assets->shouldReceive( 'enqueue_script' )
 			->once()
 			->with( 'bsb-admin-start-benchmark' );
@@ -257,7 +257,7 @@ final class StartBenchmarkTest extends TestCase {
 		$output = (string) ob_get_clean();
 
 		$this->assertStringContainsString( 'Start Benchmark', $output );
-		$this->assertStringContainsString( 'https://example.test/?bsbSession=cockpit', $output );
+		$this->assertStringContainsString( 'https://example.test/?bsbenchSession=cockpit', $output );
 		$this->assertStringContainsString( 'Open Cockpit', $output );
 	}
 }

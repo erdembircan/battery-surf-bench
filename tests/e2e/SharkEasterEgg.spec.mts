@@ -27,7 +27,8 @@ const KONAMI_KEYS = [
 ];
 
 /** The cockpit block's root, which carries the store's state classes. */
-const COCKPIT = '.wp-block-bsb-cockpit[data-wp-interactive="bsb/cockpit"]';
+const COCKPIT =
+	'.wp-block-battery-surf-bench-cockpit[data-wp-interactive="battery-surf-bench/cockpit"]';
 
 /**
  * The class the cockpit root carries exactly while the egg is armed: a run is
@@ -110,7 +111,7 @@ test.describe( 'Shark-fin Easter egg', () => {
 	test( 'entering the Konami code during a live compact run releases the fin, which auto-hides on its own', async ( {
 		page,
 	} ) => {
-		await page.goto( '/?bsbSession=cockpit' );
+		await page.goto( '/?bsbenchSession=cockpit' );
 
 		await startFastRun( page );
 
@@ -135,7 +136,7 @@ test.describe( 'Shark-fin Easter egg', () => {
 	test( 'a second Konami entry while a shark is already swimming is a no-op — one shark at a time', async ( {
 		page,
 	} ) => {
-		await page.goto( '/?bsbSession=cockpit' );
+		await page.goto( '/?bsbenchSession=cockpit' );
 
 		await startFastRun( page );
 
@@ -160,7 +161,7 @@ test.describe( 'Shark-fin Easter egg', () => {
 	test( 'the sequence does nothing on the expanded deck — the egg only arms while compact', async ( {
 		page,
 	} ) => {
-		await page.goto( '/?bsbSession=cockpit' );
+		await page.goto( '/?bsbenchSession=cockpit' );
 
 		await startFastRun( page );
 
@@ -185,7 +186,7 @@ test.describe( 'Shark-fin Easter egg', () => {
 	test( "the dev-tools panel's shark button releases the fin on demand, disabled outside the launch window", async ( {
 		page,
 	} ) => {
-		await page.goto( '/?bsbSession=cockpit' );
+		await page.goto( '/?bsbenchSession=cockpit' );
 
 		await page.locator( '.bsb-devtools__pill' ).click();
 

@@ -117,7 +117,7 @@ export function simulateRun( run: SimulatedRun ): SessionUploadInput {
 }
 
 /**
- * Shapes a finished run into the REST body the `bsb_session` collection
+ * Shapes a finished run into the REST body the `bsbench_session` collection
  * accepts. A line-for-line mirror of `buildSessionPayload` in
  * `src/cockpit/SessionUpload.ts`.
  *
@@ -148,22 +148,22 @@ export function toSessionBody(
 	const endedAt = new Date( input.endedAtWall ).toISOString();
 
 	const meta: Record< string, unknown > = {
-		bsb_status: status,
-		bsb_mode: input.config.mode === 'duration' ? 'duration' : 'target',
-		bsb_started_at: startedAt,
-		bsb_ended_at: endedAt,
-		bsb_start_level: summary.startLevel,
-		bsb_end_level: summary.endLevel,
-		bsb_dropped_pct: summary.droppedPct,
-		bsb_elapsed: input.elapsedSeconds,
-		bsb_rate_10: summary.rate10 ?? 0,
-		bsb_rate_session: summary.rateSession ?? 0,
-		bsb_time_to_empty: summary.secondsToEmpty ?? 0,
-		bsb_config_mode: input.config.mode,
-		bsb_ua_browser: input.uaBrowser,
-		bsb_ua_version: input.uaVersion,
-		bsb_ua_os: input.uaOs,
-		bsb_samples: input.samples.map( ( sample ) => ( {
+		bsbench_status: status,
+		bsbench_mode: input.config.mode === 'duration' ? 'duration' : 'target',
+		bsbench_started_at: startedAt,
+		bsbench_ended_at: endedAt,
+		bsbench_start_level: summary.startLevel,
+		bsbench_end_level: summary.endLevel,
+		bsbench_dropped_pct: summary.droppedPct,
+		bsbench_elapsed: input.elapsedSeconds,
+		bsbench_rate_10: summary.rate10 ?? 0,
+		bsbench_rate_session: summary.rateSession ?? 0,
+		bsbench_time_to_empty: summary.secondsToEmpty ?? 0,
+		bsbench_config_mode: input.config.mode,
+		bsbench_ua_browser: input.uaBrowser,
+		bsbench_ua_version: input.uaVersion,
+		bsbench_ua_os: input.uaOs,
+		bsbench_samples: input.samples.map( ( sample ) => ( {
 			t: sample.t,
 			level: sample.level,
 			charging: sample.charging,
@@ -172,9 +172,9 @@ export function toSessionBody(
 	};
 
 	if ( input.config.mode === 'targetDrop' ) {
-		meta.bsb_config_target_percent = input.config.targetPercent;
+		meta.bsbench_config_target_percent = input.config.targetPercent;
 	} else {
-		meta.bsb_config_duration = input.config.durationMinutes * 60;
+		meta.bsbench_config_duration = input.config.durationMinutes * 60;
 	}
 
 	return { status: 'publish', meta };

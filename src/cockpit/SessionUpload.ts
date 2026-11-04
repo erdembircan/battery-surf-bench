@@ -4,7 +4,7 @@
  * When a run ends (whatever the cause), the cockpit POSTs the whole session —
  * the lifecycle status and run mode, the battery levels, the derived drain
  * statistics, the configuration it ran with, and the run-length-encoded sample
- * log — to the `bsb_session` post type's own REST collection. There is no
+ * log — to the `bsbench_session` post type's own REST collection. There is no
  * bespoke controller: the post type is REST-enabled and its meta is registered
  * with REST schemas (see `SessionSchema`), so the native `wp/v2/<post_type>`
  * endpoint accepts the record and validates every meta against its schema.
@@ -29,28 +29,28 @@ import { type RunMode } from '@/cockpit/RunConfig';
  * The session meta keys, mirroring the prefixed keys `SessionSchema` registers
  * server-side. Kept here as the single client-side list of what a session
  * record carries, so the payload builder reads from one source rather than
- * scattering string literals. The `bsb_` prefix and the `config` group segment
+ * scattering string literals. The `bsbench_` prefix and the `config` group segment
  * match the plugin's meta namespace.
  */
 const META = {
-	status: 'bsb_status',
-	mode: 'bsb_mode',
-	startedAt: 'bsb_started_at',
-	endedAt: 'bsb_ended_at',
-	startLevel: 'bsb_start_level',
-	endLevel: 'bsb_end_level',
-	droppedPct: 'bsb_dropped_pct',
-	elapsed: 'bsb_elapsed',
-	rate10: 'bsb_rate_10',
-	rateSession: 'bsb_rate_session',
-	timeToEmpty: 'bsb_time_to_empty',
-	configMode: 'bsb_config_mode',
-	configDuration: 'bsb_config_duration',
-	configTargetPercent: 'bsb_config_target_percent',
-	uaBrowser: 'bsb_ua_browser',
-	uaVersion: 'bsb_ua_version',
-	uaOs: 'bsb_ua_os',
-	samples: 'bsb_samples',
+	status: 'bsbench_status',
+	mode: 'bsbench_mode',
+	startedAt: 'bsbench_started_at',
+	endedAt: 'bsbench_ended_at',
+	startLevel: 'bsbench_start_level',
+	endLevel: 'bsbench_end_level',
+	droppedPct: 'bsbench_dropped_pct',
+	elapsed: 'bsbench_elapsed',
+	rate10: 'bsbench_rate_10',
+	rateSession: 'bsbench_rate_session',
+	timeToEmpty: 'bsbench_time_to_empty',
+	configMode: 'bsbench_config_mode',
+	configDuration: 'bsbench_config_duration',
+	configTargetPercent: 'bsbench_config_target_percent',
+	uaBrowser: 'bsbench_ua_browser',
+	uaVersion: 'bsbench_ua_version',
+	uaOs: 'bsbench_ua_os',
+	samples: 'bsbench_samples',
 } as const;
 
 /** The run configuration persisted with a finished session. */
@@ -145,7 +145,7 @@ export const modeFor = ( config: UploadConfig ): string =>
 const toIso = ( ms: number ): string => new Date( ms ).toISOString();
 
 /**
- * Shapes a finished run into the REST body the `bsb_session` collection accepts:
+ * Shapes a finished run into the REST body the `bsbench_session` collection accepts:
  * a published status and the full meta record (identity and result scalars, the
  * derived statistics — zero where the run could not compute them, since
  * WordPress REST single meta cannot store a null — the run configuration, the
@@ -227,7 +227,9 @@ export const buildSessionPayload = (
 export const postSession = async (
 	payload: SessionPayload
 ): Promise< boolean > => {
-	const config = getConfig( 'bsb/cockpit' ) as Partial< RestConfig >;
+	const config = getConfig(
+		'battery-surf-bench/cockpit'
+	) as Partial< RestConfig >;
 
 	if ( ! config.restUrl || ! config.restNonce ) {
 		return true;

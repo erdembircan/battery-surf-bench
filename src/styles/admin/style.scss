@@ -37,7 +37,7 @@
 // plugin's benchmark launcher rather than a bare text link. currentColor makes
 // it inherit the toolbar's text colour (and its hover/focus brightening) exactly
 // like a native toolbar icon.
-#wpadminbar #wp-admin-bar-bsb-start-benchmark > .ab-item::before {
+#wpadminbar #wp-admin-bar-bsbench-start-benchmark > .ab-item::before {
 	content: "";
 	display: inline-block;
 	width: 20px;

@@ -24,7 +24,7 @@ use WP_Error;
  */
 final class SessionRestControllerTest extends TestCase {
 
-	private const POST_TYPE = 'bsb_session';
+	private const POST_TYPE = 'bsbench_session';
 
 	/**
 	 * Builds the controller under test for the session post type.

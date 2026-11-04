@@ -26,8 +26,8 @@ use function has_action;
  */
 final class SessionTypeTest extends TestCase {
 
-	private const POST_TYPE  = 'bsb_session';
-	private const PREFIX     = 'bsb_';
+	private const POST_TYPE  = 'bsbench_session';
+	private const PREFIX     = 'bsbench_';
 	private const CAPABILITY = 'manage_options';
 
 	/**

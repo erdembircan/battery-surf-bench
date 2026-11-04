@@ -7,7 +7,7 @@
  * ({@link ./store/DevtoolsStore}, {@link ./store/BatteryOverrideStore},
  * {@link ./store/DischargeSimStore}, {@link ../cockpit/store/StoreParts}). This file only
  * proves the join itself — that importing the module registers the
- * `bsb/cockpit` namespace with the whole `devtools` slice folded in.
+ * `battery-surf-bench/cockpit` namespace with the whole `devtools` slice folded in.
  */
 
 import { describe, it, expect, vi } from 'vitest';
@@ -48,10 +48,10 @@ vi.mock( '@wordpress/interactivity', () => ( {
 } ) );
 
 describe( 'devtools view', () => {
-	it( 'joins the bsb/cockpit namespace with the devtools slice folded in', async () => {
+	it( 'joins the battery-surf-bench/cockpit namespace with the devtools slice folded in', async () => {
 		await import( '@/devtools/view' );
 
-		expect( mocks.namespace ).toBe( 'bsb/cockpit' );
+		expect( mocks.namespace ).toBe( 'battery-surf-bench/cockpit' );
 		expect( mocks.config?.state.devtools ).toEqual( {
 			open: false,
 			battery: { charging: null, level: null },

@@ -119,7 +119,7 @@ export const resetDischargeSim = (): void => {
 	sim.minutes = DEFAULT_SIM.minutes;
 };
 
-/** The discharge-simulation section of the dev-tools panel, joining `bsb/cockpit`. */
+/** The discharge-simulation section of the dev-tools panel, joining `battery-surf-bench/cockpit`. */
 export const dischargeSimStore: StorePart = {
 	state: {
 		/** The configured start percentage, as display text. */

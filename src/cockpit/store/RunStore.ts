@@ -33,20 +33,20 @@ import { runBlocksExit, confirmExit } from '@/cockpit/ExitGuard';
 
 /**
  * The surf-route configuration the cockpit's PHP route seeds via
- * `getConfig()` — the site's home URL and a `bsb_surf` nonce, the only
+ * `getConfig()` — the site's home URL and a `bsbench_surf` nonce, the only
  * material `currentSrc` needs to build an index request. Read from the same
- * `bsb/cockpit` config object {@link ../SessionUpload} reads its REST access
+ * `battery-surf-bench/cockpit` config object {@link ../SessionUpload} reads its REST access
  * from.
  */
 interface SurfConfig {
 	/** The site's home URL, seeded server-side. */
 	surfBase: string;
-	/** A `bsb_surf` nonce proving the request came from the authorized cockpit. */
+	/** A `bsbench_surf` nonce proving the request came from the authorized cockpit. */
 	surfNonce: string;
 }
 
 /**
- * The slice of the merged `bsb/cockpit` state the Surf dev-tool contributes,
+ * The slice of the merged `battery-surf-bench/cockpit` state the Surf dev-tool contributes,
  * read defensively (production reads `state.devtools` optionally, exactly as
  * `../devtools/BatteryOverrideStore`'s precedent requires — it may not exist
  * at all with no dev-tools module loaded).
@@ -82,7 +82,7 @@ interface SharedDevtoolsSurfStore {
  */
 const VIEWPORT_LOAD_TIMEOUT_MS = 15000;
 
-/** The run slice of the `bsb/cockpit` store. */
+/** The run slice of the `battery-surf-bench/cockpit` store. */
 export const runStore: StorePart = {
 	state: {
 		/**
@@ -92,7 +92,7 @@ export const runStore: StorePart = {
 		 *
 		 * Built entirely from the opaque `activeIndex` counter and the surf-route
 		 * configuration the cockpit's PHP route seeds (the home URL + a
-		 * `bsb_surf` nonce) — the client never knows which page an index names,
+		 * `bsbench_surf` nonce) — the client never knows which page an index names,
 		 * how many pages exist, or anything else about them; `CourseRouter`
 		 * resolves that server-side. Also carries the surfer's trait vector and
 		 * demo speed as query params, the only channel the engine running inside
@@ -106,7 +106,9 @@ export const runStore: StorePart = {
 				return '';
 			}
 
-			const config = getConfig( 'bsb/cockpit' ) as Partial< SurfConfig >;
+			const config = getConfig(
+				'battery-surf-bench/cockpit'
+			) as Partial< SurfConfig >;
 			const url = buildSurfIndexUrl(
 				config.surfBase ?? '',
 				activeIndex,
@@ -238,8 +240,9 @@ export const runStore: StorePart = {
 			// `state.devtools` may not exist at all (no dev-tools module loaded),
 			// read defensively, same as `../devtools/BatteryOverrideStore`'s own
 			// precedent for a production seam reading dev-tools state.
-			const { state: sharedState } =
-				store< SharedDevtoolsSurfStore >( 'bsb/cockpit' );
+			const { state: sharedState } = store< SharedDevtoolsSurfStore >(
+				'battery-surf-bench/cockpit'
+			);
 			context.sterile =
 				BSB_DEV_TOOLS && Boolean( sharedState.devtools?.surf?.sterile );
 			// Runs open in the compact stage view; the user can expand to the
@@ -564,8 +567,9 @@ export const runStore: StorePart = {
 				return;
 			}
 
-			const { state: sharedState } =
-				store< SharedDevtoolsSurfStore >( 'bsb/cockpit' );
+			const { state: sharedState } = store< SharedDevtoolsSurfStore >(
+				'battery-surf-bench/cockpit'
+			);
 			const surf = sharedState.devtools?.surf;
 
 			if ( ! surf ) {

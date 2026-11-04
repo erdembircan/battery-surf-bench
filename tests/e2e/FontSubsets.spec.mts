@@ -91,7 +91,7 @@ test.describe( 'latin-ext font subsets', () => {
 	test( 'the cockpit serves a loadable latin-ext face for every theme font', async ( {
 		page,
 	} ) => {
-		await page.goto( '/?bsbSession=cockpit' );
+		await page.goto( '/?bsbenchSession=cockpit' );
 		expect( await page.content() ).not.toMatch( PHP_NOTICE );
 		await expectLatinExtFacesLoaded( page );
 	} );
@@ -99,7 +99,7 @@ test.describe( 'latin-ext font subsets', () => {
 	test( 'the sessions admin screen serves a loadable latin-ext face for every theme font', async ( {
 		page,
 	} ) => {
-		await page.goto( '/wp-admin/admin.php?page=bsb-sessions' );
+		await page.goto( '/wp-admin/admin.php?page=bsbench-sessions' );
 		expect( await page.content() ).not.toMatch( PHP_NOTICE );
 		await expectLatinExtFacesLoaded( page );
 	} );

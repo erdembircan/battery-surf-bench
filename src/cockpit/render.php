@@ -1,6 +1,6 @@
 <?php
 /**
- * Server render for the `bsb/cockpit` block.
+ * Server render for the `battery-surf-bench/cockpit` block.
  *
  * The block carries no page data: which page is surfed at any point is an
  * opaque, client-incrementing index (`activeIndex`) the store resolves
@@ -37,7 +37,7 @@ defined( 'ABSPATH' ) || exit;
 // configuration and bound onto the iframe, so advancing the index later
 // re-points the viewport with no reload of the cockpit itself; the deck reads
 // and writes the run fields through the same store.
-$bsb_context = array(
+$battery_surf_bench_context = array(
 	'activeIndex'         => 0,
 	'mode'                => 'duration',
 	'durationMinutes'     => 30,
@@ -153,10 +153,10 @@ $bsb_context = array(
 // card is flipped. Defaulting to hidden in CSS (rather than a server-seeded
 // class, which the Interactivity runtime would strip since the getter is
 // client-side) means the deck never flashes in and slides out on load.
-$bsb_markup = ( new CockpitView() )->render(
+$battery_surf_bench_markup = ( new CockpitView() )->render(
 	array(
 		'wrapper'              => get_block_wrapper_attributes(),
-		'context'              => wp_interactivity_data_wp_context( $bsb_context ),
+		'context'              => wp_interactivity_data_wp_context( $battery_surf_bench_context ),
 		'brand_title'          => __( 'Battery Surf Bench', 'battery-surf-bench' ),
 		'brand_subtitle'       => __( 'Cockpit', 'battery-surf-bench' ),
 		'mode_label'           => __( 'Mode', 'battery-surf-bench' ),
@@ -278,4 +278,4 @@ $bsb_markup = ( new CockpitView() )->render(
 // The view escapes each value and returns finished, trusted markup, so the
 // assembled HTML cannot be run through an escaper here.
 // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- trusted view-rendered block markup; see comment above.
-echo $bsb_markup;
+echo $battery_surf_bench_markup;

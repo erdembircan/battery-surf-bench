@@ -114,6 +114,6 @@ export interface ResolvedUserPage {
 
 declare global {
 	interface Window {
-		bsbSettings?: SettingsConfig;
+		bsbenchSettings?: SettingsConfig;
 	}
 }

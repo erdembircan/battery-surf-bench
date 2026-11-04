@@ -19,8 +19,8 @@ use ErdemBircan\BatterySurfBench\Tests\TestCase;
  */
 final class SessionSchemaTest extends TestCase {
 
-	private const POST_TYPE = 'bsb_session';
-	private const PREFIX    = 'bsb_';
+	private const POST_TYPE = 'bsbench_session';
+	private const PREFIX    = 'bsbench_';
 
 	/**
 	 * Builds a schema with representative post type and prefix.

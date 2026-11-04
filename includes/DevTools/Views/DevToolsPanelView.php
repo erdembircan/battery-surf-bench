@@ -69,8 +69,8 @@ defined( 'ABSPATH' ) || exit;
  * battery group's own controls, it is never disabled while a sim runs, since
  * stopping the sim is exactly what it is there to do.
  *
- * The panel sits outside the `bsb/cockpit` block, so it carries its own
- * `data-wp-interactive="bsb/cockpit"` region but has no cockpit context — every
+ * The panel sits outside the `battery-surf-bench/cockpit` block, so it carries its own
+ * `data-wp-interactive="battery-surf-bench/cockpit"` region but has no cockpit context — every
  * binding below reads shared `state` (never a `getContext()`-derived getter),
  * and every member it reads or writes carries the `devtools` prefix so it can
  * never collide with a production store member. It is rendered here from its

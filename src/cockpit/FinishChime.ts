@@ -14,7 +14,7 @@
  */
 
 /** localStorage key the finish-sound preference is remembered under. */
-export const SOUND_KEY = 'bsb-cockpit-sound';
+export const SOUND_KEY = 'bsbench-cockpit-sound';
 
 /** The chime's notes (Hz) — a bright A major triad: A5, C#6, E6. */
 const NOTES = [ 880, 1108.73, 1318.51 ];

@@ -1,6 +1,6 @@
 /**
  * The shark-release sub-tool: the dev-tools panel header's shark button,
- * joining `bsb/cockpit` from a separate script module like every other
+ * joining `battery-surf-bench/cockpit` from a separate script module like every other
  * sub-tool (see {@link ./BatteryOverrideStore}'s doc comment for the
  * namespacing rule). Releasing writes a stamped one-shot launch command onto
  * the shared devtools slice — the panel sits outside the cockpit block and
@@ -18,7 +18,7 @@ import { current } from '@/devtools/store/DevtoolsStore';
 /** Monotonic sequence stamped onto every launch command, so the cockpit watch (which reads it reactively) re-fires even on a repeat release. */
 let sharkSeq = 0;
 
-/** The shark-release section of the dev-tools panel, joining `bsb/cockpit`. */
+/** The shark-release section of the dev-tools panel, joining `battery-surf-bench/cockpit`. */
 export const sharkReleaseStore: StorePart = {
 	state: {
 		/** Whether the shark button is disabled — no run live, or the deck not compact, per the cockpit's launchability mirror. */

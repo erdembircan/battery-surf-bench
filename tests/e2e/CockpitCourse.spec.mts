@@ -3,7 +3,7 @@ import { test, expect, type Page } from '@playwright/test';
 /**
  * End-to-end coverage for the two URL-parameter routes the plugin serves: the
  * index-based course-page route (rendered through the active theme, gated on
- * a `bsb_surf` nonce + capability — see `CourseRouter`) and the cockpit
+ * a `bsbench_surf` nonce + capability — see `CourseRouter`) and the cockpit
  * dashboard (a stripped, Interactivity-driven page). The e2e blueprint enables
  * WP_DEBUG_DISPLAY, so a PHP warning or notice prints into the page — these
  * tests fail on any such output, which is what catches regressions like a
@@ -11,8 +11,8 @@ import { test, expect, type Page } from '@playwright/test';
  *
  * The client never holds a page list — no ids, URLs, titles, order, or
  * count — so these tests exercise the same seam the real client does: mint
- * the `bsb_surf` nonce by visiting the cockpit (see {@link surfNonce}), then
- * build the `?bsbSurfIndex=<n>&bsbNonce=<nonce>` request the same way
+ * the `bsbench_surf` nonce by visiting the cockpit (see {@link surfNonce}), then
+ * build the `?bsbenchSurfIndex=<n>&bsbenchNonce=<nonce>` request the same way
  * `RunStore.currentSrc` / `SurfIndexUrl.buildSurfIndexUrl` do.
  */
 
@@ -29,15 +29,15 @@ async function expectNoPhpNotices( page: Page ): Promise< void > {
 }
 
 /**
- * Extracts the `bsb_surf` nonce the cockpit's PHP route seeds via
+ * Extracts the `bsbench_surf` nonce the cockpit's PHP route seeds via
  * `wp_interactivity_config()` — read here straight out of the page's
  * server-rendered Interactivity script-module data (`getConfig()`'s source),
  * exactly like the real client does, rather than minting one out of band.
  * Assumes the page has already navigated to the cockpit
- * (`/?bsbSession=cockpit`).
+ * (`/?bsbenchSession=cockpit`).
  *
  * @param page - The page, already on the cockpit dashboard.
- * @return The seeded `bsb_surf` nonce.
+ * @return The seeded `bsbench_surf` nonce.
  */
 async function surfNonce( page: Page ): Promise< string > {
 	const nonce = await page.evaluate( () => {
@@ -50,11 +50,13 @@ async function surfNonce( page: Page ): Promise< string > {
 		const data = JSON.parse( el.textContent ) as {
 			config?: Record< string, { surfNonce?: string } >;
 		};
-		return data.config?.[ 'bsb/cockpit' ]?.surfNonce ?? null;
+		return data.config?.[ 'battery-surf-bench/cockpit' ]?.surfNonce ?? null;
 	} );
 
 	if ( ! nonce ) {
-		throw new Error( 'bsb_surf nonce was not seeded on the cockpit page' );
+		throw new Error(
+			'bsbench_surf nonce was not seeded on the cockpit page'
+		);
 	}
 
 	return nonce;
@@ -63,10 +65,10 @@ async function surfNonce( page: Page ): Promise< string > {
 /**
  * Builds the authorized index-route URL a real run would request, mirroring
  * `RunStore.currentSrc` / `SurfIndexUrl.buildSurfIndexUrl`: an opaque page
- * index plus the `bsb_surf` nonce, with any extra params (e.g. the surfer's
- * `bsbTraits`/`bsbSpeed`) layered on top exactly like `withSurferParams` does.
+ * index plus the `bsbench_surf` nonce, with any extra params (e.g. the surfer's
+ * `bsbenchTraits`/`bsbenchSpeed`) layered on top exactly like `withSurferParams` does.
  *
- * @param nonce - The `bsb_surf` nonce (see {@link surfNonce}).
+ * @param nonce - The `bsbench_surf` nonce (see {@link surfNonce}).
  * @param index - The opaque page index to request.
  * @param extra - Extra query params to append.
  * @return The relative index-route URL.
@@ -77,8 +79,8 @@ function indexUrl(
 	extra: Record< string, string > = {}
 ): string {
 	const params = new URLSearchParams( {
-		bsbSurfIndex: String( index ),
-		bsbNonce: nonce,
+		bsbenchSurfIndex: String( index ),
+		bsbenchNonce: nonce,
 		...extra,
 	} );
 
@@ -183,10 +185,10 @@ test.describe( 'Course page route', () => {
 	test( 'renders article-1 through the active theme, no PHP notices', async ( {
 		page,
 	} ) => {
-		// Mint the `bsb_surf` nonce the same way a real run does — by opening
+		// Mint the `bsbench_surf` nonce the same way a real run does — by opening
 		// the cockpit — then request index 0 (article-1 leads the default
 		// bundled order) through the authorized index route.
-		await page.goto( '/?bsbSession=cockpit' );
+		await page.goto( '/?bsbenchSession=cockpit' );
 		const nonce = await surfNonce( page );
 
 		await page.goto( indexUrl( nonce, 0 ) );
@@ -213,7 +215,7 @@ test.describe( 'Video course page (native YouTube embed)', () => {
 	test( 'renders the native core/embed YouTube block, amended and controllable, no PHP notices', async ( {
 		page,
 	} ) => {
-		// Mint the `bsb_surf` nonce the same way a real run does, then request
+		// Mint the `bsbench_surf` nonce the same way a real run does, then request
 		// the video page's index through the authorized index route.
 		//
 		// WordPress's OWN real oEmbed handling resolves the embed here — this
@@ -228,7 +230,7 @@ test.describe( 'Video course page (native YouTube embed)', () => {
 		// is the actual behavior under test: no PHP unit test exercises this
 		// amend (see `tests/Course/YouTubeEmbedTest.php`'s doc comment), so
 		// this e2e spec is its only coverage.
-		await page.goto( '/?bsbSession=cockpit' );
+		await page.goto( '/?bsbenchSession=cockpit' );
 		const nonce = await surfNonce( page );
 
 		await page.goto( indexUrl( nonce, VIDEO_INDEX ) );
@@ -286,11 +288,14 @@ test.describe( 'Surf engine', () => {
 		// before that is a weighted lottery: every behavior keeps a floor bid
 		// even at a zero trait, so a scroll is likely but never guaranteed. The
 		// next test proves the window scroll deterministically.
-		await page.goto( '/?bsbSession=cockpit' );
+		await page.goto( '/?bsbenchSession=cockpit' );
 		const nonce = await surfNonce( page );
 
 		await page.goto(
-			indexUrl( nonce, 0, { bsbTraits: '10,0,0,0,0', bsbSpeed: '10' } )
+			indexUrl( nonce, 0, {
+				bsbenchTraits: '10,0,0,0,0',
+				bsbenchSpeed: '10',
+			} )
 		);
 
 		await waitForMessage( page, 'bsb:pageDone' );
@@ -315,19 +320,19 @@ test.describe( 'Surf engine', () => {
 	} ) => {
 		await recordMessages( page );
 
-		// `bsbSterile=1` boots the sterile engine instead of the loop: no
+		// `bsbenchSterile=1` boots the sterile engine instead of the loop: no
 		// auction, and each behavior runs once on a `bsb:steerBehavior`
 		// command, over the same motor the loop drives. The dev-tools panel
 		// sends that command from the cockpit; outside an iframe the page is
 		// its own parent, so the test posts it to the page directly.
-		await page.goto( '/?bsbSession=cockpit' );
+		await page.goto( '/?bsbenchSession=cockpit' );
 		const nonce = await surfNonce( page );
 
 		await page.goto(
 			indexUrl( nonce, 0, {
-				bsbTraits: '10,0,0,0,0',
-				bsbSpeed: '10',
-				bsbSterile: '1',
+				bsbenchTraits: '10,0,0,0,0',
+				bsbenchSpeed: '10',
+				bsbenchSterile: '1',
 			} )
 		);
 
@@ -361,14 +366,14 @@ test.describe( 'Surf engine', () => {
 		// move; left to the loop's weighted lottery it only usually would.
 		// Speed 1 lets the wiggle run its full 500 ms or more, long enough to
 		// sample it mid-drift.
-		await page.goto( '/?bsbSession=cockpit' );
+		await page.goto( '/?bsbenchSession=cockpit' );
 		const nonce = await surfNonce( page );
 
 		await page.goto(
 			indexUrl( nonce, 0, {
-				bsbTraits: '0,0,0,0,10',
-				bsbSpeed: '1',
-				bsbSterile: '1',
+				bsbenchTraits: '0,0,0,0,10',
+				bsbenchSpeed: '1',
+				bsbenchSterile: '1',
 			} )
 		);
 
@@ -453,7 +458,7 @@ test.describe( 'Surf engine', () => {
 	test( 'stays a static page when the traits URL param is absent', async ( {
 		page,
 	} ) => {
-		await page.goto( '/?bsbSession=cockpit' );
+		await page.goto( '/?bsbenchSession=cockpit' );
 		const nonce = await surfNonce( page );
 
 		await page.goto( indexUrl( nonce, 0 ) );
@@ -473,7 +478,7 @@ test.describe( 'Surf engine', () => {
 		expect( deckCursor ).not.toBe( 'not-allowed' );
 
 		// Poll past the engine's settle beat (1000-3000 ms at speed 1, the
-		// default with no bsbSpeed param) plus a first tick — an incorrectly
+		// default with no bsbenchSpeed param) plus a first tick — an incorrectly
 		// booting engine would move scrollY inside this window instead of
 		// leaving it pinned at 0 the whole time.
 		for ( let i = 0; i < 4; i++ ) {
@@ -487,7 +492,7 @@ test.describe( 'Cockpit surfer profile', () => {
 	test( 'renders the surfer field: chips, customize sliders, derived archetype', async ( {
 		page,
 	} ) => {
-		await page.goto( '/?bsbSession=cockpit' );
+		await page.goto( '/?bsbenchSession=cockpit' );
 
 		// The Surfer field sits among the config controls, its label carrying the
 		// live derived archetype name.
@@ -534,7 +539,7 @@ test.describe( 'Cockpit surfer profile', () => {
 	test( 'editing stats updates the points budget and derived archetype live', async ( {
 		page,
 	} ) => {
-		await page.goto( '/?bsbSession=cockpit' );
+		await page.goto( '/?bsbenchSession=cockpit' );
 
 		// Reveal the control deck by flipping the startup postcard, then open the
 		// stat sliders.
@@ -545,7 +550,7 @@ test.describe( 'Cockpit surfer profile', () => {
 			.first()
 			.click();
 		await expect(
-			page.locator( '.wp-block-bsb-cockpit.is-deck-shown' )
+			page.locator( '.wp-block-battery-surf-bench-cockpit.is-deck-shown' )
 		).toBeAttached();
 		await page.locator( '.bsb-surfer__customize' ).click();
 
@@ -581,16 +586,16 @@ test.describe( 'Cockpit dashboard route', () => {
 	test( 'serves a stripped Interactivity dashboard, no PHP notices', async ( {
 		page,
 	} ) => {
-		await page.goto( '/?bsbSession=cockpit' );
+		await page.goto( '/?bsbenchSession=cockpit' );
 
 		// The interactive region and viewport iframe are present, wired to
 		// listen for the surf engine's page-done handshake. The dev-tools panel
-		// is a second, separate `bsb/cockpit` region (joined via the
+		// is a second, separate `battery-surf-bench/cockpit` region (joined via the
 		// store-merge mechanism), so this locator is scoped to the cockpit
 		// block's own wrapper.
 		await expect(
 			page.locator(
-				'.wp-block-bsb-cockpit[data-wp-interactive="bsb/cockpit"]'
+				'.wp-block-battery-surf-bench-cockpit[data-wp-interactive="battery-surf-bench/cockpit"]'
 			)
 		).toHaveAttribute(
 			'data-wp-init---page-advance',
@@ -663,7 +668,7 @@ test.describe( 'Cockpit dashboard route', () => {
 		// reveal class is absent until a run is live or the startup card is
 		// flipped. The deck markup itself is still present (off-screen).
 		await expect(
-			page.locator( '.wp-block-bsb-cockpit.is-deck-shown' )
+			page.locator( '.wp-block-battery-surf-bench-cockpit.is-deck-shown' )
 		).toHaveCount( 0 );
 		await expect( page.locator( '.bsb-cockpit__deck' ) ).toBeAttached();
 
@@ -674,7 +679,7 @@ test.describe( 'Cockpit dashboard route', () => {
 		).toBeHidden();
 		await expect(
 			page.locator( 'iframe.bsb-cockpit__viewport' )
-		).not.toHaveAttribute( 'src', /bsbSurfIndex/ );
+		).not.toHaveAttribute( 'src', /bsbenchSurfIndex/ );
 
 		// The wrap itself carries no cursor override of its own — only its
 		// `.bsb-cockpit__shield` child does — so it resolves to the ordinary
@@ -737,7 +742,7 @@ test.describe( 'Cockpit behavior barks', () => {
 	test( 'wires the behavior-start bark pill inside the viewport, hidden at rest', async ( {
 		page,
 	} ) => {
-		await page.goto( '/?bsbSession=cockpit' );
+		await page.goto( '/?bsbenchSession=cockpit' );
 
 		// The layer sits inside the viewport wrap (so it reads as "inside" the
 		// simulated page) and is aria-hidden — barks are decorative, not
@@ -769,7 +774,7 @@ test.describe( 'Cockpit behavior barks', () => {
 
 		await expect(
 			page.locator(
-				'.wp-block-bsb-cockpit[data-wp-interactive="bsb/cockpit"]'
+				'.wp-block-battery-surf-bench-cockpit[data-wp-interactive="battery-surf-bench/cockpit"]'
 			)
 		).toHaveAttribute( 'data-wp-init---bark', 'callbacks.initBark' );
 
@@ -780,7 +785,7 @@ test.describe( 'Cockpit behavior barks', () => {
 	// bark within a generous window — six of the engine's nine behaviors bark,
 	// so one should win quickly.
 	test( 'raises a bark pill during a live, fast run', async ( { page } ) => {
-		await page.goto( '/?bsbSession=cockpit' );
+		await page.goto( '/?bsbenchSession=cockpit' );
 
 		// The e2e blueprint's host reports charging, which blocks a live run;
 		// force discharging through the dev-tools override, as the other cockpit
@@ -840,11 +845,11 @@ test.describe( 'Viewport load guard', () => {
 	test( 'stops the run when the viewport loads a page that is not a course page', async ( {
 		page,
 	} ) => {
-		await page.goto( '/?bsbSession=cockpit' );
+		await page.goto( '/?bsbenchSession=cockpit' );
 		await startDischargingRun( page );
 
 		const viewport = page.locator( 'iframe.bsb-cockpit__viewport' );
-		await expect( viewport ).toHaveAttribute( 'src', /bsbSurfIndex/ );
+		await expect( viewport ).toHaveAttribute( 'src', /bsbenchSurfIndex/ );
 		await expect(
 			page.locator( '.bsb-cockpit__viewport-wrap' )
 		).toBeVisible();
@@ -858,7 +863,7 @@ test.describe( 'Viewport load guard', () => {
 		// carries the router-stamped `bsb-course-page` body class — exactly the
 		// failure this guard exists to catch.
 		await viewport.evaluate( ( iframe: HTMLIFrameElement ) => {
-			iframe.src = '/?bsbSurfIndex=0&bsbNonce=not-a-real-nonce';
+			iframe.src = '/?bsbenchSurfIndex=0&bsbenchNonce=not-a-real-nonce';
 		} );
 
 		// The guard's `load` handler stops the run: the summary is raised with
@@ -881,11 +886,11 @@ test.describe( 'Viewport load guard', () => {
 		// Regression coverage for the bug the maintainer hit: the guard must not
 		// mistake a genuinely served course page for a failed load, whether at
 		// the moment the run starts or a few seconds into the surf session.
-		await page.goto( '/?bsbSession=cockpit' );
+		await page.goto( '/?bsbenchSession=cockpit' );
 		await startDischargingRun( page );
 
 		const viewport = page.locator( 'iframe.bsb-cockpit__viewport' );
-		await expect( viewport ).toHaveAttribute( 'src', /bsbSurfIndex/ );
+		await expect( viewport ).toHaveAttribute( 'src', /bsbenchSurfIndex/ );
 
 		// The router stamps every page it serves with the body-class marker the
 		// guard looks for; confirming it here locks the router/guard contract at
@@ -935,11 +940,11 @@ test.describe( 'Navigate/reload guard', () => {
 	test( 'wires the exit-guard init callback on the cockpit root', async ( {
 		page,
 	} ) => {
-		await page.goto( '/?bsbSession=cockpit' );
+		await page.goto( '/?bsbenchSession=cockpit' );
 
 		await expect(
 			page.locator(
-				'.wp-block-bsb-cockpit[data-wp-interactive="bsb/cockpit"]'
+				'.wp-block-battery-surf-bench-cockpit[data-wp-interactive="battery-surf-bench/cockpit"]'
 			)
 		).toHaveAttribute(
 			'data-wp-init---exit-guard',
@@ -952,7 +957,7 @@ test.describe( 'Navigate/reload guard', () => {
 	test( 'blocks a reload/navigation only while a run is live', async ( {
 		page,
 	} ) => {
-		await page.goto( '/?bsbSession=cockpit' );
+		await page.goto( '/?bsbenchSession=cockpit' );
 
 		// Idle: a synthetic beforeunload is not blocked.
 		const idleBlocked = await page.evaluate( () => {
@@ -965,7 +970,7 @@ test.describe( 'Navigate/reload guard', () => {
 		await startDischargingRun( page );
 
 		const viewport = page.locator( 'iframe.bsb-cockpit__viewport' );
-		await expect( viewport ).toHaveAttribute( 'src', /bsbSurfIndex/ );
+		await expect( viewport ).toHaveAttribute( 'src', /bsbenchSurfIndex/ );
 
 		// Live run: the same synthetic beforeunload is now blocked.
 		const runningBlocked = await page.evaluate( () => {
@@ -980,14 +985,14 @@ test.describe( 'Navigate/reload guard', () => {
 } );
 
 test.describe( 'User-selected page in the surf rotation', () => {
-	/** The `/wp/v2/settings` collection: hosts the `bsb_course_order` field — the same endpoint `CourseRouter` reads the saved order from. */
+	/** The `/wp/v2/settings` collection: hosts the `bsbench_course_order` field — the same endpoint `CourseRouter` reads the saved order from. */
 	const SETTINGS_ENDPOINT = '/wp-json/wp/v2/settings';
 
 	/** The `/wp/v2/pages` collection, used to mint a throwaway published page as a "user" entry. */
 	const PAGES_ENDPOINT = '/wp-json/wp/v2/pages';
 
 	/** The option's REST field name, mirrors `Config.php`'s `settings.option`. */
-	const OPTION_KEY = 'bsb_course_order';
+	const OPTION_KEY = 'bsbench_course_order';
 
 	/** A throwaway published page created for a test, plus its real permalink. */
 	interface UserPage {
@@ -1180,17 +1185,17 @@ ${ url }
 				consoleErrors.push( error.message );
 			} );
 
-			// Mint the bsb_surf nonce the same way a real run does, then
+			// Mint the bsbench_surf nonce the same way a real run does, then
 			// request this user page's index (0, the sole saved entry)
-			// through the authorized index route -- with bsbTraits present so
+			// through the authorized index route -- with bsbenchTraits present so
 			// the surf engine actually boots on it, fidget-heavy so the fake
 			// cursor appears promptly regardless of which behavior the
 			// auction happens to pick first.
-			await page.goto( '/?bsbSession=cockpit' );
+			await page.goto( '/?bsbenchSession=cockpit' );
 			const surfingNonce = await surfNonce( page );
 
 			await page.goto(
-				indexUrl( surfingNonce, 0, { bsbTraits: '0,0,0,0,10' } )
+				indexUrl( surfingNonce, 0, { bsbenchTraits: '0,0,0,0,10' } )
 			);
 
 			await expect(
@@ -1281,7 +1286,7 @@ ${ url }
 
 			await putUserPageFirst( page, userPage.id );
 
-			await page.goto( '/?bsbSession=cockpit' );
+			await page.goto( '/?bsbenchSession=cockpit' );
 
 			// The e2e blueprint's host reports charging, which blocks a live
 			// run; force discharging through the dev-tools override, as the
@@ -1312,7 +1317,10 @@ ${ url }
 			// page uses. The client holds no id or slug for it at all; the
 			// only thing identifying which page loaded is its own rendered
 			// content, checked below.
-			await expect( viewport ).toHaveAttribute( 'src', /bsbSurfIndex=0/ );
+			await expect( viewport ).toHaveAttribute(
+				'src',
+				/bsbenchSurfIndex=0/
+			);
 
 			// The router gated the real page in through its controlled
 			// route: the surf engine loaded and stamped the shared
@@ -1338,9 +1346,13 @@ ${ url }
 			// advances to the next page in the sequence — index 1, the first
 			// bundled page (article-1), confirmed the same way: by its own
 			// rendered headline, not by anything in the URL.
-			await expect( viewport ).toHaveAttribute( 'src', /bsbSurfIndex=1/, {
-				timeout: 30_000,
-			} );
+			await expect( viewport ).toHaveAttribute(
+				'src',
+				/bsbenchSurfIndex=1/,
+				{
+					timeout: 30_000,
+				}
+			);
 			await expect(
 				viewport.contentFrame().locator( 'h1.bsb-article__headline' )
 			).toHaveText( 'The Hidden Cost of a Browser Tab', {
@@ -1357,13 +1369,13 @@ ${ url }
 	// Security regression: the exploit the original fix closed, still true
 	// under the index-based redesign. Before the fix, UserPageEngine gated
 	// the surf engine onto a user's REAL permalink purely off the presence
-	// of the `bsbTraits` URL param — client-controlled input deciding
-	// whether the engine ran on a real live page. Appending `?bsbTraits=...`
+	// of the `bsbenchTraits` URL param — client-controlled input deciding
+	// whether the engine ran on a real live page. Appending `?bsbenchTraits=...`
 	// to a selected page's own permalink must do nothing: the engine only
-	// ever runs inside the router's controlled `?bsbSurfIndex=<n>` route,
-	// itself gated on a `bsb_surf` nonce + capability, never on the real
+	// ever runs inside the router's controlled `?bsbenchSurfIndex=<n>` route,
+	// itself gated on a `bsbench_surf` nonce + capability, never on the real
 	// permalink, no matter what query parameters are appended to it.
-	test( "visiting a selected user page's real permalink with bsbTraits appended does not inject the surf engine", async ( {
+	test( "visiting a selected user page's real permalink with bsbenchTraits appended does not inject the surf engine", async ( {
 		page,
 	} ) => {
 		const userPage = await createUserPage(
@@ -1388,7 +1400,7 @@ ${ url }
 			// traits param exactly as the exploit did — no iframe, no
 			// router query parameter, just the page's own URL plus the
 			// client-controlled param the old gate trusted.
-			await page.goto( `${ userPage.link }?bsbTraits=10,0,0,0,0` );
+			await page.goto( `${ userPage.link }?bsbenchTraits=10,0,0,0,0` );
 
 			// Neither the surf engine script nor the shared course-page body
 			// class was injected: the real permalink is never a surf target,
@@ -1415,8 +1427,8 @@ ${ url }
 } );
 
 test.describe( 'Security: index route gate', () => {
-	// The reinforced requirement: the capability + `bsb_surf` nonce gate
-	// guards the ENTIRE `?bsbSurfIndex=` route — every entry it could
+	// The reinforced requirement: the capability + `bsbench_surf` nonce gate
+	// guards the ENTIRE `?bsbenchSurfIndex=` route — every entry it could
 	// resolve to, bundled or user alike — because the gate is checked before
 	// any entry is even resolved. Index 0 resolves to a perfectly ordinary
 	// BUNDLED page (article-1, in the default order these tests run against),
@@ -1424,12 +1436,12 @@ test.describe( 'Security: index route gate', () => {
 	// like a user page would be when the gate fails — not served, no
 	// `bsb-course-page` body class, no `surfer.js`.
 
-	test( '?bsbSurfIndex=0 with a missing/invalid nonce is not served, even though the requester is authenticated', async ( {
+	test( '?bsbenchSurfIndex=0 with a missing/invalid nonce is not served, even though the requester is authenticated', async ( {
 		page,
 	} ) => {
 		// The project's storage state is an authenticated admin — capability
 		// alone must not be enough, the nonce must also be valid.
-		await page.goto( '/?bsbSurfIndex=0&bsbNonce=not-a-real-nonce' );
+		await page.goto( '/?bsbenchSurfIndex=0&bsbenchNonce=not-a-real-nonce' );
 
 		await expect( page.locator( 'body' ) ).not.toHaveClass(
 			/bsb-course-page/
@@ -1447,7 +1459,7 @@ test.describe( 'Security: index route gate', () => {
 		await expectNoPhpNotices( page );
 	} );
 
-	test( '?bsbSurfIndex=0 as a logged-out request is not served, with no nonce at all', async ( {
+	test( '?bsbenchSurfIndex=0 as a logged-out request is not served, with no nonce at all', async ( {
 		playwright,
 		baseURL,
 	} ) => {
@@ -1455,7 +1467,7 @@ test.describe( 'Security: index route gate', () => {
 		// capability check fails before the (absent) nonce is even reached.
 		const anon = await playwright.request.newContext( { baseURL } );
 
-		const response = await anon.get( '/?bsbSurfIndex=0' );
+		const response = await anon.get( '/?bsbenchSurfIndex=0' );
 		const body = await response.text();
 
 		expect( body ).not.toContain( 'bsb-course-page' );

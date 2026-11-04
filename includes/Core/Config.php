@@ -28,7 +28,7 @@ return array(
 		'icon_style' => 'build/style-admin-menu.css',
 		// Slug of the "Start Benchmark" submenu page, which redirects straight
 		// to the cockpit dashboard.
-		'start_slug' => 'bsb-start-benchmark',
+		'start_slug' => 'bsbench-start-benchmark',
 		// Nav script that upgrades the rendered submenu link to open the
 		// cockpit in a new tab. Built from `src/admin/StartBenchmarkLink.ts`.
 		'nav_script' => 'build/admin-start-benchmark.js',
@@ -42,7 +42,7 @@ return array(
 		// heterogeneous list of `{kind:'bundled',slug}` / `{kind:'user',id}`
 		// entries, registered with `show_in_rest` so the settings app reads and
 		// writes it through the core-data site-settings entity.
-		'option'     => 'bsb_course_order',
+		'option'     => 'bsbench_course_order',
 		// Post types the picker's browse pane may add a user page from. A
 		// list array — the Registry returns a sequential array leaf as-is,
 		// so the plugin's service recipes inject it directly.
@@ -53,28 +53,28 @@ return array(
 		// of their meta keys is namespaced with. The prefix is bare (no leading
 		// underscore) on purpose: protected, underscore-prefixed meta is hidden
 		// from REST, and the listing reads the session data over REST.
-		'post_type'   => 'bsb_session',
-		'meta_prefix' => 'bsb_',
+		'post_type'   => 'bsbench_session',
+		'meta_prefix' => 'bsbench_',
 		// Slug of the DataViews listing screen placed under the plugin menu.
-		'screen_slug' => 'bsb-sessions',
+		'screen_slug' => 'bsbench-sessions',
 		// Built assets the listing screen enqueues, relative to the plugin root.
 		'bundle'      => 'build/sessions.js',
 		'style'       => 'build/style-sessions.css',
 	),
 	'course'     => array(
 		// Query parameter carrying the opaque, client-incrementing page index:
-		// `?bsbSurfIndex=<n>`. The client never learns which page an index
+		// `?bsbenchSurfIndex=<n>`. The client never learns which page an index
 		// names, how many pages exist, or anything else about them — the
 		// router resolves the index against the saved order server-side
 		// (wrapping with modulo) and is the sole authority on what gets
 		// served. Never exposed as a per-page slug/URL to the client.
-		'index_param'  => 'bsbSurfIndex',
-		// Query parameter carrying the `bsb_surf` nonce that authorizes an
+		'index_param'  => 'bsbenchSurfIndex',
+		// Query parameter carrying the `bsbench_surf` nonce that authorizes an
 		// index request, minted only for the gated cockpit route.
-		'nonce_param'  => 'bsbNonce',
+		'nonce_param'  => 'bsbenchNonce',
 		// The nonce action the cockpit mints the surf nonce under and the
 		// router verifies it against.
-		'nonce_action' => 'bsb_surf',
+		'nonce_action' => 'bsbench_surf',
 		// Stylesheet that styles the course content, scoped to its
 		// `.bsb-course-content` wrapper, enqueued only on course pages. Built
 		// from `src/styles/course/style.scss`.
@@ -93,13 +93,13 @@ return array(
 	),
 	'cockpit'    => array(
 		// Query parameter + value that serve the cockpit dashboard:
-		// `?bsbSession=cockpit`.
-		'param'      => 'bsbSession',
+		// `?bsbenchSession=cockpit`.
+		'param'      => 'bsbenchSession',
 		'value'      => 'cockpit',
 		// Built block directory `register_block_type` reads `block.json` from.
 		'block_dir'  => 'build/cockpit',
 		// The cockpit block's registered name.
-		'block_name' => 'bsb/cockpit',
+		'block_name' => 'battery-surf-bench/cockpit',
 		// Stylesheet for the stripped dashboard, enqueued on the cockpit route
 		// and exempted from the dashboard's asset strip so it is the one style
 		// that survives. Built from `src/styles/cockpit/style.scss`.
@@ -119,7 +119,7 @@ return array(
 		// A list array — the Registry returns a sequential array leaf as-is,
 		// so the plugin's service recipes inject it directly into `DevTools`.
 		'environments' => array( 'local', 'development' ),
-		// The dev-tools Interactivity view module, which joins the `bsb/cockpit`
+		// The dev-tools Interactivity view module, which joins the `battery-surf-bench/cockpit`
 		// store to add the battery override. Built from `src/devtools/view.ts`.
 		'module'       => 'build/devtools/view.js',
 		// Stylesheet for the floating dev-tools panel, spared from the cockpit

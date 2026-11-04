@@ -81,16 +81,16 @@ final class AssetsTest extends TestCase {
 	 */
 	public function test_localize_attaches_data_to_the_handle(): void {
 		$data = array(
-			'postType' => 'bsb_session',
+			'postType' => 'bsbench_session',
 			'fields'   => array( 'a', 'b' ),
 		);
 
 		Functions\expect( 'wp_localize_script' )
 			->once()
-			->with( 'battery-surf-bench-app', 'bsbSessions', $data );
+			->with( 'battery-surf-bench-app', 'bsbenchSessions', $data );
 
 		$assets = new Assets( 'battery-surf-bench', new Paths( '/plugins/battery-surf-bench/battery-surf-bench.php' ) );
-		$assets->localize( 'battery-surf-bench-app', 'bsbSessions', $data );
+		$assets->localize( 'battery-surf-bench-app', 'bsbenchSessions', $data );
 
 		// The Mockery expectation above is the assertion; acknowledge it so
 		// PHPUnit does not flag the test as risky.
@@ -155,10 +155,10 @@ final class AssetsTest extends TestCase {
 
 		Functions\expect( 'wp_set_script_module_translations' )
 			->once()
-			->with( 'bsb-cockpit-view-script-module', 'battery-surf-bench', '/plugins/battery-surf-bench/languages' );
+			->with( 'battery-surf-bench-cockpit-view-script-module', 'battery-surf-bench', '/plugins/battery-surf-bench/languages' );
 
 		$assets = new Assets( 'battery-surf-bench', new Paths( '/plugins/battery-surf-bench/battery-surf-bench.php' ) );
-		$assets->set_script_module_translations( 'bsb-cockpit-view-script-module' );
+		$assets->set_script_module_translations( 'battery-surf-bench-cockpit-view-script-module' );
 
 		// The Mockery expectation above is the assertion; acknowledge it so
 		// PHPUnit does not flag the test as risky.

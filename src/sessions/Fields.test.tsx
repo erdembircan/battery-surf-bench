@@ -89,8 +89,8 @@ describe( 'buildFields', () => {
 
 	it( 'maps each descriptor to a dot-path id into the record meta', () => {
 		expect(
-			fieldFor( descriptor( 'text', { key: 'bsb_status' } ) ).id
-		).toBe( 'meta.bsb_status' );
+			fieldFor( descriptor( 'text', { key: 'bsbench_status' } ) ).id
+		).toBe( 'meta.bsbench_status' );
 	} );
 
 	it( 'labels and enables sorting on built fields', () => {
@@ -145,26 +145,30 @@ describe( 'title field', () => {
 
 describe( 'status format', () => {
 	const status = descriptor( 'status', {
-		key: 'bsb_status',
+		key: 'bsbench_status',
 		elements: [ { value: 'finished', label: 'Finished' } ],
 	} );
 
 	it( 'renders the human label inside a status-coloured pill', () => {
-		const { container } = renderCell( status, { bsb_status: 'finished' } );
+		const { container } = renderCell( status, {
+			bsbench_status: 'finished',
+		} );
 		const badge = screen.getByText( 'Finished' );
 		expect( badge ).toHaveClass( 'bsb-badge', 'bsb-badge--finished' );
 		expect( container ).toContainElement( badge );
 	} );
 
 	it( 'carries a status dot the stylesheet can tint and pulse', () => {
-		const { container } = renderCell( status, { bsb_status: 'finished' } );
+		const { container } = renderCell( status, {
+			bsbench_status: 'finished',
+		} );
 		expect(
 			container.querySelector( '.bsb-badge .bsb-badge__dot' )
 		).not.toBeNull();
 	} );
 
 	it( 'falls back to the raw value when no element matches', () => {
-		renderCell( status, { bsb_status: 'paused' } );
+		renderCell( status, { bsbench_status: 'paused' } );
 		expect( screen.getByText( 'paused' ) ).toHaveClass(
 			'bsb-badge--paused'
 		);
@@ -228,11 +232,11 @@ describe( 'percent format', () => {
 } );
 
 describe( 'datetime format', () => {
-	const datetime = descriptor( 'datetime', { key: 'bsb_started_at' } );
+	const datetime = descriptor( 'datetime', { key: 'bsbench_started_at' } );
 
 	it( 'renders a parseable timestamp as a localized string', () => {
 		const { container } = renderCell( datetime, {
-			bsb_started_at: '2026-06-17 09:30:00',
+			bsbench_started_at: '2026-06-17 09:30:00',
 		} );
 		const expected = new Date(
 			Date.parse( '2026-06-17T09:30:00' )
@@ -242,7 +246,7 @@ describe( 'datetime format', () => {
 
 	it( 'echoes an unparseable value unchanged', () => {
 		const { container } = renderCell( datetime, {
-			bsb_started_at: 'not a date',
+			bsbench_started_at: 'not a date',
 		} );
 		expect( container ).toHaveTextContent( 'not a date' );
 	} );

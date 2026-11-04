@@ -111,7 +111,7 @@ const { SettingsApp } = await import( '@/settings/App' );
 
 const config: SettingsConfig = {
 	postTypes: [ 'page', 'post' ],
-	optionKey: 'bsb_course_order',
+	optionKey: 'bsbench_course_order',
 	courseOrder: [ { kind: 'bundled', slug: 'article-1' } ],
 	bundledCatalog: [
 		{ slug: 'article-1', title: 'The Hidden Cost of a Browser Tab' },
@@ -272,7 +272,7 @@ describe( 'SettingsApp save button', () => {
 			path: '/wp/v2/settings',
 			method: 'POST',
 			data: {
-				bsb_course_order: [
+				bsbench_course_order: [
 					{ kind: 'bundled', slug: 'article-1' },
 					{ kind: 'user', id: 5 },
 				],

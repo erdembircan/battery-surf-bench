@@ -25,7 +25,7 @@ test.describe( 'Start Benchmark menu entry', () => {
 		// keeping it collapsed for hover) when the current screen is one of
 		// its own pages, so land on a sibling submenu page rather than the
 		// dashboard to make the sidebar link visible without simulating hover.
-		await page.goto( '/wp-admin/admin.php?page=bsb-sessions' );
+		await page.goto( '/wp-admin/admin.php?page=bsbench-sessions' );
 
 		// The nav script rewrites the submenu link's href to the cockpit URL as
 		// soon as it boots, so by the time this runs the original `page=`
@@ -37,24 +37,27 @@ test.describe( 'Start Benchmark menu entry', () => {
 		await expect( menuLink ).toHaveAttribute( 'target', '_blank' );
 		await expect( menuLink ).toHaveAttribute(
 			'href',
-			/bsbSession=cockpit/
+			/bsbenchSession=cockpit/
 		);
 
 		// The admin bar node supports target=_blank natively, so it needs no
 		// script upgrade.
 		const barNode = page.locator(
-			'#wpadminbar #wp-admin-bar-bsb-start-benchmark a'
+			'#wpadminbar #wp-admin-bar-bsbench-start-benchmark a'
 		);
 		await expect( barNode ).toBeVisible();
 		await expect( barNode ).toHaveAttribute( 'target', '_blank' );
-		await expect( barNode ).toHaveAttribute( 'href', /bsbSession=cockpit/ );
+		await expect( barNode ).toHaveAttribute(
+			'href',
+			/bsbenchSession=cockpit/
+		);
 
 		// The admin-bar icon style paints the surfer-battery mark as a
 		// currentColor mask on the node's ::before pseudo-element; confirm the
 		// mask actually resolved rather than only asserting the CSS rule exists.
 		const maskApplied = await page.evaluate( () => {
 			const el = document.querySelector(
-				'#wp-admin-bar-bsb-start-benchmark > .ab-item'
+				'#wp-admin-bar-bsbench-start-benchmark > .ab-item'
 			);
 			if ( ! el ) {
 				return null;
@@ -77,7 +80,7 @@ test.describe( 'Start Benchmark menu entry', () => {
 		await page.goto( '/wp-admin/index.php' );
 
 		const barNode = page.locator(
-			'#wpadminbar #wp-admin-bar-bsb-start-benchmark a'
+			'#wpadminbar #wp-admin-bar-bsbench-start-benchmark a'
 		);
 		await expect( barNode ).toBeVisible();
 
@@ -87,6 +90,6 @@ test.describe( 'Start Benchmark menu entry', () => {
 		] );
 		await popup.waitForLoadState();
 
-		expect( popup.url() ).toMatch( /bsbSession=cockpit/ );
+		expect( popup.url() ).toMatch( /bsbenchSession=cockpit/ );
 	} );
 } );

@@ -51,18 +51,18 @@ test.describe( 'Admin screens require authentication', () => {
 		},
 		{
 			name: 'Start Benchmark submenu',
-			url: '/wp-admin/admin.php?page=bsb-start-benchmark',
-			token: 'page=bsb-start-benchmark',
+			url: '/wp-admin/admin.php?page=bsbench-start-benchmark',
+			token: 'page=bsbench-start-benchmark',
 		},
 		{
 			name: 'Sessions screen',
-			url: '/wp-admin/admin.php?page=bsb-sessions',
-			token: 'page=bsb-sessions',
+			url: '/wp-admin/admin.php?page=bsbench-sessions',
+			token: 'page=bsbench-sessions',
 		},
 		{
-			name: 'bsb_session new-post edit screen',
-			url: '/wp-admin/post-new.php?post_type=bsb_session',
-			token: 'post_type=bsb_session',
+			name: 'bsbench_session new-post edit screen',
+			url: '/wp-admin/post-new.php?post_type=bsbench_session',
+			token: 'post_type=bsbench_session',
 		},
 	];
 
@@ -106,7 +106,7 @@ test.describe( 'Front-end gated routes refuse anonymous access', () => {
 		// Cockpit.php's own gate (`Cockpit::deny()`) — distinct from the admin
 		// screens above — wp_die()s in place with a 403 and a login link, rather
 		// than issuing a 302 redirect: the URL does not change to wp-login.php.
-		const response = await page.goto( '/?bsbSession=cockpit' );
+		const response = await page.goto( '/?bsbenchSession=cockpit' );
 
 		expect( response?.status() ).toBe( 403 );
 		expect( page.url() ).not.toContain( 'wp-login.php' );
@@ -114,7 +114,7 @@ test.describe( 'Front-end gated routes refuse anonymous access', () => {
 		// The stripped Interactivity dashboard never rendered.
 		await expect(
 			page.locator(
-				'.wp-block-bsb-cockpit[data-wp-interactive="bsb/cockpit"]'
+				'.wp-block-battery-surf-bench-cockpit[data-wp-interactive="battery-surf-bench/cockpit"]'
 			)
 		).toHaveCount( 0 );
 
@@ -136,14 +136,14 @@ test.describe( 'Front-end gated routes refuse anonymous access', () => {
 	test( 'the course index route is not served with a bogus nonce and no session', async ( {
 		page,
 	} ) => {
-		// An anonymous visitor can never mint a real `bsb_surf` nonce (it is
+		// An anonymous visitor can never mint a real `bsbench_surf` nonce (it is
 		// seeded only on the gated cockpit route), so this is the closest an
 		// anonymous request can get to a real one. `CourseRouter::request_authorized()`
 		// fails the capability check before the nonce is even read, so the
 		// request falls through untouched to whatever the site would otherwise
 		// resolve (here, the ordinary front page) rather than being served as a
 		// course page.
-		await page.goto( '/?bsbSurfIndex=0&bsbNonce=not-a-real-nonce' );
+		await page.goto( '/?bsbenchSurfIndex=0&bsbenchNonce=not-a-real-nonce' );
 
 		await expect( page.locator( 'body' ) ).not.toHaveClass(
 			/bsb-course-page/
@@ -167,32 +167,32 @@ test.describe( 'REST endpoints reject anonymous requests', () => {
 	const sessionBody = {
 		status: 'publish',
 		meta: {
-			bsb_status: 'finished',
-			bsb_mode: 'target',
+			bsbench_status: 'finished',
+			bsbench_mode: 'target',
 		},
 	};
 
 	// Collection-list gate closed by SessionRestController: the list no
 	// longer leaks published sessions to anonymous visitors.
-	test( 'GET wp/v2/bsb_session is refused', async ( { request } ) => {
-		const response = await request.get( '/wp-json/wp/v2/bsb_session' );
+	test( 'GET wp/v2/bsbench_session is refused', async ( { request } ) => {
+		const response = await request.get( '/wp-json/wp/v2/bsbench_session' );
 		expect( response.status() ).toBe( 401 );
 	} );
 
-	test( 'GET wp/v2/bsb_session/:id is refused', async ( { request } ) => {
+	test( 'GET wp/v2/bsbench_session/:id is refused', async ( { request } ) => {
 		// SessionRestController::get_item_permissions_check() enforces the
 		// capability BEFORE core resolves the post, so an anonymous read is
 		// refused with 401 regardless of whether the id exists — core would
 		// otherwise return a published session's body under the default view
 		// context. A bogus id keeps the test deterministic on an empty database.
 		const response = await request.get(
-			'/wp-json/wp/v2/bsb_session/999999'
+			'/wp-json/wp/v2/bsbench_session/999999'
 		);
 		expect( response.status() ).toBe( 401 );
 	} );
 
-	test( 'POST wp/v2/bsb_session is refused', async ( { request } ) => {
-		const response = await request.post( '/wp-json/wp/v2/bsb_session', {
+	test( 'POST wp/v2/bsbench_session is refused', async ( { request } ) => {
+		const response = await request.post( '/wp-json/wp/v2/bsbench_session', {
 			data: sessionBody,
 		} );
 		expect( response.status() ).toBe( 401 );
@@ -205,7 +205,7 @@ test.describe( 'REST endpoints reject anonymous requests', () => {
 
 	test( 'PATCH wp/v2/settings is refused', async ( { request } ) => {
 		const response = await request.patch( '/wp-json/wp/v2/settings', {
-			data: { bsb_course_order: null },
+			data: { bsbench_course_order: null },
 		} );
 		expect( response.status() ).toBe( 401 );
 	} );
@@ -213,7 +213,7 @@ test.describe( 'REST endpoints reject anonymous requests', () => {
 	// Same core Settings-controller manage_options gate as PATCH.
 	test( 'POST wp/v2/settings is refused', async ( { request } ) => {
 		const response = await request.post( '/wp-json/wp/v2/settings', {
-			data: { bsb_course_order: null },
+			data: { bsbench_course_order: null },
 		} );
 		expect( response.status() ).toBe( 401 );
 	} );

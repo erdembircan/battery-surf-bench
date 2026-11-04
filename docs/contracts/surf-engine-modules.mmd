@@ -15,7 +15,7 @@ classDiagram
 
     %% --- Boot: the classic script the course router enqueues on every course
     %% page. Boots the engine only when the traits URL param is present. When
-    %% the bsbSterile=1 param is ALSO present, builds and starts a SterileHelm
+    %% the bsbenchSterile=1 param is ALSO present, builds and starts a SterileHelm
     %% instead of a SurfLoop — the auction never ticks; every other dep
     %% (motor, behaviors, traits, senseAffordances, speed, the shared
     %% onPageDone/onBehaviorRun callbacks) is identical either way. A
@@ -24,7 +24,7 @@ classDiagram
     class EngineBoot {
         <<module>>
         boot guard on the traits URL param; builds and starts SurfLoop (or,
-        when bsbSterile=1, a SterileHelm instead#41; once the document has
+        when bsbenchSterile=1, a SterileHelm instead#41; once the document has
         loaded; posts 'bsb:pageDone' to the parent frame when the page's
         session ends; posts 'bsb:behaviorStart' with the winner's key and its
         announced wall-clock durationMs once, each time a behavior begins
@@ -322,8 +322,8 @@ classDiagram
     DomMotor ..|> Motor
     RealClock ..|> Clock
 
-    EngineBoot --> SurfLoop : builds deps & starts (bsbSterile absent)
-    EngineBoot --> SterileHelm : builds deps & starts (bsbSterile=1, development builds only)
+    EngineBoot --> SurfLoop : builds deps & starts (bsbenchSterile absent)
+    EngineBoot --> SterileHelm : builds deps & starts (bsbenchSterile=1, development builds only)
     EngineBoot --> PageLoad : gates start on document load
     EngineBoot --> DomMotor : creates
     DomMotor --> FakeCursor : creates & owns (composition)

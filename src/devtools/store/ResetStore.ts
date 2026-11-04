@@ -23,7 +23,7 @@ import { resetBatteryOverride } from '@/devtools/store/BatteryOverrideStore';
 import { resetDischargeSim } from '@/devtools/store/DischargeSimStore';
 import { resetSurfSteer } from '@/devtools/store/SurfSteerStore';
 
-/** The dev-tools panel's cross-cutting reset, joining `bsb/cockpit`. */
+/** The dev-tools panel's cross-cutting reset, joining `battery-surf-bench/cockpit`. */
 export const resetStore: StorePart = {
 	actions: {
 		/**

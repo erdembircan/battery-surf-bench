@@ -442,7 +442,7 @@ classDiagram
     CourseRouter --> CourseCatalog : uses
     CourseRouter --> Assets : uses
     CourseRouter --> Capability : gates via
-    CourseRouter --> CourseOrderSanitizer : reads & sanitizes the saved order to resolve an authorized index request (gated on capability + bsb_surf nonce, checked before any entry is resolved#59; bundled pages are no longer force-re-added — a saved order missing one stays missing)
+    CourseRouter --> CourseOrderSanitizer : reads & sanitizes the saved order to resolve an authorized index request (gated on capability + bsbench_surf nonce, checked before any entry is resolved#59; bundled pages are no longer force-re-added — a saved order missing one stays missing)
     CourseRouter ..> UserPageView : renders via (user pages only)
     UserPageView ..|> View : implements
     UserPageView ..> Template : renders markup via

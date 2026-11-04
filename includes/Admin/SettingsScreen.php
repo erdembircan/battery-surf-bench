@@ -163,7 +163,7 @@ class SettingsScreen implements Manager {
 		}
 
 		$handle = $this->assets->register_bundle( $this->bundle );
-		$this->assets->localize( $handle, 'bsbSettings', $this->screen_config() );
+		$this->assets->localize( $handle, 'bsbenchSettings', $this->screen_config() );
 		$this->assets->set_script_translations( $handle );
 		$this->assets->enqueue_script( $handle );
 		$this->assets->enqueue( $this->style, array( 'wp-components' ) );

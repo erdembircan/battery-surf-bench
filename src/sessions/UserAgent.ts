@@ -13,9 +13,9 @@ import type { SessionRecord } from '@/sessions/Types';
 
 /** The meta keys a session stores its discrete browser fields under. */
 const META = {
-	browser: 'bsb_ua_browser',
-	version: 'bsb_ua_version',
-	os: 'bsb_ua_os',
+	browser: 'bsbench_ua_browser',
+	version: 'bsbench_ua_version',
+	os: 'bsbench_ua_os',
 } as const;
 
 /** The marker shown when no browser was captured. */

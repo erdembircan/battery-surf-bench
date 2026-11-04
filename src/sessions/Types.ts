@@ -62,6 +62,6 @@ export interface SessionRecord {
 
 declare global {
 	interface Window {
-		bsbSessions?: SessionsConfig;
+		bsbenchSessions?: SessionsConfig;
 	}
 }

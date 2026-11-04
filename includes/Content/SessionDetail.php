@@ -38,7 +38,7 @@ defined( 'ABSPATH' ) || exit;
  * post's own admin URL — but shows a custom display.
  *
  * The view is the live cockpit's summary card ({@see SessionDetailView}) running
- * on the `bsb/cockpit` Interactivity store: this route seeds the run's frozen
+ * on the `battery-surf-bench/cockpit` Interactivity store: this route seeds the run's frozen
  * readouts onto the per-instance context from the stored meta and enqueues the
  * cockpit's view module so the card hydrates, rebuilds the drain graph and
  * auto-flips itself — the same component the dashboard shows at run end.

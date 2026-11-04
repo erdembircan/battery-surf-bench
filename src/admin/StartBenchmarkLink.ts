@@ -13,7 +13,7 @@ interface StartBenchmarkConfig {
 
 declare global {
 	interface Window {
-		bsbStartBenchmark?: StartBenchmarkConfig;
+		bsbenchStartBenchmark?: StartBenchmarkConfig;
 	}
 }
 
@@ -41,7 +41,7 @@ export function upgradeStartBenchmarkLink(
 	link.rel = 'noopener noreferrer';
 }
 
-const config = window.bsbStartBenchmark;
+const config = window.bsbenchStartBenchmark;
 
 if ( config ) {
 	upgradeStartBenchmarkLink( document, config );

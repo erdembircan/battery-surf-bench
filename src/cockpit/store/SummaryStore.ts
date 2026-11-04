@@ -29,7 +29,7 @@ const AUTO_FLIP_DELAY_MS = 1000;
  */
 const DETAIL_FLIP_DELAY_MS = 800;
 
-/** The summary slice of the `bsb/cockpit` store. */
+/** The summary slice of the `battery-surf-bench/cockpit` store. */
 export const summaryStore: StorePart = {
 	state: {
 		/** Whether a run has finished, so the summary card is shown. */

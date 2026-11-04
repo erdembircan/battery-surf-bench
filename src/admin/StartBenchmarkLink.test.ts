@@ -6,8 +6,8 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { upgradeStartBenchmarkLink } from '@/admin/StartBenchmarkLink';
 
 const config = {
-	menuSlug: 'bsb-start-benchmark',
-	cockpitHref: 'https://example.test/?bsbSession=cockpit',
+	menuSlug: 'bsbench-start-benchmark',
+	cockpitHref: 'https://example.test/?bsbenchSession=cockpit',
 };
 
 describe( 'upgradeStartBenchmarkLink', () => {
@@ -18,8 +18,8 @@ describe( 'upgradeStartBenchmarkLink', () => {
 	it( 'rewrites the matching menu link to open the cockpit in a new tab', () => {
 		document.body.innerHTML = `
 			<div id="adminmenu">
-				<a href="/wp-admin/admin.php?page=bsb-sessions">Sessions</a>
-				<a href="/wp-admin/admin.php?page=bsb-start-benchmark">Start Benchmark</a>
+				<a href="/wp-admin/admin.php?page=bsbench-sessions">Sessions</a>
+				<a href="/wp-admin/admin.php?page=bsbench-start-benchmark">Start Benchmark</a>
 			</div>
 		`;
 
@@ -35,7 +35,7 @@ describe( 'upgradeStartBenchmarkLink', () => {
 
 		// The unrelated link is left completely untouched.
 		expect( unrelated.getAttribute( 'href' ) ).toBe(
-			'/wp-admin/admin.php?page=bsb-sessions'
+			'/wp-admin/admin.php?page=bsbench-sessions'
 		);
 		expect( unrelated.target ).toBe( '' );
 		expect( unrelated.rel ).toBe( '' );

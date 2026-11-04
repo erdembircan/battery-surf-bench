@@ -119,7 +119,7 @@ class SessionsScreen implements Manager {
 		}
 
 		$handle = $this->assets->register_bundle( $this->bundle );
-		$this->assets->localize( $handle, 'bsbSessions', $this->screen_config() );
+		$this->assets->localize( $handle, 'bsbenchSessions', $this->screen_config() );
 		$this->assets->set_script_translations( $handle );
 		$this->assets->enqueue_script( $handle );
 		$this->assets->enqueue( $this->style, array( 'wp-components' ) );

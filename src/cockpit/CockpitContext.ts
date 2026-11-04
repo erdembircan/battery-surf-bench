@@ -1,5 +1,5 @@
 /**
- * Shared types for the `bsb/cockpit` Interactivity store — the per-instance
+ * Shared types for the `battery-surf-bench/cockpit` Interactivity store — the per-instance
  * reactive context the block's PHP render seeds, and the supporting shapes the
  * store's domain slices read from and write to it.
  */
@@ -73,7 +73,7 @@ export interface CockpitContext {
 	 * tool's "Sterile" override, snapshotted from `state.devtools?.surf?.sterile`
 	 * at run start only (see `RunStore.toggleRun`) — arming or disarming the
 	 * tool mid-run never affects an already-live run. Drives `currentSrc`'s
-	 * `bsbSterile=1` param, the status chip, and `stopRun`'s persist skip.
+	 * `bsbenchSterile=1` param, the status chip, and `stopRun`'s persist skip.
 	 */
 	sterile: boolean;
 	soundEnabled: boolean;

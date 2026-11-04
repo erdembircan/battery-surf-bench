@@ -1,10 +1,10 @@
 /**
- * Cockpit view — the Interactivity API store backing the `bsb/cockpit` block.
+ * Cockpit view — the Interactivity API store backing the `battery-surf-bench/cockpit` block.
  *
  * This module is a thin composition root: it folds the cockpit's focused,
  * separately tested domain slices into the single `state` / `actions` /
  * `callbacks` definition the Interactivity API registers under the
- * `bsb/cockpit` namespace, and registers it once. Each slice owns one coherent
+ * `battery-surf-bench/cockpit` namespace, and registers it once. Each slice owns one coherent
  * surface of the control deck and reads from / writes to the per-instance
  * reactive context the block's PHP render seeds:
  *
@@ -57,7 +57,7 @@ import { sharkStore } from '@/cockpit/store/SharkStore';
 export { __resetInstance } from '@/cockpit/RunInstance';
 
 store(
-	'bsb/cockpit',
+	'battery-surf-bench/cockpit',
 	mergeStoreParts(
 		runStore,
 		configStore,

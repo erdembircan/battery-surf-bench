@@ -130,22 +130,22 @@ describe( 'buildSessionPayload', () => {
 		expect( payload ).not.toBeNull();
 		const { meta } = payload as SessionPayload;
 		expect( ( payload as SessionPayload ).status ).toBe( 'publish' );
-		expect( meta.bsb_status ).toBe( 'finished' );
-		expect( meta.bsb_mode ).toBe( 'duration' );
-		expect( meta.bsb_started_at ).toBe( '2026-06-23T10:00:00.000Z' );
-		expect( meta.bsb_ended_at ).toBe( '2026-06-23T10:30:00.000Z' );
-		expect( meta.bsb_start_level ).toBe( 0.82 );
-		expect( meta.bsb_end_level ).toBe( 0.7 );
-		expect( meta.bsb_dropped_pct ).toBe( 12 );
-		expect( meta.bsb_elapsed ).toBe( 1500 );
-		expect( meta.bsb_rate_10 ).toBe( 24.5 );
-		expect( meta.bsb_rate_session ).toBe( 22.1 );
-		expect( meta.bsb_time_to_empty ).toBe( 14400 );
-		expect( meta.bsb_config_mode ).toBe( 'duration' );
-		expect( meta.bsb_ua_browser ).toBe( 'Chrome' );
-		expect( meta.bsb_ua_version ).toBe( '149' );
-		expect( meta.bsb_ua_os ).toBe( 'macOS' );
-		expect( meta.bsb_samples ).toEqual( samples() );
+		expect( meta.bsbench_status ).toBe( 'finished' );
+		expect( meta.bsbench_mode ).toBe( 'duration' );
+		expect( meta.bsbench_started_at ).toBe( '2026-06-23T10:00:00.000Z' );
+		expect( meta.bsbench_ended_at ).toBe( '2026-06-23T10:30:00.000Z' );
+		expect( meta.bsbench_start_level ).toBe( 0.82 );
+		expect( meta.bsbench_end_level ).toBe( 0.7 );
+		expect( meta.bsbench_dropped_pct ).toBe( 12 );
+		expect( meta.bsbench_elapsed ).toBe( 1500 );
+		expect( meta.bsbench_rate_10 ).toBe( 24.5 );
+		expect( meta.bsbench_rate_session ).toBe( 22.1 );
+		expect( meta.bsbench_time_to_empty ).toBe( 14400 );
+		expect( meta.bsbench_config_mode ).toBe( 'duration' );
+		expect( meta.bsbench_ua_browser ).toBe( 'Chrome' );
+		expect( meta.bsbench_ua_version ).toBe( '149' );
+		expect( meta.bsbench_ua_os ).toBe( 'macOS' );
+		expect( meta.bsbench_samples ).toEqual( samples() );
 	} );
 
 	it( 'persists only the goal that bounds the run', () => {
@@ -158,8 +158,8 @@ describe( 'buildSessionPayload', () => {
 				},
 			} )
 		) as SessionPayload;
-		expect( duration.meta.bsb_config_duration ).toBe( 1800 );
-		expect( duration.meta.bsb_config_target_percent ).toBeUndefined();
+		expect( duration.meta.bsbench_config_duration ).toBe( 1800 );
+		expect( duration.meta.bsbench_config_target_percent ).toBeUndefined();
 
 		const target = buildSessionPayload(
 			input( {
@@ -170,8 +170,8 @@ describe( 'buildSessionPayload', () => {
 				},
 			} )
 		) as SessionPayload;
-		expect( target.meta.bsb_config_target_percent ).toBe( 70 );
-		expect( target.meta.bsb_config_duration ).toBeUndefined();
+		expect( target.meta.bsbench_config_target_percent ).toBe( 70 );
+		expect( target.meta.bsbench_config_duration ).toBeUndefined();
 	} );
 
 	it( 'stores zero for statistics a short run could not compute', () => {
@@ -185,9 +185,9 @@ describe( 'buildSessionPayload', () => {
 			} )
 		) as SessionPayload;
 
-		expect( payload.meta.bsb_rate_10 ).toBe( 0 );
-		expect( payload.meta.bsb_rate_session ).toBe( 0 );
-		expect( payload.meta.bsb_time_to_empty ).toBe( 0 );
+		expect( payload.meta.bsbench_rate_10 ).toBe( 0 );
+		expect( payload.meta.bsbench_rate_session ).toBe( 0 );
+		expect( payload.meta.bsbench_time_to_empty ).toBe( 0 );
 	} );
 
 	it( 'falls back to the end time when the start stamp is missing', () => {
@@ -195,7 +195,7 @@ describe( 'buildSessionPayload', () => {
 			input( { startedAtWall: null } )
 		) as SessionPayload;
 
-		expect( payload.meta.bsb_started_at ).toBe(
+		expect( payload.meta.bsbench_started_at ).toBe(
 			'2026-06-23T10:30:00.000Z'
 		);
 	} );
@@ -204,12 +204,12 @@ describe( 'buildSessionPayload', () => {
 describe( 'postSession', () => {
 	const payload: SessionPayload = {
 		status: 'publish',
-		meta: { bsb_status: 'finished' },
+		meta: { bsbench_status: 'finished' },
 	};
 
 	beforeEach( () => {
 		mocks.config = {
-			restUrl: 'https://wp.test/wp-json/wp/v2/bsb_session',
+			restUrl: 'https://wp.test/wp-json/wp/v2/bsbench_session',
 			restNonce: 'nonce-123',
 		};
 		globalThis.fetch = vi
@@ -225,7 +225,7 @@ describe( 'postSession', () => {
 		await postSession( payload );
 
 		expect( globalThis.fetch ).toHaveBeenCalledWith(
-			'https://wp.test/wp-json/wp/v2/bsb_session',
+			'https://wp.test/wp-json/wp/v2/bsbench_session',
 			expect.objectContaining( {
 				method: 'POST',
 				credentials: 'same-origin',

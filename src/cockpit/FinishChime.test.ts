@@ -88,10 +88,10 @@ describe( 'stored finish-sound preference', () => {
 	} );
 
 	it( 'treats only an explicit off as disabled', () => {
-		window.localStorage.setItem( 'bsb-cockpit-sound', 'anything' );
+		window.localStorage.setItem( 'bsbench-cockpit-sound', 'anything' );
 		expect( readStoredSound() ).toBe( true );
 
-		window.localStorage.setItem( 'bsb-cockpit-sound', 'off' );
+		window.localStorage.setItem( 'bsbench-cockpit-sound', 'off' );
 		expect( readStoredSound() ).toBe( false );
 	} );
 } );

@@ -27,11 +27,11 @@ use function has_action;
 final class SessionsScreenTest extends TestCase {
 
 	private const PARENT     = 'battery-surf-bench';
-	private const PAGE_SLUG  = 'bsb-sessions';
+	private const PAGE_SLUG  = 'bsbench-sessions';
 	private const CAPABILITY = 'manage_options';
 	private const BUNDLE     = 'build/sessions.js';
 	private const STYLE      = 'build/style-sessions.css';
-	private const HOOK       = 'battery-surf-bench_page_bsb-sessions';
+	private const HOOK       = 'battery-surf-bench_page_bsbench-sessions';
 
 	/**
 	 * Builds a screen with representative configuration.
@@ -46,9 +46,9 @@ final class SessionsScreenTest extends TestCase {
 			new FakeCapability( true, self::CAPABILITY ),
 			self::BUNDLE,
 			self::STYLE,
-			new SessionSchema( 'bsb_session', 'bsb_' ),
+			new SessionSchema( 'bsbench_session', 'bsbench_' ),
 			$assets ?? Mockery::mock( Assets::class ),
-			'bsbSession',
+			'bsbenchSession',
 			'cockpit'
 		);
 	}
@@ -125,7 +125,7 @@ final class SessionsScreenTest extends TestCase {
 			->andReturn( 'bsb-sessions' );
 		$assets->shouldReceive( 'localize' )
 			->once()
-			->with( 'bsb-sessions', 'bsbSessions', Mockery::type( 'array' ) );
+			->with( 'bsb-sessions', 'bsbenchSessions', Mockery::type( 'array' ) );
 		$assets->shouldReceive( 'set_script_translations' )
 			->once()
 			->with( 'bsb-sessions' );
@@ -166,7 +166,7 @@ final class SessionsScreenTest extends TestCase {
 		// The grid bundle fills this slot with the live session total.
 		$this->assertStringContainsString( 'bsb-sessions__count', $output );
 		$this->assertStringContainsString( 'id="bsb-sessions-app"', $output );
-		$this->assertStringContainsString( 'https://example.test/?bsbSession=cockpit', $output );
+		$this->assertStringContainsString( 'https://example.test/?bsbenchSession=cockpit', $output );
 		$this->assertStringContainsString( 'New Benchmark', $output );
 	}
 }

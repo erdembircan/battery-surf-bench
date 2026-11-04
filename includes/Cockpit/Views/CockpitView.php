@@ -16,7 +16,7 @@ use function str_repeat;
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Renders the `bsb/cockpit` block's front-end markup: the Interactivity-driven
+ * Renders the `battery-surf-bench/cockpit` block's front-end markup: the Interactivity-driven
  * region split into a control deck and a surf stage. The deck carries the run
  * controls — mode, duration, speed and a start/stop
  * control — each wired to the client store ({@see src/cockpit/view.ts}). While a

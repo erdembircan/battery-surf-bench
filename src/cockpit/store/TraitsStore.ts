@@ -108,7 +108,7 @@ STATS.forEach( ( _stat, index ) => {
 	} );
 } );
 
-/** The surfer-traits slice of the `bsb/cockpit` store. */
+/** The surfer-traits slice of the `battery-surf-bench/cockpit` store. */
 export const traitsStore: StorePart = {
 	state,
 	actions: {
