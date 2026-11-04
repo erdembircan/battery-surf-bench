@@ -1,6 +1,6 @@
 # WordPress.org release
 
-**Status: ready to submit; deploy postponed.** Everything the submission needs is in place except the steps under "Before submitting", which happen during the submission session. Battery Surf Bench isn't on WordPress.org yet, so there is no SVN repository to deploy to and no credentials to deploy with. The deploy part of this plan records how releases will work once the plugin is approved. Implement it then, and delete this file in the PR that adds the deploy workflow.
+**Status: submitted on 2026-11-04 and awaiting review; deploy postponed.** Battery Surf Bench 1.0.0 is in WordPress.org's review queue (see "Submitted" below). Until it's approved there is no SVN repository to deploy to and no credentials to deploy with. The deploy part of this plan records how releases will work once the plugin is approved. Implement it then, and delete this file in the PR that adds the deploy workflow.
 
 ## Already in place
 
@@ -11,26 +11,18 @@
 - **`readme.txt`** carries the release version, `1.0.0`, matching `Version:` in `battery-surf-bench.php`; `Tested up to: 7.1`; an External services section on the bundled course's YouTube video, which plays in YouTube's privacy-enhanced embed; a Third-party resources section that credits every bundled font, icon and library with its license; and a Source code section that links the repository and lists the build commands.
 - **Prefixes reviewers accept.** Everything the plugin stores, registers or exposes globally is prefixed `bsbench`, `battery-surf-bench` or `battery_surf_bench`, never the three-letter `bsb` WordPress.org rejects. CLAUDE.md holds the rule.
 - **Listing video.** The 60-second spot is on YouTube as Unlisted at https://youtu.be/X8CwzH_P4-g; its source is the `listing-video` branch. `readme.txt` puts the video's URL alone on its own line in the Description, which the plugin page turns into an embedded player: WordPress.org keeps oEmbed in readmes for YouTube, Vimeo and a short list of other providers, and strips raw HTML. There is no video field in the submission form, and WordPress.org builds the page from `readme.txt` alone (`README.md` is export-ignored, so it never reaches the zip or SVN).
+- **No dev tools in the production zip.** The dev-tools panel (`includes/DevTools/`, `build/devtools/`) stays out of it, as the developer FAQ asks for a plugin without development tools. The production build compiles the panel, and the dev-tools code in the cockpit and the surfer, out of the bundles, and leaves its PHP out of the plugin folder; `package:verify` rejects a production zip that still carries any of it; and the plugin boots the panel only where its files are. `composer zip:development` builds `zip/battery-surf-bench-development.zip` with the panel, for testing on a site of your own. Never upload that one.
 
-## Before submitting
+## Submitted
 
-1. **Make the repository public.** Done on 2026-11-04. WordPress.org requires the source of the compiled `build/` code to be publicly available, and the readme's Source code section and the `Plugin URI:` header both point to https://github.com/erdembircan/battery-surf-bench.
-2. **Recheck `Tested up to:`.** It must equal the current WordPress major version, major only: `7.1` on 2026-11-03. If a newer major is out by the upload, raise it in `readme.txt`, or Plugin Check fails the upload.
-3. **Confirm Plugin Check is green** on the latest `plugin-check` run on `master`.
-4. **Check the account.** Log in as the `Contributors:` account from `readme.txt` (`erdembircan`). Before it accepts an upload, the form checks that:
-   - the account has two-factor authentication turned on, if it has, or once had, a plugin or a theme on WordPress.org;
-   - the account's email host can receive WordPress.org's mail. Review mail comes from plugins@wordpress.org, so keep it out of spam;
-   - the account has no other plugin in the review queue. Authors with over a million active installs may have ten.
+On 2026-11-04, `zip/battery-surf-bench.zip`, built from `master` at `b66ba4a`, was uploaded at https://wordpress.org/plugins/developers/add/ from the `erdembircan` account. Plugin Check was green on `master`, `Tested up to: 7.1` matched the current WordPress major, and the reviewer note pointed out the Chromium-and-battery requirement and the repository. The upload's automated scan passed, and the plugin got the slug `battery-surf-bench`, so its page will be https://wordpress.org/plugins/battery-surf-bench/ once approved. 586 plugins were waiting for a first review that day, a longer queue than usual.
 
-The dev-tools panel (`includes/DevTools/`, `build/devtools/`) stays out of the production zip, as the developer FAQ asks for a plugin without development tools. The production build compiles the panel, and the dev-tools code in the cockpit and the surfer, out of the bundles, and leaves its PHP out of the plugin folder; `package:verify` rejects a production zip that still carries any of it; and the plugin boots the panel only where its files are. `composer zip:development` builds `zip/battery-surf-bench-development.zip` with the panel, for testing on a site of your own. Never upload that one.
+While it waits for review:
 
-## Submitting
-
-1. Run `composer zip:production`.
-2. Logged in as `erdembircan`, upload `zip/battery-surf-bench.zip` at https://wordpress.org/plugins/developers/add/.
-3. The slug comes from `Plugin Name:`, so it will be `battery-surf-bench`. No plugin had that slug on 2026-11-03. After the upload, the submit page lets you change the slug once, until the review starts. After approval it can never change.
-4. If something about the submission is wrong, such as the account it came from, don't upload it again: reply to the confirmation email or write to plugins@wordpress.org.
-5. The submit page says a review takes 1 to 10 days, and that the team aims to finish within 5 business days. Approval arrives by email, with access to `https://plugins.svn.wordpress.org/battery-surf-bench/`.
+1. **Watch for the review email.** It comes from plugins@wordpress.org with the subject "[WordPress Plugin Directory] Review in Progress: Battery Surf Bench". Keep that address in the account's contacts and out of spam, and keep the account's email working, with no autoresponder.
+2. **To change the files before the review starts,** use "Upload updated" on the submission page, which replaces the submitted zip. Never submit the plugin a second time. The slug can also be changed there, once, until the review starts; after approval it can never change. Anything else wrong with the submission, such as the account it came from, goes in a reply to the confirmation email.
+3. **Once the review starts,** send fixes and answers by replying to the review email.
+4. **Approval** arrives by email, with access to `https://plugins.svn.wordpress.org/battery-surf-bench/`. Then wire up the deploy below.
 
 ## After approval: wire up the deploy
 
