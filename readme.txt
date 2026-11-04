@@ -100,7 +100,7 @@ Battery Surf Bench connects to one external service: YouTube, which hosts the vi
 Nothing is sent until an operator starts a benchmark, and the video only ever appears on the operator-gated benchmark page, never on your public site. When the surfer reaches the video page during a run:
 
 * Your site's server fetches the video's embed code from YouTube's oEmbed endpoint, sending the video's address, as WordPress does for any YouTube link in a post.
-* The operator's browser loads YouTube's embedded player from youtube.com. As with any YouTube embed, YouTube receives the operator's IP address and browser details, and may set cookies and collect usage data under its own terms and privacy policy.
+* The operator's browser loads YouTube's embedded player from youtube-nocookie.com, YouTube's privacy-enhanced embed. As with any YouTube embed, YouTube receives the operator's IP address and browser details, and once the video plays it may set cookies and collect usage data under its own terms and privacy policy.
 
 The same happens for a YouTube video on any of your own pages that you add to the course. The plugin itself sends no telemetry or analytics anywhere: every measurement stays in the operator's browser and is saved only to your own site.
 
@@ -151,7 +151,7 @@ The plugin itself sends no telemetry, analytics or phone-home requests. Its one 
 
 = Why is there a YouTube video in the surf course? =
 
-Because real-world browsing includes video, and video is one of the heaviest things a browser asks of a battery; leaving it out would understate the drain. The video plays the same way WordPress plays any embedded video: it never autoplays, it stays muted, and the surfer decides when to watch and when to move on. It is only ever shown to the operator running a benchmark, and a YouTube embed on your own selected surf pages behaves the same way during a run.
+Because real-world browsing includes video, and video is one of the heaviest things a browser asks of a battery; leaving it out would understate the drain. The video plays in YouTube's privacy-enhanced embed: it never autoplays, it stays muted, and the surfer decides when to watch and when to move on. It is only ever shown to the operator running a benchmark, and a YouTube embed on your own selected surf pages behaves the same way during a run.
 
 == Screenshots ==
 

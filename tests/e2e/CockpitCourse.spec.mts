@@ -226,7 +226,8 @@ test.describe( 'Video course page (native YouTube embed)', () => {
 		// returning a canned `youtube.com/embed/...` iframe shaped like
 		// YouTube's real oEmbed response. From there the REAL, unmodified
 		// production `YouTubeEmbed::embed_oembed_html()` — running through
-		// the real `WP_HTML_Tag_Processor` — amends that iframe's `src`, which
+		// the real `WP_HTML_Tag_Processor` — moves that iframe's `src` to
+		// YouTube's privacy-enhanced host and amends its params, which
 		// is the actual behavior under test: no PHP unit test exercises this
 		// amend (see `tests/Course/YouTubeEmbedTest.php`'s doc comment), so
 		// this e2e spec is its only coverage.
@@ -243,7 +244,8 @@ test.describe( 'Video course page (native YouTube embed)', () => {
 		const iframe = embed.locator( 'iframe' );
 		await expect( iframe ).toBeAttached();
 
-		// The control params the amend merges onto whatever oEmbed produced:
+		// The privacy-enhanced host the amend moves the embed to, and the
+		// control params it merges onto whatever oEmbed produced:
 		// JS-API enabled and muted (required for the surf engine's
 		// postMessage commands — see `VideoControl.ts`), the served page's
 		// own origin, and no `autoplay=1` — the simulation starts playback
@@ -252,8 +254,9 @@ test.describe( 'Video course page (native YouTube embed)', () => {
 		// This markup contract is as far as e2e coverage goes for playback.
 		// The dev/e2e oEmbed stub only stands in for WordPress's server-side
 		// oEmbed fetch (wp-playground's PHP has no reliable outbound network)
-		// with a canned iframe pointed at a real youtube.com URL. The browser
-		// does then load YouTube's real player into that iframe, but whether
+		// with a canned iframe pointed at a real youtube.com URL, which the
+		// amend moves to youtube-nocookie.com. The browser does then load
+		// YouTube's real player into that iframe, but whether
 		// it plays and emits player-state events depends on YouTube and the
 		// network, so nothing here waits on them. Faking that emission here
 		// would mean asserting against a fake of the very protocol under
@@ -266,6 +269,7 @@ test.describe( 'Video course page (native YouTube embed)', () => {
 		// `WatchVideo.test.ts`), verified in turn against a real, live
 		// YouTube embed while implementing it.
 		const src = await iframe.getAttribute( 'src' );
+		expect( new URL( src ?? '' ).host ).toBe( 'www.youtube-nocookie.com' );
 		expect( src ).toMatch( /enablejsapi=1/ );
 		expect( src ).toMatch( /mute=1/ );
 		expect( new URL( src ?? '' ).searchParams.get( 'origin' ) ).toBe(
@@ -1223,6 +1227,9 @@ ${ url }
 			// above skips.
 			const pageOrigin = new URL( page.url() ).origin;
 			for ( const src of srcs ) {
+				expect( new URL( src ).host ).toBe(
+					'www.youtube-nocookie.com'
+				);
 				expect( src ).toMatch( /enablejsapi=1/ );
 				expect( src ).toMatch( /mute=1/ );
 				expect( new URL( src ).searchParams.get( 'origin' ) ).toBe(

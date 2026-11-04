@@ -32,11 +32,12 @@ defined( 'ABSPATH' ) || exit;
  * This does NOT replace WordPress's embedding machinery. Real oEmbed still
  * resolves every YouTube URL exactly as it would on any WordPress site —
  * network fetch and all — for the bundled page and a user's own page alike.
- * The single production touch is `embed_oembed_html`, which merges four
- * query params onto the `src` WordPress's `WP_Embed::shortcode()` already
- * built, for ANY iframe reaching that filter (a fresh fetch or a
- * pre-existing cache hit), preserving the host, the path and every other
- * param oEmbed set (e.g. `feature=oembed`):
+ * The single production touch is `embed_oembed_html`, which rebuilds the
+ * `src` WordPress's `WP_Embed::shortcode()` already built, for ANY iframe
+ * reaching that filter (a fresh fetch or a pre-existing cache hit): it moves
+ * the embed to YouTube's privacy-enhanced host, `www.youtube-nocookie.com`,
+ * keeps the path and every param oEmbed set (e.g. `feature=oembed`), and
+ * merges four control params onto them:
  *
  * - `enablejsapi=1` — required for the postMessage command protocol; without
  *   it the surf engine cannot control playback at all.
@@ -45,6 +46,13 @@ defined( 'ABSPATH' ) || exit;
  * - `playsinline=1`, `rel=0` — cosmetic/UX parity with a typical embed.
  * - `origin={home origin, port included}` — required by YouTube's IFrame API
  *   for it to accept postMessage commands from this page at all.
+ *
+ * YouTube says its privacy-enhanced mode stores nothing about a viewer until
+ * the video plays, and keeps embedded views out of their YouTube
+ * recommendations. Its player answers the IFrame API's postMessage protocol
+ * exactly as `www.youtube.com`'s does: both were driven through the same
+ * play, natural end, replay and stop sequence and answered message for
+ * message alike.
  *
  * Any `autoplay` param oEmbed happened to carry is stripped — the surf
  * engine starts playback itself, not the embed on load. The amend is
@@ -60,6 +68,14 @@ defined( 'ABSPATH' ) || exit;
  * something to amend. Production carries no such stub.
  */
 class YouTubeEmbed {
+
+	/**
+	 * Where every amended embed loads its player from: YouTube's
+	 * privacy-enhanced host (see the class doc comment).
+	 *
+	 * @var string
+	 */
+	private const PLAYER_ORIGIN = 'https://www.youtube-nocookie.com';
 
 	/**
 	 * Hooks the amend.
@@ -137,9 +153,10 @@ class YouTubeEmbed {
 	}
 
 	/**
-	 * Merges the control params described in the class doc comment onto
-	 * `$src`'s existing query string, stripping any `autoplay`, and leaving
-	 * the scheme, host, port, path and every other existing param untouched.
+	 * Rebuilds `$src` on YouTube's privacy-enhanced host,
+	 * `www.youtube-nocookie.com`, keeping its path, fragment and every
+	 * existing param except `autoplay`, and merges the control params
+	 * described in the class doc comment onto them.
 	 *
 	 * Public (rather than the class's sole private detail) specifically so
 	 * this pure param-merge logic — which touches no
@@ -170,13 +187,7 @@ class YouTubeEmbed {
 			)
 		);
 
-		$amended = $parts['scheme'] . '://' . $parts['host'];
-
-		if ( isset( $parts['port'] ) ) {
-			$amended .= ':' . $parts['port'];
-		}
-
-		$amended .= $parts['path'] ?? '';
+		$amended  = self::PLAYER_ORIGIN . ( $parts['path'] ?? '' );
 		$amended .= '?' . http_build_query( $query, '', '&' );
 
 		if ( isset( $parts['fragment'] ) ) {

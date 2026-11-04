@@ -176,7 +176,8 @@ classDiagram
     %% to the player's own event messages -- and lets a caller subscribe to
     %% the moment it ends via onEnded, event-driven (no polling): the
     %% subscriber fires the instant the player transitions into 'ended', not
-    %% on a repeated "still ended" message. Confirmed against a real embed.
+    %% on a repeated "still ended" message. Confirmed against real embeds on
+    %% both www.youtube.com and www.youtube-nocookie.com.
     %% play() replays from the start when the player has ended and no-ops
     %% when already playing; stop() is a genuine full stop. Anything else
     %% (Vimeo, unparseable src) is a safe no-op whose onEnded never fires.
