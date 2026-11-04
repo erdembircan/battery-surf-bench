@@ -85,8 +85,8 @@ Every run, whether it finished, was stopped early, or got interrupted, is stored
 
 = Private by design =
 
-* **Operator-only, everywhere.** The cockpit, the surf pages, the sessions, the settings: all gated behind a dedicated capability. Public visitors can't reach any of it.
-* **No footprint.** Course pages are served as ephemeral, in-memory pages. Nothing is written to your database and nothing new appears on your site.
+* **Operator-only, everywhere.** The cockpit, the surf pages, the sessions, the settings: all require WordPress's `manage_options` capability, which administrators have. Public visitors can't reach any of it.
+* **No footprint.** Course pages are served as ephemeral, in-memory pages, so nothing new appears on your site. The only thing WordPress stores along the way is its usual cache of the video page's YouTube embed code, as it does for any embed.
 * **No telemetry.** All sampling and math happen locally in your browser, and sessions save only to your own site. The one outside contact is YouTube, which serves the video on the bundled course's video page (see External services below).
 
 = Speaks your language =
@@ -117,6 +117,43 @@ To build it yourself, install Node.js 24 with pnpm, and PHP 8.1 or later with Co
 1. `pnpm install` and `composer install` install the dependencies.
 2. `composer zip:production` runs the lints and tests, compiles `src/` into `build/`, assembles the finished plugin in `dist/battery-surf-bench/`, and zips it into `zip/battery-surf-bench.zip`, exactly as it ships.
 
+== Third-party resources ==
+
+Battery Surf Bench bundles the following third-party resources. Each is under a license compatible with the GPL.
+
+= Fonts =
+
+The five typefaces ship as unmodified woff2 files from their @fontsource packages, under the SIL Open Font License 1.1 (https://opensource.org/licenses/OFL-1.1).
+
+* Anton: Copyright 2020 The Anton Project Authors (https://github.com/googlefonts/AntonFont)
+* Caveat: Copyright 2014 The Caveat Project Authors (https://github.com/googlefonts/caveat)
+* Hanken Grotesk: Copyright 2021 The Hanken Grotesk Project Authors (https://github.com/marcologous/hanken-grotesk)
+* Pacifico: Copyright 2018 The Pacifico Project Authors (https://github.com/googlefonts/Pacifico)
+* Space Mono: Copyright 2016 The Space Mono Project Authors (https://github.com/googlefonts/spacemono)
+
+= Icons =
+
+* The surfer's pointing-hand cursor is adapted from Font Awesome Free's "hand-pointer" icon, Copyright 2026 Fonticons, Inc. (https://fontawesome.com), licensed under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Changes: the finger grooves are removed, the frame is padded, and the shape is drawn over an outline.
+* Several interface icons (reset, save, check, chevron, warning, external link, and speaker on and off) are taken or adapted from Feather, Copyright (c) 2013-2023 Cole Bemis (https://github.com/feathericons/feather), MIT License.
+
+= JavaScript libraries =
+
+Compiled into the scripts in `build/`:
+
+* DataViews and Icons from the Gutenberg project, Copyright 2016-2026 by the contributors (https://github.com/WordPress/gutenberg), GPL-2.0-or-later.
+* Ariakit, Copyright (c) 2025-present Ariakit FZ-LLC (https://github.com/ariakit/ariakit), MIT License.
+* use-sync-external-store, Copyright (c) Meta Platforms, Inc. and affiliates (https://github.com/facebook/react), MIT License.
+* clsx, Copyright (c) Luke Edwards (https://github.com/lukeed/clsx), MIT License.
+* remove-accents, Copyright (c) 2015 Marin Atanasov (https://github.com/tyxla/remove-accents), MIT License.
+* dnd kit, Copyright (c) 2021, Claudéric Demers (https://github.com/clauderic/dnd-kit), MIT License.
+
+= PHP libraries =
+
+In `vendor/`, each with its license file:
+
+* psr/container, Copyright (c) 2013-2016 container-interop and Copyright (c) 2016 PHP Framework Interoperability Group (https://github.com/php-fig/container), MIT License.
+* Composer's autoloader, Copyright (c) Nils Adermann, Jordi Boggiano (https://github.com/composer/composer), MIT License.
+
 == Installation ==
 
 The quickest way to run a benchmark is WordPress Playground, with nothing to install: open https://playground.wordpress.net/?plugin=battery-surf-bench&url=/wp-admin/admin.php?page=bsbench-start-benchmark, unplug your laptop, and start a benchmark from the cockpit.
@@ -135,7 +172,7 @@ No. Open the plugin in WordPress Playground (see Installation) and it runs on a 
 
 = Who can run a benchmark? =
 
-Only users with the plugin's operator capability. The cockpit, the simulated surf pages and all recorded sessions are gated behind that capability; anonymous and unauthorised users cannot reach them.
+Only users with WordPress's `manage_options` capability, which administrators have. The cockpit, the simulated surf pages and all recorded sessions are gated behind that capability; anonymous and unauthorised users cannot reach them.
 
 = Which browsers are supported? =
 

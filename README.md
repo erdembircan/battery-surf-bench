@@ -106,8 +106,8 @@ Every run, whether it finished, was stopped early, or got interrupted, is stored
 
 ## Private by design
 
-- **Operator-only, everywhere.** The cockpit, the surf pages, the sessions, the settings: all gated behind a dedicated capability. Public visitors can't reach any of it.
-- **No footprint.** Course pages are served as ephemeral, in-memory pages. Nothing is written to your database and nothing new appears on your site.
+- **Operator-only, everywhere.** The cockpit, the surf pages, the sessions, the settings: all require WordPress's `manage_options` capability, which administrators have. Public visitors can't reach any of it.
+- **No footprint.** Course pages are served as ephemeral, in-memory pages, so nothing new appears on your site. The only thing WordPress stores along the way is its usual cache of the video page's YouTube embed code, as it does for any embed.
 - **No telemetry.** All sampling and math happen locally in your browser, and sessions save only to your own site. The one outside contact is YouTube, which serves the video on the bundled course's video page.
 - **Self-healing configuration.** If a page you added to the course is later removed or unpublished, it quietly drops out of the rotation instead of breaking the run.
 
