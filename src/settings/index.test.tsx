@@ -34,7 +34,7 @@ vi.mock( '@/settings/App', () => ( {
 
 const config: SettingsConfig = {
 	postTypes: [ 'page', 'post' ],
-	optionKey: 'bsb_course_order',
+	optionKey: 'bsbench_course_order',
 	courseOrder: [],
 	bundledCatalog: [],
 	initialBrowse: { records: [], totalItems: 0, totalPages: 1 },
@@ -48,7 +48,7 @@ beforeEach( () => {
 
 afterEach( () => {
 	document.body.innerHTML = '';
-	delete window.bsbSettings;
+	delete window.bsbenchSettings;
 } );
 
 describe( 'settings entry point', () => {
@@ -56,7 +56,7 @@ describe( 'settings entry point', () => {
 		const container = document.createElement( 'div' );
 		container.id = 'bsb-settings-app';
 		document.body.append( container );
-		window.bsbSettings = config;
+		window.bsbenchSettings = config;
 
 		await import( '@/settings/index' );
 
@@ -69,7 +69,7 @@ describe( 'settings entry point', () => {
 	} );
 
 	it( 'does nothing when the container is absent', async () => {
-		window.bsbSettings = config;
+		window.bsbenchSettings = config;
 
 		await import( '@/settings/index' );
 

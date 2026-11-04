@@ -75,7 +75,7 @@ test.describe( 'Status mark', () => {
 	test( 'a natural run turns a sun-yellow sunburst at the demo speed, with no glow', async ( {
 		page,
 	} ) => {
-		await page.goto( '/?bsbSession=cockpit' );
+		await page.goto( '/?bsbenchSession=cockpit' );
 
 		await forceDischarging( page );
 		await page.locator( '.bsb-devtools__card-close' ).click();
@@ -102,7 +102,7 @@ test.describe( 'Status mark', () => {
 	} );
 
 	test( 'a sterile run turns the sunburst coral', async ( { page } ) => {
-		await page.goto( '/?bsbSession=cockpit' );
+		await page.goto( '/?bsbenchSession=cockpit' );
 
 		await forceDischarging( page );
 		await armSterile( page );
@@ -125,7 +125,7 @@ test.describe( 'Status mark', () => {
 
 	test( 'reduced motion holds the sunburst still', async ( { page } ) => {
 		await page.emulateMedia( { reducedMotion: 'reduce' } );
-		await page.goto( '/?bsbSession=cockpit' );
+		await page.goto( '/?bsbenchSession=cockpit' );
 
 		await forceDischarging( page );
 		await page.locator( '.bsb-devtools__card-close' ).click();

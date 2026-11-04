@@ -91,6 +91,17 @@ Classes and functions must be documented — JSDoc for JS/TS code, PHPDoc for PH
 
 All source files (both JS/TS and PHP) must use **CamelCase** (e.g. `BatteryMonitor.php`, `BenchmarkRunner.ts`, `IRenderer.ts`, `SampleType.ts`). This applies to every file regardless of what it exports — classes, interfaces, types, constants, or utilities.
 
+## Prefixes — Never Two or Three Letters
+
+WordPress.org reviewers reject two- and three-letter prefixes, so every name the plugin stores, registers or exposes globally starts with `bsbench` or the full `battery-surf-bench` / `battery_surf_bench`, never with `bsb`:
+
+- **Stored names:** options (`bsbench_course_order`), the post type (`bsbench_session`; WordPress caps post type keys at 20 characters), post meta (`bsbench_*`), settings groups and transients.
+- **Requests and pages:** query vars and URL parameters (`bsbenchSession`), nonce actions (`bsbench_surf`), admin page slugs and admin-bar node IDs (`bsbench-start-benchmark`).
+- **Scripts:** `wp_localize_script` objects (`bsbenchSettings`) and browser storage keys (`bsbench-cockpit-sound`).
+- **Blocks, hooks and PHP:** the block and Interactivity store namespace (`battery-surf-bench/cockpit`), hook names and PHP globals (`battery_surf_bench_*`), and the `ErdemBircan\BatterySurfBench` PHP namespace; the last two are PHPCS's prefix list.
+
+CSS class names, custom properties, `data-*` attributes and the `bsb:*` messages between the cockpit and its own iframe keep the short `bsb` prefix, because they stay inside the plugin's own markup, styles and messages. So do development-only names that never reach the plugin zip: the dev-tools panel's storage key, the `BSB_DEV_TOOLS` build flag, and the Playground mu-plugins with their `BSB_PLAYGROUND_AUTO_LOGIN` constant.
+
 ## Markup & Views
 
 **Never write HTML or inline styles in PHP logic.** Markup lives only in view templates: never in a manager, a block `render.php`, or a view's own methods, and no `style="…"` attribute or `<style>` block is ever printed from PHP.

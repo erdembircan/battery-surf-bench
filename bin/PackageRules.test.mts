@@ -434,14 +434,14 @@ describe( 'findDevToolsCode', () => {
 				[
 					{
 						path: 'build/surfer.js',
-						content: 'const p="bsbSterile";',
+						content: 'const p="bsbenchSterile";',
 					},
 				],
 				{ variant: 'production' }
 			)
 		).toEqual( [
 			expect.stringContaining(
-				'Script "build/surfer.js" carries dev-tools code (it contains "bsbSterile")'
+				'Script "build/surfer.js" carries dev-tools code (it contains "bsbenchSterile")'
 			),
 		] );
 	} );
@@ -502,7 +502,7 @@ describe( 'findDevToolsCode', () => {
 				[
 					{
 						path: 'build/surfer.js',
-						content: 'const p="bsbSterile";',
+						content: 'const p="bsbenchSterile";',
 					},
 				],
 				{ variant: 'development' }

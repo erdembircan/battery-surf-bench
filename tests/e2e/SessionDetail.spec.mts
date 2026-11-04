@@ -15,7 +15,7 @@ import { test, expect, type Page } from '@playwright/test';
  * pass produced would surface here.
  */
 
-const COLLECTION = '/wp-json/wp/v2/bsb_session';
+const COLLECTION = '/wp-json/wp/v2/bsbench_session';
 
 /** PHP error/warning/notice text WordPress prints when WP_DEBUG_DISPLAY is on. */
 const PHP_NOTICE =
@@ -68,20 +68,20 @@ const measureTimeLabels = ( page: Page ) =>
 const sessionBody = {
 	status: 'publish',
 	meta: {
-		bsb_status: 'finished',
-		bsb_mode: 'target',
-		bsb_started_at: '2026-06-23T10:00:00.000Z',
-		bsb_ended_at: '2026-06-23T10:30:00.000Z',
-		bsb_start_level: 0.82,
-		bsb_end_level: 0.7,
-		bsb_dropped_pct: 12,
-		bsb_elapsed: 1623,
-		bsb_rate_10: 24.5,
-		bsb_rate_session: 18,
-		bsb_time_to_empty: 18000,
-		bsb_config_mode: 'targetDrop',
-		bsb_config_target_percent: 70,
-		bsb_samples: [
+		bsbench_status: 'finished',
+		bsbench_mode: 'target',
+		bsbench_started_at: '2026-06-23T10:00:00.000Z',
+		bsbench_ended_at: '2026-06-23T10:30:00.000Z',
+		bsbench_start_level: 0.82,
+		bsbench_end_level: 0.7,
+		bsbench_dropped_pct: 12,
+		bsbench_elapsed: 1623,
+		bsbench_rate_10: 24.5,
+		bsbench_rate_session: 18,
+		bsbench_time_to_empty: 18000,
+		bsbench_config_mode: 'targetDrop',
+		bsbench_config_target_percent: 70,
+		bsbench_samples: [
 			{ t: 0, level: 0.82, charging: false, count: 1 },
 			{ t: 600000, level: 0.7, charging: false, count: 3 },
 		],

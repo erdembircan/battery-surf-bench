@@ -30,7 +30,7 @@ import {
 	durationOf,
 } from '@/cockpit/BehaviorStart';
 
-/** The bark slice of the `bsb/cockpit` store. */
+/** The bark slice of the `battery-surf-bench/cockpit` store. */
 export const barkStore: StorePart = {
 	state: {
 		/** Whether a bark is on screen — drives the pill's visibility. */

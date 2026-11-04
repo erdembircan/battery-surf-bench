@@ -97,7 +97,7 @@ const instance = ( session: RunSession ): InstanceState =>
 describe( 'stopRun persistence', () => {
 	beforeEach( () => {
 		mocks.config = {
-			restUrl: 'https://wp.test/wp-json/wp/v2/bsb_session',
+			restUrl: 'https://wp.test/wp-json/wp/v2/bsbench_session',
 			restNonce: 'nonce-123',
 		};
 		globalThis.fetch = vi
@@ -118,7 +118,7 @@ describe( 'stopRun persistence', () => {
 		stopRun( context(), instance( session ), 'duration' );
 
 		expect( globalThis.fetch ).toHaveBeenCalledWith(
-			'https://wp.test/wp-json/wp/v2/bsb_session',
+			'https://wp.test/wp-json/wp/v2/bsbench_session',
 			expect.objectContaining( { method: 'POST' } )
 		);
 	} );
@@ -163,7 +163,7 @@ describe( 'stopRun persistence', () => {
 
 		expect( globalThis.fetch ).toHaveBeenCalledTimes( 1 );
 		expect( globalThis.fetch ).toHaveBeenCalledWith(
-			'https://wp.test/wp-json/wp/v2/bsb_session',
+			'https://wp.test/wp-json/wp/v2/bsbench_session',
 			expect.objectContaining( { method: 'POST' } )
 		);
 	} );

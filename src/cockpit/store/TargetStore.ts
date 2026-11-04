@@ -20,7 +20,7 @@ import {
 /** Whether a pointer drag on the battery slider is in progress. */
 let draggingTarget = false;
 
-/** The target-drop slice of the `bsb/cockpit` store. */
+/** The target-drop slice of the `battery-surf-bench/cockpit` store. */
 export const targetStore: StorePart = {
 	state: {
 		/** Target stop-at battery level, as a `NN%` string for the readout/fill. */

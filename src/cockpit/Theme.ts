@@ -19,7 +19,7 @@ export type ThemeName = 'light' | 'dark';
 export type ThemePref = 'light' | 'dark' | 'system';
 
 /** localStorage key the theme preference is remembered under across visits. */
-export const THEME_KEY = 'bsb-cockpit-theme';
+export const THEME_KEY = 'bsbench-cockpit-theme';
 
 /** The order the theme control cycles through on each press. */
 export const THEME_ORDER: ThemePref[] = [ 'system', 'light', 'dark' ];

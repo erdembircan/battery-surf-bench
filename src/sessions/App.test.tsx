@@ -47,17 +47,17 @@ vi.mock( '@wordpress/dataviews', async () => {
 const { SessionsApp } = await import( '@/sessions/App' );
 
 const config: SessionsConfig = {
-	postType: 'bsb_session',
-	defaultColumns: [ 'bsb_status', 'bsb_level' ],
+	postType: 'bsbench_session',
+	defaultColumns: [ 'bsbench_status', 'bsb_level' ],
 	fields: [
 		{
-			key: 'bsb_status',
+			key: 'bsbench_status',
 			label: 'Status',
 			format: 'status',
 			elements: [ { value: 'finished', label: 'Finished' } ],
 		},
 		{ key: 'bsb_level', label: 'Battery', format: 'percent' },
-		{ key: 'bsb_started_at', label: 'Started', format: 'datetime' },
+		{ key: 'bsbench_started_at', label: 'Started', format: 'datetime' },
 	],
 };
 
@@ -65,12 +65,12 @@ const records: SessionRecord[] = [
 	{
 		id: 1,
 		title: { rendered: 'Older' },
-		meta: { bsb_started_at: '2026-06-10 08:00:00', bsb_level: 0.5 },
+		meta: { bsbench_started_at: '2026-06-10 08:00:00', bsb_level: 0.5 },
 	},
 	{
 		id: 2,
 		title: { rendered: 'Newer' },
-		meta: { bsb_started_at: '2026-06-16 08:00:00', bsb_level: 0.8 },
+		meta: { bsbench_started_at: '2026-06-16 08:00:00', bsb_level: 0.8 },
 	},
 ];
 
@@ -118,13 +118,13 @@ describe( 'SessionsApp data fetching', () => {
 		// translates the view into query args, so the whole dataset is reachable.
 		expect( hooks.useEntityRecords ).toHaveBeenCalledWith(
 			'postType',
-			'bsb_session',
+			'bsbench_session',
 			{
 				status: 'any',
 				_fields: 'id,title,status,date,meta',
 				page: 1,
 				per_page: 25,
-				orderby: 'bsb_started_at',
+				orderby: 'bsbench_started_at',
 				order: 'desc',
 			}
 		);
@@ -170,9 +170,9 @@ describe( 'SessionsApp rows', () => {
 		const fields = props.fields as Array< { id: string; label: string } >;
 		expect( fields.map( ( f ) => f.id ) ).toEqual( [
 			'title',
-			'meta.bsb_status',
+			'meta.bsbench_status',
 			'meta.bsb_level',
-			'meta.bsb_started_at',
+			'meta.bsbench_started_at',
 		] );
 	} );
 
@@ -185,11 +185,11 @@ describe( 'SessionsApp rows', () => {
 		};
 		expect( view.type ).toBe( 'table' );
 		expect( view.sort ).toEqual( {
-			field: 'meta.bsb_started_at',
+			field: 'meta.bsbench_started_at',
 			direction: 'desc',
 		} );
 		expect( view.fields ).toEqual( [
-			'meta.bsb_status',
+			'meta.bsbench_status',
 			'meta.bsb_level',
 		] );
 	} );
@@ -233,13 +233,13 @@ describe( 'SessionsApp trash action', () => {
 		expect( hooks.deleteEntityRecord ).toHaveBeenCalledTimes( 2 );
 		expect( hooks.deleteEntityRecord ).toHaveBeenCalledWith(
 			'postType',
-			'bsb_session',
+			'bsbench_session',
 			1,
 			null
 		);
 		expect( hooks.deleteEntityRecord ).toHaveBeenCalledWith(
 			'postType',
-			'bsb_session',
+			'bsbench_session',
 			2,
 			null
 		);

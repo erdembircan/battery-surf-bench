@@ -60,8 +60,8 @@ const trashIcon = (
  * Strips the `meta.` prefix a DataViews field id carries, yielding the bare
  * meta key the REST query orders and filters by.
  *
- * @param field The field id (e.g. `meta.bsb_status`).
- * @return The bare key (e.g. `bsb_status`).
+ * @param field The field id (e.g. `meta.bsbench_status`).
+ * @return The bare key (e.g. `bsbench_status`).
  */
 function metaKey( field: string ): string {
 	return field.replace( /^meta\./, '' );
@@ -104,7 +104,7 @@ function initialView( config: SessionsConfig ): View {
 		search: '',
 		filters: [],
 		titleField: 'title',
-		sort: { field: 'meta.bsb_started_at', direction: 'desc' },
+		sort: { field: 'meta.bsbench_started_at', direction: 'desc' },
 		fields: config.defaultColumns.map( ( key ) => `meta.${ key }` ),
 		layout: { density: 'compact' },
 	};

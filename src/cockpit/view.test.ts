@@ -338,7 +338,7 @@ beforeEach( () => {
 	}
 } );
 
-describe( 'bsb/cockpit view store', () => {
+describe( 'battery-surf-bench/cockpit view store', () => {
 	describe( 'viewport', () => {
 		it( 'derives the viewport src from the seeded surf config and the active index once running', () => {
 			mocks.context.running = true;
@@ -346,8 +346,8 @@ describe( 'bsb/cockpit view store', () => {
 			const src = new URL( mocks.config?.state.currentSrc ?? '' );
 
 			expect( src.origin + src.pathname ).toBe( 'https://example.test/' );
-			expect( src.searchParams.get( 'bsbSurfIndex' ) ).toBe( '0' );
-			expect( src.searchParams.get( 'bsbNonce' ) ).toBe(
+			expect( src.searchParams.get( 'bsbenchSurfIndex' ) ).toBe( '0' );
+			expect( src.searchParams.get( 'bsbenchNonce' ) ).toBe(
 				'test-surf-nonce'
 			);
 		} );
@@ -371,7 +371,7 @@ describe( 'bsb/cockpit view store', () => {
 
 			const src = new URL( mocks.config?.state.currentSrc ?? '' );
 
-			expect( src.searchParams.get( 'bsbSurfIndex' ) ).toBe( '4' );
+			expect( src.searchParams.get( 'bsbenchSurfIndex' ) ).toBe( '4' );
 		} );
 
 		it( 'carries the trait vector and demo speed as query params', () => {
@@ -381,24 +381,26 @@ describe( 'bsb/cockpit view store', () => {
 
 			const src = new URL( mocks.config?.state.currentSrc ?? '' );
 
-			expect( src.searchParams.get( 'bsbTraits' ) ).toBe( '2,8,10,2,3' );
-			expect( src.searchParams.get( 'bsbSpeed' ) ).toBe( '4' );
+			expect( src.searchParams.get( 'bsbenchTraits' ) ).toBe(
+				'2,8,10,2,3'
+			);
+			expect( src.searchParams.get( 'bsbenchSpeed' ) ).toBe( '4' );
 		} );
 
-		it( 'appends bsbSterile=1 only while the live run is sterile', () => {
+		it( 'appends bsbenchSterile=1 only while the live run is sterile', () => {
 			mocks.context.running = true;
 			mocks.context.sterile = false;
 			expect(
 				new URL(
 					mocks.config?.state.currentSrc ?? ''
-				).searchParams.has( 'bsbSterile' )
+				).searchParams.has( 'bsbenchSterile' )
 			).toBe( false );
 
 			mocks.context.sterile = true;
 			expect(
 				new URL(
 					mocks.config?.state.currentSrc ?? ''
-				).searchParams.get( 'bsbSterile' )
+				).searchParams.get( 'bsbenchSterile' )
 			).toBe( '1' );
 		} );
 	} );
@@ -523,7 +525,7 @@ describe( 'bsb/cockpit view store', () => {
 		const fakeIframe = ( hasCourseContent: boolean ): MockElement =>
 			( {
 				contentDocument: {
-					URL: 'http://test/?bsbSurfIndex=0',
+					URL: 'http://test/?bsbenchSurfIndex=0',
 					querySelector: ( selector: string ) =>
 						hasCourseContent && selector === '.bsb-course-page'
 							? {}
@@ -629,7 +631,7 @@ describe( 'bsb/cockpit view store', () => {
 			mocks.context.activeIndex = 0;
 			mocks.element = {
 				contentDocument: {
-					URL: 'http://test/?bsbSurfIndex=0',
+					URL: 'http://test/?bsbenchSurfIndex=0',
 					querySelector: ( selector: string ) =>
 						selector === '.bsb-course-page' ? {} : null,
 				},
@@ -2542,25 +2544,25 @@ describe( 'bsb/cockpit view store', () => {
 
 			mocks.config!.actions.toggleSound();
 			expect( mocks.context.soundEnabled ).toBe( false );
-			expect( window.localStorage.getItem( 'bsb-cockpit-sound' ) ).toBe(
-				'off'
-			);
+			expect(
+				window.localStorage.getItem( 'bsbench-cockpit-sound' )
+			).toBe( 'off' );
 
 			mocks.config!.actions.toggleSound();
 			expect( mocks.context.soundEnabled ).toBe( true );
-			expect( window.localStorage.getItem( 'bsb-cockpit-sound' ) ).toBe(
-				'on'
-			);
+			expect(
+				window.localStorage.getItem( 'bsbench-cockpit-sound' )
+			).toBe( 'on' );
 		} );
 
 		it( 'restores the remembered preference on init', () => {
 			installAudio();
 
-			window.localStorage.setItem( 'bsb-cockpit-sound', 'off' );
+			window.localStorage.setItem( 'bsbench-cockpit-sound', 'off' );
 			mocks.config!.callbacks.initSound();
 			expect( mocks.context.soundEnabled ).toBe( false );
 
-			window.localStorage.setItem( 'bsb-cockpit-sound', 'on' );
+			window.localStorage.setItem( 'bsbench-cockpit-sound', 'on' );
 			mocks.config!.callbacks.initSound();
 			expect( mocks.context.soundEnabled ).toBe( true );
 		} );
@@ -2597,7 +2599,7 @@ describe( 'bsb/cockpit view store', () => {
 
 		it( 'stays silent at a natural finish when disabled', () => {
 			const audio = installAudio();
-			window.localStorage.setItem( 'bsb-cockpit-sound', 'off' );
+			window.localStorage.setItem( 'bsbench-cockpit-sound', 'off' );
 			mocks.config!.callbacks.initSound();
 
 			vi.useFakeTimers();

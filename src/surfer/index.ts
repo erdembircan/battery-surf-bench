@@ -25,17 +25,17 @@ import { SelectSnippet } from '@/surfer/Behaviors/SelectSnippet';
 import { MoveOn } from '@/surfer/Behaviors/MoveOn';
 
 /** URL param carrying the comma-separated trait vector; its presence boots the engine. */
-const TRAITS_PARAM = 'bsbTraits';
+const TRAITS_PARAM = 'bsbenchTraits';
 
 /** URL param carrying the demo speed multiplier. */
-const SPEED_PARAM = 'bsbSpeed';
+const SPEED_PARAM = 'bsbenchSpeed';
 
 /**
  * URL param whose presence (`1`) boots a `SterileHelm` instead of the
  * auction-driven `SurfLoop`: the dev-tools "Sterile" override, seeded by
  * `RunStore.currentSrc` only while a run's `context.sterile` is armed.
  */
-const STERILE_PARAM = 'bsbSterile';
+const STERILE_PARAM = 'bsbenchSterile';
 
 /** Posted to the parent frame when the page's surf session ends. */
 const PAGE_DONE_MESSAGE = { type: 'bsb:pageDone' } as const;

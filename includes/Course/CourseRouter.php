@@ -29,7 +29,7 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Serves the surfer's whole page sequence off a single opaque index instead
  * of seeding real pages or exposing per-page identity: a request carrying
- * `?bsbSurfIndex=<n>&bsbNonce=<nonce>` resolves, entirely server-side, to the
+ * `?bsbenchSurfIndex=<n>&bsbenchNonce=<nonce>` resolves, entirely server-side, to the
  * saved surf-course order's `n`-th entry (wrapping via modulo, so the client
  * never needs to know how many pages exist), and the router injects that
  * entry's markup as a virtual post and lets WordPress render it through the
@@ -45,16 +45,16 @@ defined( 'ABSPATH' ) || exit;
  * The route itself is gated, for EVERY entry it could resolve to (bundled or
  * user alike, decided only after the gate passes): holding the plugin's
  * capability (via {@see \ErdemBircan\BatterySurfBench\Support\Capability})
- * AND a valid `bsb_surf` nonce are both required
+ * AND a valid `bsbench_surf` nonce are both required
  * before any index is even resolved against the saved order. Neither
  * condition being met falls through untouched, ordinarily to a 404 — no
  * render path, bundled or user, is ever reached without both. The old
- * `?bsbSessionPage=<slug>` (and `user-<id>`) public routes are retired
+ * `?bsbenchSessionPage=<slug>` (and `user-<id>`) public routes are retired
  * entirely; a bundled slug is still resolved internally, against the
  * catalog, once an authorized request's index has picked it.
  *
  * Nothing in the URL besides the index and the nonce is allowed to decide
- * what gets served — in particular, never the `bsbTraits` behavior
+ * what gets served — in particular, never the `bsbenchTraits` behavior
  * parameter, which is the surf engine's behavior input, not a gate.
  *
  * The virtual post never touches the database: it exists only for the
@@ -68,7 +68,7 @@ class CourseRouter implements Manager {
 	 *
 	 * @param CourseCatalog        $catalog         Source of the bundled course pages and their markup.
 	 * @param string               $index_param     Query parameter carrying the opaque, client-incrementing page index.
-	 * @param string               $nonce_param     Query parameter carrying the `bsb_surf` nonce authorizing the request.
+	 * @param string               $nonce_param     Query parameter carrying the `bsbench_surf` nonce authorizing the request.
 	 * @param string               $nonce_action    Nonce action the surf nonce is verified against.
 	 * @param CapabilityInterface  $capability      Capability required to have an index request served.
 	 * @param Assets               $assets          Service used to enqueue the course stylesheet and surf engine.
@@ -126,7 +126,7 @@ class CourseRouter implements Manager {
 	 * authorized index, so the theme renders it as a singular page. Runs on
 	 * the main query only and leaves every other query untouched.
 	 *
-	 * The gate — capability AND a valid `bsb_surf` nonce — is checked before
+	 * The gate — capability AND a valid `bsbench_surf` nonce — is checked before
 	 * anything about the saved order is even read, so it guards EVERY entry
 	 * the index could resolve to, bundled or user alike; a request that
 	 * fails either check never reaches the order at all and falls through to
@@ -162,7 +162,7 @@ class CourseRouter implements Manager {
 	 * The authoritative, server-side gate every index request must clear
 	 * before any entry — bundled or user — is resolved or rendered: the
 	 * requester must hold the plugin capability AND carry a nonce valid for
-	 * the `bsb_surf` action. Nothing else about the request has any say.
+	 * the `bsbench_surf` action. Nothing else about the request has any say.
 	 *
 	 * @return bool Whether the request is authorized to have an index served.
 	 */

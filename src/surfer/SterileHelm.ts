@@ -3,7 +3,7 @@
  * of the surfer's behaviors is instead fired on demand, by a `bsb:steerBehavior`
  * command from the cockpit's dev-tools panel, and run exactly once over the
  * same motor and context-sensing path `SurfLoop`'s own tick loop uses. Boots
- * in place of `SurfLoop` when `EngineBoot` (`./index`) finds `bsbSterile=1` on
+ * in place of `SurfLoop` when `EngineBoot` (`./index`) finds `bsbenchSterile=1` on
  * the page URL.
  *
  * Strictly sequential, mirroring the tick loop: a steer arriving while a

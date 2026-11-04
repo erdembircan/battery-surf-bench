@@ -6,7 +6,7 @@ import { test, expect, type Page } from '@playwright/test';
  * The e2e blueprint runs with `WP_ENVIRONMENT_TYPE: 'development'`, so the
  * dev-tools gate is open: the floating panel and its script module load on the
  * cockpit dashboard, the same surface a live run happens on (the panel binds
- * only to shared `bsb/cockpit` state, never cockpit context, so it works
+ * only to shared `battery-surf-bench/cockpit` state, never cockpit context, so it works
  * exactly the same whichever course page the viewport happens to be surfing).
  * The blueprint enables `WP_DEBUG_DISPLAY`, so a PHP notice prints into the
  * page and fails these tests.
@@ -39,7 +39,7 @@ test.describe( 'Dev-tools battery-override panel', () => {
 	test( 'the pill and card are mutually exclusive, collapsed by default', async ( {
 		page,
 	} ) => {
-		await page.goto( '/?bsbSession=cockpit' );
+		await page.goto( '/?bsbenchSession=cockpit' );
 
 		await expect( page.locator( '.bsb-devtools' ) ).toBeAttached();
 
@@ -65,7 +65,7 @@ test.describe( 'Dev-tools battery-override panel', () => {
 	test( 'opening the panel feels near-instant — the pill is gone well under the old 220ms swap', async ( {
 		page,
 	} ) => {
-		await page.goto( '/?bsbSession=cockpit' );
+		await page.goto( '/?bsbenchSession=cockpit' );
 
 		const pill = page.locator( '.bsb-devtools__pill' );
 		await pill.click();
@@ -85,7 +85,7 @@ test.describe( 'Dev-tools battery-override panel', () => {
 	test( 'the battery group has no enable step — the charging tri-state and level row are always live', async ( {
 		page,
 	} ) => {
-		await page.goto( '/?bsbSession=cockpit' );
+		await page.goto( '/?bsbenchSession=cockpit' );
 
 		await page.locator( '.bsb-devtools__pill' ).click();
 		await expect( page.locator( '.bsb-devtools__card' ) ).toBeVisible();
@@ -107,7 +107,7 @@ test.describe( 'Dev-tools battery-override panel', () => {
 	test( 'dragging the level slider arms the override directly; the System button clears it — pill ties in', async ( {
 		page,
 	} ) => {
-		await page.goto( '/?bsbSession=cockpit' );
+		await page.goto( '/?bsbenchSession=cockpit' );
 
 		await page.locator( '.bsb-devtools__pill' ).click();
 
@@ -156,7 +156,7 @@ test.describe( 'Dev-tools battery-override panel', () => {
 	test( 'the level readout stays inside the card at every value, and the slider snaps to 5% steps', async ( {
 		page,
 	} ) => {
-		await page.goto( '/?bsbSession=cockpit' );
+		await page.goto( '/?bsbenchSession=cockpit' );
 
 		await page.locator( '.bsb-devtools__pill' ).click();
 
@@ -194,7 +194,7 @@ test.describe( 'Dev-tools battery-override panel', () => {
 	test( 'the level row mirrors the live system battery percentage while following it', async ( {
 		page,
 	} ) => {
-		await page.goto( '/?bsbSession=cockpit' );
+		await page.goto( '/?bsbenchSession=cockpit' );
 
 		// The cockpit's own battery readout is the raw system reading; the
 		// dev-tools level row (still on System) must show that same figure,
@@ -219,7 +219,7 @@ test.describe( 'Dev-tools battery-override panel', () => {
 	test( 'forcing Discharging lets a run start and keep surfing, forcing Charging stops it with the plugged reason', async ( {
 		page,
 	} ) => {
-		await page.goto( '/?bsbSession=cockpit' );
+		await page.goto( '/?bsbenchSession=cockpit' );
 
 		// Open the panel and force discharging directly — no enable step.
 		await page.locator( '.bsb-devtools__pill' ).click();
@@ -235,7 +235,7 @@ test.describe( 'Dev-tools battery-override panel', () => {
 		).toBeVisible();
 		await expect(
 			page.locator( 'iframe.bsb-cockpit__viewport' )
-		).toHaveAttribute( 'src', /bsbSurfIndex/ );
+		).toHaveAttribute( 'src', /bsbenchSurfIndex/ );
 
 		// The run keeps surfing — it is not immediately undone by the host's own
 		// real charging state.
@@ -263,7 +263,7 @@ test.describe( 'Dev-tools battery-override panel', () => {
 	test( 'a run started under a forced level opens on that level, not the host’s real battery', async ( {
 		page,
 	} ) => {
-		await page.goto( '/?bsbSession=cockpit' );
+		await page.goto( '/?bsbenchSession=cockpit' );
 
 		// Force a level the host is not already reporting, so the summary can
 		// only show it if the run opened on the override.
@@ -291,7 +291,7 @@ test.describe( 'Dev-tools battery-override panel', () => {
 		await startRun( page );
 		await expect(
 			page.locator( 'iframe.bsb-cockpit__viewport' )
-		).toHaveAttribute( 'src', /bsbSurfIndex/ );
+		).toHaveAttribute( 'src', /bsbenchSurfIndex/ );
 
 		// A live run is compact, so it stops from the topbar's own control.
 		await page.locator( '.bsb-deck__readout-stop' ).click();
@@ -330,7 +330,7 @@ test.describe( 'Dev-tools battery-override panel', () => {
 			);
 		} );
 
-		await page.goto( '/?bsbSession=cockpit' );
+		await page.goto( '/?bsbenchSession=cockpit' );
 
 		// Pins the range input's `data-wp-bind--value` behavior: under the
 		// installed Interactivity version the binding sets the input's value
@@ -410,7 +410,7 @@ test.describe( 'Dev-tools battery-override panel', () => {
 			);
 		} );
 
-		await page.goto( '/?bsbSession=cockpit' );
+		await page.goto( '/?bsbenchSession=cockpit' );
 
 		// Defaults: collapsed, unarmed — none of the stale blobs had any effect.
 		await expect( page.locator( '.bsb-devtools__pill' ) ).toBeVisible();
@@ -425,7 +425,7 @@ test.describe( 'Dev-tools battery-override panel', () => {
 	test( 'the discharge sim never persists and never resumes across a reload', async ( {
 		page,
 	} ) => {
-		await page.goto( '/?bsbSession=cockpit' );
+		await page.goto( '/?bsbenchSession=cockpit' );
 
 		await page.locator( '.bsb-devtools__pill' ).click();
 
@@ -480,7 +480,7 @@ test.describe( 'Dev-tools battery-override panel', () => {
 	test( 'starting the discharge sim moves the level and mutes every other battery control, leaving Stop live', async ( {
 		page,
 	} ) => {
-		await page.goto( '/?bsbSession=cockpit' );
+		await page.goto( '/?bsbenchSession=cockpit' );
 
 		await page.locator( '.bsb-devtools__pill' ).click();
 
@@ -534,7 +534,7 @@ test.describe( 'Dev-tools battery-override panel', () => {
 	test( 'the discharge group shows a live MM:SS countdown while running, and hides it once stopped', async ( {
 		page,
 	} ) => {
-		await page.goto( '/?bsbSession=cockpit' );
+		await page.goto( '/?bsbenchSession=cockpit' );
 
 		await page.locator( '.bsb-devtools__pill' ).click();
 
@@ -579,7 +579,7 @@ test.describe( 'Dev-tools battery-override panel', () => {
 	test( 'stopping the discharge sim reverts to the pre-sim state and unmutes every control', async ( {
 		page,
 	} ) => {
-		await page.goto( '/?bsbSession=cockpit' );
+		await page.goto( '/?bsbenchSession=cockpit' );
 
 		await page.locator( '.bsb-devtools__pill' ).click();
 
@@ -647,7 +647,7 @@ test.describe( 'Dev-tools battery-override panel', () => {
 	test( 'Reset clears every override in one click, including stopping a running discharge sim', async ( {
 		page,
 	} ) => {
-		await page.goto( '/?bsbSession=cockpit' );
+		await page.goto( '/?bsbenchSession=cockpit' );
 
 		await page.locator( '.bsb-devtools__pill' ).click();
 
@@ -720,23 +720,26 @@ test.describe( 'Dev-tools battery-override panel', () => {
 				)
 			).text()
 		).trim();
-		const created = await page.request.post( '/wp-json/wp/v2/bsb_session', {
-			headers: { 'X-WP-Nonce': nonce },
-			data: {
-				status: 'publish',
-				meta: {
-					bsb_status: 'finished',
-					bsb_mode: 'duration',
-					bsb_started_at: '2026-06-23T10:00:00.000Z',
-					bsb_ended_at: '2026-06-23T10:30:00.000Z',
-					bsb_start_level: 0.9,
-					bsb_end_level: 0.8,
-					bsb_dropped_pct: 10,
-					bsb_elapsed: 1800,
-					bsb_config_mode: 'duration',
+		const created = await page.request.post(
+			'/wp-json/wp/v2/bsbench_session',
+			{
+				headers: { 'X-WP-Nonce': nonce },
+				data: {
+					status: 'publish',
+					meta: {
+						bsbench_status: 'finished',
+						bsbench_mode: 'duration',
+						bsbench_started_at: '2026-06-23T10:00:00.000Z',
+						bsbench_ended_at: '2026-06-23T10:30:00.000Z',
+						bsbench_start_level: 0.9,
+						bsbench_end_level: 0.8,
+						bsbench_dropped_pct: 10,
+						bsbench_elapsed: 1800,
+						bsbench_config_mode: 'duration',
+					},
 				},
-			},
-		} );
+			}
+		);
 		expect( created.status() ).toBe( 201 );
 		const id = ( await created.json() ).id as number;
 

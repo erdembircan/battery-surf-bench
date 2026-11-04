@@ -12,9 +12,9 @@ describe( 'formatUserAgent', () => {
 	it( 'composes browser, version and OS', () => {
 		expect(
 			formatUserAgent( {
-				bsb_ua_browser: 'Chrome',
-				bsb_ua_version: '149',
-				bsb_ua_os: 'macOS',
+				bsbench_ua_browser: 'Chrome',
+				bsbench_ua_version: '149',
+				bsbench_ua_os: 'macOS',
 			} )
 		).toBe( 'Chrome 149 · macOS' );
 	} );
@@ -22,9 +22,9 @@ describe( 'formatUserAgent', () => {
 	it( 'omits the version when absent', () => {
 		expect(
 			formatUserAgent( {
-				bsb_ua_browser: 'Firefox',
-				bsb_ua_version: '',
-				bsb_ua_os: 'Linux',
+				bsbench_ua_browser: 'Firefox',
+				bsbench_ua_version: '',
+				bsbench_ua_os: 'Linux',
 			} )
 		).toBe( 'Firefox · Linux' );
 	} );
@@ -32,9 +32,9 @@ describe( 'formatUserAgent', () => {
 	it( 'shows the browser alone when the OS is absent', () => {
 		expect(
 			formatUserAgent( {
-				bsb_ua_browser: 'Safari',
-				bsb_ua_version: '17',
-				bsb_ua_os: '',
+				bsbench_ua_browser: 'Safari',
+				bsbench_ua_version: '17',
+				bsbench_ua_os: '',
 			} )
 		).toBe( 'Safari 17' );
 	} );
@@ -42,9 +42,9 @@ describe( 'formatUserAgent', () => {
 	it( 'shows the OS alone when the browser is absent', () => {
 		expect(
 			formatUserAgent( {
-				bsb_ua_browser: '',
-				bsb_ua_version: '',
-				bsb_ua_os: 'Windows',
+				bsbench_ua_browser: '',
+				bsbench_ua_version: '',
+				bsbench_ua_os: 'Windows',
 			} )
 		).toBe( 'Windows' );
 	} );
@@ -52,9 +52,9 @@ describe( 'formatUserAgent', () => {
 	it( 'shows an em dash when nothing was captured', () => {
 		expect(
 			formatUserAgent( {
-				bsb_ua_browser: '',
-				bsb_ua_version: '',
-				bsb_ua_os: '',
+				bsbench_ua_browser: '',
+				bsbench_ua_version: '',
+				bsbench_ua_os: '',
 			} )
 		).toBe( '—' );
 	} );

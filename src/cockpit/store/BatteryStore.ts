@@ -28,7 +28,7 @@ import {
 } from '@/cockpit/BatteryOverride';
 import { effectiveBatteryOverride } from '@/devtools/EffectiveBatteryOverride';
 
-/** The slice of the merged `bsb/cockpit` state the override seam reads and writes. */
+/** The slice of the merged `battery-surf-bench/cockpit` state the override seam reads and writes. */
 interface SharedBatteryState {
 	devtools?: {
 		battery?: BatteryOverrideState;
@@ -67,7 +67,9 @@ const currentOverride = (): BatteryOverrideState | undefined => {
 		return undefined;
 	}
 
-	const { state } = store< SharedBatteryStore >( 'bsb/cockpit' );
+	const { state } = store< SharedBatteryStore >(
+		'battery-surf-bench/cockpit'
+	);
 	const { devtools } = state;
 
 	if ( ! devtools?.battery ) {
@@ -88,7 +90,9 @@ const currentOverride = (): BatteryOverrideState | undefined => {
  * @param percent The raw system level as a 0–100 percentage.
  */
 const publishSystemPercent = ( percent: number ): void => {
-	const { state } = store< SharedBatteryStore >( 'bsb/cockpit' );
+	const { state } = store< SharedBatteryStore >(
+		'battery-surf-bench/cockpit'
+	);
 
 	state.batterySystemPercent = percent;
 };
@@ -202,7 +206,7 @@ export const seedRunSample = (
 	}
 };
 
-/** The battery slice of the `bsb/cockpit` store. */
+/** The battery slice of the `battery-surf-bench/cockpit` store. */
 export const batteryStore: StorePart = {
 	state: {
 		/**

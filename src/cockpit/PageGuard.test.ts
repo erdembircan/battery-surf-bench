@@ -25,7 +25,7 @@ import {
  */
 const fakeDocument = (
 	hasCourseContent: boolean,
-	url = 'http://test/?bsbSurfIndex=0'
+	url = 'http://test/?bsbenchSurfIndex=0'
 ): Document =>
 	( {
 		URL: url,
@@ -63,7 +63,7 @@ describe( 'isBlankFrame', () => {
 			isBlankFrame( {
 				contentDocument: fakeDocument(
 					true,
-					'http://x/?bsbSurfIndex=0'
+					'http://x/?bsbenchSurfIndex=0'
 				),
 			} )
 		).toBe( false );

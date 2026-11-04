@@ -19,10 +19,10 @@ import '@/styles/sessions/style.scss';
 
 const container = document.getElementById( 'bsb-sessions-app' );
 
-if ( container && window.bsbSessions ) {
+if ( container && window.bsbenchSessions ) {
 	createRoot( container ).render(
 		<ErrorBoundary>
-			<SessionsApp config={ window.bsbSessions } />
+			<SessionsApp config={ window.bsbenchSessions } />
 		</ErrorBoundary>
 	);
 }

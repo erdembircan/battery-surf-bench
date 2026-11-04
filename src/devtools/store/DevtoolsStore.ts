@@ -18,7 +18,7 @@ import {
 	DEFAULT_SHARK_RELEASE,
 } from '@/devtools/SharkRelease';
 
-/** The dev-tools slice of the shared `bsb/cockpit` state. */
+/** The dev-tools slice of the shared `battery-surf-bench/cockpit` state. */
 export interface DevtoolsState {
 	/** Whether the floating panel is expanded (vs. collapsed to its pill). */
 	open: boolean;
@@ -162,7 +162,7 @@ const writeStored = ( state: PersistedDevtoolsState ): void => {
 };
 
 /**
- * The live devtools slice off the shared `bsb/cockpit` state. Re-fetched by
+ * The live devtools slice off the shared `battery-surf-bench/cockpit` state. Re-fetched by
  * namespace on every call (rather than captured once at import time) because
  * this module and the production cockpit module each join the store from
  * separate script modules, in an order neither can rely on.
@@ -170,7 +170,7 @@ const writeStored = ( state: PersistedDevtoolsState ): void => {
  * @return The shared devtools state.
  */
 export const current = (): DevtoolsState => {
-	const { state } = store< DevtoolsStore >( 'bsb/cockpit' );
+	const { state } = store< DevtoolsStore >( 'battery-surf-bench/cockpit' );
 
 	return state.devtools;
 };

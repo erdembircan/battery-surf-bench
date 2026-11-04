@@ -31,7 +31,7 @@ final class SessionRestQueryTest extends TestCase {
 	 * @return SessionRestQuery The manager under test.
 	 */
 	private function manager(): SessionRestQuery {
-		return new SessionRestQuery( new SessionSchema( 'bsb_session', 'bsb_' ) );
+		return new SessionRestQuery( new SessionSchema( 'bsbench_session', 'bsbench_' ) );
 	}
 
 	/**
@@ -65,10 +65,10 @@ final class SessionRestQueryTest extends TestCase {
 		$manager->register();
 
 		$this->assertNotFalse(
-			has_filter( 'rest_bsb_session_collection_params', array( $manager, 'collection_params' ) )
+			has_filter( 'rest_bsbench_session_collection_params', array( $manager, 'collection_params' ) )
 		);
 		$this->assertNotFalse(
-			has_filter( 'rest_bsb_session_query', array( $manager, 'query' ) )
+			has_filter( 'rest_bsbench_session_query', array( $manager, 'query' ) )
 		);
 	}
 
@@ -81,12 +81,12 @@ final class SessionRestQueryTest extends TestCase {
 
 		$out = $this->manager()->collection_params( $params );
 
-		$this->assertContains( 'bsb_started_at', $out['orderby']['enum'] );
-		$this->assertContains( 'bsb_elapsed', $out['orderby']['enum'] );
+		$this->assertContains( 'bsbench_started_at', $out['orderby']['enum'] );
+		$this->assertContains( 'bsbench_elapsed', $out['orderby']['enum'] );
 		$this->assertContains( 'date', $out['orderby']['enum'] ); // keeps the originals.
-		$this->assertArrayHasKey( 'bsb_status', $out );
-		$this->assertArrayHasKey( 'bsb_mode', $out );
-		$this->assertSame( 'array', $out['bsb_status']['type'] );
+		$this->assertArrayHasKey( 'bsbench_status', $out );
+		$this->assertArrayHasKey( 'bsbench_mode', $out );
+		$this->assertSame( 'array', $out['bsbench_status']['type'] );
 	}
 
 	/**
@@ -94,12 +94,12 @@ final class SessionRestQueryTest extends TestCase {
 	 * column uses a lexical one.
 	 */
 	public function test_query_orders_by_meta_choosing_numeric_or_lexical(): void {
-		$numeric = $this->manager()->query( array(), $this->request( array( 'orderby' => 'bsb_elapsed' ) ) );
-		$this->assertSame( 'bsb_elapsed', $numeric['meta_key'] );
+		$numeric = $this->manager()->query( array(), $this->request( array( 'orderby' => 'bsbench_elapsed' ) ) );
+		$this->assertSame( 'bsbench_elapsed', $numeric['meta_key'] );
 		$this->assertSame( 'meta_value_num', $numeric['orderby'] );
 
-		$string = $this->manager()->query( array(), $this->request( array( 'orderby' => 'bsb_status' ) ) );
-		$this->assertSame( 'bsb_status', $string['meta_key'] );
+		$string = $this->manager()->query( array(), $this->request( array( 'orderby' => 'bsbench_status' ) ) );
+		$this->assertSame( 'bsbench_status', $string['meta_key'] );
 		$this->assertSame( 'meta_value', $string['orderby'] );
 	}
 
@@ -118,12 +118,12 @@ final class SessionRestQueryTest extends TestCase {
 	public function test_query_maps_a_filter_to_a_meta_query_in_clause(): void {
 		$out = $this->manager()->query(
 			array(),
-			$this->request( array( 'bsb_status' => array( 'running', 'finished' ) ) )
+			$this->request( array( 'bsbench_status' => array( 'running', 'finished' ) ) )
 		);
 
 		$this->assertContains(
 			array(
-				'key'     => 'bsb_status',
+				'key'     => 'bsbench_status',
 				'value'   => array( 'running', 'finished' ),
 				'compare' => 'IN',
 			),

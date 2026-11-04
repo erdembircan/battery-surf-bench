@@ -1,5 +1,5 @@
 /**
- * Dev-tools view — the Interactivity API module that joins the `bsb/cockpit`
+ * Dev-tools view — the Interactivity API module that joins the `battery-surf-bench/cockpit`
  * store to add the floating dev-tools panel. Loaded as its own script module,
  * entirely separate from the cockpit's own `viewScriptModule`, and only ever
  * enqueued by the PHP `DevTools` manager when its environment gate is open —
@@ -25,7 +25,7 @@ import { sharkReleaseStore } from '@/devtools/store/SharkReleaseStore';
 import { resetStore } from '@/devtools/store/ResetStore';
 
 store(
-	'bsb/cockpit',
+	'battery-surf-bench/cockpit',
 	mergeStoreParts(
 		devtoolsShellStore,
 		batteryOverrideStore,

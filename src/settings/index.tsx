@@ -14,10 +14,10 @@ import '@/styles/settings/style.scss';
 
 const container = document.getElementById( 'bsb-settings-app' );
 
-if ( container && window.bsbSettings ) {
+if ( container && window.bsbenchSettings ) {
 	createRoot( container ).render(
 		<ErrorBoundary>
-			<SettingsApp config={ window.bsbSettings } />
+			<SettingsApp config={ window.bsbenchSettings } />
 		</ErrorBoundary>
 	);
 }

@@ -32,7 +32,7 @@ const startLeave = (
 	context.toastPhase = 'leaving';
 };
 
-/** The toast slice of the `bsb/cockpit` store. */
+/** The toast slice of the `battery-surf-bench/cockpit` store. */
 export const toastStore: StorePart = {
 	state: {
 		/** Whether a toast is on screen — drives the pill's visibility. */

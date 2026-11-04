@@ -39,7 +39,7 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * Registers the cockpit block and serves the dashboard it lives on off a URL
- * parameter (`?bsbSession=cockpit`) — never a seeded page. When that parameter
+ * parameter (`?bsbenchSession=cockpit`) — never a seeded page. When that parameter
  * is hit by an administrator, the cockpit is rendered as a standalone document:
  * the classic style and script queues are emptied so no theme or other-plugin
  * CSS/JS gets in the dashboard's way — bar the cockpit's own stylesheet, which
@@ -49,7 +49,7 @@ defined( 'ABSPATH' ) || exit;
  * The client is fed no page data at all — no ids, URLs, titles, order, or
  * count. The cockpit's `RunStore` holds only an incrementing index counter;
  * {@see \ErdemBircan\BatterySurfBench\Course\CourseRouter} resolves which
- * page an index names entirely server-side, gated on a `bsb_surf` nonce this
+ * page an index names entirely server-side, gated on a `bsbench_surf` nonce this
  * class mints (see {@see configure_rest_access()}) alongside the site's home
  * URL, so the viewport's index-request URLs are assembled client-side from
  * seeded configuration rather than a bound page list.
@@ -60,7 +60,7 @@ class Cockpit implements Manager {
 	 * Stores everything needed to register the block and serve its dashboard.
 	 *
 	 * @param string              $block_dir         Absolute path to the built block directory holding its `block.json`.
-	 * @param string              $block_name        The block's registered name (e.g. `bsb/cockpit`).
+	 * @param string              $block_name        The block's registered name (e.g. `battery-surf-bench/cockpit`).
 	 * @param string              $param             Query parameter that selects the cockpit dashboard.
 	 * @param string              $value             Value of the parameter that serves the cockpit.
 	 * @param CapabilityInterface $capability        Capability required to open the cockpit.
@@ -178,8 +178,8 @@ class Cockpit implements Manager {
 	 * Hands the cockpit's Interactivity store what it needs to persist a
 	 * finished run and to surf the saved course: the full session-collection
 	 * REST URL and a `wp_rest` nonce, plus the site's home URL and a
-	 * `bsb_surf` nonce so `RunStore.currentSrc` can build each
-	 * `?bsbSurfIndex=<n>&bsbNonce=<nonce>` viewport request without the
+	 * `bsbench_surf` nonce so `RunStore.currentSrc` can build each
+	 * `?bsbenchSurfIndex=<n>&bsbenchNonce=<nonce>` viewport request without the
 	 * client ever holding a page list. The backend builds the complete REST
 	 * endpoint URL (route namespace included) so the client never assembles
 	 * it — if the route ever moves, only this server side changes. The

@@ -1,6 +1,6 @@
 /**
  * Builds the index-based surf URL the viewport iframe loads: an opaque,
- * client-incrementing page index and a `bsb_surf` nonce proving the request
+ * client-incrementing page index and a `bsbench_surf` nonce proving the request
  * came from the authorized cockpit. The client holds nothing else about the
  * pages it surfs — no ids, URLs, titles, order, or count — that is resolved
  * entirely server-side by `CourseRouter`, which wraps the index against the
@@ -9,10 +9,10 @@
  */
 
 /** Query param carrying the opaque, client-incrementing page index. */
-export const SURF_INDEX_PARAM = 'bsbSurfIndex';
+export const SURF_INDEX_PARAM = 'bsbenchSurfIndex';
 
-/** Query param carrying the `bsb_surf` nonce authorizing an index request. */
-export const SURF_NONCE_PARAM = 'bsbNonce';
+/** Query param carrying the `bsbench_surf` nonce authorizing an index request. */
+export const SURF_NONCE_PARAM = 'bsbenchNonce';
 
 /**
  * Builds the base surf URL for a given page index: the site's home URL
@@ -22,7 +22,7 @@ export const SURF_NONCE_PARAM = 'bsbNonce';
  *
  * @param base  The site's home URL, seeded server-side via `getConfig()`.
  * @param index The opaque page index to request.
- * @param nonce The `bsb_surf` nonce, seeded server-side via `getConfig()`.
+ * @param nonce The `bsbench_surf` nonce, seeded server-side via `getConfig()`.
  * @return The base surf URL, or '' when the base or nonce was not seeded.
  */
 export const buildSurfIndexUrl = (

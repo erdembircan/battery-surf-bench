@@ -31,7 +31,7 @@ final class SettingsScreenViewTest extends TestCase {
 			array(
 				'title'         => 'Battery Surf Bench',
 				'subtitle'      => 'Settings',
-				'cockpit_url'   => 'https://example.test/?bsbSession=cockpit',
+				'cockpit_url'   => 'https://example.test/?bsbenchSession=cockpit',
 				'cockpit_label' => 'New Benchmark',
 			)
 		);
@@ -55,7 +55,7 @@ final class SettingsScreenViewTest extends TestCase {
 		$this->assertStringContainsString( 'Battery Surf Bench', $output );
 		$this->assertStringContainsString( 'Settings', $output );
 		$this->assertStringContainsString(
-			'href="https://example.test/?bsbSession=cockpit"',
+			'href="https://example.test/?bsbenchSession=cockpit"',
 			$output
 		);
 		// The cockpit link is the shared outline admin pill (AdminPillView).

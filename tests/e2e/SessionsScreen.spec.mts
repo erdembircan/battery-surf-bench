@@ -31,7 +31,7 @@ test.describe( 'Benchmark sessions screen', () => {
 			consoleErrors.push( error.message );
 		} );
 
-		await page.goto( '/wp-admin/admin.php?page=bsb-sessions' );
+		await page.goto( '/wp-admin/admin.php?page=bsbench-sessions' );
 
 		// The coastal shell renders full-bleed around the grid.
 		await expect( page.locator( '.bsb-sessions' ) ).toBeVisible();
@@ -51,7 +51,7 @@ test.describe( 'Benchmark sessions screen', () => {
 		await expect( cockpitLink ).toBeVisible();
 		await expect( cockpitLink ).toHaveAttribute(
 			'href',
-			/bsbSession=cockpit/
+			/bsbenchSession=cockpit/
 		);
 
 		// The bundle mounts DataViews into the screen container. Its presence

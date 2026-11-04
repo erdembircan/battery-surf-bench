@@ -31,7 +31,7 @@ body.bsb-cockpit-dashboard {
 
 // ── Theme tokens ─────────────────────────────────────────────────────────────
 // Default = Coastal Daybreak (light). `[data-theme='dark']` = Dusk Lineup.
-.wp-block-bsb-cockpit {
+.wp-block-battery-surf-bench-cockpit {
 	@include theme.tokens;
 
 	display: grid;
@@ -93,13 +93,13 @@ body.bsb-cockpit-dashboard {
 	// Shown: slide in, in step with the column expanding. The translation
 	// magnitude tracks the column width, so the deck's right edge stays flush
 	// with the stage's left edge — no gap, no overlap, no reflow.
-	.wp-block-bsb-cockpit.is-deck-shown & {
+	.wp-block-battery-surf-bench-cockpit.is-deck-shown & {
 		transform: translateX(0);
 		pointer-events: auto;
 	}
 
 	// Compact re-tucks the deck mid-run even while shown (extra class wins).
-	.wp-block-bsb-cockpit.is-deck-shown.is-compact & {
+	.wp-block-battery-surf-bench-cockpit.is-deck-shown.is-compact & {
 		transform: translateX(-100%);
 		pointer-events: none;
 	}
@@ -2071,7 +2071,7 @@ $bark-water-deep: color.mix(theme.$coastal-teal, white, 42%); // ≈ #a8d5df
 	overflow: hidden;
 	transition: opacity calc(#{$compact-dur} * 0.7) $ease calc(#{$compact-dur} * 0.3);
 
-	.wp-block-bsb-cockpit.is-compact & {
+	.wp-block-battery-surf-bench-cockpit.is-compact & {
 		height: auto;
 		opacity: 1;
 		overflow: visible;
@@ -2285,9 +2285,9 @@ $bark-water-deep: color.mix(theme.$coastal-teal, white, 42%); // ≈ #a8d5df
 
 // Respect reduced-motion: hold everything still.
 @media (prefers-reduced-motion: reduce) {
-	.wp-block-bsb-cockpit *,
-	.wp-block-bsb-cockpit *::before,
-	.wp-block-bsb-cockpit *::after {
+	.wp-block-battery-surf-bench-cockpit *,
+	.wp-block-battery-surf-bench-cockpit *::before,
+	.wp-block-battery-surf-bench-cockpit *::after {
 		animation: none !important;
 		transition: none !important;
 	}
@@ -2295,7 +2295,7 @@ $bark-water-deep: color.mix(theme.$coastal-teal, white, 42%); // ≈ #a8d5df
 
 // ── Narrow viewports: stack deck over stage ─────────────────────────────────
 @media (max-width: 720px) {
-	.wp-block-bsb-cockpit {
+	.wp-block-battery-surf-bench-cockpit {
 		grid-template-columns: 1fr;
 		grid-template-rows: auto 1fr;
 		height: 100vh;

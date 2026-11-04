@@ -9,7 +9,7 @@
  * but it still lives on the shared Coastal Daybreak palette rather than a
  * one-off dark theme, so it reads as part of the same product.
  *
- * The panel mounts outside `.wp-block-bsb-cockpit`, so the cockpit's own
+ * The panel mounts outside `.wp-block-battery-surf-bench-cockpit`, so the cockpit's own
  * `--*` custom properties (set by `theme.tokens` on that element) are not in
  * scope here. Rather than re-emitting the whole token mixin — which would
  * also emit an unused `[data-theme='dark']` override this dev-only,
@@ -565,7 +565,7 @@ $ease: cubic-bezier(0.22, 1, 0.36, 1);
 // but the panel's own Hanken/Anton typography and `theme.$coastal-*` colors
 // used directly, not the rolling-digit `.bsb-odometer` (which hardcodes
 // `theme.$font-mono`, excluded from this panel) or the cockpit's `--*` custom
-// properties (out of scope outside `.wp-block-bsb-cockpit`).
+// properties (out of scope outside `.wp-block-battery-surf-bench-cockpit`).
 .bsb-devtools__stepper-row {
 	display: flex;
 	align-items: center;

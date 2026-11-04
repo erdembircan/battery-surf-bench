@@ -40,7 +40,7 @@ final class DevToolsPanelViewTest extends TestCase {
 	public function test_render_binds_the_pill_and_card_mutually_exclusive(): void {
 		$markup = ( new DevToolsPanelView() )->render();
 
-		$this->assertStringContainsString( 'data-wp-interactive="bsb/cockpit"', $markup );
+		$this->assertStringContainsString( 'data-wp-interactive="battery-surf-bench/cockpit"', $markup );
 		$this->assertStringContainsString(
 			'id="bsb-devtools-pill" data-wp-bind--hidden="state.devtools.open"',
 			$markup

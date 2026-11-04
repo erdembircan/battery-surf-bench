@@ -292,7 +292,8 @@ classDiagram
     %% Never replaces WordPress's own oEmbed handling -- real oEmbed still
     %% resolves every YouTube URL, network fetch and all. embed_oembed_html
     %% amends the src of a YouTube/youtube-nocookie iframe WordPress's own
-    %% handling already produced (via WP_HTML_Tag_Processor), merging the
+    %% handling already produced (via WP_HTML_Tag_Processor), moving it to
+    %% the privacy-enhanced www.youtube-nocookie.com host, merging the
     %% control params VideoControl needs and stripping autoplay, for ANY
     %% iframe reaching WP_Embed::shortcode() -- a fresh fetch or a
     %% pre-existing cache hit. Registered by CourseRouter per served page,
@@ -442,7 +443,7 @@ classDiagram
     CourseRouter --> CourseCatalog : uses
     CourseRouter --> Assets : uses
     CourseRouter --> Capability : gates via
-    CourseRouter --> CourseOrderSanitizer : reads & sanitizes the saved order to resolve an authorized index request (gated on capability + bsb_surf nonce, checked before any entry is resolved#59; bundled pages are no longer force-re-added — a saved order missing one stays missing)
+    CourseRouter --> CourseOrderSanitizer : reads & sanitizes the saved order to resolve an authorized index request (gated on capability + bsbench_surf nonce, checked before any entry is resolved#59; bundled pages are no longer force-re-added — a saved order missing one stays missing)
     CourseRouter ..> UserPageView : renders via (user pages only)
     UserPageView ..|> View : implements
     UserPageView ..> Template : renders markup via

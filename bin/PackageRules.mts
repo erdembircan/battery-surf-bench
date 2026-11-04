@@ -95,7 +95,7 @@ const DEV_TOOLS_REQUIRED: readonly string[] = [
  * dev-tools code the build should have compiled out.
  */
 const DEV_TOOLS_CODE_MARKERS: readonly string[] = [
-	'bsbSterile',
+	'bsbenchSterile',
 	'bsb:steerBehavior',
 	'.devtools',
 ];

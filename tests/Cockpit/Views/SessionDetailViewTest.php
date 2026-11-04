@@ -46,7 +46,7 @@ final class SessionDetailViewTest extends TestCase {
 					'measured_label'     => 'Measured',
 					'projected_label'    => 'Projected',
 					'back_label'         => 'All sessions',
-					'back_url'           => '/wp-admin/edit.php?post_type=bsb_session',
+					'back_url'           => '/wp-admin/edit.php?post_type=bsbench_session',
 				),
 				$overrides
 			)
@@ -61,7 +61,7 @@ final class SessionDetailViewTest extends TestCase {
 		$markup = $this->view();
 
 		$this->assertStringContainsString( 'class="bsb-session-detail"', $markup );
-		$this->assertStringContainsString( 'data-wp-interactive="bsb/cockpit"', $markup );
+		$this->assertStringContainsString( 'data-wp-interactive="battery-surf-bench/cockpit"', $markup );
 		$this->assertStringContainsString( 'data-wp-init="callbacks.initDetail"', $markup );
 	}
 
@@ -73,7 +73,7 @@ final class SessionDetailViewTest extends TestCase {
 		$markup = $this->view();
 
 		$this->assertStringContainsString(
-			'<a class="bsb-summary__newrun bsb-summary__back" href="/wp-admin/edit.php?post_type=bsb_session">',
+			'<a class="bsb-summary__newrun bsb-summary__back" href="/wp-admin/edit.php?post_type=bsbench_session">',
 			$markup
 		);
 		$this->assertStringContainsString( '<span class="bsb-summary__back-icon" aria-hidden="true"></span>', $markup );

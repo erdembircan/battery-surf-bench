@@ -10,8 +10,10 @@ describe( 'withSurferParams', () => {
 		);
 		const parsed = new URL( url );
 
-		expect( parsed.searchParams.get( 'bsbTraits' ) ).toBe( '5,5,5,5,5' );
-		expect( parsed.searchParams.get( 'bsbSpeed' ) ).toBe( '1' );
+		expect( parsed.searchParams.get( 'bsbenchTraits' ) ).toBe(
+			'5,5,5,5,5'
+		);
+		expect( parsed.searchParams.get( 'bsbenchSpeed' ) ).toBe( '1' );
 	} );
 
 	it( 'preserves the page path and any existing query string', () => {
@@ -34,7 +36,7 @@ describe( 'withSurferParams', () => {
 		);
 		const parsed = new URL( url );
 		const traits = parsed.searchParams
-			.get( 'bsbTraits' )
+			.get( 'bsbenchTraits' )
 			?.split( ',' )
 			.map( Number );
 
@@ -47,16 +49,18 @@ describe( 'withSurferParams', () => {
 			[ 5, 5, 5, 5, 5 ],
 			999
 		);
-		expect( new URL( url ).searchParams.get( 'bsbSpeed' ) ).toBe( '1' );
+		expect( new URL( url ).searchParams.get( 'bsbenchSpeed' ) ).toBe( '1' );
 	} );
 
-	it( 'omits bsbSterile entirely when not sterile (the default)', () => {
+	it( 'omits bsbenchSterile entirely when not sterile (the default)', () => {
 		const url = withSurferParams(
 			'https://example.test/article-1',
 			[ 5, 5, 5, 5, 5 ],
 			1
 		);
-		expect( new URL( url ).searchParams.has( 'bsbSterile' ) ).toBe( false );
+		expect( new URL( url ).searchParams.has( 'bsbenchSterile' ) ).toBe(
+			false
+		);
 
 		const explicit = withSurferParams(
 			'https://example.test/article-1',
@@ -64,18 +68,20 @@ describe( 'withSurferParams', () => {
 			1,
 			false
 		);
-		expect( new URL( explicit ).searchParams.has( 'bsbSterile' ) ).toBe(
+		expect( new URL( explicit ).searchParams.has( 'bsbenchSterile' ) ).toBe(
 			false
 		);
 	} );
 
-	it( 'appends bsbSterile=1 when sterile', () => {
+	it( 'appends bsbenchSterile=1 when sterile', () => {
 		const url = withSurferParams(
 			'https://example.test/article-1',
 			[ 5, 5, 5, 5, 5 ],
 			1,
 			true
 		);
-		expect( new URL( url ).searchParams.get( 'bsbSterile' ) ).toBe( '1' );
+		expect( new URL( url ).searchParams.get( 'bsbenchSterile' ) ).toBe(
+			'1'
+		);
 	} );
 } );

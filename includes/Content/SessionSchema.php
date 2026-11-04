@@ -42,7 +42,7 @@ class SessionSchema {
 
 	/**
 	 * Group segment that namespaces the run-configuration meta under the prefix,
-	 * yielding keys like `bsb_config_mode`. The configuration the cockpit ran with
+	 * yielding keys like `bsbench_config_mode`. The configuration the cockpit ran with
 	 * is stored apart from the session's identity and result scalars so the two
 	 * concerns stay legible in the meta table and over REST.
 	 *
@@ -164,11 +164,11 @@ class SessionSchema {
 	/**
 	 * Prefixes a bare field name into its full, namespaced meta key, inserting an
 	 * optional group segment so a configuration field becomes, for example,
-	 * `bsb_config_mode` rather than `bsb_mode`.
+	 * `bsbench_config_mode` rather than `bsbench_mode`.
 	 *
 	 * @param string $field Bare field name (e.g. `status`).
 	 * @param string $group Optional group segment (e.g. `config`); empty for none.
-	 * @return string The namespaced meta key (e.g. `bsb_status`).
+	 * @return string The namespaced meta key (e.g. `bsbench_status`).
 	 */
 	private function key( string $field, string $group = '' ): string {
 		$segment = '' !== $group ? $group . '_' : '';

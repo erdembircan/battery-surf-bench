@@ -166,7 +166,7 @@ class StartBenchmark implements Manager {
 
 		$wp_admin_bar->add_node(
 			array(
-				'id'    => 'bsb-start-benchmark',
+				'id'    => 'bsbench-start-benchmark',
 				'title' => esc_html__( 'Start Benchmark', 'battery-surf-bench' ),
 				'href'  => esc_url_raw( $this->cockpit_url() ),
 				'meta'  => array(
@@ -190,7 +190,7 @@ class StartBenchmark implements Manager {
 		$handle = $this->assets->register_bundle( $this->nav_script );
 		$this->assets->localize(
 			$handle,
-			'bsbStartBenchmark',
+			'bsbenchStartBenchmark',
 			array(
 				'menuSlug'    => $this->page_slug,
 				'cockpitHref' => esc_url_raw( $this->cockpit_url() ),

@@ -1,6 +1,6 @@
 /**
  * The Surf sub-tool: the dev-tools panel's third section, joining
- * `bsb/cockpit` from a separate script module like every other sub-tool (see
+ * `battery-surf-bench/cockpit` from a separate script module like every other sub-tool (see
  * {@link ./BatteryOverrideStore}'s doc comment for the namespacing rule).
  * Arms/disarms the "Sterile" run override (which `../cockpit/RunStore` reads
  * defensively at run start) and, once a sterile run is live, fires each of
@@ -174,7 +174,7 @@ const chipKey = (): string => {
 	return ( ref as HTMLElement | null )?.dataset.devtoolsBehavior ?? '';
 };
 
-/** The Surf section of the dev-tools panel, joining `bsb/cockpit`. */
+/** The Surf section of the dev-tools panel, joining `battery-surf-bench/cockpit`. */
 export const surfSteerStore: StorePart = {
 	state: {
 		/** Whether the Natural/Sterile seg's Natural option is selected. */

@@ -25,7 +25,7 @@ use ErdemBircan\BatterySurfBench\Tests\TestCase;
  */
 final class CourseOrderOptionTest extends TestCase {
 
-	private const OPTION_NAME = 'bsb_course_order';
+	private const OPTION_NAME = 'bsbench_course_order';
 
 	/**
 	 * Builds an option definition provider over the real catalog restricted

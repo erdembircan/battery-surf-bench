@@ -30,7 +30,7 @@ A one-minute tour: the surfer at work, the live cockpit, and the postcard every 
 
 [WordPress Playground](https://playground.wordpress.net/) is the WordPress project's way of running a complete WordPress site in a browser tab: PHP compiled to WebAssembly, with the database kept in the browser too. Battery Surf Bench is built to be used there. One link starts a fresh site with the plugin installed and its cockpit open, with no server to rent, nothing to install and no account to create.
 
-**[Open Battery Surf Bench in WordPress Playground](https://playground.wordpress.net/?plugin=battery-surf-bench&url=/wp-admin/admin.php?page=bsb-start-benchmark)**
+**[Open Battery Surf Bench in WordPress Playground](https://playground.wordpress.net/?plugin=battery-surf-bench&url=/wp-admin/admin.php?page=bsbench-start-benchmark)**
 
 The link installs the plugin from the WordPress.org plugin directory, so it works once the plugin is listed there.
 
@@ -106,8 +106,8 @@ Every run, whether it finished, was stopped early, or got interrupted, is stored
 
 ## Private by design
 
-- **Operator-only, everywhere.** The cockpit, the surf pages, the sessions, the settings: all gated behind a dedicated capability. Public visitors can't reach any of it.
-- **No footprint.** Course pages are served as ephemeral, in-memory pages. Nothing is written to your database and nothing new appears on your site.
+- **Operator-only, everywhere.** The cockpit, the surf pages, the sessions, the settings: all require WordPress's `manage_options` capability, which administrators have. Public visitors can't reach any of it.
+- **No footprint.** Course pages are served as ephemeral, in-memory pages, so nothing new appears on your site. All they leave behind is WordPress's usual cache of the video page's YouTube embed code, as any embed does.
 - **No telemetry.** All sampling and math happen locally in your browser, and sessions save only to your own site. The one outside contact is YouTube, which serves the video on the bundled course's video page.
 - **Self-healing configuration.** If a page you added to the course is later removed or unpublished, it quietly drops out of the rotation instead of breaking the run.
 
@@ -119,7 +119,7 @@ Fully translation-ready, with German, Spanish, French, Brazilian Portuguese, and
 
 **In WordPress Playground** (the intended way):
 
-1. Open [Battery Surf Bench in WordPress Playground](https://playground.wordpress.net/?plugin=battery-surf-bench&url=/wp-admin/admin.php?page=bsb-start-benchmark). The cockpit opens on a fresh site.
+1. Open [Battery Surf Bench in WordPress Playground](https://playground.wordpress.net/?plugin=battery-surf-bench&url=/wp-admin/admin.php?page=bsbench-start-benchmark). The cockpit opens on a fresh site.
 2. Unplug your laptop.
 3. Pick a surfer, pick a mode, and press start.
 

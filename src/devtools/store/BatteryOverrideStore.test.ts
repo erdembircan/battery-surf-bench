@@ -1,7 +1,7 @@
 /**
  * Tests for the battery-override sub-tool slice.
  *
- * The slice's own actions/getters read and write the shared `bsb/cockpit`
+ * The slice's own actions/getters read and write the shared `battery-surf-bench/cockpit`
  * state through `store()`; this file stubs that call to return a single,
  * test-owned state object so the tests exercise these functions the same way
  * the real merged store would use them, without the cockpit's own modules or

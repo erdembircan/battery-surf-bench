@@ -36,7 +36,7 @@ final class CockpitViewTest extends TestCase {
 	public function test_render_wires_the_interactive_region(): void {
 		$markup = $this->render();
 
-		$this->assertStringContainsString( 'data-wp-interactive="bsb/cockpit"', $markup );
+		$this->assertStringContainsString( 'data-wp-interactive="battery-surf-bench/cockpit"', $markup );
 		$this->assertStringContainsString( 'data-wp-init---battery="callbacks.initBattery"', $markup );
 		$this->assertStringContainsString( 'data-wp-init---wake-lock="callbacks.initWakeLock"', $markup );
 		$this->assertStringContainsString( 'data-wp-watch---run-activity="callbacks.syncRunActivity"', $markup );
@@ -52,7 +52,7 @@ final class CockpitViewTest extends TestCase {
 		// The deck is hidden by default (the stylesheet's base state) and revealed
 		// by the client adding this class once a run is live or the card is flipped.
 		$this->assertStringContainsString( 'data-wp-class--is-deck-shown="state.isDeckShown"', $markup );
-		$this->assertStringContainsString( 'class="wp-block-bsb-cockpit"', $markup );
+		$this->assertStringContainsString( 'class="wp-block-battery-surf-bench-cockpit"', $markup );
 		$this->assertStringContainsString( 'data-wp-context=\'{"activeIndex":0}\'', $markup );
 		$this->assertStringContainsString( 'data-wp-bind--src="state.currentSrc"', $markup );
 		$this->assertStringContainsString( 'title="Surf viewport"', $markup );
@@ -506,7 +506,7 @@ final class CockpitViewTest extends TestCase {
 	public function test_render_escapes_the_values_it_is_handed(): void {
 		$markup = ( new CockpitView() )->render(
 			array(
-				'wrapper'       => 'class="wp-block-bsb-cockpit"',
+				'wrapper'       => 'class="wp-block-battery-surf-bench-cockpit"',
 				'context'       => 'data-wp-context=\'{}\'',
 				'brand_title'   => '<b>X</b>',
 				'compact_label' => 'Compact "x"',
@@ -533,7 +533,7 @@ final class CockpitViewTest extends TestCase {
 	private function render(): string {
 		return ( new CockpitView() )->render(
 			array(
-				'wrapper'              => 'class="wp-block-bsb-cockpit"',
+				'wrapper'              => 'class="wp-block-battery-surf-bench-cockpit"',
 				'context'              => 'data-wp-context=\'{"activeIndex":0}\'',
 				'brand_title'          => 'Battery Surf Bench',
 				'brand_subtitle'       => 'Cockpit',

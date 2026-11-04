@@ -64,7 +64,7 @@ test.describe( 'Dev-tools Surf group', () => {
 	test( 'arming Sterile selects the seg option in coral and reports the panel armed', async ( {
 		page,
 	} ) => {
-		await page.goto( '/?bsbSession=cockpit' );
+		await page.goto( '/?bsbenchSession=cockpit' );
 
 		await page.locator( '.bsb-devtools__pill' ).click();
 
@@ -95,7 +95,7 @@ test.describe( 'Dev-tools Surf group', () => {
 	test( 'a natural run keeps the topbar sterile chip hidden', async ( {
 		page,
 	} ) => {
-		await page.goto( '/?bsbSession=cockpit' );
+		await page.goto( '/?bsbenchSession=cockpit' );
 
 		await forceDischarging( page );
 		await page.locator( '.bsb-devtools__card-close' ).click();
@@ -120,7 +120,7 @@ test.describe( 'Dev-tools Surf group', () => {
 	} ) => {
 		test.setTimeout( 60_000 );
 
-		await page.goto( '/?bsbSession=cockpit' );
+		await page.goto( '/?bsbenchSession=cockpit' );
 
 		await forceDischarging( page );
 		await armSterile( page );
@@ -131,7 +131,7 @@ test.describe( 'Dev-tools Surf group', () => {
 		// The run is live and sterile: the compact topbar's status head shows
 		// the "Sterile" chip.
 		const viewport = page.locator( 'iframe.bsb-cockpit__viewport' );
-		await expect( viewport ).toHaveAttribute( 'src', /bsbSterile=1/ );
+		await expect( viewport ).toHaveAttribute( 'src', /bsbenchSterile=1/ );
 		await expect(
 			page.locator( '.bsb-cockpit__topbar .bsb-deck__sterile-chip' )
 		).toBeVisible();
@@ -198,10 +198,10 @@ test.describe( 'Dev-tools Surf group', () => {
 		const slugReadout = page.locator(
 			'.bsb-devtools__stepper-readout--slug'
 		);
-		await expect( viewport ).toHaveAttribute( 'src', /bsbSurfIndex=0/ );
+		await expect( viewport ).toHaveAttribute( 'src', /bsbenchSurfIndex=0/ );
 		await expect( slugReadout ).toHaveText( 'article-1' );
 		await page.locator( '[aria-label="Next course page"]' ).click();
-		await expect( viewport ).toHaveAttribute( 'src', /bsbSurfIndex=1/ );
+		await expect( viewport ).toHaveAttribute( 'src', /bsbenchSurfIndex=1/ );
 		await expect( slugReadout ).toHaveText( 'gallery' );
 
 		expect( await page.content() ).not.toMatch( PHP_NOTICE );
@@ -210,7 +210,7 @@ test.describe( 'Dev-tools Surf group', () => {
 	test( 'stopping a run mid-behavior clears the group-head countdown even though bsb:behaviorEnd never arrives (the iframe tears down first)', async ( {
 		page,
 	} ) => {
-		await page.goto( '/?bsbSession=cockpit' );
+		await page.goto( '/?bsbenchSession=cockpit' );
 
 		await forceDischarging( page );
 		await armSterile( page );
@@ -248,7 +248,7 @@ test.describe( 'Dev-tools Surf group', () => {
 	test( 'steering selectSnippet wears the caret cursor while it runs, then drops it once done', async ( {
 		page,
 	} ) => {
-		await page.goto( '/?bsbSession=cockpit' );
+		await page.goto( '/?bsbenchSession=cockpit' );
 
 		await forceDischarging( page );
 		await armSterile( page );
@@ -292,7 +292,7 @@ test.describe( 'Dev-tools Surf group', () => {
 	test( 'steering selectSnippet highlights a bounded snippet at a steady per-character pace', async ( {
 		page,
 	} ) => {
-		await page.goto( '/?bsbSession=cockpit' );
+		await page.goto( '/?bsbenchSession=cockpit' );
 
 		await forceDischarging( page );
 		await armSterile( page );
@@ -388,7 +388,7 @@ test.describe( 'Dev-tools Surf group', () => {
 	} ) => {
 		test.setTimeout( 60_000 );
 
-		await page.goto( '/?bsbSession=cockpit' );
+		await page.goto( '/?bsbenchSession=cockpit' );
 
 		await forceDischarging( page );
 		await armSterile( page );

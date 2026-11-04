@@ -37,12 +37,12 @@ use function has_filter;
 final class CockpitTest extends TestCase {
 
 	private const BLOCK_DIR    = '/plugin/build/cockpit';
-	private const BLOCK_NAME   = 'bsb/cockpit';
-	private const PARAM        = 'bsbSession';
+	private const BLOCK_NAME   = 'battery-surf-bench/cockpit';
+	private const PARAM        = 'bsbenchSession';
 	private const VALUE        = 'cockpit';
 	private const STYLE        = 'build/style-cockpit-dashboard.css';
-	private const POST_TYPE    = 'bsb_session';
-	private const NONCE_ACTION = 'bsb_surf';
+	private const POST_TYPE    = 'bsbench_session';
+	private const NONCE_ACTION = 'bsbench_surf';
 
 	/**
 	 * Builds the cockpit manager under test. The capability is a fake test
@@ -106,12 +106,12 @@ final class CockpitTest extends TestCase {
 	 */
 	public function test_register_block_registers_the_block_and_its_module_translations(): void {
 		Functions\expect( 'register_block_type' )->once()->with( self::BLOCK_DIR );
-		Functions\when( 'generate_block_asset_handle' )->justReturn( 'bsb-cockpit-view-script-module' );
+		Functions\when( 'generate_block_asset_handle' )->justReturn( 'battery-surf-bench-cockpit-view-script-module' );
 
 		$assets = Mockery::mock( Assets::class );
 		$assets->shouldReceive( 'set_script_module_translations' )
 			->once()
-			->with( 'bsb-cockpit-view-script-module' );
+			->with( 'battery-surf-bench-cockpit-view-script-module' );
 
 		$this->cockpit( $assets )->register_block();
 

@@ -15,7 +15,7 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Renders the detail page for one stored benchmark session: the same run-summary
  * postcard the live cockpit shows at run end, raised on its own. The page is an
- * Interactivity region on the `bsb/cockpit` store — the cockpit's view module is
+ * Interactivity region on the `battery-surf-bench/cockpit` store — the cockpit's view module is
  * enqueued for it — with the run's frozen readouts seeded onto the per-instance
  * context. On hydration `callbacks.initDetail` rebuilds the drain graph from the
  * seeded samples and, a beat after the appear animation settles, auto-flips the
@@ -112,7 +112,7 @@ class SessionDetailView implements View {
 		// The detail wrapper carries the theme tokens and the full-bleed sky the
 		// `.bsb-summary` overlay paints against (the cockpit's own wrapper supplies
 		// these in the live dashboard). It is an Interactivity region on the
-		// `bsb/cockpit` store; `callbacks.initDetail` builds the graph and arms the
+		// `battery-surf-bench/cockpit` store; `callbacks.initDetail` builds the graph and arms the
 		// auto-flip on hydration.
 		return Template::render(
 			__DIR__ . '/Templates/SessionDetail.php',

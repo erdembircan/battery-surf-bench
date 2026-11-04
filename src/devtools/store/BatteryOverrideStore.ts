@@ -1,6 +1,6 @@
 /**
  * The battery-override sub-tool: one of the dev-tools panel's sections,
- * joining the `bsb/cockpit` store from a separate script module, so every
+ * joining the `battery-surf-bench/cockpit` store from a separate script module, so every
  * member it contributes carries a `devtools` prefix — the store-merge rule is
  * that a later-registered member overrides a same-named one, and this
  * namespacing is what keeps the tool from ever clobbering a production
@@ -38,7 +38,7 @@ import { effectiveBatteryOverride } from '@/devtools/EffectiveBatteryOverride';
  * @return The live system percentage, or null.
  */
 const systemPercent = (): number | null => {
-	const { state } = store< DevtoolsStore >( 'bsb/cockpit' );
+	const { state } = store< DevtoolsStore >( 'battery-surf-bench/cockpit' );
 
 	return state.batterySystemPercent ?? null;
 };
@@ -74,7 +74,7 @@ const displayedLevelPercent = (): number => {
 	return systemPercent() ?? 50;
 };
 
-/** The battery-override section of the dev-tools panel, joining `bsb/cockpit`. */
+/** The battery-override section of the dev-tools panel, joining `battery-surf-bench/cockpit`. */
 export const batteryOverrideStore: StorePart = {
 	state: {
 		/**

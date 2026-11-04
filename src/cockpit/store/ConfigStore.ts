@@ -32,7 +32,7 @@ const odometers = new WeakMap< HTMLElement, OdometerState >();
 const wheelTransform = ( position: number ): string =>
 	`translateY(calc(var(--bsb-od-cell) * ${ -( position + 10 ) }))`;
 
-/** The run-configuration slice of the `bsb/cockpit` store. */
+/** The run-configuration slice of the `battery-surf-bench/cockpit` store. */
 export const configStore: StorePart = {
 	state: {
 		/** Whether the run is bounded by a fixed duration. */

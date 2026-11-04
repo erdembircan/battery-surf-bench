@@ -9,7 +9,7 @@ import { getContext } from '@wordpress/interactivity';
 import { type CockpitContext } from '@/cockpit/CockpitContext';
 import { type StorePart } from '@/cockpit/store/StoreParts';
 
-/** The startup slice of the `bsb/cockpit` store. */
+/** The startup slice of the `battery-surf-bench/cockpit` store. */
 export const startupStore: StorePart = {
 	state: {
 		/**

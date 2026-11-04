@@ -22,6 +22,15 @@
 // Every data-URI below must stay byte-identical to its original inline SVG
 // when it's edited for content (not just moved) — a hand-tweaked encoding is
 // how a "simple" edit silently breaks a glyph.
+//
+// Borrowed glyphs: `$icon-reset`, `$icon-save`, `$icon-check`,
+// `$icon-chevron-down`, `$icon-warning`, `$icon-external`, `$icon-speaker-on`
+// and `$icon-speaker-off` are taken or adapted from Feather
+// (https://github.com/feathericons/feather), MIT License, Copyright (c)
+// 2013-2023 Cole Bemis, and so are the unused dark-mode `$icon-moon` and
+// `$icon-monitor`. The two Font Awesome glyphs name their source where they're
+// defined. readme.txt's Third-party resources section credits every borrowed
+// glyph that ships: update it whenever one is added or replaced.
 
 @use 'sass:string';
 

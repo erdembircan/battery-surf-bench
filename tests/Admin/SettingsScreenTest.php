@@ -41,7 +41,7 @@ final class SettingsScreenTest extends TestCase {
 	private const ICON_STYLE  = 'build/style-admin-menu.css';
 	private const BUNDLE      = 'build/settings.js';
 	private const STYLE       = 'build/style-settings.css';
-	private const OPTION_NAME = 'bsb_course_order';
+	private const OPTION_NAME = 'bsbench_course_order';
 	private const HOOK        = 'toplevel_page_battery-surf-bench';
 
 	/**
@@ -67,7 +67,7 @@ final class SettingsScreenTest extends TestCase {
 			new CourseOrderSanitizer( $catalog, array( 'page', 'post' ) ),
 			$catalog,
 			$assets ?? Mockery::mock( Assets::class ),
-			'bsbSession',
+			'bsbenchSession',
 			'cockpit'
 		);
 	}
@@ -204,7 +204,7 @@ final class SettingsScreenTest extends TestCase {
 			->once()
 			->with(
 				'bsb-settings',
-				'bsbSettings',
+				'bsbenchSettings',
 				Mockery::on(
 					static function ( $config ): bool {
 						return array( 'page', 'post' ) === $config['postTypes']
@@ -302,7 +302,7 @@ final class SettingsScreenTest extends TestCase {
 			->once()
 			->with(
 				'bsb-settings',
-				'bsbSettings',
+				'bsbenchSettings',
 				Mockery::on(
 					static function ( $config ): bool {
 						$slugs = array_column( $config['courseOrder'], 'slug' );
@@ -351,7 +351,7 @@ final class SettingsScreenTest extends TestCase {
 			->once()
 			->with(
 				'bsb-settings',
-				'bsbSettings',
+				'bsbenchSettings',
 				Mockery::on(
 					static function ( $config ): bool {
 						return isset( $config['userPages'][42] )
@@ -398,7 +398,7 @@ final class SettingsScreenTest extends TestCase {
 			->once()
 			->with(
 				'bsb-settings',
-				'bsbSettings',
+				'bsbenchSettings',
 				Mockery::on(
 					static function ( $config ): bool {
 						return array() === $config['userPages'];
@@ -436,7 +436,7 @@ final class SettingsScreenTest extends TestCase {
 		$this->assertStringContainsString( 'Settings', $output );
 		$this->assertStringContainsString( 'bsb-settings__save-slot', $output );
 		$this->assertStringContainsString( 'id="bsb-settings-app"', $output );
-		$this->assertStringContainsString( 'https://example.test/?bsbSession=cockpit', $output );
+		$this->assertStringContainsString( 'https://example.test/?bsbenchSession=cockpit', $output );
 		$this->assertStringContainsString( 'New Benchmark', $output );
 	}
 }

@@ -35,12 +35,12 @@ final class AdminPillViewTest extends TestCase {
 		$output = ( new AdminPillView() )->render(
 			array(
 				'label' => 'New Benchmark',
-				'href'  => 'https://example.test/?bsbSession=cockpit',
+				'href'  => 'https://example.test/?bsbenchSession=cockpit',
 			)
 		);
 
 		$this->assertStringContainsString( '<a class="bsb-admin-pill bsb-admin-pill--solid"', $output );
-		$this->assertStringContainsString( 'href="https://example.test/?bsbSession=cockpit"', $output );
+		$this->assertStringContainsString( 'href="https://example.test/?bsbenchSession=cockpit"', $output );
 		$this->assertStringContainsString( 'New Benchmark', $output );
 		$this->assertStringNotContainsString( '<button', $output );
 	}

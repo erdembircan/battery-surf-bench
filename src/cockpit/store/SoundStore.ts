@@ -15,7 +15,7 @@ import {
 	writeStoredSound,
 } from '@/cockpit/FinishChime';
 
-/** The sound slice of the `bsb/cockpit` store. */
+/** The sound slice of the `battery-surf-bench/cockpit` store. */
 export const soundStore: StorePart = {
 	state: {
 		/** Whether the finish chime is enabled — drives the deck's sound toggle. */

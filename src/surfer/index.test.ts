@@ -59,7 +59,7 @@ beforeEach( () => {
 } );
 
 describe( 'EngineBoot', () => {
-	it( 'boots nothing when bsbTraits is absent from the URL', async () => {
+	it( 'boots nothing when bsbenchTraits is absent from the URL', async () => {
 		setUrl( '?' );
 
 		await import( '@/surfer/index' );
@@ -68,8 +68,8 @@ describe( 'EngineBoot', () => {
 		expect( mocks.sterileHelmCtor ).not.toHaveBeenCalled();
 	} );
 
-	it( 'starts SurfLoop, and never constructs SterileHelm, when bsbSterile is absent', async () => {
-		setUrl( '?bsbTraits=5,5,5,5,5' );
+	it( 'starts SurfLoop, and never constructs SterileHelm, when bsbenchSterile is absent', async () => {
+		setUrl( '?bsbenchTraits=5,5,5,5,5' );
 
 		await import( '@/surfer/index' );
 
@@ -77,8 +77,8 @@ describe( 'EngineBoot', () => {
 		expect( mocks.sterileHelmCtor ).not.toHaveBeenCalled();
 	} );
 
-	it( 'starts SterileHelm, and never constructs (or starts) SurfLoop, when bsbSterile=1 — the auction never ticks', async () => {
-		setUrl( '?bsbTraits=5,5,5,5,5&bsbSterile=1' );
+	it( 'starts SterileHelm, and never constructs (or starts) SurfLoop, when bsbenchSterile=1 — the auction never ticks', async () => {
+		setUrl( '?bsbenchTraits=5,5,5,5,5&bsbenchSterile=1' );
 
 		await import( '@/surfer/index' );
 
@@ -87,8 +87,8 @@ describe( 'EngineBoot', () => {
 		expect( mocks.surfLoopStart ).not.toHaveBeenCalled();
 	} );
 
-	it( 'treats any bsbSterile value other than "1" as a natural run', async () => {
-		setUrl( '?bsbTraits=5,5,5,5,5&bsbSterile=0' );
+	it( 'treats any bsbenchSterile value other than "1" as a natural run', async () => {
+		setUrl( '?bsbenchTraits=5,5,5,5,5&bsbenchSterile=0' );
 
 		await import( '@/surfer/index' );
 

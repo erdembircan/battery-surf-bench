@@ -62,7 +62,7 @@ class OptionRegistry implements Manager {
 		foreach ( $this->providers as $provider ) {
 			$definition = $provider->definition();
 
-			register_setting( 'bsb_settings', $definition['name'], $definition['args'] );
+			register_setting( 'bsbench_settings', $definition['name'], $definition['args'] );
 		}
 	}
 }

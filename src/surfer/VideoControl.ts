@@ -32,7 +32,10 @@
  * (`playing` at `currentTime` 0 again); `stopVideo` genuinely resets the
  * player away from `ended` (observed transitioning to `unstarted`/`cued`),
  * so a later fresh `play()` never mistakes a deliberately-stopped player for
- * one that merely finished.
+ * one that merely finished. The same sequence was replayed on 2026-11-04
+ * against embeds on both `www.youtube.com` and `www.youtube-nocookie.com`,
+ * which answered message for message alike, before the plugin moved its
+ * embeds to the privacy-enhanced host.
  *
  * Anything else (a Vimeo embed, or a YouTube iframe whose `src` doesn't
  * resolve to a parseable origin) is a safe no-op in every direction and

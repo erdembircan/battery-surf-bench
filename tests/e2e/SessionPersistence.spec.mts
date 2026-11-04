@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 /**
  * End-to-end coverage for persisting a benchmark session over REST.
  *
- * The cockpit uploads a finished run by POSTing a `bsb_session` to the post
+ * The cockpit uploads a finished run by POSTing a `bsbench_session` to the post
  * type's own `wp/v2` collection — there is no bespoke controller. This proves
  * that consumed contract against the WordPress version the plugin runs on: an
  * authenticated administrator can create a session carrying the full meta record
@@ -15,30 +15,30 @@ import { test, expect } from '@playwright/test';
  * malformed JSON and fail the round-trip.
  */
 
-const COLLECTION = '/wp-json/wp/v2/bsb_session';
+const COLLECTION = '/wp-json/wp/v2/bsbench_session';
 
 /** A representative finished-run record, matching the cockpit's upload shape. */
 const sessionBody = {
 	status: 'publish',
 	meta: {
-		bsb_status: 'finished',
-		bsb_mode: 'target',
-		bsb_started_at: '2026-06-23T10:00:00.000Z',
-		bsb_ended_at: '2026-06-23T10:30:00.000Z',
-		bsb_start_level: 0.82,
-		bsb_end_level: 0.7,
-		bsb_dropped_pct: 12,
-		bsb_elapsed: 1623,
-		bsb_rate_10: 24.5,
-		bsb_rate_session: 0,
-		bsb_time_to_empty: 0,
-		bsb_config_mode: 'targetDrop',
+		bsbench_status: 'finished',
+		bsbench_mode: 'target',
+		bsbench_started_at: '2026-06-23T10:00:00.000Z',
+		bsbench_ended_at: '2026-06-23T10:30:00.000Z',
+		bsbench_start_level: 0.82,
+		bsbench_end_level: 0.7,
+		bsbench_dropped_pct: 12,
+		bsbench_elapsed: 1623,
+		bsbench_rate_10: 24.5,
+		bsbench_rate_session: 0,
+		bsbench_time_to_empty: 0,
+		bsbench_config_mode: 'targetDrop',
 		// A target-drop run records only its target, not a fixed duration.
-		bsb_config_target_percent: 70,
-		bsb_ua_browser: 'Chrome',
-		bsb_ua_version: '149',
-		bsb_ua_os: 'macOS',
-		bsb_samples: [
+		bsbench_config_target_percent: 70,
+		bsbench_ua_browser: 'Chrome',
+		bsbench_ua_version: '149',
+		bsbench_ua_os: 'macOS',
+		bsbench_samples: [
 			{ t: 0, level: 0.82, charging: false, count: 1 },
 			{ t: 600000, level: 0.7, charging: false, count: 3 },
 		],
@@ -80,33 +80,33 @@ test.describe( 'Benchmark session persistence', () => {
 		const { meta } = await fetched.json();
 
 		// Identity and result scalars round-trip.
-		expect( meta.bsb_status ).toBe( 'finished' );
-		expect( meta.bsb_mode ).toBe( 'target' );
-		expect( meta.bsb_dropped_pct ).toBe( 12 );
-		expect( meta.bsb_elapsed ).toBe( 1623 );
+		expect( meta.bsbench_status ).toBe( 'finished' );
+		expect( meta.bsbench_mode ).toBe( 'target' );
+		expect( meta.bsbench_dropped_pct ).toBe( 12 );
+		expect( meta.bsbench_elapsed ).toBe( 1623 );
 
 		// The configuration persists under its namespaced keys, the uppercase in
 		// `targetDrop` intact (a `sanitize_key` would have mangled it).
-		expect( meta.bsb_config_mode ).toBe( 'targetDrop' );
-		expect( meta.bsb_config_target_percent ).toBe( 70 );
+		expect( meta.bsbench_config_mode ).toBe( 'targetDrop' );
+		expect( meta.bsbench_config_target_percent ).toBe( 70 );
 		// A target-drop run records no fixed duration, so it reads back as the
 		// not-applicable zero.
-		expect( meta.bsb_config_duration ).toBe( 0 );
+		expect( meta.bsbench_config_duration ).toBe( 0 );
 
 		// The discrete browser fields the run was captured on persist.
-		expect( meta.bsb_ua_browser ).toBe( 'Chrome' );
-		expect( meta.bsb_ua_version ).toBe( '149' );
-		expect( meta.bsb_ua_os ).toBe( 'macOS' );
+		expect( meta.bsbench_ua_browser ).toBe( 'Chrome' );
+		expect( meta.bsbench_ua_version ).toBe( '149' );
+		expect( meta.bsbench_ua_os ).toBe( 'macOS' );
 
 		// A statistic the run could not compute is stored as zero (WordPress REST
 		// single meta cannot hold a null), and round-trips intact.
-		expect( meta.bsb_rate_session ).toBe( 0 );
-		expect( meta.bsb_time_to_empty ).toBe( 0 );
+		expect( meta.bsbench_rate_session ).toBe( 0 );
+		expect( meta.bsbench_time_to_empty ).toBe( 0 );
 
 		// The typed sample log survives schema validation whole.
-		expect( meta.bsb_samples ).toHaveLength( 2 );
-		expect( meta.bsb_samples[ 1 ].level ).toBeCloseTo( 0.7 );
-		expect( meta.bsb_samples[ 1 ].count ).toBe( 3 );
+		expect( meta.bsbench_samples ).toHaveLength( 2 );
+		expect( meta.bsbench_samples[ 1 ].level ).toBeCloseTo( 0.7 );
+		expect( meta.bsbench_samples[ 1 ].count ).toBe( 3 );
 	} );
 
 	test( 'an unauthenticated request cannot create a session', async ( {

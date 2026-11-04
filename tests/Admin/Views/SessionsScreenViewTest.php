@@ -31,7 +31,7 @@ final class SessionsScreenViewTest extends TestCase {
 			array(
 				'title'         => 'Sessions',
 				'subtitle'      => 'Benchmark log',
-				'cockpit_url'   => 'https://example.test/?bsbSession=cockpit',
+				'cockpit_url'   => 'https://example.test/?bsbenchSession=cockpit',
 				'cockpit_label' => 'New Benchmark',
 			)
 		);
@@ -57,7 +57,7 @@ final class SessionsScreenViewTest extends TestCase {
 		// The live total is filled in by the grid bundle; the slot ships empty.
 		$this->assertStringContainsString( 'bsb-sessions__count', $output );
 		$this->assertStringContainsString(
-			'href="https://example.test/?bsbSession=cockpit"',
+			'href="https://example.test/?bsbenchSession=cockpit"',
 			$output
 		);
 		// The cockpit link is the shared outline admin pill (AdminPillView) —

@@ -22,7 +22,7 @@ https://www.youtube.com/watch?v=X8CwzH_P4-g
 
 Battery Surf Bench is built to run in WordPress Playground, which runs a complete WordPress site, server and database included, inside your browser tab. Open this link and Playground starts a fresh site with the plugin installed and its cockpit open, with no server to rent, nothing to install and no account to create:
 
-https://playground.wordpress.net/?plugin=battery-surf-bench&url=/wp-admin/admin.php?page=bsb-start-benchmark
+https://playground.wordpress.net/?plugin=battery-surf-bench&url=/wp-admin/admin.php?page=bsbench-start-benchmark
 
 A battery benchmark should be something anyone with a laptop can run, not only people who already run a WordPress site. It measures the device in front of you, so the whole test, site included, runs on that device. Every Playground starts from the same clean WordPress, which keeps results comparable across laptops and browsers and keeps benchmarking away from any real site you run. The site, its database and your recorded sessions stay in your browser.
 
@@ -85,8 +85,8 @@ Every run, whether it finished, was stopped early, or got interrupted, is stored
 
 = Private by design =
 
-* **Operator-only, everywhere.** The cockpit, the surf pages, the sessions, the settings: all gated behind a dedicated capability. Public visitors can't reach any of it.
-* **No footprint.** Course pages are served as ephemeral, in-memory pages. Nothing is written to your database and nothing new appears on your site.
+* **Operator-only, everywhere.** The cockpit, the surf pages, the sessions, the settings: all require WordPress's `manage_options` capability, which administrators have. Public visitors can't reach any of it.
+* **No footprint.** Course pages are served as ephemeral, in-memory pages, so nothing new appears on your site. All they leave behind is WordPress's usual cache of the video page's YouTube embed code, as any embed does.
 * **No telemetry.** All sampling and math happen locally in your browser, and sessions save only to your own site. The one outside contact is YouTube, which serves the video on the bundled course's video page (see External services below).
 
 = Speaks your language =
@@ -95,12 +95,12 @@ Fully translation-ready, with German, Spanish, French, Brazilian Portuguese, and
 
 == External services ==
 
-Battery Surf Bench connects to one external service: YouTube, which hosts the video on the bundled course's video page, "Watch: Inside a Modern Laptop's Power Path". Video is part of everyday browsing and one of the heaviest loads a browser puts on a battery, so the course includes it.
+Battery Surf Bench connects to one external service: YouTube, which hosts the video on the bundled course's video page, "Watch: Nineteen Seconds That Started It All". Video is part of everyday browsing and one of the heaviest loads a browser puts on a battery, so the course includes it.
 
 Nothing is sent until an operator starts a benchmark, and the video only ever appears on the operator-gated benchmark page, never on your public site. When the surfer reaches the video page during a run:
 
 * Your site's server fetches the video's embed code from YouTube's oEmbed endpoint, sending the video's address, as WordPress does for any YouTube link in a post.
-* The operator's browser loads YouTube's embedded player from youtube.com. As with any YouTube embed, YouTube receives the operator's IP address and browser details, and may set cookies and collect usage data under its own terms and privacy policy.
+* The operator's browser loads YouTube's embedded player from youtube-nocookie.com, YouTube's privacy-enhanced embed. As with any YouTube embed, YouTube receives the operator's IP address and browser details, and once the video plays it may set cookies and collect usage data under its own terms and privacy policy.
 
 The same happens for a YouTube video on any of your own pages that you add to the course. The plugin itself sends no telemetry or analytics anywhere: every measurement stays in the operator's browser and is saved only to your own site.
 
@@ -117,9 +117,46 @@ To build it yourself, install Node.js 24 with pnpm, and PHP 8.1 or later with Co
 1. `pnpm install` and `composer install` install the dependencies.
 2. `composer zip:production` runs the lints and tests, compiles `src/` into `build/`, assembles the finished plugin in `dist/battery-surf-bench/`, and zips it into `zip/battery-surf-bench.zip`, exactly as it ships.
 
+== Third-party resources ==
+
+Battery Surf Bench bundles the following third-party resources. Each is under a license compatible with the GPL.
+
+= Fonts =
+
+The five typefaces ship as unmodified woff2 files from their @fontsource packages, under the SIL Open Font License 1.1 (https://opensource.org/licenses/OFL-1.1).
+
+* Anton: Copyright 2020 The Anton Project Authors (https://github.com/googlefonts/AntonFont)
+* Caveat: Copyright 2014 The Caveat Project Authors (https://github.com/googlefonts/caveat)
+* Hanken Grotesk: Copyright 2021 The Hanken Grotesk Project Authors (https://github.com/marcologous/hanken-grotesk)
+* Pacifico: Copyright 2018 The Pacifico Project Authors (https://github.com/googlefonts/Pacifico)
+* Space Mono: Copyright 2016 The Space Mono Project Authors (https://github.com/googlefonts/spacemono)
+
+= Icons =
+
+* The surfer's pointing-hand cursor is adapted from Font Awesome Free's "hand-pointer" icon, Copyright 2026 Fonticons, Inc. (https://fontawesome.com), licensed under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Changes: the finger grooves are removed, the frame is padded, and the shape is drawn over an outline.
+* Several interface icons (reset, save, check, chevron, warning, external link, and speaker on and off) are taken or adapted from Feather, Copyright (c) 2013-2023 Cole Bemis (https://github.com/feathericons/feather), MIT License.
+
+= JavaScript libraries =
+
+Compiled into the scripts in `build/`:
+
+* DataViews and Icons from the Gutenberg project, Copyright 2016-2026 by the contributors (https://github.com/WordPress/gutenberg), GPL-2.0-or-later.
+* Ariakit, Copyright (c) 2025-present Ariakit FZ-LLC (https://github.com/ariakit/ariakit), MIT License.
+* use-sync-external-store, Copyright (c) Meta Platforms, Inc. and affiliates (https://github.com/facebook/react), MIT License.
+* clsx, Copyright (c) Luke Edwards (https://github.com/lukeed/clsx), MIT License.
+* remove-accents, Copyright (c) 2015 Marin Atanasov (https://github.com/tyxla/remove-accents), MIT License.
+* dnd kit, Copyright (c) 2021, Claudéric Demers (https://github.com/clauderic/dnd-kit), MIT License.
+
+= PHP libraries =
+
+In `vendor/`, each with its license file:
+
+* psr/container, Copyright (c) 2013-2016 container-interop and Copyright (c) 2016 PHP Framework Interoperability Group (https://github.com/php-fig/container), MIT License.
+* Composer's autoloader, Copyright (c) Nils Adermann, Jordi Boggiano (https://github.com/composer/composer), MIT License.
+
 == Installation ==
 
-The quickest way to run a benchmark is WordPress Playground, with nothing to install: open https://playground.wordpress.net/?plugin=battery-surf-bench&url=/wp-admin/admin.php?page=bsb-start-benchmark, unplug your laptop, and start a benchmark from the cockpit.
+The quickest way to run a benchmark is WordPress Playground, with nothing to install: open https://playground.wordpress.net/?plugin=battery-surf-bench&url=/wp-admin/admin.php?page=bsbench-start-benchmark, unplug your laptop, and start a benchmark from the cockpit.
 
 To install it on your own site:
 
@@ -135,7 +172,7 @@ No. Open the plugin in WordPress Playground (see Installation) and it runs on a 
 
 = Who can run a benchmark? =
 
-Only users with the plugin's operator capability. The cockpit, the simulated surf pages and all recorded sessions are gated behind that capability; anonymous and unauthorised users cannot reach them.
+Only users with WordPress's `manage_options` capability, which administrators have. The cockpit, the simulated surf pages and all recorded sessions are gated behind that capability; anonymous and unauthorised users cannot reach them.
 
 = Which browsers are supported? =
 
@@ -151,7 +188,7 @@ The plugin itself sends no telemetry, analytics or phone-home requests. Its one 
 
 = Why is there a YouTube video in the surf course? =
 
-Because real-world browsing includes video, and video is one of the heaviest things a browser asks of a battery; leaving it out would understate the drain. The video plays the same way WordPress plays any embedded video: it never autoplays, it stays muted, and the surfer decides when to watch and when to move on. It is only ever shown to the operator running a benchmark, and a YouTube embed on your own selected surf pages behaves the same way during a run.
+Because real-world browsing includes video, and video is one of the heaviest things a browser asks of a battery; leaving it out would understate the drain. The video plays in YouTube's privacy-enhanced embed: it never autoplays, it stays muted, and the surfer decides when to watch and when to move on. It is only ever shown to the operator running a benchmark, and a YouTube embed on your own selected surf pages behaves the same way during a run.
 
 == Screenshots ==
 

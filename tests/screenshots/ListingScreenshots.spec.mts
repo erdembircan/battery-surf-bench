@@ -29,9 +29,9 @@ import { ABOUT_PAGE, DEMO_POST } from './SiteStaging.mts';
 
 test.describe.configure( { mode: 'serial' } );
 
-const SESSIONS_ENDPOINT = '/wp-json/wp/v2/bsb_session';
+const SESSIONS_ENDPOINT = '/wp-json/wp/v2/bsbench_session';
 const SETTINGS_ENDPOINT = '/wp-json/wp/v2/settings';
-const COURSE_ORDER_OPTION = 'bsb_course_order';
+const COURSE_ORDER_OPTION = 'bsbench_course_order';
 
 /** The bundled catalog's slugs in their default course order. */
 const BUNDLED_SLUGS_IN_ORDER = [
@@ -176,7 +176,7 @@ async function openCockpitWithStandIn( page: Page ): Promise< void > {
 			STAND_IN_STEP_COUNT
 		),
 	} );
-	await page.goto( '/?bsbSession=cockpit' );
+	await page.goto( '/?bsbenchSession=cockpit' );
 
 	// The cockpit opens on its picture postcard with the control deck tucked
 	// away; turning the card to its written back slides the deck in.
@@ -185,9 +185,9 @@ async function openCockpitWithStandIn( page: Page ): Promise< void > {
 			'.bsb-flipcard--idle .bsb-flipcard__face--front .bsb-flipcard__flip'
 		)
 		.click();
-	await expect( page.locator( '.wp-block-bsb-cockpit' ) ).toHaveClass(
-		/is-deck-shown/
-	);
+	await expect(
+		page.locator( '.wp-block-battery-surf-bench-cockpit' )
+	).toHaveClass( /is-deck-shown/ );
 	await expect( page.locator( '.bsb-run' ) ).toBeVisible();
 	await settle( page.locator( '.bsb-cockpit__deck' ) );
 	await settle( page.locator( '.bsb-flipcard--idle .bsb-flipcard__inner' ) );
@@ -275,7 +275,7 @@ test( 'screenshot-5: the settings screen', async ( { page } ) => {
 
 test( 'screenshot-4: the Sessions screen', async ( { page } ) => {
 	await page.setViewportSize( ADMIN_VIEWPORT );
-	await page.goto( '/wp-admin/admin.php?page=bsb-sessions' );
+	await page.goto( '/wp-admin/admin.php?page=bsbench-sessions' );
 	await expect( page.locator( '.bsb-sessions' ) ).toBeVisible();
 	await expect(
 		page.locator( '#bsb-sessions-app .dataviews-view-table tbody tr' )
@@ -328,7 +328,7 @@ test( 'screenshot-1: the cockpit mid-run', async ( { page } ) => {
 
 	// The cockpit's header sits on top of the surfed page, its compact running
 	// layout: collapse the deck to it if the run started with the deck open.
-	const cockpit = page.locator( '.wp-block-bsb-cockpit' );
+	const cockpit = page.locator( '.wp-block-battery-surf-bench-cockpit' );
 	const isCompact = ( await cockpit.getAttribute( 'class' ) )?.includes(
 		'is-compact'
 	);

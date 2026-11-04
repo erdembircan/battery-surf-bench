@@ -170,7 +170,7 @@ final class YouTubeEmbedTest extends TestCase {
 	/**
 	 * The control params are merged onto the src's existing query string,
 	 * preserving whatever oEmbed already set (e.g. `feature=oembed`) and the
-	 * scheme/host/path exactly.
+	 * path, on YouTube's privacy-enhanced host.
 	 */
 	public function test_amend_control_params_merges_onto_the_existing_query(): void {
 		Functions\when( 'home_url' )->justReturn( 'https://example.org/' );
@@ -193,12 +193,37 @@ final class YouTubeEmbedTest extends TestCase {
 			'https://www.youtube.com/embed/jNQXAC9IVRw?feature=oembed'
 		);
 
-		$this->assertStringStartsWith( 'https://www.youtube.com/embed/jNQXAC9IVRw?', $amended );
+		$this->assertStringStartsWith( 'https://www.youtube-nocookie.com/embed/jNQXAC9IVRw?', $amended );
 		$this->assertStringContainsString( 'feature=oembed', $amended );
 		$this->assertStringContainsString( 'enablejsapi=1', $amended );
 		$this->assertStringContainsString( 'mute=1', $amended );
 		$this->assertStringContainsString( 'playsinline=1', $amended );
 		$this->assertStringContainsString( 'rel=0', $amended );
+	}
+
+	/**
+	 * Every recognized YouTube host, the bare `youtube.com` included, is moved
+	 * to YouTube's privacy-enhanced host; the path stays.
+	 */
+	public function test_amend_control_params_moves_the_embed_to_the_privacy_enhanced_host(): void {
+		Functions\when( 'home_url' )->justReturn( 'https://example.org/' );
+		$this->stub_wp_parse_url(
+			array(
+				'https://example.org/'                  => array(
+					'scheme' => 'https',
+					'host'   => 'example.org',
+				),
+				'https://youtube.com/embed/jNQXAC9IVRw' => array(
+					'scheme' => 'https',
+					'host'   => 'youtube.com',
+					'path'   => '/embed/jNQXAC9IVRw',
+				),
+			)
+		);
+
+		$amended = ( new YouTubeEmbed() )->amend_control_params( 'https://youtube.com/embed/jNQXAC9IVRw' );
+
+		$this->assertStringStartsWith( 'https://www.youtube-nocookie.com/embed/jNQXAC9IVRw?', $amended );
 	}
 
 	/**
@@ -312,8 +337,8 @@ final class YouTubeEmbedTest extends TestCase {
 		$once  = $embed->amend_control_params( $src );
 
 		// Re-stub so the amend's own output also resolves: a plain string
-		// split, not a parser, since the shape (scheme/host/path unchanged,
-		// only the query differs) is already known from building $once above.
+		// split, not a parser, since $once's shape (the privacy-enhanced host,
+		// the same path, a new query) is already known from building it above.
 		$once_parts = explode( '?', $once, 2 );
 		$this->stub_wp_parse_url(
 			array(
@@ -323,7 +348,7 @@ final class YouTubeEmbedTest extends TestCase {
 				),
 				$once                  => array(
 					'scheme' => 'https',
-					'host'   => 'www.youtube.com',
+					'host'   => 'www.youtube-nocookie.com',
 					'path'   => '/embed/jNQXAC9IVRw',
 					'query'  => $once_parts[1] ?? '',
 				),

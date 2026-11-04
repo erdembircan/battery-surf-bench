@@ -1,8 +1,8 @@
 %% Cockpit front-end modules — contract chart.
-%% The client side of the `bsb/cockpit` block: the Interactivity store and the
+%% The client side of the `battery-surf-bench/cockpit` block: the Interactivity store and the
 %% focused domains it delegates to. The store is built from focused domain
 %% slices — each a <<module>> exporting a StorePart — that the view composes into
-%% one store definition and registers under the `bsb/cockpit` namespace. The
+%% one store definition and registers under the `battery-surf-bench/cockpit` namespace. The
 %% slices share a per-instance run state and a run lifecycle seam, and read/write
 %% the reactive CockpitContext. Function-only modules are marked <<module>>;
 %% type-only modules <<types>>; the rest are classes. Only the public (exported)
@@ -16,7 +16,7 @@ classDiagram
     %% --- Composition root: folds the slices into one store and registers it.
     class CockpitView {
         <<module>>
-        store('bsb/cockpit', mergeStoreParts(...slices))
+        store('battery-surf-bench/cockpit', mergeStoreParts(...slices))
         +__resetInstance() void
     }
 
@@ -28,7 +28,7 @@ classDiagram
     %% --- Store slices: each owns one surface of the deck and reads CockpitContext.
     class RunStore {
         <<module>>
-        state: currentSrc (builds the ?bsbSurfIndex/&bsbNonce= URL from seeded config + activeIndex, then carries traits+speed+sterile onto it), run/idle/compact, isSterileRun (context.sterile && context.running), clock & rate readouts
+        state: currentSrc (builds the ?bsbenchSurfIndex/&bsbenchNonce= URL from seeded config + activeIndex, then carries traits+speed+sterile onto it), run/idle/compact, isSterileRun (context.sterile && context.running), clock & rate readouts
         actions: toggleRun (refuses unsupported/charging; snapshots context.sterile from state.devtools?.surf?.sterile at start only; opens the session through BatteryStore.seedRunSample — the override-resolved reading, never the raw cache), toggleCompact, guardViewport (stops the run on a failed iframe load/error)
         callbacks: syncRunActivity, initWakeLock, initPageAdvance (increments activeIndex on the surf engine's page-done message — no client-side wrap, the server wraps), syncViewportWatchdog (arms/clears the viewport load-hang watchdog), initExitGuard (native leave-confirmation while a run is live), syncDevtoolsSurf (mirrors state.devtools.surf.runLive = context.running; while live-and-sterile also mirrors surf.pageIndex = context.activeIndex and applies surf.pageStep to activeIndex, else clears surf.affordances/pageStep/pageIndex — only ever touches state.devtools when it exists)
     }
@@ -236,10 +236,10 @@ classDiagram
     %% surf-engine-modules.mmd for the engine-side receiver).
     class SurferUrl {
         <<module>>
-        +withSurferParams(string, number[], number, sterile?) string — appends bsbSterile=1 only when sterile, and never in a production build
+        +withSurferParams(string, number[], number, sterile?) string — appends bsbenchSterile=1 only when sterile, and never in a production build
     }
 
-    %% Builds the opaque ?bsbSurfIndex=/&bsbNonce= base URL RunStore layers
+    %% Builds the opaque ?bsbenchSurfIndex=/&bsbenchNonce= base URL RunStore layers
     %% SurferUrl's traits+speed params onto. The client never holds a page
     %% list — CourseRouter (php-class-interactions.mmd) resolves an index
     %% server-side, wrapping it against the saved order's length.
@@ -456,7 +456,7 @@ classDiagram
     RunStore --> RunConfig : normalizes config
     RunStore --> TargetControl : clamps target on start
     RunStore --> SurferUrl : carries traits+speed+sterile onto currentSrc
-    RunStore --> SurfIndexUrl : builds the base ?bsbSurfIndex=/&bsbNonce= URL from seeded config
+    RunStore --> SurfIndexUrl : builds the base ?bsbenchSurfIndex=/&bsbenchNonce= URL from seeded config
     RunStore --> PageAdvance : recognizes page-done, increments activeIndex
     RunStore --> PageGuard : decides load/error viewport failure
     RunStore --> ExitGuard : arms the beforeunload leave-confirmation
@@ -508,7 +508,7 @@ classDiagram
     %% --- Dev-tools module (src/devtools/), compiled only into a development
     %% build and enqueued only in a dev environment.
     %% A separate script module from CockpitView above; it joins the SAME
-    %% `bsb/cockpit` namespace via the store-merge mechanism (later members
+    %% `battery-surf-bench/cockpit` namespace via the store-merge mechanism (later members
     %% override on collision), which is why every member it contributes carries
     %% a `devtools` prefix. In production this module never loads at all.
     %% The devtools slice is itself composed of a shared shell (persistence,
@@ -523,7 +523,7 @@ classDiagram
     %% written to or restored from storage.
     class DevToolsView {
         <<module>>
-        store('bsb/cockpit', mergeStoreParts(DevtoolsShellStore, BatteryOverrideStore, DischargeSimStore, SurfSteerStore, SharkReleaseStore, ResetStore))
+        store('battery-surf-bench/cockpit', mergeStoreParts(DevtoolsShellStore, BatteryOverrideStore, DischargeSimStore, SurfSteerStore, SharkReleaseStore, ResetStore))
     }
 
     class DevtoolsStore {
@@ -659,9 +659,9 @@ classDiagram
     %% compiles these seams out with the dev-tools module itself: BatteryStore
     %% never reads an override, toggleRun never snapshots `sterile`, and
     %% syncDevtoolsSurf and syncDevtoolsShark do nothing.
-    DevtoolsStore ..> BatteryStore : joins bsb/cockpit store (state.devtools.battery)
+    DevtoolsStore ..> BatteryStore : joins battery-surf-bench/cockpit store (state.devtools.battery)
     BatteryStore ..> DevtoolsStore : reads state.devtools.battery (undefined in production)
-    DevtoolsStore ..> RunStore : joins bsb/cockpit store (state.devtools.surf)
+    DevtoolsStore ..> RunStore : joins battery-surf-bench/cockpit store (state.devtools.surf)
     RunStore ..> DevtoolsStore : reads/writes state.devtools.surf (undefined in production)
-    DevtoolsStore ..> SharkStore : joins bsb/cockpit store (state.devtools.shark)
+    DevtoolsStore ..> SharkStore : joins battery-surf-bench/cockpit store (state.devtools.shark)
     SharkStore ..> DevtoolsStore : reads/writes state.devtools.shark (undefined in production)
