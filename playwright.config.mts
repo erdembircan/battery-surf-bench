@@ -68,7 +68,7 @@ const unauthBaseUrl = playgroundTestUrl( unauthPort );
  * projects; `'unauth'` starts only the unauthenticated server and the
  * `unauthenticated` project. `package.json`'s `test:e2e`/`test:e2e:unauth`
  * scripts set this, and CI runs them as two separate jobs on two separate
- * runners -- see `.github/workflows/merge-checks.yml`.
+ * runners -- see `.github/workflows/e2e.yml`.
  */
 const E2E_TARGET: 'auth' | 'unauth' =
 	process.env.E2E_TARGET === 'unauth' ? 'unauth' : 'auth';
