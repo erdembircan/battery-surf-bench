@@ -47,12 +47,12 @@ const debugStep: BlueprintV1Declaration[ 'steps' ] = [
 /**
  * Pin the persistent dev site to the default English (US) locale on every
  * boot. The site language lives in the persisted database, so switching the
- * dev site to another locale (for example to check one of the plugin's own
- * translations) used to stick across restarts and greet every later run in
- * that language. An empty `WPLANG` is how WordPress stores en_US. Uses
- * `setSiteOptions` rather than `setSiteLanguage`, which would fetch a
- * translation package over the network. Switching languages mid-session
- * still works; the next start resets it.
+ * dev site to another locale used to stick across restarts and greet every
+ * later run in that language. An empty `WPLANG` is how WordPress stores en_US.
+ * Uses `setSiteOptions` rather than `setSiteLanguage`, which would fetch a
+ * translation package over the network. The plugin bundles no translations
+ * (translate.wordpress.org serves them once it is listed), so another locale
+ * shows WordPress itself translated and the plugin in English.
  */
 const siteLanguageStep: BlueprintV1Declaration[ 'steps' ] = [
 	{

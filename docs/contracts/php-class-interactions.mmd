@@ -98,12 +98,6 @@ classDiagram
         +set_script_module_translations(string id) void
     }
 
-    class I18n {
-        +__construct(string domain, string plugin_file)
-        +register() void
-        +load_textdomain() void
-    }
-
     class Manager {
         <<interface>>
         +register() void
@@ -349,7 +343,6 @@ classDiagram
     BatterySurfBench --> Instantiator : creates & owns (composition)
     BatterySurfBench ..> DefinitionsSource : selects definitions source via
     BatterySurfBench ..> Manager : registers
-    Instantiator ..> I18n : instantiates
     Instantiator ..> Paths : instantiates
     Instantiator ..> Assets : instantiates
     Instantiator ..> Capability : instantiates
@@ -377,7 +370,6 @@ classDiagram
     ContainerValidator ..> Registry : checks config tokens against
     Definitions ..|> ContainerInterface : implements
     InstanceStore ..|> ContainerInterface : implements
-    I18n ..|> Manager : implements
     SettingsScreen ..|> Manager : implements
     SettingsScreen --> Assets : uses
     SettingsScreen --> Capability : gates via

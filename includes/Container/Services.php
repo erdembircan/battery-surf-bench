@@ -25,7 +25,6 @@ use ErdemBircan\BatterySurfBench\Content\SessionRestQuery;
 use ErdemBircan\BatterySurfBench\Content\SessionSchema;
 use ErdemBircan\BatterySurfBench\Content\SessionType;
 use ErdemBircan\BatterySurfBench\Core\Assets;
-use ErdemBircan\BatterySurfBench\Core\I18n;
 use ErdemBircan\BatterySurfBench\Core\Paths;
 use ErdemBircan\BatterySurfBench\Course\CourseCatalog;
 use ErdemBircan\BatterySurfBench\Course\CourseOrderOption;
@@ -60,12 +59,6 @@ return array(
 	StandaloneChrome::class     => array( 'args' => array( 'style' => '%cockpit.style%' ) ),
 
 	// Managers (the boot loop calls ->register() on each).
-	I18n::class                 => array(
-		'args' => array(
-			'domain'      => '%namespace%',
-			'plugin_file' => array( 'runtime' => 'plugin_file' ),
-		),
-	),
 	OptionRegistry::class       => array(
 		'args' => array(
 			'providers' => array( 'services' => array( CourseOrderOption::class ) ),

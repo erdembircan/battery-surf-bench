@@ -19,7 +19,6 @@ use ErdemBircan\BatterySurfBench\Container\Registry;
 use ErdemBircan\BatterySurfBench\Content\SessionDetail;
 use ErdemBircan\BatterySurfBench\Content\SessionRestQuery;
 use ErdemBircan\BatterySurfBench\Content\SessionType;
-use ErdemBircan\BatterySurfBench\Core\I18n;
 use ErdemBircan\BatterySurfBench\Course\CourseRouter;
 use ErdemBircan\BatterySurfBench\DevTools\DevTools;
 use ErdemBircan\BatterySurfBench\Settings\OptionRegistry;
@@ -42,7 +41,6 @@ class BatterySurfBench {
 	 * @var string[]
 	 */
 	private const MANAGERS = array(
-		I18n::class,
 		OptionRegistry::class,
 		SettingsScreen::class,
 		SessionType::class,

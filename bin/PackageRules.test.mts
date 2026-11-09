@@ -23,7 +23,6 @@ const PRODUCTION_FILES = [
 	'readme.txt',
 	'build/cockpit/view.js',
 	'includes/Core/Config.php',
-	'languages/battery-surf-bench-fr_FR.l10n.php',
 	'vendor/autoload.php',
 ];
 
@@ -71,7 +70,7 @@ describe( 'findPackageViolations', () => {
 					FOLDER,
 					...packed( [
 						...PRODUCTION_FILES,
-						'languages/',
+						'build/cockpit/',
 						'includes/Core/',
 					] ),
 				],
@@ -109,7 +108,7 @@ describe( 'findPackageViolations', () => {
 			variant: 'production',
 		} );
 
-		expect( violations ).toHaveLength( 8 );
+		expect( violations ).toHaveLength( 7 );
 		expect( violations ).toEqual(
 			expect.arrayContaining( [
 				expect.stringContaining(
@@ -172,7 +171,7 @@ describe( 'findPackageViolations', () => {
 			packed( [
 				...PRODUCTION_FILES,
 				'includes/.DS_Store',
-				'languages/.gitkeep',
+				'build/.gitkeep',
 			] ),
 			{ variant: 'production' }
 		);
@@ -181,7 +180,7 @@ describe( 'findPackageViolations', () => {
 		expect( violations ).toEqual(
 			expect.arrayContaining( [
 				expect.stringContaining( '"includes/.DS_Store"' ),
-				expect.stringContaining( '"languages/.gitkeep"' ),
+				expect.stringContaining( '"build/.gitkeep"' ),
 			] )
 		);
 	} );
@@ -285,11 +284,11 @@ describe( 'findPackageViolations', () => {
 	it( 'flags a version-control folder entry', () => {
 		expect(
 			findPackageViolations(
-				packed( [ ...PRODUCTION_FILES, 'languages/.hg/' ] ),
+				packed( [ ...PRODUCTION_FILES, 'build/.hg/' ] ),
 				{ variant: 'production' }
 			)
 		).toEqual( [
-			expect.stringContaining( 'Version-control folder "languages/.hg"' ),
+			expect.stringContaining( 'Version-control folder "build/.hg"' ),
 		] );
 	} );
 
@@ -345,23 +344,35 @@ describe( 'findPackageViolations', () => {
 		] );
 	} );
 
-	it( 'flags translation sources but keeps the compiled translations', () => {
+	it( 'flags every bundled translation file, whatever its format', () => {
+		const translations = [
+			'languages/battery-surf-bench-fr_FR.l10n.php',
+			'languages/battery-surf-bench-fr_FR.po',
+			'languages/battery-surf-bench.pot',
+			'languages/battery-surf-bench-fr_FR-abc123.json',
+		];
 		const violations = findPackageViolations(
-			packed( [
-				...DEVELOPMENT_FILES,
-				'languages/battery-surf-bench-fr_FR.po',
-				'languages/battery-surf-bench.pot',
-			] ),
+			packed( [ ...DEVELOPMENT_FILES, ...translations ] ),
 			{ variant: 'development' }
 		);
 
-		expect( violations ).toEqual( [
-			expect.stringContaining(
-				'Unneeded file "languages/battery-surf-bench-fr_FR.po"'
-			),
-			expect.stringContaining(
-				'Unneeded file "languages/battery-surf-bench.pot"'
-			),
+		expect( violations ).toEqual(
+			translations.map( ( entry ) =>
+				expect.stringContaining( `Translation file "${ entry }"` )
+			)
+		);
+	} );
+
+	it( 'flags the languages folder entry itself', () => {
+		expect(
+			findPackageViolations(
+				packed( [ ...PRODUCTION_FILES, 'languages/' ] ),
+				{
+					variant: 'production',
+				}
+			)
+		).toEqual( [
+			expect.stringContaining( 'Translation file "languages/"' ),
 		] );
 	} );
 
