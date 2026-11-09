@@ -7,16 +7,18 @@
  * @var array<string, mixed> $args Keys read: `wrapper_class` (attribute value),
  *       `context` (attribute value), `brand_title` (text), `brand_subtitle`
  *       (text), `compact_label` (attribute value), `sound_label` (attribute
- *       value), `mode_label` (attribute value and text), `duration_mode` (text),
- *       `target_drop_mode` (text), `duration_label` (text), `decrease_label`
- *       (attribute value), `odometer_cells` (pre-escaped markup),
- *       `minutes_label` (text), `increase_label` (attribute value),
- *       `target_label` (text), `target_aria` (attribute value), `surfer_field`
- *       (pre-escaped markup), `speed_label` (attribute value and text),
- *       `status_head` (pre-escaped markup), `pill_body` (pre-escaped markup),
- *       `start_label` (text), `stop_label` (text), `plugged_label` (text),
- *       `expand_label` (attribute value), `idle_card` (pre-escaped markup),
- *       `viewport_title` (attribute value), `summary` (pre-escaped markup),
+ *       value), `mode_label` (attribute value and text), `duration_mode`
+ *       (text), `target_drop_mode` (text), `duration_label` (text),
+ *       `decrease_label` (attribute value), `odometer_cells` (composed markup,
+ *       printed through wp_kses), `minutes_label` (text), `increase_label`
+ *       (attribute value), `target_label` (text), `target_aria` (attribute
+ *       value), `surfer_field` (composed markup, printed through wp_kses),
+ *       `speed_label` (attribute value and text), `status_head` (composed
+ *       markup, printed through wp_kses), `pill_body` (composed markup, printed
+ *       through wp_kses), `start_label` (text), `stop_label` (text),
+ *       `plugged_label` (text), `expand_label` (attribute value), `idle_card`
+ *       (composed markup, printed through wp_kses), `viewport_title` (attribute
+ *       value), `summary` (composed markup, printed through wp_kses),
  *       `toast_dismiss_label` (attribute value).
  */
 

@@ -5,8 +5,9 @@
  * @package ErdemBircan\BatterySurfBench
  *
  * @var array<string, mixed> $args Keys read: `surfer_label` (text), `chips`
- *       (pre-escaped markup), `customize_label` (text), `points_label` (text),
- *       `reset_label` (text), `stat_rows` (pre-escaped markup).
+ *       (composed markup, printed through wp_kses), `customize_label` (text),
+ *       `points_label` (text), `reset_label` (text), `stat_rows` (composed
+ *       markup, printed through wp_kses).
  */
 
 use ErdemBircan\BatterySurfBench\Support\AllowedHtml;

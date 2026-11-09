@@ -4,11 +4,12 @@
  *
  * @package ErdemBircan\BatterySurfBench
  *
- * @var array<string, mixed> $args Keys read: `frank` (pre-escaped markup),
- *       `measured_label` (text), `projected_label` (text), `tte_label` (text),
- *       `rate_session_label` (text), `rate10_label` (text), `battery_label`
- *       (text), `dropped_label` (text), `pts_label` (text), `elapsed_run_label`
- *       (text), `actions` (pre-escaped markup).
+ * @var array<string, mixed> $args Keys read: `frank` (composed markup, printed
+ *       through wp_kses), `measured_label` (text), `projected_label` (text),
+ *       `tte_label` (text), `rate_session_label` (text), `rate10_label` (text),
+ *       `battery_label` (text), `dropped_label` (text), `pts_label` (text),
+ *       `elapsed_run_label` (text), `actions` (composed markup, printed through
+ *       wp_kses).
  */
 
 use ErdemBircan\BatterySurfBench\Support\AllowedHtml;

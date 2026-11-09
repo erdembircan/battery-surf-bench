@@ -4,7 +4,8 @@
  *
  * @package ErdemBircan\BatterySurfBench
  *
- * @var array<string, mixed> $args Keys read: `footer` (pre-escaped markup).
+ * @var array<string, mixed> $args Keys read: `footer` (composed markup, printed
+ *       through wp_kses).
  */
 
 use ErdemBircan\BatterySurfBench\Support\AllowedHtml;

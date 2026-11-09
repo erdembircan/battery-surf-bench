@@ -4,7 +4,8 @@
  *
  * @package ErdemBircan\BatterySurfBench
  *
- * @var array<string, mixed> $args Keys read: `launch_pill` (pre-escaped markup).
+ * @var array<string, mixed> $args Keys read: `launch_pill` (composed markup,
+ *       printed through wp_kses).
  */
 
 use ErdemBircan\BatterySurfBench\Support\AllowedHtml;

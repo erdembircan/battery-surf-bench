@@ -4,14 +4,15 @@
  *
  * @package ErdemBircan\BatterySurfBench
  *
- * @var array<string, mixed> $args Keys read: `frank_blank` (pre-escaped markup),
- *       `idle_heading` (text), `idle_subtitle` (text), `idle_step1_title`
- *       (text), `idle_step1_text` (text), `idle_step2_title` (text),
- *       `idle_step2_text` (text), `idle_step3_title` (text), `idle_step3_text`
- *       (text), `idle_notice_title` (text), `idle_notice_text` (text),
- *       `frank_warning` (pre-escaped markup), `unsupported_head` (text),
- *       `unsupported_sub` (text), `unsupported_lead` (text), `unsupported_body`
- *       (text), `unsupported_browse` (text).
+ * @var array<string, mixed> $args Keys read: `frank_blank` (composed markup,
+ *       printed through wp_kses), `idle_heading` (text), `idle_subtitle`
+ *       (text), `idle_step1_title` (text), `idle_step1_text` (text),
+ *       `idle_step2_title` (text), `idle_step2_text` (text), `idle_step3_title`
+ *       (text), `idle_step3_text` (text), `idle_notice_title` (text),
+ *       `idle_notice_text` (text), `frank_warning` (composed markup, printed
+ *       through wp_kses), `unsupported_head` (text), `unsupported_sub` (text),
+ *       `unsupported_lead` (text), `unsupported_body` (text),
+ *       `unsupported_browse` (text).
  */
 
 use ErdemBircan\BatterySurfBench\Support\AllowedHtml;

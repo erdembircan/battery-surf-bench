@@ -4,8 +4,9 @@
  *
  * @package ErdemBircan\BatterySurfBench
  *
- * @var array<string, mixed> $args Keys read: `variant` (attribute value), `href`
- *       (URL), `icon_markup` (pre-escaped markup), `label` (text).
+ * @var array<string, mixed> $args Keys read: `variant` (attribute value),
+ *       `href` (URL), `icon_markup` (composed markup, printed through wp_kses),
+ *       `label` (text).
  */
 
 use ErdemBircan\BatterySurfBench\Support\AllowedHtml;

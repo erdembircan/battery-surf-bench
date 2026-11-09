@@ -5,7 +5,7 @@
  * @package ErdemBircan\BatterySurfBench
  *
  * @var array<string, mixed> $args Keys read: `context` (attribute value),
- *       `summary` (pre-escaped markup).
+ *       `summary` (composed markup, printed through wp_kses).
  */
 
 use ErdemBircan\BatterySurfBench\Support\AllowedHtml;

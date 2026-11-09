@@ -5,7 +5,7 @@
  * @package ErdemBircan\BatterySurfBench
  *
  * @var array<string, mixed> $args Keys read: `title` (text), `subtitle` (text),
- *       `actions` (pre-escaped markup).
+ *       `actions` (composed markup, printed through wp_kses).
  */
 
 use ErdemBircan\BatterySurfBench\Support\AllowedHtml;

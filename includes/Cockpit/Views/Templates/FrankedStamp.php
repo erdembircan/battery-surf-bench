@@ -5,7 +5,7 @@
  * @package ErdemBircan\BatterySurfBench
  *
  * @var array<string, mixed> $args Keys read: `modifier` (attribute value),
- *       `cancel` (pre-escaped markup).
+ *       `cancel` (composed markup, printed through wp_kses).
  */
 
 use ErdemBircan\BatterySurfBench\Support\AllowedHtml;

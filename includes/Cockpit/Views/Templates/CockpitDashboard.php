@@ -5,8 +5,8 @@
  * @package ErdemBircan\BatterySurfBench
  *
  * @var array<string, mixed> $args Keys read: `charset` (attribute value),
- *       `title` (text), `body` (pre-escaped markup), `devtools_panel`
- *       (pre-escaped markup).
+ *       `title` (text), `body` (composed markup, printed through wp_kses),
+ *       `devtools_panel` (composed markup, printed through wp_kses).
  */
 
 use ErdemBircan\BatterySurfBench\Support\AllowedHtml;

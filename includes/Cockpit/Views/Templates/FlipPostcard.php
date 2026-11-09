@@ -5,9 +5,10 @@
  * @package ErdemBircan\BatterySurfBench
  *
  * @var array<string, mixed> $args Keys read: `modifier` (attribute value),
- *       `flip_state` (attribute value), `front` (pre-escaped markup),
- *       `flip_action` (attribute value), `flip_label` (text), `back`
- *       (pre-escaped markup), `back_actions` (pre-escaped markup).
+ *       `flip_state` (attribute value), `front` (composed markup, printed
+ *       through wp_kses), `flip_action` (attribute value), `flip_label` (text),
+ *       `back` (composed markup, printed through wp_kses), `back_actions`
+ *       (composed markup, printed through wp_kses).
  */
 
 use ErdemBircan\BatterySurfBench\Support\AllowedHtml;
