@@ -5,8 +5,10 @@
  * @package ErdemBircan\BatterySurfBench
  *
  * @var array<string, mixed> $args Keys read: `title` (text), `subtitle` (text),
- *       `actions` (pre-escaped markup).
+ *       `actions` (composed markup, printed through wp_kses).
  */
+
+use ErdemBircan\BatterySurfBench\Support\AllowedHtml;
 
 defined( 'ABSPATH' ) || exit;
 ?>
@@ -16,5 +18,5 @@ defined( 'ABSPATH' ) || exit;
 		<h1 class="bsb-admin-head__title"><?php echo esc_html( $args['title'] ); ?></h1>
 		<span class="bsb-admin-head__subtitle"><?php echo esc_html( $args['subtitle'] ); ?></span>
 	</span>
-	<span class="bsb-admin-head__actions"><?php echo $args['actions']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- trusted pre-escaped view markup. ?></span>
+	<span class="bsb-admin-head__actions"><?php echo wp_kses( $args['actions'], AllowedHtml::tags() ); ?></span>
 </header>

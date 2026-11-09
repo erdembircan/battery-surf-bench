@@ -39,19 +39,34 @@ class CockpitDashboard implements View {
 	 * @return string The complete dashboard document.
 	 */
 	public function render( array $data = array() ): string {
-		$body           = isset( $data['body'] ) ? (string) $data['body'] : '';
-		$devtools_panel = isset( $data['devtools_panel'] ) ? (string) $data['devtools_panel'] : '';
-		$charset        = get_bloginfo( 'charset' );
-		$title          = __( 'Battery Surf Bench — Cockpit', 'battery-surf-bench' );
+		return Template::render( __DIR__ . '/Templates/CockpitDashboard.php', $this->template_args( $data ) );
+	}
 
-		return Template::render(
-			__DIR__ . '/Templates/CockpitDashboard.php',
-			array(
-				'charset'        => $charset,
-				'title'          => $title,
-				'body'           => $body,
-				'devtools_panel' => $devtools_panel,
-			)
+	/**
+	 * Prints the dashboard document straight to the output. The document holds
+	 * `wp_head()`/`wp_footer()` output, which can't be captured and run through
+	 * `wp_kses()`, so the cockpit route prints it with this instead of echoing
+	 * {@see CockpitDashboard::render()}.
+	 *
+	 * @param array<string, mixed> $data The same view data {@see CockpitDashboard::render()} takes.
+	 * @return void
+	 */
+	public function display( array $data = array() ): void {
+		Template::display( __DIR__ . '/Templates/CockpitDashboard.php', $this->template_args( $data ) );
+	}
+
+	/**
+	 * Prepares the values the document template prints.
+	 *
+	 * @param array<string, mixed> $data The view data.
+	 * @return array<string, string> The template arguments.
+	 */
+	private function template_args( array $data ): array {
+		return array(
+			'charset'        => get_bloginfo( 'charset' ),
+			'title'          => __( 'Battery Surf Bench — Cockpit', 'battery-surf-bench' ),
+			'body'           => isset( $data['body'] ) ? (string) $data['body'] : '',
+			'devtools_panel' => isset( $data['devtools_panel'] ) ? (string) $data['devtools_panel'] : '',
 		);
 	}
 }

@@ -35,6 +35,11 @@ abstract class TestCase extends PHPUnitTestCase {
 		Functions\when( 'esc_attr' )->alias( $escape );
 		Functions\when( 'esc_url' )->alias( $escape );
 
+		// Composed view markup prints through wp_kses() with the plugin's allow-list;
+		// the stand-in prints it as given, so view tests assert on the composed
+		// markup itself rather than on kses' filtering of it.
+		Functions\when( 'wp_kses' )->returnArg( 1 );
+
 		// Translation helpers pass their text through unchanged.
 		Functions\when( 'esc_html__' )->returnArg();
 		Functions\when( 'esc_attr__' )->returnArg();

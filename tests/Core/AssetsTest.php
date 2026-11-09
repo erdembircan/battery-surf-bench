@@ -127,15 +127,16 @@ final class AssetsTest extends TestCase {
 
 	/**
 	 * A classic script's translations are registered under the plugin's text
-	 * domain — the same string as the handle namespace — and loaded from its
-	 * bundled `languages` directory, so its `@wordpress/i18n` strings localize.
+	 * domain — the same string as the handle namespace — and load from
+	 * WordPress's own language directory, so its `@wordpress/i18n` strings
+	 * localize.
 	 */
-	public function test_set_script_translations_registers_domain_and_languages_path(): void {
+	public function test_set_script_translations_registers_domain(): void {
 		Functions\when( 'plugin_dir_path' )->justReturn( '/plugins/battery-surf-bench/' );
 
 		Functions\expect( 'wp_set_script_translations' )
 			->once()
-			->with( 'battery-surf-bench-sessions', 'battery-surf-bench', '/plugins/battery-surf-bench/languages' );
+			->with( 'battery-surf-bench-sessions', 'battery-surf-bench' );
 
 		$assets = new Assets( 'battery-surf-bench', new Paths( '/plugins/battery-surf-bench/battery-surf-bench.php' ) );
 		$assets->set_script_translations( 'battery-surf-bench-sessions' );
@@ -147,15 +148,15 @@ final class AssetsTest extends TestCase {
 
 	/**
 	 * A script module's translations are registered through the dedicated module
-	 * API, under the same text domain and bundled `languages` directory, so the
-	 * Interactivity API view's strings localize too.
+	 * API, under the same text domain and from WordPress's own language
+	 * directory, so the Interactivity API view's strings localize too.
 	 */
-	public function test_set_script_module_translations_registers_domain_and_languages_path(): void {
+	public function test_set_script_module_translations_registers_domain(): void {
 		Functions\when( 'plugin_dir_path' )->justReturn( '/plugins/battery-surf-bench/' );
 
 		Functions\expect( 'wp_set_script_module_translations' )
 			->once()
-			->with( 'battery-surf-bench-cockpit-view-script-module', 'battery-surf-bench', '/plugins/battery-surf-bench/languages' );
+			->with( 'battery-surf-bench-cockpit-view-script-module', 'battery-surf-bench' );
 
 		$assets = new Assets( 'battery-surf-bench', new Paths( '/plugins/battery-surf-bench/battery-surf-bench.php' ) );
 		$assets->set_script_module_translations( 'battery-surf-bench-cockpit-view-script-module' );

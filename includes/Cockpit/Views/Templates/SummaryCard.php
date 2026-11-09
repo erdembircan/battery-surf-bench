@@ -5,12 +5,14 @@
  * @package ErdemBircan\BatterySurfBench
  *
  * @var array<string, mixed> $args Keys read: `hidden` (attribute value),
- *       `summary_card` (pre-escaped markup).
+ *       `summary_card` (composed markup, printed through wp_kses).
  */
+
+use ErdemBircan\BatterySurfBench\Support\AllowedHtml;
 
 defined( 'ABSPATH' ) || exit;
 ?>
 <div class="bsb-summary"<?php echo esc_attr( $args['hidden'] ); ?> data-wp-bind--hidden="!state.isEnded" data-wp-watch="callbacks.renderSummary">
-		<?php echo $args['summary_card']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- trusted pre-escaped view markup. ?>
+		<?php echo wp_kses( $args['summary_card'], AllowedHtml::tags() ); ?>
 
 	</div>

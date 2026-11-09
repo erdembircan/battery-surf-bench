@@ -49,7 +49,9 @@ final class SessionsScreenTest extends TestCase {
 			new SessionSchema( 'bsbench_session', 'bsbench_' ),
 			$assets ?? Mockery::mock( Assets::class ),
 			'bsbenchSession',
-			'cockpit'
+			'cockpit',
+			'bsbench-session',
+			'bsbenchSessionId'
 		);
 	}
 
@@ -125,7 +127,14 @@ final class SessionsScreenTest extends TestCase {
 			->andReturn( 'bsb-sessions' );
 		$assets->shouldReceive( 'localize' )
 			->once()
-			->with( 'bsb-sessions', 'bsbenchSessions', Mockery::type( 'array' ) );
+			->with(
+				'bsb-sessions',
+				'bsbenchSessions',
+				Mockery::on(
+					static fn( $config ) => 'admin.php?page=bsbench-session' === $config['detailUrl']
+						&& 'bsbenchSessionId' === $config['detailParam']
+				)
+			);
 		$assets->shouldReceive( 'set_script_translations' )
 			->once()
 			->with( 'bsb-sessions' );
@@ -137,6 +146,7 @@ final class SessionsScreenTest extends TestCase {
 			->with( self::STYLE, array( 'wp-components' ) );
 
 		Functions\when( 'add_submenu_page' )->justReturn( self::HOOK );
+		Functions\when( 'admin_url' )->returnArg();
 
 		$screen = $this->screen( $assets );
 		$screen->add_page();

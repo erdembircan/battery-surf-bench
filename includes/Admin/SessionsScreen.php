@@ -10,6 +10,7 @@ namespace ErdemBircan\BatterySurfBench\Admin;
 use ErdemBircan\BatterySurfBench\Admin\Views\SessionsScreenView;
 use ErdemBircan\BatterySurfBench\Content\SessionSchema;
 use ErdemBircan\BatterySurfBench\Core\Assets;
+use ErdemBircan\BatterySurfBench\Support\AllowedHtml;
 use ErdemBircan\BatterySurfBench\Support\CapabilityInterface;
 use ErdemBircan\BatterySurfBench\Support\Manager;
 
@@ -17,15 +18,18 @@ use function __;
 use function add_action;
 use function add_query_arg;
 use function add_submenu_page;
+use function admin_url;
 use function home_url;
+use function wp_kses;
 
 defined( 'ABSPATH' ) || exit;
 
 /**
  * Adds the DataViews-powered benchmark sessions listing under the plugin menu.
  *
- * The session post type is registered headless, with its admin list table
- * suppressed, so this screen owns the listing instead. It mounts a DataViews
+ * The session post type is registered headless, with no native admin screens,
+ * so this screen owns the listing instead and opens each session on its own
+ * detail page ({@see \ErdemBircan\BatterySurfBench\Content\SessionDetail}). It mounts a DataViews
  * grid that reads sessions straight from the post type's REST endpoint, and
  * hands the grid the session schema — localized as field descriptors — so the
  * listing's columns are driven by the same definition that registers the meta.
@@ -59,6 +63,8 @@ class SessionsScreen implements Manager {
 	 * @param Assets              $assets        Service used to register, localize and enqueue the bundle.
 	 * @param string              $cockpit_param Query parameter that opens the cockpit dashboard.
 	 * @param string              $cockpit_value Value of that parameter which serves the cockpit.
+	 * @param string              $detail_slug   Slug of the admin page that shows one stored session.
+	 * @param string              $detail_param  URL parameter that page reads the session id from.
 	 */
 	public function __construct(
 		private string $parent_slug,
@@ -69,7 +75,9 @@ class SessionsScreen implements Manager {
 		private SessionSchema $schema,
 		private Assets $assets,
 		private string $cockpit_param,
-		private string $cockpit_value
+		private string $cockpit_value,
+		private string $detail_slug,
+		private string $detail_param
 	) {
 	}
 
@@ -129,7 +137,7 @@ class SessionsScreen implements Manager {
 	 * Renders the screen: the coastal brand header, a link that opens the cockpit
 	 * dashboard, and the container the bundle mounts the DataViews grid into. The
 	 * markup itself lives in {@see SessionsScreenView}; this only prepares the
-	 * dynamic, already-escaped values and prints the finished view.
+	 * dynamic, raw values and prints the finished view.
 	 *
 	 * @return void
 	 */
@@ -145,10 +153,7 @@ class SessionsScreen implements Manager {
 			)
 		);
 
-		// The view escapes each value and returns finished, trusted markup, so the
-		// assembled HTML cannot be run through an escaper here.
-		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- trusted pre-escaped view markup; see comment above.
-		echo $markup;
+		echo wp_kses( $markup, AllowedHtml::tags() );
 	}
 
 	/**
@@ -162,6 +167,8 @@ class SessionsScreen implements Manager {
 			'postType'       => $this->schema->post_type(),
 			'fields'         => $this->schema->fields(),
 			'defaultColumns' => $this->schema->default_columns(),
+			'detailUrl'      => admin_url( 'admin.php?page=' . $this->detail_slug ),
+			'detailParam'    => $this->detail_param,
 		);
 	}
 }

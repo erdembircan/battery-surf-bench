@@ -9,7 +9,7 @@
  * are testable without a real zip. They hold every zip to its own contract
  * (every entry inside one top-level `battery-surf-bench/` folder, allowed and
  * required entries at the top of that folder, no hidden files or folders
- * outside `vendor/`, no translation sources, `composer.json` alongside
+ * outside `vendor/`, no bundled translations, `composer.json` alongside
  * `vendor/`) and to the file checks WordPress.org's upload form runs before
  * anything else: no version-control folder, and no archive, `.phar` or `.sh`
  * file, anywhere in the zip. The production zip must also leave the dev-tools
@@ -23,7 +23,7 @@ import { PLUGIN_SLUG, type PackageVariant } from './PackageLayout.mts';
 
 /**
  * Entries the plugin folder may hold at its top: the plugin's code, compiled
- * bundles and translations, its production Composer dependencies with the
+ * bundles, its production Composer dependencies with the
  * `composer.json` WordPress.org asks for, and the plugin's readme and license.
  * `assets/` isn't one: the stylesheets inline its images at build time.
  */
@@ -34,7 +34,6 @@ const ALLOWED_ROOTS: readonly string[] = [
 	'composer.json',
 	'build',
 	'includes',
-	'languages',
 	'vendor',
 ];
 
@@ -67,11 +66,12 @@ const FORBIDDEN_EXTENSIONS: readonly string[] = [
 ];
 
 /**
- * Translation sources. WordPress loads the `.l10n.php` translations, never
- * their `.po` and `.pot` sources, and `.gitattributes` export-ignores them, so
- * a zip that holds one has slipped past it.
+ * Bundled translations. WordPress.org serves the plugin's translations from
+ * translate.wordpress.org, and its review rejects a plugin that ships its own,
+ * so `.gitattributes` export-ignores the whole `languages/` folder and a zip
+ * that holds any of it has slipped past that.
  */
-const TRANSLATION_SOURCE = /^languages\/[^/]+\.pot?$/;
+const TRANSLATION_FILE = /^languages(?:\/|$)/;
 
 /**
  * The dev-tools panel's files: its PHP, which the production build leaves out
@@ -230,7 +230,11 @@ export function findPackageViolations(
 	const forbiddenFiles = new Map< string, string >();
 
 	for ( const root of roots ) {
-		if ( ! ALLOWED_ROOTS.includes( root ) ) {
+		// A `languages/` entry gets its own, more specific message below.
+		if (
+			! ALLOWED_ROOTS.includes( root ) &&
+			! TRANSLATION_FILE.test( root )
+		) {
 			violations.push(
 				`Unexpected entry "${ root }" in the plugin folder: export-ignore it in .gitattributes, or add it to ALLOWED_ROOTS in bin/PackageRules.mts if the plugin needs it.`
 			);
@@ -283,9 +287,9 @@ export function findPackageViolations(
 	}
 
 	for ( const entry of pluginEntries ) {
-		if ( TRANSLATION_SOURCE.test( entry ) ) {
+		if ( TRANSLATION_FILE.test( entry ) ) {
 			violations.push(
-				`Unneeded file "${ entry }": WordPress loads the .l10n.php translations, never their .po and .pot sources, so export-ignore it in .gitattributes.`
+				`Translation file "${ entry }": WordPress.org serves the plugin's translations from translate.wordpress.org, so the zip must not bundle any. Export-ignore it in .gitattributes.`
 			);
 		}
 	}

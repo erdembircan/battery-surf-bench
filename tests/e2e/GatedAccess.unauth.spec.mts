@@ -60,9 +60,9 @@ test.describe( 'Admin screens require authentication', () => {
 			token: 'page=bsbench-sessions',
 		},
 		{
-			name: 'bsbench_session new-post edit screen',
-			url: '/wp-admin/post-new.php?post_type=bsbench_session',
-			token: 'post_type=bsbench_session',
+			name: 'Session detail page',
+			url: '/wp-admin/admin.php?page=bsbench-session&bsbenchSessionId=1',
+			token: 'page=bsbench-session',
 		},
 	];
 

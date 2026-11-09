@@ -31,7 +31,7 @@ final class SessionDetailViewTest extends TestCase {
 		return ( new SessionDetailView() )->render(
 			array_merge(
 				array(
-					'context'            => 'data-wp-context=\'{}\'',
+					'context'            => array(),
 					'greeting_lead'      => 'Greetings from',
 					'brand_title'        => 'Battery Surf Bench',
 					'summary_brand'      => 'Battery Surf Bench',
@@ -63,6 +63,16 @@ final class SessionDetailViewTest extends TestCase {
 		$this->assertStringContainsString( 'class="bsb-session-detail"', $markup );
 		$this->assertStringContainsString( 'data-wp-interactive="battery-surf-bench/cockpit"', $markup );
 		$this->assertStringContainsString( 'data-wp-init="callbacks.initDetail"', $markup );
+	}
+
+	/**
+	 * The seeded context lands on the region as an escaped attribute whose value
+	 * decodes back to the context the page handed over.
+	 */
+	public function test_seeds_the_context_onto_the_region(): void {
+		$markup = $this->view( array( 'context' => array( 'ended' => true ) ) );
+
+		$this->assertStringContainsString( 'data-wp-context="{&quot;ended&quot;:true}"', $markup );
 	}
 
 	/**

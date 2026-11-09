@@ -4,13 +4,16 @@
  *
  * @package ErdemBircan\BatterySurfBench
  *
- * @var array<string, mixed> $args Keys read: `header` (pre-escaped markup).
+ * @var array<string, mixed> $args Keys read: `header` (composed markup, printed
+ *       through wp_kses).
  */
+
+use ErdemBircan\BatterySurfBench\Support\AllowedHtml;
 
 defined( 'ABSPATH' ) || exit;
 ?>
 <div class="bsb-sessions">
-	<?php echo $args['header']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- trusted pre-escaped view markup. ?>
+	<?php echo wp_kses( $args['header'], AllowedHtml::tags() ); ?>
 
 	<div id="bsb-sessions-app"></div>
 </div>

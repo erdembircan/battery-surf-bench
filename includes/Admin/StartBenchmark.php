@@ -9,6 +9,7 @@ namespace ErdemBircan\BatterySurfBench\Admin;
 
 use ErdemBircan\BatterySurfBench\Admin\Views\StartBenchmarkView;
 use ErdemBircan\BatterySurfBench\Core\Assets;
+use ErdemBircan\BatterySurfBench\Support\AllowedHtml;
 use ErdemBircan\BatterySurfBench\Support\CapabilityInterface;
 use ErdemBircan\BatterySurfBench\Support\Manager;
 use WP_Admin_Bar;
@@ -21,6 +22,7 @@ use function esc_html__;
 use function esc_url_raw;
 use function home_url;
 use function is_admin_bar_showing;
+use function wp_kses;
 use function wp_safe_redirect;
 
 defined( 'ABSPATH' ) || exit;
@@ -131,8 +133,8 @@ class StartBenchmark implements Manager {
 	/**
 	 * Renders the fallback page shown only if headers were already sent and the
 	 * redirect could not fire. The markup itself lives in
-	 * {@see StartBenchmarkView}; this only prepares the dynamic, already-
-	 * escaped values and prints the finished view.
+	 * {@see StartBenchmarkView}; this only prepares the dynamic, raw values and
+	 * prints the finished view.
 	 *
 	 * @return void
 	 */
@@ -146,10 +148,7 @@ class StartBenchmark implements Manager {
 			)
 		);
 
-		// The view escapes each value and returns finished, trusted markup, so the
-		// assembled HTML cannot be run through an escaper here.
-		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- trusted pre-escaped view markup; see comment above.
-		echo $markup;
+		echo wp_kses( $markup, AllowedHtml::tags() );
 	}
 
 	/**

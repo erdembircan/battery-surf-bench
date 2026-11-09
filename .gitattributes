@@ -61,13 +61,13 @@
 .DS_Store              export-ignore
 
 # Files a live site never loads. bin/PackageRules.mts fails the build when a
-# translation source or assets/ ships.
+# translation file or assets/ ships.
 #
 # The stylesheets inline these images at build time.
 /assets                   export-ignore
-# WordPress loads the .l10n.php translations, never their sources.
-/languages/*.po           export-ignore
-/languages/*.pot          export-ignore
+# Translations come from translate.wordpress.org once the plugin is listed, so
+# the zip bundles none. The .po files stay in the repository to import there.
+/languages                export-ignore
 # Bundled libraries' own repository files and readmes.
 /vendor/**/.*             export-ignore
 /vendor/**/README.md      export-ignore

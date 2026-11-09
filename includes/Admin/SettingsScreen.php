@@ -11,6 +11,7 @@ use ErdemBircan\BatterySurfBench\Admin\Views\SettingsScreenView;
 use ErdemBircan\BatterySurfBench\Core\Assets;
 use ErdemBircan\BatterySurfBench\Course\CourseCatalog;
 use ErdemBircan\BatterySurfBench\Course\CourseOrderSanitizer;
+use ErdemBircan\BatterySurfBench\Support\AllowedHtml;
 use ErdemBircan\BatterySurfBench\Support\CapabilityInterface;
 use ErdemBircan\BatterySurfBench\Support\Manager;
 use WP_REST_Request;
@@ -28,6 +29,7 @@ use function is_array;
 use function is_string;
 use function rest_do_request;
 use function rest_get_server;
+use function wp_kses;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -173,7 +175,7 @@ class SettingsScreen implements Manager {
 	 * Renders the settings screen: the coastal brand header, a link that opens
 	 * the cockpit dashboard, and the container the bundle mounts the settings
 	 * app into. The markup itself lives in {@see SettingsScreenView}; this only
-	 * prepares the dynamic, already-escaped values and prints the finished view.
+	 * prepares the dynamic, raw values and prints the finished view.
 	 *
 	 * @return void
 	 */
@@ -189,10 +191,7 @@ class SettingsScreen implements Manager {
 			)
 		);
 
-		// The view escapes each value and returns finished, trusted markup, so the
-		// assembled HTML cannot be run through an escaper here.
-		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- trusted pre-escaped view markup; see comment above.
-		echo $markup;
+		echo wp_kses( $markup, AllowedHtml::tags() );
 	}
 
 	/**

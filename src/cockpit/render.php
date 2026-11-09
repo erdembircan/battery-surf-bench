@@ -24,10 +24,11 @@ namespace ErdemBircan\BatterySurfBench;
 use ErdemBircan\BatterySurfBench\Cockpit\BarkStrings;
 use ErdemBircan\BatterySurfBench\Cockpit\SummaryReasons;
 use ErdemBircan\BatterySurfBench\Cockpit\Views\CockpitView;
+use ErdemBircan\BatterySurfBench\Support\AllowedHtml;
+use WP_Block_Supports;
 
 use function __;
-use function get_block_wrapper_attributes;
-use function wp_interactivity_data_wp_context;
+use function wp_kses;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -153,10 +154,18 @@ $battery_surf_bench_context = array(
 // card is flipped. Defaulting to hidden in CSS (rather than a server-seeded
 // class, which the Interactivity runtime would strip since the getter is
 // client-side) means the deck never flashes in and slides out on load.
+
+// The block declares no style, color, spacing or anchor supports, so the only
+// wrapper attribute its supports produce is the class (the generated
+// `wp-block-…` name plus any custom class). The view prints it through
+// esc_attr(). Adding a style support to block.json means printing its style
+// attribute too.
+$battery_surf_bench_supports = WP_Block_Supports::get_instance()->apply_block_supports();
+
 $battery_surf_bench_markup = ( new CockpitView() )->render(
 	array(
-		'wrapper'              => get_block_wrapper_attributes(),
-		'context'              => wp_interactivity_data_wp_context( $battery_surf_bench_context ),
+		'wrapper_class'        => (string) ( $battery_surf_bench_supports['class'] ?? '' ),
+		'context'              => $battery_surf_bench_context,
 		'brand_title'          => __( 'Battery Surf Bench', 'battery-surf-bench' ),
 		'brand_subtitle'       => __( 'Cockpit', 'battery-surf-bench' ),
 		'mode_label'           => __( 'Mode', 'battery-surf-bench' ),
@@ -275,7 +284,4 @@ $battery_surf_bench_markup = ( new CockpitView() )->render(
 	)
 );
 
-// The view escapes each value and returns finished, trusted markup, so the
-// assembled HTML cannot be run through an escaper here.
-// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- trusted view-rendered block markup; see comment above.
-echo $battery_surf_bench_markup;
+echo wp_kses( $battery_surf_bench_markup, AllowedHtml::tags() );

@@ -107,7 +107,7 @@ CSS class names, custom properties, `data-*` attributes and the `bsb:*` messages
 **Never write HTML or inline styles in PHP logic.** Markup lives only in view templates: never in a manager, a block `render.php`, or a view's own methods, and no `style="…"` attribute or `<style>` block is ever printed from PHP.
 
 - **A view is a class and its templates.** A view implements the `View` interface (`ErdemBircan\BatterySurfBench\Support\View`) and lives in a `Views/` subfolder of its domain (e.g. `includes/Cockpit/Views/`). Its markup lives in PHP template files in that folder's `Templates/` subfolder: inline HTML after the file's opening PHP block, with `<?php … ?>` only where the template prints a value or runs a WordPress template tag that prints part of the page, such as `wp_head()`. Loops, conditions and any other logic stay in the view. The view's `render()` prepares the raw values, renders a template with `Template::render()` (`ErdemBircan\BatterySurfBench\Support\Template`), and returns the markup.
-- **Escape late, in the template.** Every dynamic value is escaped where the template prints it, with the function that fits the slot: `esc_html()` for text, `esc_attr()` for attributes, `esc_url()` for URLs. A view never escapes ahead of its template. Markup that is already escaped, such as another view's rendered output, is printed as it is, with a line-scoped `// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- <reason>` that says why it's safe.
+- **Escape late, in the template.** Every dynamic value is escaped where the template prints it, with the function that fits the slot: `esc_html()` for text, `esc_attr()` for attributes, `esc_url()` for URLs. A view never escapes ahead of its template. Composed markup, such as another view's rendered output, prints through `wp_kses( $markup, AllowedHtml::tags() )` (`ErdemBircan\BatterySurfBench\Support\AllowedHtml`), never echoed raw. When a template gains an element or attribute, add it to that allow-list in the same change, or kses strips it. An Interactivity context prints as `data-wp-context="<?php echo esc_attr( … ); ?>"` from `InteractivityContext::encode()`, never as the attribute string `wp_interactivity_data_wp_context()` returns. A whole document that carries `wp_head()`/`wp_footer()` output can't pass through kses, so it is printed directly with `Template::display()`, never captured and echoed. WordPress.org reviewers don't accept `phpcs:ignore` as escaping: an `OutputNotEscaped` suppression is never the answer.
 - **No heredoc or nowdoc.** WordPress.org's Plugin Check rejects heredoc syntax, and its review guidelines forbid heredoc and nowdoc, because code scanners can't see escaping inside them.
 - PHP that needs markup — a manager, a block `render.php` — prepares raw values and hands them to a view; it never builds HTML itself.
 - Styling belongs in a stylesheet (see **Styles**), never in inline `style` attributes or `<style>` tags printed from PHP.
@@ -115,6 +115,10 @@ CSS class names, custom properties, `data-*` attributes and the `bsb:*` messages
 ## Styles
 
 **Author all styles as SCSS — never hand-write `.css` files.** A hand-written `.css` file in the source tree is a regression: every stylesheet must have an SCSS source that the build compiles into its CSS artifact. Always enqueue the compiled artifact, never a CSS file edited by hand. Discover where sources live and where they compile to from the build configuration — don't assume a fixed directory layout, tool, or naming convention.
+
+## Translations — Never Bundled
+
+**The plugin ships no translation files.** WordPress.org serves its translations from translate.wordpress.org and rejects a plugin that bundles its own, so the zip carries no `languages/` folder, the plugin header has no `Domain Path`, and nothing calls `load_plugin_textdomain()` or passes a path to `wp_set_script_translations()` / `wp_set_script_module_translations()`: WordPress loads the language packs from its own language directory. The `.pot` and the `.po` files in `languages/` are sources for translate.wordpress.org, export-ignored and checked by `package:verify`. Never compile them into `.l10n.php`, `.mo` or `.json` files in the repository.
 
 ## Single Light Theme — No Dark Mode
 
@@ -284,7 +288,7 @@ When you notice a defect — a bug, a failing or skipped test, a lint violation,
 
 - **Fix the cause.** Almost every finding has a real fix: read the request through `get_query_var()` instead of `$_GET`, read files through `WP_Filesystem` instead of `file_get_contents`, define test constants in `phpunit.xml` instead of in PHP, restructure output so it is escaped, and so on.
 - **If you genuinely cannot get around a finding, stop and ask.** Surface the exact rule and code, explain why no code fix works, and let the maintainer decide. **Suppression is the maintainer's call, never the agent's.** The maintainer also chooses the form, and both are legitimate once approved:
-  - a **line-scoped inline `// phpcs:ignore <rule> -- <reason>`** for a precise, genuinely-unavoidable single line (e.g. echoing a trusted pre-rendered document), which keeps the sniff guarding every other line in the file;
+  - a **line-scoped inline `// phpcs:ignore <rule> -- <reason>`** for a precise, genuinely-unavoidable single line (e.g. ordering a listing by a meta key, where the meta query is the feature), which keeps the sniff guarding every other line in the file;
   - a **documented, narrowly-scoped exclusion in `phpcs.xml.dist`** for a whole category (e.g. test-infrastructure rules in `tests/`).
   Every approved suppression names the rule and carries a justification.
 

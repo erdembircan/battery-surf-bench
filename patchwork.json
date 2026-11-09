@@ -1,5 +1,6 @@
 {
     "redefinable-internals": [
+        "filter_input",
         "hash_file",
         "is_readable"
     ]

@@ -53,7 +53,7 @@ final class CockpitViewTest extends TestCase {
 		// by the client adding this class once a run is live or the card is flipped.
 		$this->assertStringContainsString( 'data-wp-class--is-deck-shown="state.isDeckShown"', $markup );
 		$this->assertStringContainsString( 'class="wp-block-battery-surf-bench-cockpit"', $markup );
-		$this->assertStringContainsString( 'data-wp-context=\'{"activeIndex":0}\'', $markup );
+		$this->assertStringContainsString( 'data-wp-context="{&quot;activeIndex&quot;:0}"', $markup );
 		$this->assertStringContainsString( 'data-wp-bind--src="state.currentSrc"', $markup );
 		$this->assertStringContainsString( 'title="Surf viewport"', $markup );
 	}
@@ -506,8 +506,8 @@ final class CockpitViewTest extends TestCase {
 	public function test_render_escapes_the_values_it_is_handed(): void {
 		$markup = ( new CockpitView() )->render(
 			array(
-				'wrapper'       => 'class="wp-block-battery-surf-bench-cockpit"',
-				'context'       => 'data-wp-context=\'{}\'',
+				'wrapper_class' => 'wp-block-battery-surf-bench-cockpit',
+				'context'       => array(),
 				'brand_title'   => '<b>X</b>',
 				'compact_label' => 'Compact "x"',
 				'mode_label'    => 'Mode <i>',
@@ -533,8 +533,8 @@ final class CockpitViewTest extends TestCase {
 	private function render(): string {
 		return ( new CockpitView() )->render(
 			array(
-				'wrapper'              => 'class="wp-block-battery-surf-bench-cockpit"',
-				'context'              => 'data-wp-context=\'{"activeIndex":0}\'',
+				'wrapper_class'        => 'wp-block-battery-surf-bench-cockpit',
+				'context'              => array( 'activeIndex' => 0 ),
 				'brand_title'          => 'Battery Surf Bench',
 				'brand_subtitle'       => 'Cockpit',
 				'mode_label'           => 'Mode',

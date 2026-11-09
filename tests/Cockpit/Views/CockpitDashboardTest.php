@@ -26,7 +26,11 @@ final class CockpitDashboardTest extends TestCase {
 	 */
 	protected function setUp(): void {
 		parent::setUp();
-		Functions\when( 'get_language_attributes' )->justReturn( 'lang="en-US"' );
+		Functions\when( 'language_attributes' )->alias(
+			static function (): void {
+				echo 'lang="en-US"';
+			}
+		);
 		Functions\when( 'get_bloginfo' )->justReturn( 'UTF-8' );
 		Functions\when( 'esc_attr' )->returnArg();
 	}
@@ -75,6 +79,24 @@ final class CockpitDashboardTest extends TestCase {
 
 		$this->assertStringContainsString( '<!-- HEAD -->', $output );
 		$this->assertStringContainsString( '<!-- FOOTER -->', $output );
+	}
+
+	/**
+	 * Displaying the document prints exactly the markup rendering it returns,
+	 * apart from the template file's final newline, which only printing keeps.
+	 */
+	public function test_display_prints_the_rendered_document(): void {
+		Functions\when( 'wp_head' )->justReturn( null );
+		Functions\when( 'wp_footer' )->justReturn( null );
+
+		$data     = array( 'body' => '<div class="bsb-cockpit">VIEWPORT</div>' );
+		$expected = ( new CockpitDashboard() )->render( $data ) . "\n";
+
+		ob_start();
+		( new CockpitDashboard() )->display( $data );
+		$printed = (string) ob_get_clean();
+
+		$this->assertSame( $expected, $printed );
 	}
 
 	/**

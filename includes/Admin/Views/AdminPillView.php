@@ -43,17 +43,25 @@ class AdminPillView implements View {
 			? ''
 			: Template::render( __DIR__ . '/Templates/AdminPillIcon.php', array( 'icon' => $icon ) );
 
-		if ( '' !== $href ) {
-			$target_attr = '' === $target
-				? ''
-				: ' ' . Template::render( __DIR__ . '/Templates/AdminPillTarget.php', array( 'target' => $target ) );
+		if ( '' !== $href && '' !== $target ) {
+			return Template::render(
+				__DIR__ . '/Templates/AdminPillNewTab.php',
+				array(
+					'variant'     => $variant,
+					'href'        => $href,
+					'target'      => $target,
+					'icon_markup' => $icon_markup,
+					'label'       => $label,
+				)
+			);
+		}
 
+		if ( '' !== $href ) {
 			return Template::render(
 				__DIR__ . '/Templates/AdminPill.php',
 				array(
 					'variant'     => $variant,
 					'href'        => $href,
-					'target_attr' => $target_attr,
 					'icon_markup' => $icon_markup,
 					'label'       => $label,
 				)

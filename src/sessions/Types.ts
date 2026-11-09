@@ -40,12 +40,16 @@ export interface SessionFieldDescriptor {
 
 /**
  * The configuration the PHP screen localizes for the front end: the post type
- * to query, the field descriptors, and which fields are visible by default.
+ * to query, the field descriptors, which fields are visible by default, and
+ * where a session opens (the detail page's URL and the parameter carrying the
+ * session id).
  */
 export interface SessionsConfig {
 	postType: string;
 	fields: SessionFieldDescriptor[];
 	defaultColumns: string[];
+	detailUrl: string;
+	detailParam: string;
 }
 
 /**

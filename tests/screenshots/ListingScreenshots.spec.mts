@@ -287,7 +287,7 @@ test( 'screenshot-4: the Sessions screen', async ( { page } ) => {
 test( 'screenshot-2: a finished session postcard', async ( { page } ) => {
 	await page.setViewportSize( ADMIN_VIEWPORT );
 	await page.goto(
-		`/wp-admin/post.php?post=${ postcardSessionId }&action=edit`
+		`/wp-admin/admin.php?page=bsbench-session&bsbenchSessionId=${ postcardSessionId }`
 	);
 	await expect( page.locator( '.bsb-session-detail' ) ).toBeVisible();
 

@@ -6,19 +6,21 @@
  *
  * @var array<string, mixed> $args Keys read: `course_slugs_json` (attribute
  *       value), `dev` (text), `eyebrow` (text), `armed` (text), `reset`
- *       (attribute value), `shark` (attribute value), `close` (attribute value),
- *       `battery` (text), `charging_group` (attribute value), `system` (text),
- *       `charging_choice` (text), `discharging` (text), `level` (attribute
- *       value), `discharge` (text), `from` (text), `from_decrease` (attribute
- *       value), `percent_unit` (text), `from_increase` (attribute value), `to`
- *       (text), `to_decrease` (attribute value), `to_increase` (attribute
- *       value), `duration` (text), `duration_decrease` (attribute value),
- *       `minutes_unit` (text), `duration_increase` (attribute value), `start`
- *       (text), `stop` (text), `surf` (text), `auction_override` (attribute
- *       value), `natural` (text), `sterile` (text), `page` (text), `page_prev`
- *       (attribute value), `page_next` (attribute value), `surf_chips`
- *       (pre-escaped markup).
+ *       (attribute value), `shark` (attribute value), `close` (attribute
+ *       value), `battery` (text), `charging_group` (attribute value), `system`
+ *       (text), `charging_choice` (text), `discharging` (text), `level`
+ *       (attribute value), `discharge` (text), `from` (text), `from_decrease`
+ *       (attribute value), `percent_unit` (text), `from_increase` (attribute
+ *       value), `to` (text), `to_decrease` (attribute value), `to_increase`
+ *       (attribute value), `duration` (text), `duration_decrease` (attribute
+ *       value), `minutes_unit` (text), `duration_increase` (attribute value),
+ *       `start` (text), `stop` (text), `surf` (text), `auction_override`
+ *       (attribute value), `natural` (text), `sterile` (text), `page` (text),
+ *       `page_prev` (attribute value), `page_next` (attribute value),
+ *       `surf_chips` (composed markup, printed through wp_kses).
  */
+
+use ErdemBircan\BatterySurfBench\Support\AllowedHtml;
 
 defined( 'ABSPATH' ) || exit;
 ?>
@@ -127,7 +129,7 @@ defined( 'ABSPATH' ) || exit;
 						</div>
 
 						<div class="bsb-devtools__chips">
-							<?php echo $args['surf_chips']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- trusted pre-escaped view markup. ?>
+							<?php echo wp_kses( $args['surf_chips'], AllowedHtml::tags() ); ?>
 
 						</div>
 					</div>

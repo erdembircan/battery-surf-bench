@@ -98,12 +98,6 @@ classDiagram
         +set_script_module_translations(string id) void
     }
 
-    class I18n {
-        +__construct(string domain, string plugin_file)
-        +register() void
-        +load_textdomain() void
-    }
-
     class Manager {
         <<interface>>
         +register() void
@@ -117,6 +111,17 @@ classDiagram
     class Template {
         <<utility>>
         +render(string file, array args)$ string
+        +display(string file, array args)$ void
+    }
+
+    class AllowedHtml {
+        <<utility>>
+        +tags()$ array
+    }
+
+    class InteractivityContext {
+        <<utility>>
+        +encode(array context)$ string
     }
 
     class Capability {
@@ -205,9 +210,13 @@ classDiagram
     }
 
     class SessionDetail {
-        +__construct(string post_type, string meta_prefix, Capability capability, string block_name, string screen_slug, string style, SessionDetailView view, Assets assets)
+        +__construct(string post_type, string meta_prefix, Capability capability, string block_name, string parent_slug, string page_slug, string screen_slug, string param, string style, SessionDetailView view, Assets assets)
         +register() void
-        +maybe_render(bool replace, WP_Post post) bool
+        +add_page() void
+        +hide_page() void
+        +highlight_listing(string submenu_file) string
+        +load() void
+        +render() void
         +enqueue(string hook_suffix) void
     }
 
@@ -236,7 +245,7 @@ classDiagram
     }
 
     class SessionsScreen {
-        +__construct(string parent_slug, string page_slug, Capability capability, string bundle, string style, SessionSchema schema, Assets assets, string cockpit_param, string cockpit_value)
+        +__construct(string parent_slug, string page_slug, Capability capability, string bundle, string style, SessionSchema schema, Assets assets, string cockpit_param, string cockpit_value, string detail_slug, string detail_param)
         +register() void
         +add_page() void
         +enqueue(string hook_suffix) void
@@ -317,6 +326,7 @@ classDiagram
 
     class CockpitDashboard {
         +render(array data) string
+        +display(array data) void
     }
 
     class SessionDetailView {
@@ -349,7 +359,6 @@ classDiagram
     BatterySurfBench --> Instantiator : creates & owns (composition)
     BatterySurfBench ..> DefinitionsSource : selects definitions source via
     BatterySurfBench ..> Manager : registers
-    Instantiator ..> I18n : instantiates
     Instantiator ..> Paths : instantiates
     Instantiator ..> Assets : instantiates
     Instantiator ..> Capability : instantiates
@@ -377,7 +386,6 @@ classDiagram
     ContainerValidator ..> Registry : checks config tokens against
     Definitions ..|> ContainerInterface : implements
     InstanceStore ..|> ContainerInterface : implements
-    I18n ..|> Manager : implements
     SettingsScreen ..|> Manager : implements
     SettingsScreen --> Assets : uses
     SettingsScreen --> Capability : gates via
@@ -408,6 +416,23 @@ classDiagram
     SessionDetail --> Assets : uses
     SessionDetail --> Capability : gates via
     SessionDetail ..> SummaryReasons : seeds verdict wording
+    SessionDetail ..> AllowedHtml : escapes composed markup via
+    SettingsScreen ..> AllowedHtml : escapes composed markup via
+    SessionsScreen ..> AllowedHtml : escapes composed markup via
+    StartBenchmark ..> AllowedHtml : escapes composed markup via
+    AdminHeaderView ..> AllowedHtml : escapes composed markup via
+    AdminPillView ..> AllowedHtml : escapes composed markup via
+    SessionsScreenView ..> AllowedHtml : escapes composed markup via
+    SettingsScreenView ..> AllowedHtml : escapes composed markup via
+    CockpitDashboard ..> AllowedHtml : escapes composed markup via
+    CockpitView ..> AllowedHtml : escapes composed markup via
+    SessionDetailView ..> AllowedHtml : escapes composed markup via
+    SummaryCard ..> AllowedHtml : escapes composed markup via
+    FlipPostcard ..> AllowedHtml : escapes composed markup via
+    FrankedStamp ..> AllowedHtml : escapes composed markup via
+    DevToolsPanelView ..> AllowedHtml : escapes composed markup via
+    CockpitView ..> InteractivityContext : encodes context via
+    SessionDetailView ..> InteractivityContext : encodes context via
     StandaloneChrome --> Assets : uses
     DevTools ..|> Manager : implements
     DevTools --> Assets : uses
@@ -450,13 +475,14 @@ classDiagram
     CourseRouter --> YouTubeEmbed : registers per served course page
     CourseCatalog ..> CoursePage : produces
     Cockpit ..|> Manager : implements
-    Cockpit --> CockpitDashboard : uses
+    Cockpit --> CockpitDashboard : prints document via
     Cockpit --> Assets : uses
     Cockpit --> Capability : gates via
     Cockpit --> StandaloneChrome : strips via
     Cockpit ..> CockpitView : renders via (block template)
     CockpitDashboard ..|> View : implements
     CockpitDashboard ..> Template : renders markup via
+    CockpitDashboard ..> Template : displays document via
     CockpitView ..|> View : implements
     CockpitView ..> Template : renders markup via
     SessionDetailView ..|> View : implements

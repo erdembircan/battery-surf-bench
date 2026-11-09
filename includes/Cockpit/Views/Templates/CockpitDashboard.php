@@ -5,14 +5,16 @@
  * @package ErdemBircan\BatterySurfBench
  *
  * @var array<string, mixed> $args Keys read: `charset` (attribute value),
- *       `title` (text), `body` (pre-escaped markup), `devtools_panel`
- *       (pre-escaped markup).
+ *       `title` (text), `body` (composed markup, printed through wp_kses),
+ *       `devtools_panel` (composed markup, printed through wp_kses).
  */
+
+use ErdemBircan\BatterySurfBench\Support\AllowedHtml;
 
 defined( 'ABSPATH' ) || exit;
 ?>
 <!DOCTYPE html>
-<html <?php echo get_language_attributes(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped by get_language_attributes(). ?>>
+<html <?php language_attributes(); ?>>
 <head>
 	<meta charset="<?php echo esc_attr( $args['charset'] ); ?>" />
 	<meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -22,9 +24,9 @@ defined( 'ABSPATH' ) || exit;
 
 </head>
 <body class="bsb-cockpit-dashboard">
-	<?php echo $args['body']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- trusted pre-escaped view markup. ?>
+	<?php echo wp_kses( $args['body'], AllowedHtml::tags() ); ?>
 
-	<?php echo $args['devtools_panel']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- trusted pre-escaped view markup. ?>
+	<?php echo wp_kses( $args['devtools_panel'], AllowedHtml::tags() ); ?>
 
 	<?php wp_footer(); ?>
 

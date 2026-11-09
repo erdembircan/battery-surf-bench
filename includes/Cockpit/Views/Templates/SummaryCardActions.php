@@ -4,12 +4,15 @@
  *
  * @package ErdemBircan\BatterySurfBench
  *
- * @var array<string, mixed> $args Keys read: `footer` (pre-escaped markup).
+ * @var array<string, mixed> $args Keys read: `footer` (composed markup, printed
+ *       through wp_kses).
  */
+
+use ErdemBircan\BatterySurfBench\Support\AllowedHtml;
 
 defined( 'ABSPATH' ) || exit;
 ?>
 	<div class="bsb-summary__actions">
-		<?php echo $args['footer']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- trusted pre-escaped view markup. ?>
+		<?php echo wp_kses( $args['footer'], AllowedHtml::tags() ); ?>
 
 	</div>

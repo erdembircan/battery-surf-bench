@@ -4,10 +4,12 @@
  *
  * @package ErdemBircan\BatterySurfBench
  *
- * @var array<string, mixed> $args Keys read: `cockpit_pill` (pre-escaped
- *       markup).
+ * @var array<string, mixed> $args Keys read: `cockpit_pill` (composed markup,
+ *       printed through wp_kses).
  */
+
+use ErdemBircan\BatterySurfBench\Support\AllowedHtml;
 
 defined( 'ABSPATH' ) || exit;
 ?>
-<span class="bsb-sessions__count"></span><?php echo $args['cockpit_pill']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- trusted pre-escaped view markup. ?>
+<span class="bsb-sessions__count"></span><?php echo wp_kses( $args['cockpit_pill'], AllowedHtml::tags() ); ?>

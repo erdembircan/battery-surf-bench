@@ -68,25 +68,14 @@ function metaKey( field: string ): string {
 }
 
 /**
- * The native admin edit-screen URL for a session, where the detail postcard
- * replaces the editor. Relative to the listing screen (both live under
- * `wp-admin/`), so opening a session follows the ordinary WordPress flow rather
- * than a bespoke route.
+ * The admin URL of the page that shows one session.
  *
- * @param id The session post id.
- * @return The edit-screen URL.
+ * @param config The localized screen configuration.
+ * @param id     The session post id.
+ * @return The session's detail page URL.
  */
-function sessionEditUrl( id: number ): string {
-	return `post.php?post=${ id }&action=edit`;
-}
-
-/**
- * Opens a session on its native admin edit screen.
- *
- * @param item The session to open.
- */
-function openSession( item: SessionRecord ): void {
-	window.location.href = sessionEditUrl( item.id );
+export function sessionUrl( config: SessionsConfig, id: number ): string {
+	return `${ config.detailUrl }&${ config.detailParam }=${ id }`;
 }
 
 /**
@@ -201,35 +190,45 @@ export function SessionsApp( { config }: { config: SessionsConfig } ) {
 	// selection when the row body is clicked. The maintainer wants the whole row
 	// to open and the checkbox alone to select, so this intercepts row-body
 	// clicks in the capture phase — before DataViews' own row handler runs — and
-	// routes to that session's edit screen, leaving the checkbox, the row actions
+	// routes to that session's detail page, leaving the checkbox, the row actions
 	// and the title button (which opens via onClickItem) to their own controls.
 	const rootRef = useRef< HTMLDivElement >( null );
 
-	const onRowClick = useCallback( ( event: MouseEvent ): void => {
-		const target = event.target as HTMLElement | null;
+	const openSession = useCallback(
+		( item: SessionRecord ): void => {
+			window.location.href = sessionUrl( config, item.id );
+		},
+		[ config ]
+	);
 
-		if (
-			! target ||
-			target.closest(
-				'.dataviews-view-table__checkbox-column, .dataviews-view-table__actions-column, a, button, input, [role="button"]'
-			)
-		) {
-			return;
-		}
+	const onRowClick = useCallback(
+		( event: MouseEvent ): void => {
+			const target = event.target as HTMLElement | null;
 
-		const row = target.closest( '.dataviews-view-table__row' );
-		const id = row
-			?.querySelector( '[data-bsb-id]' )
-			?.getAttribute( 'data-bsb-id' );
+			if (
+				! target ||
+				target.closest(
+					'.dataviews-view-table__checkbox-column, .dataviews-view-table__actions-column, a, button, input, [role="button"]'
+				)
+			) {
+				return;
+			}
 
-		if ( ! id ) {
-			return;
-		}
+			const row = target.closest( '.dataviews-view-table__row' );
+			const id = row
+				?.querySelector( '[data-bsb-id]' )
+				?.getAttribute( 'data-bsb-id' );
 
-		// Stop DataViews' own row-selection handler from also firing.
-		event.stopPropagation();
-		window.location.href = sessionEditUrl( Number( id ) );
-	}, [] );
+			if ( ! id ) {
+				return;
+			}
+
+			// Stop DataViews' own row-selection handler from also firing.
+			event.stopPropagation();
+			window.location.href = sessionUrl( config, Number( id ) );
+		},
+		[ config ]
+	);
 
 	useEffect( () => {
 		const root = rootRef.current;

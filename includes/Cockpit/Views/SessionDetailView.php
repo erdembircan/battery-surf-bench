@@ -7,8 +7,11 @@
 
 namespace ErdemBircan\BatterySurfBench\Cockpit\Views;
 
+use ErdemBircan\BatterySurfBench\Support\InteractivityContext;
 use ErdemBircan\BatterySurfBench\Support\Template;
 use ErdemBircan\BatterySurfBench\Support\View;
+
+use function is_array;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -36,7 +39,7 @@ class SessionDetailView implements View {
 	 * @param array<string, mixed> $data {
 	 *     Raw (translated) values and the seeded context.
 	 *
-	 *     @type string $context            `data-wp-context` attribute from `wp_interactivity_data_wp_context()`.
+	 *     @type array  $context            Raw seeded Interactivity context, encoded for `data-wp-context` by {@see InteractivityContext::encode()}.
 	 *     @type string $greeting_lead      Raw "Greetings from" lead for the picture front.
 	 *     @type string $brand_title        Raw plugin name shown on the front and stamp.
 	 *     @type string $summary_brand      Raw wordmark curved around the franked stamp.
@@ -56,7 +59,7 @@ class SessionDetailView implements View {
 	 * @return string The detail page body markup.
 	 */
 	public function render( array $data = array() ): string {
-		$context       = isset( $data['context'] ) ? (string) $data['context'] : '';
+		$context       = isset( $data['context'] ) && is_array( $data['context'] ) ? $data['context'] : array();
 		$greeting_lead = isset( $data['greeting_lead'] ) ? (string) $data['greeting_lead'] : '';
 		$brand_title   = isset( $data['brand_title'] ) ? (string) $data['brand_title'] : '';
 		$summary_brand = isset( $data['summary_brand'] ) ? (string) $data['summary_brand'] : '';
@@ -117,7 +120,7 @@ class SessionDetailView implements View {
 		return Template::render(
 			__DIR__ . '/Templates/SessionDetail.php',
 			array(
-				'context' => $context,
+				'context' => InteractivityContext::encode( $context ),
 				'summary' => $summary,
 			)
 		);

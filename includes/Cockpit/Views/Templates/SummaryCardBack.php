@@ -4,16 +4,19 @@
  *
  * @package ErdemBircan\BatterySurfBench
  *
- * @var array<string, mixed> $args Keys read: `frank` (pre-escaped markup),
- *       `measured_label` (text), `projected_label` (text), `tte_label` (text),
- *       `rate_session_label` (text), `rate10_label` (text), `battery_label`
- *       (text), `dropped_label` (text), `pts_label` (text), `elapsed_run_label`
- *       (text), `actions` (pre-escaped markup).
+ * @var array<string, mixed> $args Keys read: `frank` (composed markup, printed
+ *       through wp_kses), `measured_label` (text), `projected_label` (text),
+ *       `tte_label` (text), `rate_session_label` (text), `rate10_label` (text),
+ *       `battery_label` (text), `dropped_label` (text), `pts_label` (text),
+ *       `elapsed_run_label` (text), `actions` (composed markup, printed through
+ *       wp_kses).
  */
+
+use ErdemBircan\BatterySurfBench\Support\AllowedHtml;
 
 defined( 'ABSPATH' ) || exit;
 ?>
-<?php echo $args['frank']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- trusted pre-escaped view markup. ?>
+<?php echo wp_kses( $args['frank'], AllowedHtml::tags() ); ?>
 
 		<div class="bsb-summary__report">
 			<h2 class="bsb-summary__head" data-wp-text="state.summaryHeading"></h2>
@@ -34,6 +37,6 @@ defined( 'ABSPATH' ) || exit;
 				<div class="bsb-stat"><span class="bsb-stat__label"><?php echo esc_html( $args['dropped_label'] ); ?></span><span class="bsb-stat__value"><span data-wp-text="context.summaryDropped"></span><span class="bsb-stat__unit"><?php echo esc_html( $args['pts_label'] ); ?></span></span></div>
 				<div class="bsb-stat"><span class="bsb-stat__label"><?php echo esc_html( $args['elapsed_run_label'] ); ?></span><span class="bsb-stat__value" data-wp-text="state.summaryElapsed"></span></div>
 			</div>
-			<?php echo $args['actions']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- trusted pre-escaped view markup. ?>
+			<?php echo wp_kses( $args['actions'], AllowedHtml::tags() ); ?>
 
 		</div>

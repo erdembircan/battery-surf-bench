@@ -91,7 +91,7 @@ Every run, whether it finished, was stopped early, or got interrupted, is stored
 
 = Speaks your language =
 
-Fully translation-ready, with German, Spanish, French, Brazilian Portuguese, and Turkish shipped out of the box.
+Fully translation-ready. Translations arrive through translate.wordpress.org, starting with German, Spanish, French, Brazilian Portuguese, and Turkish.
 
 == External services ==
 

@@ -63,21 +63,15 @@
 				<element value="ErdemBircan\BatterySurfBench"/>
 			</property>
 		</properties>
-		<!-- Block render templates execute inside WP_Block::render(), so their
-		     template variables are function-scoped, not the plugin globals this
-		     sniff guards against — even though a static analyzer reads them as
-		     global because they sit at a file's top level. -->
-		<exclude-pattern>*/render.php</exclude-pattern>
 	</rule>
 
 	<!--
 	  Scoped exceptions for test-infrastructure findings with no in-code fix.
 	  Each is narrowed to the exact rule and path so the sniff still guards the
 	  rest of the codebase. These are deliberate and maintainer-approved, not
-	  blanket silencing. (Production code that prints markup it knows is
-	  already escaped, such as composed view output inside a template or a
-	  manager echoing a rendered view, uses a line-scoped inline ignore with its
-	  reason instead, so a future stray echo is still caught.)
+	  blanket silencing. Production code has no output-escaping exceptions:
+	  composed view markup prints through wp_kses() with the plugin's
+	  AllowedHtml list.
 	-->
 
 	<!-- Tests inject mocks by setting the WordPress globals the code under test

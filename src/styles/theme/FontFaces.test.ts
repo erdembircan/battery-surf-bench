@@ -7,7 +7,7 @@
  * translation — fell back to a system font mid-word. Every family/weight
  * must now declare a `latin` and a `latin-ext` face, each with a
  * `unicode-range`, and together those faces must cover every letter the
- * shipped translations use. The letter set is read from `languages/*.po`,
+ * plugin's translations use. The letter set is read from `languages/*.po`,
  * so adding a translation that needs glyphs the fonts don't ship fails here
  * instead of in a screenshot.
  */
@@ -37,7 +37,7 @@ const DECLARED_FACES: ReadonlyArray< readonly [ string, number ] > = [
 /** The Turkish letters that fell back to a system font before the fix. */
 const TURKISH_LETTERS = [ 'ğ', 'Ğ', 'İ', 'ı', 'Ş', 'ş' ];
 
-/** Latin-1 letters from the other shipped translations (de, es, fr, pt). */
+/** Latin-1 letters from the other translations (de, es, fr, pt). */
 const LATIN_1_LETTERS = [ 'ä', 'ß', 'ñ', 'é', 'ç', 'ã', 'ô', 'ü' ];
 
 type CodepointRange = readonly [ number, number ];
@@ -200,7 +200,7 @@ describe( 'theme @font-face subsets', () => {
 		}
 	);
 
-	it( 'covers every letter used by the shipped translations', () => {
+	it( "covers every letter used by the plugin's translations", () => {
 		const letters = translatedLetters();
 		expect( letters.length ).toBeGreaterThan( 0 );
 		for ( const [ family, weight ] of DECLARED_FACES ) {
