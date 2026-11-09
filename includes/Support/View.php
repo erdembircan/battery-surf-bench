@@ -18,9 +18,10 @@ defined( 'ABSPATH' ) || exit;
  * for text, `esc_attr()` for attributes, `esc_url()` for URLs), so the view
  * hands it raw values. Consumers (a manager, a block render template) supply
  * the raw, translated values and place the returned markup; they never escape
- * ahead of the view, nor assemble HTML themselves. The exception is composed
- * markup — another view's rendered output — which is already escaped and is
- * printed as-is, never re-escaped.
+ * ahead of the view, nor assemble HTML themselves. Composed markup, such as
+ * another view's rendered output, is printed through
+ * `wp_kses( $markup, AllowedHtml::tags() )` (see {@see AllowedHtml}), never
+ * echoed raw.
  */
 interface View {
 

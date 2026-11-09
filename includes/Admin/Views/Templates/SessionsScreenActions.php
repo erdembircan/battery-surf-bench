@@ -8,6 +8,8 @@
  *       markup).
  */
 
+use ErdemBircan\BatterySurfBench\Support\AllowedHtml;
+
 defined( 'ABSPATH' ) || exit;
 ?>
-<span class="bsb-sessions__count"></span><?php echo $args['cockpit_pill']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- trusted pre-escaped view markup. ?>
+<span class="bsb-sessions__count"></span><?php echo wp_kses( $args['cockpit_pill'], AllowedHtml::tags() ); ?>

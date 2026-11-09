@@ -4,13 +4,15 @@
  *
  * @package ErdemBircan\BatterySurfBench
  *
- * @var array<string, mixed> $args Keys read: `context` (pre-escaped markup),
+ * @var array<string, mixed> $args Keys read: `context` (attribute value),
  *       `summary` (pre-escaped markup).
  */
 
+use ErdemBircan\BatterySurfBench\Support\AllowedHtml;
+
 defined( 'ABSPATH' ) || exit;
 ?>
-<div class="bsb-session-detail" data-wp-interactive="battery-surf-bench/cockpit" <?php echo $args['context']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped by wp_interactivity_data_wp_context(). ?> data-wp-init="callbacks.initDetail">
-	<?php echo $args['summary']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- trusted pre-escaped view markup. ?>
+<div class="bsb-session-detail" data-wp-interactive="battery-surf-bench/cockpit" data-wp-context="<?php echo esc_attr( $args['context'] ); ?>" data-wp-init="callbacks.initDetail">
+	<?php echo wp_kses( $args['summary'], AllowedHtml::tags() ); ?>
 
 </div>

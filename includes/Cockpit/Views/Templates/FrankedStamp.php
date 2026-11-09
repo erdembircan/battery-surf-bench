@@ -8,10 +8,12 @@
  *       `cancel` (pre-escaped markup).
  */
 
+use ErdemBircan\BatterySurfBench\Support\AllowedHtml;
+
 defined( 'ABSPATH' ) || exit;
 ?>
 <span class="bsb-frank<?php echo esc_attr( $args['modifier'] ); ?>" aria-hidden="true">
 	<span class="bsb-frank__stamp"></span>
-	<?php echo $args['cancel']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- trusted pre-escaped view markup. ?>
+	<?php echo wp_kses( $args['cancel'], AllowedHtml::tags() ); ?>
 
 </span>

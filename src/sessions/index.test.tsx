@@ -38,6 +38,8 @@ const config = {
 	postType: 'bsbench_session',
 	fields: [],
 	defaultColumns: [],
+	detailUrl: 'http://example.test/wp-admin/admin.php?page=bsbench-session',
+	detailParam: 'bsbenchSessionId',
 };
 
 beforeEach( () => {

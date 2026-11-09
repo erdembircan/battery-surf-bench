@@ -44,11 +44,13 @@ vi.mock( '@wordpress/dataviews', async () => {
 } );
 
 // Imported after the mocks so App binds to the stubbed DataViews.
-const { SessionsApp } = await import( '@/sessions/App' );
+const { SessionsApp, sessionUrl } = await import( '@/sessions/App' );
 
 const config: SessionsConfig = {
 	postType: 'bsbench_session',
 	defaultColumns: [ 'bsbench_status', 'bsb_level' ],
+	detailUrl: 'http://example.test/wp-admin/admin.php?page=bsbench-session',
+	detailParam: 'bsbenchSessionId',
 	fields: [
 		{
 			key: 'bsbench_status',
@@ -281,5 +283,13 @@ describe( 'SessionsApp session total', () => {
 		renderApp( { totalItems: null } );
 		expect( slot.textContent ).toBe( '' );
 		slot.remove();
+	} );
+} );
+
+describe( 'sessionUrl', () => {
+	it( 'points a session at the detail page, carrying its id in the localized parameter', () => {
+		expect( sessionUrl( config, 42 ) ).toBe(
+			'http://example.test/wp-admin/admin.php?page=bsbench-session&bsbenchSessionId=42'
+		);
 	} );
 } );

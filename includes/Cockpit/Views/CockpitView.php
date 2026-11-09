@@ -7,9 +7,11 @@
 
 namespace ErdemBircan\BatterySurfBench\Cockpit\Views;
 
+use ErdemBircan\BatterySurfBench\Support\InteractivityContext;
 use ErdemBircan\BatterySurfBench\Support\Template;
 use ErdemBircan\BatterySurfBench\Support\View;
 
+use function is_array;
 use function preg_replace;
 use function str_repeat;
 
@@ -23,7 +25,7 @@ defined( 'ABSPATH' ) || exit;
  * run is live the configuration controls give way to the live readouts pill; the
  * stage carries the viewport iframe. The block's server render
  * template ({@see src/cockpit/render.php}) prepares the dynamic, raw (translated)
- * values — wrapper attributes, the per-instance `data-wp-context`, and the
+ * values — the wrapper class, the per-instance Interactivity context, and the
  * translated labels — and hands them here; this view owns the structure and the
  * escaping, held in its templates, so no HTML is written or escaped inline in the
  * render template.
@@ -37,8 +39,8 @@ class CockpitView implements View {
 	 *     Raw (translated) values from the block render template; its templates escape
 	 *     each into its slot (text with esc_html, attributes with esc_attr).
 	 *
-	 *     @type string $wrapper           Block wrapper attributes from `get_block_wrapper_attributes()`.
-	 *     @type string $context           `data-wp-context` attribute from `wp_interactivity_data_wp_context()`.
+	 *     @type string $wrapper_class     Class attribute value of the block wrapper, from the block supports.
+	 *     @type array  $context           Raw per-instance Interactivity context, encoded for `data-wp-context` by {@see InteractivityContext::encode()}.
 	 *     @type string $brand_title       Translated plugin name shown in the deck brand.
 	 *     @type string $brand_subtitle    Translated "Cockpit" label under the brand.
 	 *     @type string $mode_label        Translated label for the mode field.
@@ -93,8 +95,8 @@ class CockpitView implements View {
 	 * @return string The block's HTML.
 	 */
 	public function render( array $data = array() ): string {
-		$wrapper             = isset( $data['wrapper'] ) ? (string) $data['wrapper'] : '';
-		$context             = isset( $data['context'] ) ? (string) $data['context'] : '';
+		$wrapper_class       = isset( $data['wrapper_class'] ) ? (string) $data['wrapper_class'] : '';
+		$context             = isset( $data['context'] ) && is_array( $data['context'] ) ? $data['context'] : array();
 		$brand_title         = isset( $data['brand_title'] ) ? (string) $data['brand_title'] : '';
 		$brand_subtitle      = isset( $data['brand_subtitle'] ) ? (string) $data['brand_subtitle'] : '';
 		$mode_label          = isset( $data['mode_label'] ) ? (string) $data['mode_label'] : '';
@@ -346,8 +348,8 @@ class CockpitView implements View {
 		return Template::render(
 			__DIR__ . '/Templates/Cockpit.php',
 			array(
-				'wrapper'             => $wrapper,
-				'context'             => $context,
+				'wrapper_class'       => $wrapper_class,
+				'context'             => InteractivityContext::encode( $context ),
 				'brand_title'         => $brand_title,
 				'brand_subtitle'      => $brand_subtitle,
 				'compact_label'       => $compact_label,

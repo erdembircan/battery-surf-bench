@@ -53,13 +53,18 @@ return array(
 		// of their meta keys is namespaced with. The prefix is bare (no leading
 		// underscore) on purpose: protected, underscore-prefixed meta is hidden
 		// from REST, and the listing reads the session data over REST.
-		'post_type'   => 'bsbench_session',
-		'meta_prefix' => 'bsbench_',
+		'post_type'    => 'bsbench_session',
+		'meta_prefix'  => 'bsbench_',
 		// Slug of the DataViews listing screen placed under the plugin menu.
-		'screen_slug' => 'bsbench-sessions',
+		'screen_slug'  => 'bsbench-sessions',
+		// Slug of the hidden admin page that shows one stored session, and the URL
+		// parameter carrying that session's id:
+		// `admin.php?page=bsbench-session&bsbenchSessionId=<id>`.
+		'detail_slug'  => 'bsbench-session',
+		'detail_param' => 'bsbenchSessionId',
 		// Built assets the listing screen enqueues, relative to the plugin root.
-		'bundle'      => 'build/sessions.js',
-		'style'       => 'build/style-sessions.css',
+		'bundle'       => 'build/sessions.js',
+		'style'        => 'build/style-sessions.css',
 	),
 	'course'     => array(
 		// Query parameter carrying the opaque, client-incrementing page index:

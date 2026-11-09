@@ -147,17 +147,13 @@ class Cockpit implements Manager {
 		$data = array(
 			'body'           => do_blocks( $this->host_markup() ),
 			// Empty by default; the DevTools manager (dev environments only) hooks
-			// this to append its already-escaped, pre-rendered panel markup. Kept
+			// this to append its pre-rendered panel markup. Kept
 			// as a filter rather than a constructor dependency so the cockpit
 			// stays ignorant of dev-only chrome.
 			'devtools_panel' => apply_filters( 'battery_surf_bench_devtools_panel', '' ),
 		);
 
-		// The dashboard view returns a complete, trusted HTML document — escaped
-		// attributes, do_blocks() output and wp_head()/wp_footer() — that no
-		// WordPress escaping function can be applied to without breaking it.
-		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- trusted pre-rendered document; see comment above.
-		echo $this->dashboard->render( $data );
+		$this->dashboard->display( $data );
 
 		exit;
 	}

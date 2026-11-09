@@ -3,16 +3,15 @@ import { test, expect, type Page } from '@playwright/test';
 /**
  * End-to-end coverage for the stored-session detail screen.
  *
- * A session opens to its run-summary postcard on its own native admin edit
- * screen: the `replace_editor` route swaps the block editor for the postcard
- * while the admin chrome renders around it. This proves that flow against the
- * WordPress version the plugin runs on — the postcard mounts and hydrates from
- * the stored meta (the verdict the store derives from the seeded run reason),
- * and the admin header and menu render intact, which guards the regression
- * where rendering on the early WP_Screen pass output before the chrome was
- * ready. The blueprint enables WP_DEBUG_DISPLAY, so a PHP notice prints into the
- * page and fails the test — the headers-sent / null-post warnings that the early
- * pass produced would surface here.
+ * A session opens to its run-summary postcard on its own admin page, a hidden
+ * submenu page under the plugin menu (`admin.php?page=bsbench-session`), with
+ * WordPress printing the admin chrome around it. This proves that flow against
+ * the WordPress version the plugin runs on — the postcard mounts and hydrates
+ * from the stored meta (the verdict the store derives from the seeded run
+ * reason), the admin header and menu render intact, the page has no menu item of
+ * its own while Sessions stays highlighted, and an unknown id answers 404. The
+ * blueprint enables WP_DEBUG_DISPLAY, so a PHP notice prints into the page and
+ * fails the test.
  */
 
 const COLLECTION = '/wp-json/wp/v2/bsbench_session';
@@ -64,6 +63,39 @@ const measureTimeLabels = ( page: Page ) =>
 		};
 	}, AXIS_SLACK );
 
+/**
+ * The hidden detail page's URL for a session.
+ *
+ * @param id The session post id.
+ * @return The detail page's admin URL.
+ */
+const detailUrl = ( id: number ): string =>
+	`/wp-admin/admin.php?page=bsbench-session&bsbenchSessionId=${ id }`;
+
+/**
+ * Seeds a finished session through the post type's own REST collection, the way
+ * the cockpit uploads a finished run.
+ *
+ * @param page A page signed in as the administrator.
+ * @return The new session's post id.
+ */
+const seedSession = async ( page: Page ): Promise< number > => {
+	const nonce = (
+		await (
+			await page.request.get(
+				'/wp-admin/admin-ajax.php?action=rest-nonce'
+			)
+		).text()
+	).trim();
+	const created = await page.request.post( COLLECTION, {
+		headers: { 'X-WP-Nonce': nonce },
+		data: sessionBody,
+	} );
+	expect( created.status() ).toBe( 201 );
+
+	return ( await created.json() ).id as number;
+};
+
 /** A finished target-drop run, enough for the summary to derive its verdict. */
 const sessionBody = {
 	status: 'publish',
@@ -89,7 +121,7 @@ const sessionBody = {
 };
 
 test.describe( 'Stored-session detail screen', () => {
-	test( 'renders the summary postcard on the native edit screen, no PHP notices', async ( {
+	test( 'renders the summary postcard on its admin page, no PHP notices', async ( {
 		page,
 	} ) => {
 		const consoleErrors: string[] = [];
@@ -102,25 +134,11 @@ test.describe( 'Stored-session detail screen', () => {
 			consoleErrors.push( error.message );
 		} );
 
-		// Seed a session through the post type's own REST collection, the way the
-		// cockpit uploads a finished run.
-		const nonce = (
-			await (
-				await page.request.get(
-					'/wp-admin/admin-ajax.php?action=rest-nonce'
-				)
-			).text()
-		).trim();
-		const created = await page.request.post( COLLECTION, {
-			headers: { 'X-WP-Nonce': nonce },
-			data: sessionBody,
-		} );
-		expect( created.status() ).toBe( 201 );
-		const id = ( await created.json() ).id as number;
+		const id = await seedSession( page );
 
-		// Open the session at its native admin edit URL — the flow a listing row
-		// click follows.
-		await page.goto( `/wp-admin/post.php?post=${ id }&action=edit` );
+		// Open the session at its admin page URL — the flow a listing row click
+		// follows.
+		await page.goto( detailUrl( id ) );
 
 		// The admin chrome renders around the custom display: a half-built header
 		// (the early-pass regression) would drop these.
@@ -191,5 +209,54 @@ test.describe( 'Stored-session detail screen', () => {
 
 		expect( await page.content() ).not.toMatch( PHP_NOTICE );
 		expect( consoleErrors ).toEqual( [] );
+	} );
+
+	test( 'has no menu item of its own and keeps Sessions highlighted', async ( {
+		page,
+	} ) => {
+		const id = await seedSession( page );
+		await page.goto( detailUrl( id ) );
+
+		const submenu = page.locator( '#adminmenu .wp-submenu' );
+
+		// The page is registered, so its URL works, but it is not in the menu.
+		await expect( submenu.getByText( 'Benchmark Session' ) ).toHaveCount(
+			0
+		);
+		await expect(
+			submenu.locator( 'a[href$="page=bsbench-session"]' )
+		).toHaveCount( 0 );
+
+		// The Sessions item is the current one while the detail page shows.
+		await expect( submenu.locator( 'li.current a' ) ).toHaveText(
+			'Sessions'
+		);
+	} );
+
+	test( 'answers 404 for an unknown session', async ( { page } ) => {
+		const response = await page.goto( detailUrl( 99999999 ) );
+
+		expect( response?.status() ).toBe( 404 );
+		await expect(
+			page.getByText( 'Session not found' ).first()
+		).toBeVisible();
+		expect( await page.content() ).not.toMatch( PHP_NOTICE );
+	} );
+
+	test( 'opens from a row of the Sessions listing', async ( { page } ) => {
+		const id = await seedSession( page );
+		await page.goto( '/wp-admin/admin.php?page=bsbench-sessions' );
+
+		const row = page.locator(
+			`#bsb-sessions-app .dataviews-view-table__row:has([data-bsb-id="${ id }"])`
+		);
+		await expect( row ).toBeVisible();
+		// Click the row body, away from its checkbox, actions and title button.
+		await row.locator( 'td' ).nth( 3 ).click();
+
+		await expect( page ).toHaveURL(
+			new RegExp( `page=bsbench-session&bsbenchSessionId=${ id }$` )
+		);
+		await expect( page.locator( '.bsb-session-detail' ) ).toBeVisible();
 	} );
 } );

@@ -10,6 +10,7 @@ namespace ErdemBircan\BatterySurfBench\Content;
 use ErdemBircan\BatterySurfBench\Cockpit\SummaryReasons;
 use ErdemBircan\BatterySurfBench\Cockpit\Views\SessionDetailView;
 use ErdemBircan\BatterySurfBench\Core\Assets;
+use ErdemBircan\BatterySurfBench\Support\AllowedHtml;
 use ErdemBircan\BatterySurfBench\Support\CapabilityInterface;
 use ErdemBircan\BatterySurfBench\Support\Manager;
 use WP_Post;
@@ -17,42 +18,69 @@ use WP_Post;
 use function __;
 use function add_action;
 use function add_filter;
+use function add_submenu_page;
 use function admin_url;
-use function did_action;
+use function esc_html__;
+use function esc_url;
+use function filter_input;
 use function generate_block_asset_handle;
 use function get_current_screen;
+use function get_post;
 use function get_post_meta;
+use function is_int;
+use function is_string;
+use function remove_submenu_page;
+use function wp_die;
 use function wp_enqueue_script_module;
-use function wp_interactivity_data_wp_context;
+use function wp_kses;
 
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Renders the summary postcard on each session's native admin edit screen.
+ * Shows one stored session's summary postcard on its own admin page.
  *
- * Sessions have a native admin UI (see {@see SessionType}) but no useful block
- * editor, so this route replaces the editor with the run-summary postcard: the
- * `replace_editor` filter swaps the editor body for the detail view while the
- * admin chrome (menu, toolbar, footer) renders around it, so a session opens
- * through the ordinary WordPress flow — click a row in the listing, land on the
- * post's own admin URL — but shows a custom display.
+ * Sessions have no native admin screens (see {@see SessionType}), so this
+ * manager registers a page under the plugin menu, hidden from the menu itself,
+ * at `admin.php?page=<slug>&<param>=<id>`. The listing opens each row there.
+ * WordPress prints the admin chrome around it like any other plugin page; this
+ * page prints only the postcard, and keeps **Sessions** highlighted in the menu
+ * while it shows.
  *
  * The view is the live cockpit's summary card ({@see SessionDetailView}) running
- * on the `battery-surf-bench/cockpit` Interactivity store: this route seeds the run's frozen
- * readouts onto the per-instance context from the stored meta and enqueues the
- * cockpit's view module so the card hydrates, rebuilds the drain graph and
- * auto-flips itself — the same component the dashboard shows at run end.
+ * on the `battery-surf-bench/cockpit` Interactivity store: this page seeds the
+ * run's frozen readouts onto the per-instance context from the stored meta and
+ * enqueues the cockpit's view module so the card hydrates, rebuilds the drain
+ * graph and auto-flips itself — the same component the dashboard shows at run
+ * end.
  */
 class SessionDetail implements Manager {
 
 	/**
-	 * Stores everything needed to gate, style and render a session detail screen.
+	 * The admin page hook the page renders on, captured at registration so assets
+	 * only load there and the menu highlight can tell the page apart.
+	 *
+	 * @var string
+	 */
+	private string $hook_suffix = '';
+
+	/**
+	 * The id of the session the page is showing, resolved when the page loads.
+	 *
+	 * @var int
+	 */
+	private int $session_id = 0;
+
+	/**
+	 * Stores everything needed to place, gate, style and render a session detail page.
 	 *
 	 * @param string              $post_type   Post type sessions are stored as.
 	 * @param string              $meta_prefix Prefix every session meta key carries.
 	 * @param CapabilityInterface $capability  Capability required to view a session.
 	 * @param string              $block_name  Cockpit block name, for its view-module handle.
-	 * @param string              $screen_slug Listing screen slug the back link points at.
+	 * @param string              $parent_slug Slug of the plugin menu the page is registered under.
+	 * @param string              $page_slug   Slug that identifies the detail page.
+	 * @param string              $screen_slug Listing screen slug the back link points at and the menu highlight falls on.
+	 * @param string              $param       URL parameter carrying the session id.
 	 * @param string              $style       Stylesheet carrying the postcard styles (the cockpit stylesheet), relative to the plugin root.
 	 * @param SessionDetailView   $view        View that renders the summary postcard body.
 	 * @param Assets              $assets      Service used to enqueue the detail stylesheet.
@@ -62,7 +90,10 @@ class SessionDetail implements Manager {
 		private string $meta_prefix,
 		private CapabilityInterface $capability,
 		private string $block_name,
+		private string $parent_slug,
+		private string $page_slug,
 		private string $screen_slug,
+		private string $param,
 		private string $style,
 		private SessionDetailView $view,
 		private Assets $assets
@@ -70,78 +101,126 @@ class SessionDetail implements Manager {
 	}
 
 	/**
-	 * Hooks the editor replacement and the screen's assets. `replace_editor` runs
-	 * on the post edit screen; the asset enqueue is gated to that same screen.
+	 * Hooks the page registration, its removal from the menu, the menu highlight
+	 * and the page's assets into the admin lifecycle.
 	 *
 	 * @return void
 	 */
 	public function register(): void {
-		add_filter( 'replace_editor', array( $this, 'maybe_render' ), 10, 2 );
+		add_action( 'admin_menu', array( $this, 'add_page' ) );
+		add_action( 'admin_head', array( $this, 'hide_page' ) );
+		add_filter( 'submenu_file', array( $this, 'highlight_listing' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue' ) );
 	}
 
 	/**
-	 * Replaces the editor with the session's summary postcard when editing a
-	 * session. Renders the admin header itself (the editor includes normally print
-	 * it, and they are skipped here), then the detail body; returning true tells
-	 * `post.php` the editor was replaced, so it prints the admin footer and stops.
-	 * For any other post type the editor is left untouched.
+	 * Adds the detail page under the plugin menu and records its hook, so assets
+	 * load only there and the page resolves its session before any output.
 	 *
-	 * @param bool    $replace Whether the editor has already been replaced.
-	 * @param WP_Post $post    The post being edited.
-	 * @return bool Whether the editor was replaced.
+	 * @return void
 	 */
-	public function maybe_render( bool $replace, WP_Post $post ): bool {
-		if ( $post->post_type !== $this->post_type || ! $this->capability->allows() ) {
-			return $replace;
+	public function add_page(): void {
+		$hook_suffix = add_submenu_page(
+			$this->parent_slug,
+			__( 'Benchmark Session', 'battery-surf-bench' ),
+			__( 'Benchmark Session', 'battery-surf-bench' ),
+			$this->capability->slug(),
+			$this->page_slug,
+			array( $this, 'render' )
+		);
+
+		$this->hook_suffix = is_string( $hook_suffix ) ? $hook_suffix : '';
+
+		if ( '' !== $this->hook_suffix ) {
+			add_action( 'load-' . $this->hook_suffix, array( $this, 'load' ) );
 		}
-
-		// `replace_editor` is applied twice: once early while WordPress sets up the
-		// screen (in WP_Screen, before the `current_screen` action) merely to decide
-		// block vs. classic editor, and once on the real edit pass in `post.php`.
-		// Claim the replacement on both (so the block editor is never set up), but
-		// render only on the real pass — rendering on the setup pass would output
-		// the admin header before the menu, cookies and screen are ready, sending
-		// output too early and leaving the chrome half-built.
-		if ( ! did_action( 'current_screen' ) ) {
-			return true;
-		}
-
-		// Blank the admin footer text on this screen only — the postcard fills the
-		// whole panel, so the "Thank you for creating with WordPress" and version
-		// lines have no place here. The footer element still renders (its
-		// `admin_print_footer_scripts` is what prints the Interactivity module that
-		// hydrates the card); only its wording is cleared.
-		add_filter( 'admin_footer_text', '__return_empty_string', 11 );
-		add_filter( 'update_footer', '__return_empty_string', 11 );
-
-		require_once ABSPATH . 'wp-admin/admin-header.php';
-
-		// The view returns finished, trusted markup — escaped slots and the seeded
-		// context attribute — that no WordPress escaper can be applied to without
-		// breaking it.
-		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- trusted view-rendered markup; see comment above.
-		echo $this->view->render( $this->view_data( $post->ID ) );
-
-		return true;
 	}
 
 	/**
-	 * Enqueues the detail stylesheet and the cockpit view module on a session's
-	 * edit screen, so the postcard is styled and hydrates. A no-op on every other
-	 * admin screen.
+	 * Takes the detail page out of the plugin menu. The page stays registered, so
+	 * its URL keeps working and WordPress still gates it by capability; it only
+	 * has no menu item of its own. Runs on `admin_head`, after WordPress has
+	 * resolved the requested page against the menu.
+	 *
+	 * @return void
+	 */
+	public function hide_page(): void {
+		remove_submenu_page( $this->parent_slug, $this->page_slug );
+	}
+
+	/**
+	 * Keeps the listing's menu item highlighted while the detail page shows, since
+	 * the page has no item of its own to highlight.
+	 *
+	 * @param string|null $submenu_file The submenu file WordPress would highlight.
+	 * @return string|null The listing's slug on the detail page, otherwise the file unchanged.
+	 */
+	public function highlight_listing( $submenu_file ) {
+		$screen = get_current_screen();
+
+		if ( null !== $screen && '' !== $this->hook_suffix && $screen->id === $this->hook_suffix ) {
+			return $this->screen_slug;
+		}
+
+		return $submenu_file;
+	}
+
+	/**
+	 * Resolves the requested session when the detail page loads, before WordPress
+	 * prints anything. An unknown id, or an id of some other post type, ends the
+	 * request with a 404 page that links back to the listing. Also blanks the
+	 * admin footer text on this page only: the postcard fills the whole panel, so
+	 * the "Thank you for creating with WordPress" and version lines have no place
+	 * here. The footer element still renders (its `admin_print_footer_scripts` is
+	 * what prints the Interactivity module that hydrates the card); only its
+	 * wording is cleared.
+	 *
+	 * @return void
+	 */
+	public function load(): void {
+		$session_id = filter_input( INPUT_GET, $this->param, FILTER_VALIDATE_INT );
+		$session    = is_int( $session_id ) ? get_post( $session_id ) : null;
+
+		if ( ! $session instanceof WP_Post || $session->post_type !== $this->post_type ) {
+			wp_die(
+				esc_html__( 'That benchmark session doesn’t exist. It may have been deleted.', 'battery-surf-bench' ),
+				esc_html__( 'Session not found', 'battery-surf-bench' ),
+				array(
+					'response'  => 404,
+					'link_url'  => esc_url( admin_url( 'admin.php?page=' . $this->screen_slug ) ),
+					'link_text' => esc_html__( 'Back to sessions', 'battery-surf-bench' ),
+				)
+			);
+
+			return;
+		}
+
+		$this->session_id = $session->ID;
+
+		add_filter( 'admin_footer_text', '__return_empty_string', 11 );
+		add_filter( 'update_footer', '__return_empty_string', 11 );
+	}
+
+	/**
+	 * Prints the detail page: the session's summary postcard, inside the admin
+	 * chrome WordPress prints around it.
+	 *
+	 * @return void
+	 */
+	public function render(): void {
+		echo wp_kses( $this->view->render( $this->view_data( $this->session_id ) ), AllowedHtml::tags() );
+	}
+
+	/**
+	 * Enqueues the detail stylesheet and the cockpit view module on the detail
+	 * page, so the postcard is styled and hydrates. A no-op on every other admin
+	 * screen.
 	 *
 	 * @param string $hook_suffix The current admin page's hook suffix.
 	 * @return void
 	 */
 	public function enqueue( string $hook_suffix ): void {
-		if ( 'post.php' !== $hook_suffix ) {
-			return;
-		}
-
-		$screen = get_current_screen();
-
-		if ( null === $screen || $screen->post_type !== $this->post_type ) {
+		if ( '' === $this->hook_suffix || $hook_suffix !== $this->hook_suffix ) {
 			return;
 		}
 
@@ -159,7 +238,7 @@ class SessionDetail implements Manager {
 	 */
 	private function view_data( int $session_id ): array {
 		return array(
-			'context'            => wp_interactivity_data_wp_context( $this->context_for( $session_id ) ),
+			'context'            => $this->context_for( $session_id ),
 			'greeting_lead'      => __( 'Greetings from', 'battery-surf-bench' ),
 			'brand_title'        => __( 'Battery Surf Bench', 'battery-surf-bench' ),
 			'summary_brand'      => __( 'BATTERY · SURF · BENCH', 'battery-surf-bench' ),

@@ -743,7 +743,9 @@ test.describe( 'Dev-tools battery-override panel', () => {
 		expect( created.status() ).toBe( 201 );
 		const id = ( await created.json() ).id as number;
 
-		await page.goto( `/wp-admin/post.php?post=${ id }&action=edit` );
+		await page.goto(
+			`/wp-admin/admin.php?page=bsbench-session&bsbenchSessionId=${ id }`
+		);
 
 		await expect( page.locator( '.bsb-devtools' ) ).not.toBeAttached();
 

@@ -38,4 +38,21 @@ final class Template {
 
 		return str_ends_with( $output, "\n" ) ? substr( $output, 0, -1 ) : $output;
 	}
+
+	/**
+	 * Prints a template file with the given values straight to the output,
+	 * without buffering it. For a whole document that carries
+	 * `wp_head()`/`wp_footer()` output, which can't be captured and run through
+	 * `wp_kses()`. Unlike {@see Template::render()}, the file's final newline is
+	 * printed too.
+	 *
+	 * @param string               $file Absolute path of the template file.
+	 * @param array<string, mixed> $args Raw values the template escapes and prints, keyed by name.
+	 * @return void
+	 */
+	public static function display( string $file, array $args = array() ): void {
+		( static function () use ( $file, $args ): void {
+			require $file;
+		} )();
+	}
 }

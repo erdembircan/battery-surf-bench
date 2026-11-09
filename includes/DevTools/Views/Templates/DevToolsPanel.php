@@ -20,6 +20,8 @@
  *       (pre-escaped markup).
  */
 
+use ErdemBircan\BatterySurfBench\Support\AllowedHtml;
+
 defined( 'ABSPATH' ) || exit;
 ?>
 <div class="bsb-devtools" data-wp-interactive="battery-surf-bench/cockpit" data-wp-watch---devtools-persist="callbacks.devtoolsPersist" data-wp-watch---devtools-surf-run="callbacks.devtoolsSyncSurfRun" data-wp-init---devtools-surf="callbacks.devtoolsInitSurf" data-devtools-course-slugs="<?php echo esc_attr( $args['course_slugs_json'] ); ?>">
@@ -127,7 +129,7 @@ defined( 'ABSPATH' ) || exit;
 						</div>
 
 						<div class="bsb-devtools__chips">
-							<?php echo $args['surf_chips']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- trusted pre-escaped view markup. ?>
+							<?php echo wp_kses( $args['surf_chips'], AllowedHtml::tags() ); ?>
 
 						</div>
 					</div>

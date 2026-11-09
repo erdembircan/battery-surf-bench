@@ -14,10 +14,12 @@
  *       (text), `unsupported_browse` (text).
  */
 
+use ErdemBircan\BatterySurfBench\Support\AllowedHtml;
+
 defined( 'ABSPATH' ) || exit;
 ?>
 <div class="bsb-cockpit__postcard-side bsb-cockpit__postcard-side--guide" data-wp-bind--hidden="state.isBatteryUnsupported">
-			<?php echo $args['frank_blank']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- trusted pre-escaped view markup. ?>
+			<?php echo wp_kses( $args['frank_blank'], AllowedHtml::tags() ); ?>
 
 			<div class="bsb-cockpit__postcard-note">
 				<h2 class="bsb-cockpit__postcard-heading"><?php echo esc_html( $args['idle_heading'] ); ?></h2>
@@ -32,7 +34,7 @@ defined( 'ABSPATH' ) || exit;
 			</div>
 		</div>
 		<div class="bsb-cockpit__postcard-side bsb-cockpit__postcard-side--warning" hidden data-wp-bind--hidden="!state.isBatteryUnsupported">
-			<?php echo $args['frank_warning']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- trusted pre-escaped view markup. ?>
+			<?php echo wp_kses( $args['frank_warning'], AllowedHtml::tags() ); ?>
 
 			<div class="bsb-cockpit__postcard-note bsb-cockpit__postcard-note--warning">
 				<h2 class="bsb-cockpit__postcard-heading"><?php echo esc_html( $args['unsupported_head'] ); ?></h2>

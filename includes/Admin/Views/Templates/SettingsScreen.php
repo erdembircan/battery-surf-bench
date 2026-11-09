@@ -7,10 +7,12 @@
  * @var array<string, mixed> $args Keys read: `header` (pre-escaped markup).
  */
 
+use ErdemBircan\BatterySurfBench\Support\AllowedHtml;
+
 defined( 'ABSPATH' ) || exit;
 ?>
 <div class="bsb-settings">
-	<?php echo $args['header']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- trusted pre-escaped view markup. ?>
+	<?php echo wp_kses( $args['header'], AllowedHtml::tags() ); ?>
 
 	<div id="bsb-settings-app"></div>
 </div>

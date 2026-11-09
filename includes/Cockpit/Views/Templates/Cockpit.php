@@ -4,8 +4,8 @@
  *
  * @package ErdemBircan\BatterySurfBench
  *
- * @var array<string, mixed> $args Keys read: `wrapper` (pre-escaped markup),
- *       `context` (pre-escaped markup), `brand_title` (text), `brand_subtitle`
+ * @var array<string, mixed> $args Keys read: `wrapper_class` (attribute value),
+ *       `context` (attribute value), `brand_title` (text), `brand_subtitle`
  *       (text), `compact_label` (attribute value), `sound_label` (attribute
  *       value), `mode_label` (attribute value and text), `duration_mode` (text),
  *       `target_drop_mode` (text), `duration_label` (text), `decrease_label`
@@ -20,9 +20,11 @@
  *       `toast_dismiss_label` (attribute value).
  */
 
+use ErdemBircan\BatterySurfBench\Support\AllowedHtml;
+
 defined( 'ABSPATH' ) || exit;
 ?>
-<div <?php echo $args['wrapper']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped by get_block_wrapper_attributes(). ?> data-wp-interactive="battery-surf-bench/cockpit" <?php echo $args['context']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped by wp_interactivity_data_wp_context(). ?> data-wp-init---battery="callbacks.initBattery" data-wp-init---wake-lock="callbacks.initWakeLock" data-wp-init---sound="callbacks.initSound" data-wp-init---page-advance="callbacks.initPageAdvance" data-wp-init---exit-guard="callbacks.initExitGuard" data-wp-init---bark="callbacks.initBark" data-wp-init---shark="callbacks.initShark" data-wp-watch---run-activity="callbacks.syncRunActivity" data-wp-watch---viewport-watchdog="callbacks.syncViewportWatchdog" data-wp-watch---devtools-battery="callbacks.syncBatteryOverride" data-wp-watch---devtools-surf="callbacks.syncDevtoolsSurf" data-wp-watch---shark-compact="callbacks.syncSharkCompact" data-wp-watch---devtools-shark="callbacks.syncDevtoolsShark" data-wp-class--is-compact="state.isCompact" data-wp-class--is-deck-shown="state.isDeckShown">
+<div class="<?php echo esc_attr( $args['wrapper_class'] ); ?>" data-wp-interactive="battery-surf-bench/cockpit" data-wp-context="<?php echo esc_attr( $args['context'] ); ?>" data-wp-init---battery="callbacks.initBattery" data-wp-init---wake-lock="callbacks.initWakeLock" data-wp-init---sound="callbacks.initSound" data-wp-init---page-advance="callbacks.initPageAdvance" data-wp-init---exit-guard="callbacks.initExitGuard" data-wp-init---bark="callbacks.initBark" data-wp-init---shark="callbacks.initShark" data-wp-watch---run-activity="callbacks.syncRunActivity" data-wp-watch---viewport-watchdog="callbacks.syncViewportWatchdog" data-wp-watch---devtools-battery="callbacks.syncBatteryOverride" data-wp-watch---devtools-surf="callbacks.syncDevtoolsSurf" data-wp-watch---shark-compact="callbacks.syncSharkCompact" data-wp-watch---devtools-shark="callbacks.syncDevtoolsShark" data-wp-class--is-compact="state.isCompact" data-wp-class--is-deck-shown="state.isDeckShown">
 	<aside class="bsb-cockpit__deck">
 		<header class="bsb-deck__brand">
 			<span class="bsb-deck__mark" aria-hidden="true"></span>
@@ -51,9 +53,9 @@ defined( 'ABSPATH' ) || exit;
 					<button type="button" class="bsb-stepper__btn" data-step="-5" data-wp-on--click="actions.stepDuration" aria-label="<?php echo esc_attr( $args['decrease_label'] ); ?>">&minus;</button>
 					<span class="bsb-stepper__readout">
 						<span class="bsb-odometer" data-wp-watch="callbacks.rollDuration" aria-hidden="true">
-							<span class="bsb-odometer__wheel bsb-odometer__wheel--lead is-collapsed"><span class="bsb-odometer__strip"><?php echo $args['odometer_cells']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- trusted pre-escaped view markup. ?></span></span>
-							<span class="bsb-odometer__wheel bsb-odometer__wheel--lead is-collapsed"><span class="bsb-odometer__strip"><?php echo $args['odometer_cells']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- trusted pre-escaped view markup. ?></span></span>
-							<span class="bsb-odometer__wheel"><span class="bsb-odometer__strip"><?php echo $args['odometer_cells']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- trusted pre-escaped view markup. ?></span></span>
+							<span class="bsb-odometer__wheel bsb-odometer__wheel--lead is-collapsed"><span class="bsb-odometer__strip"><?php echo wp_kses( $args['odometer_cells'], AllowedHtml::tags() ); ?></span></span>
+							<span class="bsb-odometer__wheel bsb-odometer__wheel--lead is-collapsed"><span class="bsb-odometer__strip"><?php echo wp_kses( $args['odometer_cells'], AllowedHtml::tags() ); ?></span></span>
+							<span class="bsb-odometer__wheel"><span class="bsb-odometer__strip"><?php echo wp_kses( $args['odometer_cells'], AllowedHtml::tags() ); ?></span></span>
 						</span>
 						<span class="bsb-stepper__sr" data-wp-text="state.durationDisplay"></span>
 						<span class="bsb-stepper__unit"><?php echo esc_html( $args['minutes_label'] ); ?></span>
@@ -76,7 +78,7 @@ defined( 'ABSPATH' ) || exit;
 				</div>
 			</section>
 
-			<?php echo $args['surfer_field']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- trusted pre-escaped view markup. ?>
+			<?php echo wp_kses( $args['surfer_field'], AllowedHtml::tags() ); ?>
 
 
 			<section class="bsb-field">
@@ -90,9 +92,9 @@ defined( 'ABSPATH' ) || exit;
 			</div>
 
 			<div class="bsb-deck__status">
-			<?php echo $args['status_head']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- trusted pre-escaped view markup. ?>
+			<?php echo wp_kses( $args['status_head'], AllowedHtml::tags() ); ?>
 
-			<?php echo $args['pill_body']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- trusted pre-escaped view markup. ?>
+			<?php echo wp_kses( $args['pill_body'], AllowedHtml::tags() ); ?>
 
 			</div>
 			</div>
@@ -113,10 +115,10 @@ defined( 'ABSPATH' ) || exit;
 			<div class="bsb-deck__status">
 				<div class="bsb-cockpit__lockup">
 					<span class="bsb-cockpit__brandmark"><?php echo esc_html( $args['brand_title'] ); ?></span>
-				<?php echo $args['status_head']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- trusted pre-escaped view markup. ?>
+				<?php echo wp_kses( $args['status_head'], AllowedHtml::tags() ); ?>
 
 				</div>
-			<?php echo $args['pill_body']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- trusted pre-escaped view markup. ?>
+			<?php echo wp_kses( $args['pill_body'], AllowedHtml::tags() ); ?>
 
 				<div class="bsb-deck__readout-ctrl">
 					<button type="button" class="bsb-deck__readout-stop" data-wp-on--click="actions.toggleRun"><?php echo esc_html( $args['stop_label'] ); ?></button>
@@ -126,7 +128,7 @@ defined( 'ABSPATH' ) || exit;
 			</div>
 		</div>
 		<div class="bsb-cockpit__idle" data-wp-bind--hidden="state.isRunning">
-			<?php echo $args['idle_card']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- trusted pre-escaped view markup. ?>
+			<?php echo wp_kses( $args['idle_card'], AllowedHtml::tags() ); ?>
 
 		</div>
 		<div class="bsb-cockpit__viewport-wrap" hidden data-wp-bind--hidden="state.isIdle" data-wp-on--pointerenter="actions.viewportEnter">
@@ -146,7 +148,7 @@ defined( 'ABSPATH' ) || exit;
 		</div>
 	</div>
 
-	<?php echo $args['summary']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- trusted pre-escaped view markup. ?>
+	<?php echo wp_kses( $args['summary'], AllowedHtml::tags() ); ?>
 
 
 	<div class="bsb-cockpit__toast-layer">
