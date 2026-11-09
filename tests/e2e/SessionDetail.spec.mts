@@ -237,9 +237,15 @@ test.describe( 'Stored-session detail screen', () => {
 		const response = await page.goto( detailUrl( 99999999 ) );
 
 		expect( response?.status() ).toBe( 404 );
+		// The error page carries the title in the document head and the message
+		// with a link back to the listing in its body.
+		await expect( page ).toHaveTitle( /Session not found/ );
 		await expect(
-			page.getByText( 'Session not found' ).first()
+			page.getByText( /That benchmark session/ )
 		).toBeVisible();
+		await expect(
+			page.getByRole( 'link', { name: 'Back to sessions' } )
+		).toHaveAttribute( 'href', /page=bsbench-sessions/ );
 		expect( await page.content() ).not.toMatch( PHP_NOTICE );
 	} );
 
