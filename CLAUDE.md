@@ -306,7 +306,7 @@ When you notice a defect — a bug, a failing or skipped test, a lint violation,
 
 Every plugin build, zip and local site starts from a Composer script. `composer.json` lists each one's steps in order, so the whole sequence reads in one place:
 
-- **`composer build:development`** and **`composer build:production`** run `composer check` (every PHP and JS lint, type check and unit test, plus the chart and license checks), then compile the bundles and assemble the plugin in `dist/battery-surf-bench/`. The production build leaves the dev-tools panel out: webpack compiles it, and the dev-tools code in the cockpit and the surfer, out of the bundles (the `BSB_DEV_TOOLS` flag, see `src/BuildFlags.d.ts`), and the assembly drops its PHP.
+- **`composer build:development`** and **`composer build:production`** run `composer check` (every PHP and JS lint, type check and unit test, plus the chart, blueprint and license checks), then compile the bundles and assemble the plugin in `dist/battery-surf-bench/`. The production build leaves the dev-tools panel out: webpack compiles it, and the dev-tools code in the cockpit and the surfer, out of the bundles (the `BSB_DEV_TOOLS` flag, see `src/BuildFlags.d.ts`), and the assembly drops its PHP.
 - **`composer zip:development`** and **`composer zip:production`** run the matching build, zip `dist/battery-surf-bench/` into `zip/`, and check the zip with `package:verify`. `zip/battery-surf-bench.zip` is the one WordPress.org gets; never upload `zip/battery-surf-bench-development.zip`.
 - **`composer serve:development`** starts the development site: the watch build, Playground with the dev tools, and live reload. **`composer serve:production`** builds the production plugin and serves it on a fresh Playground site, signed in as the admin, so a production build can be tried without a zip.
 
@@ -324,6 +324,7 @@ WordPress.org's SVN repository is the live release channel: what lands in it rea
 - **To rehearse,** run the workflow by hand (`gh workflow run deploy.yml`). A manual run is always a dry run: it builds and stages everything and shows SVN's status in the log, but commits nothing.
 - **The SVN credentials** are the `SVN_USERNAME` and `SVN_PASSWORD` secrets of the `wordpress-org` GitHub environment, readable only by the deploy job. Never move them to repository secrets or print them.
 - **Readme and artwork changes** reach the plugin page only with the next release; there is no separate asset deploy.
+- **The Live Preview blueprint** is `.wordpress-org/blueprints/blueprint.json`. The deploy copies it to SVN `assets/blueprints/` with the rest of `.wordpress-org/`, and WordPress.org reads it there for the Live Preview button on the plugin page, so like the readme and artwork, a change to it reaches that page only with the next release. The button shows only while a committer has Live Preview set to public on the plugin's Advanced page (`https://wordpress.org/plugins/battery-surf-bench/advanced/`), and that toggle stays locked while WordPress.org has no valid blueprint. `pnpm blueprint:verify` checks the file against WordPress.org's rules and Playground's blueprint schema. The repository README's Live Preview link loads the same file from `master`.
 
 ## CI — Wait for Every Check to Finish Green
 

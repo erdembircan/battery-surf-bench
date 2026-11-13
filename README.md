@@ -6,6 +6,8 @@
 
 **Find out how fast web surfing really drains your battery, with a benchmark that browses like a human instead of a script.**
 
+[![Live Preview in WordPress Playground](https://img.shields.io/badge/Live_Preview-WordPress_Playground-3858e9?logo=wordpress&logoColor=white)](https://playground.wordpress.net/?blueprint-url=https://raw.githubusercontent.com/erdembircan/battery-surf-bench/master/.wordpress-org/blueprints/blueprint.json)
+[![WordPress.org plugin](https://img.shields.io/wordpress/plugin/v/battery-surf-bench?label=WordPress.org&logo=wordpress)](https://wordpress.org/plugins/battery-surf-bench/)
 [![Master CI](https://github.com/erdembircan/battery-surf-bench/actions/workflows/merge-checks.yml/badge.svg)](https://github.com/erdembircan/battery-surf-bench/actions/workflows/merge-checks.yml)
 [![License: GPLv2 or later](https://img.shields.io/badge/license-GPLv2--or--later-blue.svg)](LICENSE)
 
@@ -30,9 +32,9 @@ A one-minute tour: the surfer at work, the live cockpit, and the postcard every 
 
 [WordPress Playground](https://playground.wordpress.net/) is the WordPress project's way of running a complete WordPress site in a browser tab: PHP compiled to WebAssembly, with the database kept in the browser too. Battery Surf Bench is built to be used there. One link starts a fresh site with the plugin installed and its cockpit open, with no server to rent, nothing to install and no account to create.
 
-**[Open Battery Surf Bench in WordPress Playground](https://playground.wordpress.net/?plugin=battery-surf-bench&url=/wp-admin/admin.php?page=bsbench-start-benchmark)**
+**[Live Preview: open Battery Surf Bench in WordPress Playground](https://playground.wordpress.net/?blueprint-url=https://raw.githubusercontent.com/erdembircan/battery-surf-bench/master/.wordpress-org/blueprints/blueprint.json)**
 
-The link installs the plugin from the WordPress.org plugin directory, so it works once the plugin is listed there.
+The link installs the plugin from its [WordPress.org plugin directory listing](https://wordpress.org/plugins/battery-surf-bench/), signs you in as the site's admin, and opens the cockpit.
 
 ### Why Playground
 
@@ -119,13 +121,13 @@ Fully translation-ready. Help translate Battery Surf Bench into your language on
 
 **In WordPress Playground** (the intended way):
 
-1. Open [Battery Surf Bench in WordPress Playground](https://playground.wordpress.net/?plugin=battery-surf-bench&url=/wp-admin/admin.php?page=bsbench-start-benchmark). The cockpit opens on a fresh site.
+1. Open the [Live Preview in WordPress Playground](https://playground.wordpress.net/?blueprint-url=https://raw.githubusercontent.com/erdembircan/battery-surf-bench/master/.wordpress-org/blueprints/blueprint.json). The cockpit opens on a fresh site.
 2. Unplug your laptop.
 3. Pick a surfer, pick a mode, and press start.
 
 **On your own WordPress site:**
 
-1. Install the plugin and activate it.
+1. Install [Battery Surf Bench from WordPress.org](https://wordpress.org/plugins/battery-surf-bench/) and activate it.
 2. Unplug your laptop.
 3. Open **Battery Surf Bench** in wp-admin (or hit **Start Benchmark** in the admin bar).
 4. Pick a surfer, pick a mode, and press start.
