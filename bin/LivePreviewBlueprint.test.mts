@@ -14,7 +14,7 @@ import {
 const SLUG = 'battery-surf-bench';
 
 const OBJECT_MESSAGE =
-	'It must be a JSON object: WordPress.org skips any other blueprint.';
+	'It must be a JSON object, the shape of a Playground blueprint.';
 
 const INSTALL_MESSAGE = `It has no installPlugin step that installs and activates ${ SLUG } from wordpress.org/plugins.`;
 
@@ -61,7 +61,7 @@ function sourceOfLength( bytes: number ): string {
 }
 
 describe( 'findBlueprintErrors', () => {
-	it( 'accepts the plugin blueprint', () => {
+	it( 'accepts a full blueprint shaped like the shipped one', () => {
 		const blueprint = {
 			$schema: 'https://playground.wordpress.net/blueprint-schema.json',
 			landingPage: '/wp-admin/admin.php?page=bsbench-start-benchmark',

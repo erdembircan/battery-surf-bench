@@ -5,9 +5,10 @@
  * quietly drops it and the plugin page loses its Live Preview button. These
  * checks fail the build instead.
  *
- * The WordPress.org rules mirror its plugin importer, which skips a blueprint
- * over 100 KB or one that isn't a JSON object. The shape is checked with
- * Playground's own blueprint schema. The blueprint must also install and
+ * The size limit mirrors WordPress.org's plugin importer, which skips a
+ * blueprint over 100 KB. The blueprint must be a JSON object, the shape
+ * Playground's own blueprint schema describes, and that schema checks the
+ * rest of its shape. The blueprint must also install and
  * activate the plugin itself: WordPress.org adds that step to the copy it
  * serves, but the README's Live Preview link loads the file straight from this
  * repository, where nothing adds it.
@@ -92,7 +93,7 @@ export function findBlueprintErrors(
 
 	if ( ! isRecord( parsed ) ) {
 		problems.push(
-			'It must be a JSON object: WordPress.org skips any other blueprint.'
+			'It must be a JSON object, the shape of a Playground blueprint.'
 		);
 
 		return problems;
