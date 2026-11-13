@@ -1,6 +1,6 @@
 # WordPress.org directory art
 
-The editable sources for the plugin's WordPress.org listing artwork. The exported PNGs live in `.wordpress-org/` at the repository root. Once releases are automated, the deploy action copies that folder into the plugin's SVN `assets/` directory.
+The editable sources for the plugin's WordPress.org listing artwork. The exported PNGs live in `.wordpress-org/` at the repository root. Each release's deploy (`.github/workflows/deploy.yml`) copies that folder into the plugin's SVN `assets/` directory, so a change to the art reaches the listing with the next release.
 
 | Source | Exports | Pixels |
 | --- | --- | --- |

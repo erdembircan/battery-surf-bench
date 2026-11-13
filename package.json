@@ -16,6 +16,7 @@
     "package:zip": "tsx bin/PackageZip.mts",
     "package:verify": "tsx bin/VerifyPackage.mts",
     "contracts:verify": "tsx bin/VerifyContracts.mts",
+    "release:version": "tsx bin/VerifyRelease.mts",
     "format": "wp-scripts format \"**/*.{js,cjs,mjs,ts,tsx,mts,cts}\"",
     "i18n:make-pot": "wp i18n make-pot . languages/battery-surf-bench.pot --slug=battery-surf-bench --domain=battery-surf-bench --exclude=build,dist,wp-playground,tests,playwright-report,test-results,.claude",
     "test": "vitest run",
