@@ -20,9 +20,7 @@ https://www.youtube.com/watch?v=X8CwzH_P4-g
 
 = Made for WordPress Playground =
 
-Battery Surf Bench is built to run in WordPress Playground, which runs a complete WordPress site, server and database included, inside your browser tab. Open this link and Playground starts a fresh site with the plugin installed and its cockpit open, with no server to rent, nothing to install and no account to create:
-
-https://playground.wordpress.net/?plugin=battery-surf-bench&url=/wp-admin/admin.php?page=bsbench-start-benchmark
+Battery Surf Bench is built to run in WordPress Playground, which runs a complete WordPress site, server and database included, inside your browser tab. [Try Battery Surf Bench in your browser](https://wordpress.org/plugins/battery-surf-bench/?preview=1): Playground starts a fresh site with the plugin installed and its cockpit open, with no server to rent, nothing to install and no account to create.
 
 A battery benchmark should be something anyone with a laptop can run, not only people who already run a WordPress site. It measures the device in front of you, so the whole test, site included, runs on that device. Every Playground starts from the same clean WordPress, which keeps results comparable across laptops and browsers and keeps benchmarking away from any real site you run. The site, its database and your recorded sessions stay in your browser.
 
@@ -156,7 +154,7 @@ In `vendor/`, each with its license file:
 
 == Installation ==
 
-The quickest way to run a benchmark is WordPress Playground, with nothing to install: open https://playground.wordpress.net/?plugin=battery-surf-bench&url=/wp-admin/admin.php?page=bsbench-start-benchmark, unplug your laptop, and start a benchmark from the cockpit.
+The quickest way to run a benchmark is WordPress Playground, with nothing to install: [try it in your browser](https://wordpress.org/plugins/battery-surf-bench/?preview=1), unplug your laptop, and start a benchmark from the cockpit.
 
 To install it on your own site:
 
