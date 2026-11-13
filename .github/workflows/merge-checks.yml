@@ -15,12 +15,7 @@ concurrency:
 
 jobs:
   checks:
-    permissions:
-      # The reusable i18n job commits the regenerated .pot back to master.
-      contents: write
     uses: ./.github/workflows/checks.yml
-    with:
-      commit-pot: true
 
   # The end-to-end suites from e2e.yml, the same ones PR Checks runs. They run
   # again here because other merges can land between a pull request's run and

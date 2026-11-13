@@ -3,16 +3,13 @@
  * consumes them: the compiled `@font-face` rules and their `unicode-range`s.
  *
  * The theme once shipped only the `latin` subset of each Fontsource family,
- * so letters outside Latin-1 — the Turkish ğ İ ı Ş ş of the tr_TR
- * translation — fell back to a system font mid-word. Every family/weight
- * must now declare a `latin` and a `latin-ext` face, each with a
- * `unicode-range`, and together those faces must cover every letter the
- * plugin's translations use. The letter set is read from `languages/*.po`,
- * so adding a translation that needs glyphs the fonts don't ship fails here
- * instead of in a screenshot.
+ * so letters outside Latin-1, such as the Turkish ğ İ ı Ş ş, fell back to a
+ * system font mid-word. Every family/weight must now declare a `latin` and a
+ * `latin-ext` face, each with a `unicode-range`, so the plugin's translations
+ * from translate.wordpress.org keep the theme's fonts in Turkish as well as in
+ * the Latin-1 languages.
  */
 
-import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { compile } from 'sass';
 import { describe, expect, it } from 'vitest';
@@ -21,7 +18,6 @@ const THEME_PARTIAL = path.resolve(
 	process.cwd(),
 	'src/styles/theme/_theme.scss'
 );
-const LANGUAGES_DIR = path.resolve( process.cwd(), 'languages' );
 
 /** The family/weight pairs the theme declares. */
 const DECLARED_FACES: ReadonlyArray< readonly [ string, number ] > = [
@@ -37,7 +33,7 @@ const DECLARED_FACES: ReadonlyArray< readonly [ string, number ] > = [
 /** The Turkish letters that fell back to a system font before the fix. */
 const TURKISH_LETTERS = [ 'ğ', 'Ğ', 'İ', 'ı', 'Ş', 'ş' ];
 
-/** Latin-1 letters from the other translations (de, es, fr, pt). */
+/** Latin-1 letters from German, Spanish, French and Portuguese. */
 const LATIN_1_LETTERS = [ 'ä', 'ß', 'ñ', 'é', 'ç', 'ã', 'ô', 'ü' ];
 
 type CodepointRange = readonly [ number, number ];
@@ -112,31 +108,6 @@ function covers( faces: FontFaceRule[], codepoint: number ): boolean {
 	);
 }
 
-/**
- * Every non-ASCII letter that appears in any shipped `.po` translation.
- *
- * @return The distinct letters, sorted.
- */
-function translatedLetters(): string[] {
-	const letters = new Set< string >();
-	for ( const file of readdirSync( LANGUAGES_DIR ) ) {
-		if ( ! file.endsWith( '.po' ) ) {
-			continue;
-		}
-		const text = readFileSync( path.join( LANGUAGES_DIR, file ), 'utf8' );
-		for ( const line of text.matchAll(
-			/^(?:msgstr(?:\[\d+\])?\s+)?"(.*)"$/gm
-		) ) {
-			for ( const char of line[ 1 ] ) {
-				if ( char.codePointAt( 0 )! > 0x7f && /\p{L}/u.test( char ) ) {
-					letters.add( char );
-				}
-			}
-		}
-	}
-	return [ ...letters ].sort();
-}
-
 const faces = parseFontFaces(
 	compile( THEME_PARTIAL, { loadPaths: [ path.dirname( THEME_PARTIAL ) ] } )
 		.css
@@ -199,16 +170,4 @@ describe( 'theme @font-face subsets', () => {
 			}
 		}
 	);
-
-	it( "covers every letter used by the plugin's translations", () => {
-		const letters = translatedLetters();
-		expect( letters.length ).toBeGreaterThan( 0 );
-		for ( const [ family, weight ] of DECLARED_FACES ) {
-			const own = facesFor( family, weight );
-			const missing = letters.filter(
-				( letter ) => ! covers( own, letter.codePointAt( 0 )! )
-			);
-			expect( missing, `${ family } ${ weight }` ).toEqual( [] );
-		}
-	} );
 } );

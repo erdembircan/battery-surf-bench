@@ -51,7 +51,7 @@ const debugStep: BlueprintV1Declaration[ 'steps' ] = [
  * later run in that language. An empty `WPLANG` is how WordPress stores en_US.
  * Uses `setSiteOptions` rather than `setSiteLanguage`, which would fetch a
  * translation package over the network. The plugin bundles no translations
- * (translate.wordpress.org serves them once it is listed), so another locale
+ * (translate.wordpress.org serves them as language packs), so another locale
  * shows WordPress itself translated and the plugin in English.
  */
 const siteLanguageStep: BlueprintV1Declaration[ 'steps' ] = [
