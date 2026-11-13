@@ -16,6 +16,7 @@
     "package:zip": "tsx bin/PackageZip.mts",
     "package:verify": "tsx bin/VerifyPackage.mts",
     "contracts:verify": "tsx bin/VerifyContracts.mts",
+    "blueprint:verify": "tsx bin/VerifyBlueprint.mts",
     "release:version": "tsx bin/VerifyRelease.mts",
     "format": "wp-scripts format \"**/*.{js,cjs,mjs,ts,tsx,mts,cts}\"",
     "test": "vitest run",

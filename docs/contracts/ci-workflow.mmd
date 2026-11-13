@@ -22,6 +22,7 @@ sequenceDiagram
         M->>M: pnpm typecheck
         M->>M: pnpm license:verify
         M->>M: pnpm contracts:verify (every contract chart parses in Mermaid)
+        M->>M: pnpm blueprint:verify (the Live Preview blueprint meets WordPress.org's rules and Playground's schema)
         M->>M: composer zip:production (composer check → production build → zip → package:verify) → Plugin Check Action on dist/battery-surf-bench (every check at every severity, warnings fail#59; separate job)
         M->>M: pnpm test:e2e (Playwright + WP Playground, authenticated server#59; separate job)
         M->>M: pnpm test:e2e:unauth (Playwright + WP Playground, login-free server#59; separate job)
@@ -40,6 +41,7 @@ sequenceDiagram
         M->>M: pnpm typecheck
         M->>M: pnpm license:verify
         M->>M: pnpm contracts:verify (every contract chart parses in Mermaid)
+        M->>M: pnpm blueprint:verify (the Live Preview blueprint meets WordPress.org's rules and Playground's schema)
         M->>M: composer zip:production (composer check → production build → zip → package:verify) → Plugin Check Action on dist/battery-surf-bench (every check at every severity, warnings fail#59; separate job)
         M->>M: pnpm test:e2e (Playwright + WP Playground, authenticated server#59; separate job)
         M->>M: pnpm test:e2e:unauth (Playwright + WP Playground, login-free server#59; separate job)
@@ -52,7 +54,7 @@ sequenceDiagram
         activate M
         M->>M: pnpm release:version (tag = plugin Version = readme Stable tag)
         M->>M: composer zip:production (composer check → production build → zip → package:verify)
-        M->>SVN: 10up/action-wordpress-plugin-deploy#58; dist/battery-surf-bench → trunk/ + tags/VERSION/, .wordpress-org/ → assets/
+        M->>SVN: 10up/action-wordpress-plugin-deploy#58; dist/battery-surf-bench → trunk/ + tags/VERSION/, .wordpress-org/ → assets/ (Live Preview blueprint included)
         deactivate M
         Note over Dev,SVN: Manual run (workflow_dispatch) — same steps as a dry run, nothing committed to SVN
     end

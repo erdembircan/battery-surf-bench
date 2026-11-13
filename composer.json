@@ -58,6 +58,7 @@
             "pnpm run lint:js",
             "pnpm run test",
             "pnpm run contracts:verify",
+            "pnpm run blueprint:verify",
             "pnpm run license:verify"
         ],
         "stage": [
