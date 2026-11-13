@@ -23,7 +23,6 @@ sequenceDiagram
         M->>M: pnpm license:verify
         M->>M: pnpm contracts:verify (every contract chart parses in Mermaid)
         M->>M: composer zip:production (composer check → production build → zip → package:verify) → Plugin Check Action on dist/battery-surf-bench (every check at every severity, warnings fail#59; separate job)
-        M->>M: pnpm i18n:make-pot (validate extraction, no commit)
         M->>M: pnpm test:e2e (Playwright + WP Playground, authenticated server#59; separate job)
         M->>M: pnpm test:e2e:unauth (Playwright + WP Playground, login-free server#59; separate job)
         deactivate M
@@ -42,7 +41,6 @@ sequenceDiagram
         M->>M: pnpm license:verify
         M->>M: pnpm contracts:verify (every contract chart parses in Mermaid)
         M->>M: composer zip:production (composer check → production build → zip → package:verify) → Plugin Check Action on dist/battery-surf-bench (every check at every severity, warnings fail#59; separate job)
-        M->>M: pnpm i18n:make-pot → commit .pot to master (WP-CLI, EndBug/add-and-commit)
         M->>M: pnpm test:e2e (Playwright + WP Playground, authenticated server#59; separate job)
         M->>M: pnpm test:e2e:unauth (Playwright + WP Playground, login-free server#59; separate job)
         deactivate M

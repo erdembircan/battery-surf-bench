@@ -118,7 +118,7 @@ CSS class names, custom properties, `data-*` attributes and the `bsb:*` messages
 
 ## Translations — Never Bundled
 
-**The plugin ships no translation files.** WordPress.org serves its translations from translate.wordpress.org and rejects a plugin that bundles its own, so the zip carries no `languages/` folder, the plugin header has no `Domain Path`, and nothing calls `load_plugin_textdomain()` or passes a path to `wp_set_script_translations()` / `wp_set_script_module_translations()`: WordPress loads the language packs from its own language directory. The `.pot` and the `.po` files in `languages/` are sources for translate.wordpress.org, export-ignored and checked by `package:verify`. Never compile them into `.l10n.php`, `.mo` or `.json` files in the repository.
+**The plugin ships no translation files, and the repository keeps none.** WordPress.org serves the plugin's translations from translate.wordpress.org and rejects a plugin that bundles its own, so there is no `languages/` folder, the plugin header has no `Domain Path`, and nothing calls `load_plugin_textdomain()` or passes a path to `wp_set_script_translations()` / `wp_set_script_module_translations()`: WordPress loads the language packs from its own language directory. translate.wordpress.org reads the plugin's strings straight from the code committed to SVN, so it needs no `.pot` or `.po` files from this repository, and translations are made there, not here. Never add `.pot`, `.po`, `.mo`, `.l10n.php` or translation `.json` files; `package:verify` fails a zip that holds a `languages/` folder. PHPCS's `WordPress.WP.I18n` sniff and the `@wordpress/i18n-*` ESLint rules catch malformed translation calls.
 
 ## Single Light Theme — No Dark Mode
 
@@ -337,7 +337,7 @@ CI runs after every push to a pull request and after every merge. Before treatin
 
 When squash-merging a PR into `master`, **always provide an explicit commit subject and body** — never accept GitHub's auto-generated squash message.
 
-- **Why this matters.** GitHub's default squash message concatenates the message of *every* squashed commit into the body. If any of those commits carries a CI directive such as `[skip ci]` (common on docs/mockup commits), it lands in the merge commit message, and GitHub then **skips every workflow for that push to `master`** — merge checks, e2e, the i18n `.pot` regeneration, all of it — silently. The merge looks done, but nothing was validated and generated artifacts go stale.
+- **Why this matters.** GitHub's default squash message concatenates the message of *every* squashed commit into the body. If any of those commits carries a CI directive such as `[skip ci]` (common on docs/mockup commits), it lands in the merge commit message, and GitHub then **skips every workflow for that push to `master`** — merge checks, e2e, all of it — silently. The merge looks done, but nothing was validated.
 - **How.** Pass the message explicitly: `gh pr merge <n> --squash -t "[TYPE]: <description>" -b "<concise human summary>"` (or edit the squash message in the GitHub web UI before confirming). The subject follows the Conventional Commits format below; the body is a short hand-written summary, never the raw list of squashed commits.
 - **Never** let `[skip ci]` (or any other skip directive) reach a commit that will be squashed into `master`.
 

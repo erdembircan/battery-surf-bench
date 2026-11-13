@@ -15,8 +15,6 @@ concurrency:
 
 jobs:
   checks:
-    # commit-pot defaults to false, so PRs only validate the regenerated
-    # .pot -- the committed template is refreshed on merge, not here.
     uses: ./.github/workflows/checks.yml
 
   # The end-to-end suites from e2e.yml, once the checks pass, so a pull request
