@@ -292,6 +292,8 @@ When you notice a defect — a bug, a failing or skipped test, a lint violation,
   - a **documented, narrowly-scoped exclusion in `phpcs.xml.dist`** for a whole category (e.g. test-infrastructure rules in `tests/`).
   Every approved suppression names the rule and carries a justification.
 
+**CI's Plugin Check fails on any finding.** The `plugin-check` job runs WordPress Plugin Check on the production build with every check but the experimental ones, at every severity, and fails on warnings as well as errors. WordPress.org's upload form hides the lower-severity findings, but its reviewers still raise them: the `load_plugin_textdomain()` call they rejected was a severity-5 warning the form never showed. Plugin Check scans the built plugin, which carries no `phpcs.xml.dist`, so an exclusion there doesn't reach it. Fix what it reports; ignoring a check or an error code is the maintainer's call, as with PHPCS.
+
 ## Running Lints & Tests
 
 **Never pipe a lint or test command through `tail` (or `head`), or otherwise truncate its output.** This applies to every lint, test, and type-check command in the project.
