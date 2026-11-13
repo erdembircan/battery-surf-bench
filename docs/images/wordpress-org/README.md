@@ -1,6 +1,6 @@
 # WordPress.org directory art
 
-The editable sources for the plugin's WordPress.org listing artwork. The exported PNGs live in `.wordpress-org/` at the repository root. Each release's deploy (`.github/workflows/deploy.yml`) copies that folder into the plugin's SVN `assets/` directory, so a change to the art reaches the listing with the next release.
+The editable sources for the plugin's WordPress.org listing artwork. The exported PNGs live in `.wordpress-org/` at the repository root. Each release's deploy (`.github/workflows/deploy.yml`) copies that folder into the plugin's SVN `assets/` directory, so a change to the art reaches the listing with the next release. The repository's own `README.md` also shows `banner.svg` directly, so an edit to it changes the GitHub README as soon as it merges, while the listing changes only with re-exported PNGs and a release.
 
 | Source | Exports | Pixels |
 | --- | --- | --- |

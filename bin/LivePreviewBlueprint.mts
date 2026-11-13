@@ -10,8 +10,8 @@
  * Playground's own blueprint schema describes, and that schema checks the
  * rest of its shape. The blueprint must also install and
  * activate the plugin itself: WordPress.org adds that step to the copy it
- * serves, but Playground adds nothing when it loads the file straight from this
- * repository, so the file carries its own.
+ * serves, but the file carries its own so it also runs by itself, as when
+ * Playground loads it with `?blueprint-url=` to try a change before release.
  */
 
 import { validateBlueprint } from '@wp-playground/blueprints';
