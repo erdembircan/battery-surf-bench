@@ -81,21 +81,19 @@ jobs:
       # back before it ends, so the vendor/ cache, saved only after a green
       # job, never holds the lean tree.
       - run: composer zip:production
-      # The checks WordPress.org's upload form runs on a new plugin, with the
-      # form's settings: the plugin_repo category without prefixing, errors
-      # from severity 7 and warnings from severity 6. Like the form, the job
-      # fails on errors only and shows warnings as annotations. Plugin Check
-      # scans a folder rather than a zip: the plugin folder the zip holds,
-      # which the build leaves in dist/battery-surf-bench/.
+      # Every finding counts. With no categories and no severities, Plugin
+      # Check runs all of its checks except the experimental ones, prefixing
+      # included, and reports every error and warning whatever its severity.
+      # WordPress.org's upload form hides the lower-severity findings, but its
+      # reviewers still raise them. `strict` fails the job on any finding,
+      # warnings included. Plugin Check scans a folder rather than a zip: the
+      # plugin folder the zip holds, which the build leaves in
+      # dist/battery-surf-bench/.
       - uses: wordpress/plugin-check-action@v1
         with:
           build-dir: dist/battery-surf-bench
           slug: battery-surf-bench
-          categories: plugin_repo
-          exclude-checks: prefixing
-          error-severity: 7
-          warning-severity: 6
-          include-low-severity-errors: true
+          strict: true
           # Findings already show as annotations and in the job log, so skip the
           # action's PR comment, which the read-only token can't post anyway.
           repo-token: ''
