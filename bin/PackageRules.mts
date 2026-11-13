@@ -289,7 +289,7 @@ export function findPackageViolations(
 	for ( const entry of pluginEntries ) {
 		if ( TRANSLATION_FILE.test( entry ) ) {
 			violations.push(
-				`Translation file "${ entry }": WordPress.org serves the plugin's translations from translate.wordpress.org, so the zip must not bundle any. Remove it from the repository.`
+				`Translation file "${ entry }": WordPress.org serves the plugin's translations from translate.wordpress.org, so the zip must not bundle any. Delete the folder.`
 			);
 		}
 	}
