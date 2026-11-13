@@ -68,8 +68,8 @@ const FORBIDDEN_EXTENSIONS: readonly string[] = [
 /**
  * Bundled translations. WordPress.org serves the plugin's translations from
  * translate.wordpress.org, and its review rejects a plugin that ships its own,
- * so `.gitattributes` export-ignores the whole `languages/` folder and a zip
- * that holds any of it has slipped past that.
+ * so the repository keeps no `languages/` folder and a zip that holds one has
+ * picked up translation files that don't belong.
  */
 const TRANSLATION_FILE = /^languages(?:\/|$)/;
 
@@ -289,7 +289,7 @@ export function findPackageViolations(
 	for ( const entry of pluginEntries ) {
 		if ( TRANSLATION_FILE.test( entry ) ) {
 			violations.push(
-				`Translation file "${ entry }": WordPress.org serves the plugin's translations from translate.wordpress.org, so the zip must not bundle any. Export-ignore it in .gitattributes.`
+				`Translation file "${ entry }": WordPress.org serves the plugin's translations from translate.wordpress.org, so the zip must not bundle any. Delete the folder.`
 			);
 		}
 	}
