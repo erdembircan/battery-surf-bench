@@ -8,6 +8,7 @@ sequenceDiagram
     actor Dev as Developer
     participant FB as Feature Branch
     participant M as master
+    participant SVN as WordPress.org SVN
 
     rect rgb(230, 240, 255)
         Note over FB,M: PR → master (pr-checks.yml)
@@ -45,4 +46,15 @@ sequenceDiagram
         M->>M: pnpm test:e2e (Playwright + WP Playground, authenticated server#59; separate job)
         M->>M: pnpm test:e2e:unauth (Playwright + WP Playground, login-free server#59; separate job)
         deactivate M
+    end
+
+    rect rgb(255, 240, 220)
+        Note over Dev,SVN: Push a version tag → WordPress.org (deploy.yml, wordpress-org environment)
+        Dev->>M: push tag (bare version, e.g. 1.0.1)
+        activate M
+        M->>M: pnpm release:version (tag = plugin Version = readme Stable tag)
+        M->>M: composer zip:production (composer check → production build → zip → package:verify)
+        M->>SVN: 10up/action-wordpress-plugin-deploy#58; dist/battery-surf-bench → trunk/ + tags/VERSION/, .wordpress-org/ → assets/
+        deactivate M
+        Note over Dev,SVN: Manual run (workflow_dispatch) — same steps as a dry run, nothing committed to SVN
     end

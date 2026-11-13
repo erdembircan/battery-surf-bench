@@ -91,7 +91,7 @@ Every run, whether it finished, was stopped early, or got interrupted, is stored
 
 = Speaks your language =
 
-Fully translation-ready. Translations arrive through translate.wordpress.org, starting with German, Spanish, French, Brazilian Portuguese, and Turkish.
+Fully translation-ready. Help translate Battery Surf Bench into your language on [translate.wordpress.org](https://translate.wordpress.org/projects/wp-plugins/battery-surf-bench/).
 
 == External services ==
 

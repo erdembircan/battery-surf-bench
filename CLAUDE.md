@@ -314,6 +314,15 @@ Tests that need bundles compile their own: the e2e runs the development ones, `p
 
 `@stage` swaps `vendor/` to the production packages for the archive, then back. If a build stops between those two installs, `vendor/` is left without the dev packages and the next check can't find PHPCS or PHPUnit: run `composer vendor:development` to put them back.
 
+## Releases — A Version Tag Publishes to WordPress.org
+
+WordPress.org's SVN repository is the live release channel: what lands in it reaches every site that runs the plugin, and nothing undoes a release. `.github/workflows/deploy.yml` is the only way releases go out — never commit to SVN by hand.
+
+- **To release,** set the new version in the plugin header's `Version:` and `readme.txt`'s `Stable tag:` (with a changelog entry), merge that to `master`, wait for the merge checks to finish green, then push a tag named with the bare version, such as `1.0.1`, on that commit. The workflow stops when the tag and the two fields disagree (`pnpm release:version <tag>` runs the same check), then runs `composer zip:production` and commits `dist/battery-surf-bench/` to SVN `trunk/` and `tags/<version>/`, with `.wordpress-org/` to SVN `assets/`.
+- **To rehearse,** run the workflow by hand (`gh workflow run deploy.yml`). A manual run is always a dry run: it builds and stages everything and shows SVN's status in the log, but commits nothing.
+- **The SVN credentials** are the `SVN_USERNAME` and `SVN_PASSWORD` secrets of the `wordpress-org` GitHub environment, readable only by the deploy job. Never move them to repository secrets or print them.
+- **Readme and artwork changes** reach the plugin page only with the next release; there is no separate asset deploy.
+
 ## CI — Wait for Every Check to Finish Green
 
 CI runs after every push to a pull request and after every merge. Before treating any work as done — or moving on to anything that depends on it — **wait until all CI checks have finished and are green.**

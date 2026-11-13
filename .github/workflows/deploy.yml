@@ -1,0 +1,60 @@
+name: Deploy to WordPress.org
+
+# Pushing a tag releases that version: the plugin goes to SVN's trunk/ and
+# tags/<version>/, and .wordpress-org/ to SVN's assets/. Tag each release with
+# its bare version, such as 1.0.0, matching the plugin header's Version: and
+# readme.txt's Stable tag:. Running the workflow by hand is always a dry run: it
+# builds and stages the release in a local SVN checkout, shows the result in
+# the log, and commits nothing.
+on:
+  push:
+    tags:
+      - '*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One deploy at a time, never cancelled halfway through an SVN commit.
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # The SVN credentials are secrets of this environment only, so no other
+    # workflow or job can read them.
+    environment: wordpress-org
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup-php
+      - uses: ./.github/actions/setup-node
+      # Stop before building when the tag, the plugin header's Version: and
+      # readme.txt's Stable tag: disagree, since WordPress.org would then serve
+      # a version no site is offered. A manual dry run has no tag to compare.
+      - id: version
+        env:
+          TAG: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
+        # A bare assignment, so a failed check fails the step.
+        run: |
+          version=$(pnpm --silent release:version ${TAG:+"$TAG"})
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      # Builds, zips and verifies the production plugin: every check, the
+      # production bundles without the dev-tools panel, a production-only
+      # vendor/, the plugin assembled in dist/battery-surf-bench/, the zip, then
+      # package:verify. The deploy takes that folder, so SVN receives exactly
+      # what the verified zip holds.
+      - run: composer zip:production
+      # Pinned to the commit of release 2.3.0: the action receives the SVN
+      # password, so a moved tag must not be able to change the code it runs.
+      - uses: 10up/action-wordpress-plugin-deploy@54bd289b8525fd23a5c365ec369185f2966529c2 # 2.3.0
+        with:
+          dry-run: ${{ github.event_name == 'workflow_dispatch' }}
+        env:
+          SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
+          SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}
+          SLUG: battery-surf-bench
+          VERSION: ${{ steps.version.outputs.version }}
+          BUILD_DIR: dist/battery-surf-bench
