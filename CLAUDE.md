@@ -316,11 +316,15 @@ Tests that need bundles compile their own: the e2e runs the development ones, `p
 
 `@stage` swaps `vendor/` to the production packages for the archive, then back. If a build stops between those two installs, `vendor/` is left without the dev packages and the next check can't find PHPCS or PHPUnit: run `composer vendor:development` to put them back.
 
+## Changelog — Every Pull Request Adds Its Entry
+
+Every pull request that changes what the plugin's users get — the plugin itself, its `readme.txt`, or its WordPress.org listing — adds its changelog lines to `readme.txt` in the same pull request, under an `= Unreleased =` heading at the top of `== Changelog ==`. Create the heading when it isn't there; add to it when it is. Write each line for the plugin's users, not for developers: changes that only touch the repository's own tooling, CI, tests or GitHub README get no line. A release turns the heading into its version (see "To release" below), so the changelog never waits for release day.
+
 ## Releases — A Version Tag Publishes to WordPress.org
 
 WordPress.org's SVN repository is the live release channel: what lands in it reaches every site that runs the plugin, and nothing undoes a release. `.github/workflows/deploy.yml` is the only way releases go out — never commit to SVN by hand.
 
-- **To release,** set the new version in the plugin header's `Version:` and `readme.txt`'s `Stable tag:` (with a changelog entry), merge that to `master`, wait for the merge checks to finish green, then push a tag named with the bare version, such as `1.0.1`, on that commit. The workflow stops when the tag and the two fields disagree (`pnpm release:version <tag>` runs the same check), then runs `composer zip:production` and commits `dist/battery-surf-bench/` to SVN `trunk/` and `tags/<version>/`, with `.wordpress-org/` to SVN `assets/`.
+- **To release,** set the new version in the plugin header's `Version:` and `readme.txt`'s `Stable tag:` (and rename the changelog's `= Unreleased =` heading to that version, such as `= 1.0.1 =`), merge that to `master`, wait for the merge checks to finish green, then push a tag named with the bare version, such as `1.0.1`, on that commit. The workflow stops when the tag and the two fields disagree (`pnpm release:version <tag>` runs the same check), then runs `composer zip:production` and commits `dist/battery-surf-bench/` to SVN `trunk/` and `tags/<version>/`, with `.wordpress-org/` to SVN `assets/`.
 - **To rehearse,** run the workflow by hand (`gh workflow run deploy.yml`). A manual run is always a dry run and commits nothing. It stages the release and shows SVN's status in the log only for a version SVN doesn't have yet: at a version already released, the deploy stops at "already published" before staging anything, assets included. So rehearse a release after its new version is set.
 - **The SVN credentials** are the `SVN_USERNAME` and `SVN_PASSWORD` secrets of the `wordpress-org` GitHub environment, readable only by the deploy job. Never move them to repository secrets or print them.
 - **Readme and artwork changes** reach the plugin page only with the next release; there is no separate asset deploy.

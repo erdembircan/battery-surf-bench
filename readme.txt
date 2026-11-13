@@ -198,5 +198,9 @@ Because real-world browsing includes video, and video is one of the heaviest thi
 
 == Changelog ==
 
+= Unreleased =
+* New: the plugin page can start Battery Surf Bench in WordPress Playground, right in your browser.
+* Fix: the readme's WordPress Playground links are now clickable.
+
 = 1.0.0 =
 * Initial release.
