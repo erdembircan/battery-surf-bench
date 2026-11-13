@@ -68,6 +68,18 @@ jobs:
       # the build instead of going unnoticed.
       - run: pnpm contracts:verify
 
+  blueprint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup-node
+      # Check the Live Preview blueprint in .wordpress-org/blueprints/ against
+      # WordPress.org's rules and Playground's blueprint schema, so a broken
+      # blueprint fails the build instead of quietly losing the plugin page's
+      # Live Preview button.
+      - run: pnpm blueprint:verify
+
   plugin-check:
     runs-on: ubuntu-latest
     timeout-minutes: 30
