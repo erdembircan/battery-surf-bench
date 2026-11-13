@@ -2,8 +2,6 @@
 
 <img src="docs/images/wordpress-org/banner.svg" alt="Battery Surf Bench: the battery benchmark that browses like a human" />
 
-**Find out how fast web surfing really drains your battery, with a benchmark that browses like a human instead of a script.**
-
 <a href="https://playground.wordpress.net/?plugin=battery-surf-bench&url=/wp-admin/admin.php?page=bsbench-start-benchmark"><img src="docs/images/readme/launch-button.svg" width="520" alt="Launch the bench in WordPress Playground, right in your browser" /></a>
 
 [![WordPress.org plugin](https://img.shields.io/wordpress/plugin/v/battery-surf-bench?label=WordPress.org&logo=wordpress)](https://wordpress.org/plugins/battery-surf-bench/)
