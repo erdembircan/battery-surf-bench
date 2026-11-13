@@ -18,6 +18,13 @@ namespace ErdemBircan\BatterySurfBench;
 
 defined( 'ABSPATH' ) || exit;
 
+add_action(
+	'init',
+	static function () {
+		load_plugin_textdomain( 'battery-surf-bench' );
+	}
+);
+
 require_once __DIR__ . '/vendor/autoload.php';
 
 ( new BatterySurfBench( __FILE__ ) )->init();
