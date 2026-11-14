@@ -4,7 +4,7 @@ Tags: battery, benchmark, performance, power, testing
 Requires at least: 7.0
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.0.0
+Stable tag: 1.1.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -198,7 +198,7 @@ Because real-world browsing includes video, and video is one of the heaviest thi
 
 == Changelog ==
 
-= Unreleased =
+= 1.1.0 =
 * New: the plugin page can start Battery Surf Bench in WordPress Playground, right in your browser.
 * Fix: the readme's WordPress Playground links are now clickable.
 
