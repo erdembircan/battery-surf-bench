@@ -3,6 +3,7 @@ import type {
 	BlueprintV1Declaration,
 } from '@wp-playground/blueprints';
 import { PLUGIN_SLUG, liveReloadClientUrl } from './config.mts';
+import { agentSeedPhp } from './AgentSeed.mts';
 
 /**
  * Base blueprint options shared by all playground modes. Pins PHP to the
@@ -333,9 +334,99 @@ export const devResumeBlueprint = (
 } );
 
 /**
+ * Install and activate the official MCP Adapter plugin from WordPress.org
+ * (slug `mcp-adapter`), which serves the plugin's abilities to AI agents over
+ * MCP. The version is pinned so the agent playground and the e2e suite always
+ * run against the adapter the abilities were built and tested with: bump it on
+ * purpose, after checking its default server's tools still behave the same,
+ * never by following a moving "latest". The plugin does not depend on the
+ * adapter; only the sites that drive the MCP endpoint install it.
+ */
+export const mcpAdapterStep: NonNullable< BlueprintV1Declaration[ 'steps' ] > =
+	[
+		{
+			step: 'installPlugin',
+			pluginData: {
+				resource: 'url',
+				url: 'https://downloads.wordpress.org/plugin/mcp-adapter.0.7.2.zip',
+			},
+			options: { activate: true },
+		},
+	];
+
+/**
+ * Source for the dev-only must-use plugin that turns application passwords on
+ * for the agent playground. WordPress offers them only over HTTPS or in the
+ * `local` environment type, and the Playground serves plain HTTP in
+ * `development`, so without this an agent could not authenticate with the
+ * password the seed creates. Never shipped: only the agent blueprint writes it.
+ */
+export const agentAccessMuPlugin = `<?php
+/**
+ * Battery Surf Bench agent playground access. Injected by the agent playground
+ * blueprint so an AI agent can sign in with an application password over the
+ * Playground's plain HTTP. WordPress offers application passwords only over
+ * HTTPS or in the local environment type, and this site runs in development.
+ * Never present outside the agent playground.
+ */
+add_filter( 'wp_is_application_passwords_available', '__return_true' );
+`;
+
+/**
+ * Build the install step for the agent access mu-plugin.
+ *
+ * @return The mkdir + writeFile steps that install the mu-plugin.
+ */
+export const agentAccessStep = (): NonNullable<
+	BlueprintV1Declaration[ 'steps' ]
+> => [
+	{
+		step: 'mkdir',
+		path: '/wordpress/wp-content/mu-plugins',
+	},
+	{
+		step: 'writeFile',
+		path: '/wordpress/wp-content/mu-plugins/bsb-agent-access.php',
+		data: agentAccessMuPlugin,
+	},
+];
+
+/**
+ * Blueprint for the agent playground (`composer serve:agent`): a fresh,
+ * non-persistent development site for trying the plugin's AI agent abilities.
+ * It enables debug constants, activates the plugin, installs the MCP Adapter
+ * (see {@link mcpAdapterStep}) and the dev auto-login, YouTube oEmbed stub and
+ * agent access mu-plugins, sets a Berlin timezone and a site name, and then
+ * runs the seed (see `AgentSeed.mts`): benchmark runs, pages for the course,
+ * and an application password for the `admin` user.
+ */
+export const agentBlueprint: BlueprintDeclaration = {
+	...base,
+	steps: [
+		...debugStep,
+		...siteLanguageStep,
+		{
+			step: 'setSiteOptions',
+			options: {
+				timezone_string: 'Europe/Berlin',
+				blogname: 'Battery Lab',
+			},
+		},
+		...activatePluginStep,
+		...mcpAdapterStep,
+		...autoLoginStep(),
+		...youtubeOembedStubStep(),
+		...agentAccessStep(),
+		{ step: 'runPHP', code: agentSeedPhp },
+	],
+};
+
+/**
  * End-to-end blueprint for a deterministic, non-persistent test instance.
  * Enables debug constants and activates the plugin so specs start from a
- * known, plugin-active state. Also installs the YouTube oEmbed stub (see
+ * known, plugin-active state. Also installs the MCP Adapter (see
+ * {@link mcpAdapterStep}), because `AgentAbilities.spec.mts` drives its MCP
+ * endpoint, and the YouTube oEmbed stub (see
  * {@link youtubeOembedStubMuPlugin}), so `CockpitCourse.spec.mts`'s video
  * course page coverage exercises the real, unmodified production
  * `YouTubeEmbed::embed_oembed_html()` amend against a real (stubbed) oEmbed
@@ -350,7 +441,12 @@ export const devResumeBlueprint = (
  */
 export const e2eBlueprint: BlueprintDeclaration = {
 	...base,
-	steps: [ ...debugStep, ...activatePluginStep, ...youtubeOembedStubStep() ],
+	steps: [
+		...debugStep,
+		...activatePluginStep,
+		...mcpAdapterStep,
+		...youtubeOembedStubStep(),
+	],
 };
 
 /**

@@ -95,6 +95,10 @@
         "serve:production": [
             "@build:production",
             "pnpm run playground:production"
+        ],
+        "serve:agent": [
+            "pnpm run assets:development",
+            "pnpm run playground:agent"
         ]
     },
     "scripts-descriptions": {
@@ -114,6 +118,7 @@
         "zip:development": "Build the development plugin and zip it into zip/battery-surf-bench-development.zip.",
         "zip:production": "Build the production plugin and zip it into zip/battery-surf-bench.zip.",
         "serve:development": "Start the development site: watch build, Playground with the dev tools, live reload.",
-        "serve:production": "Build the production plugin and serve it on a fresh Playground site."
+        "serve:production": "Build the production plugin and serve it on a fresh Playground site.",
+        "serve:agent": "Serve a fresh Playground site for AI agents: seeded runs, the MCP Adapter and an application password."
     }
 }

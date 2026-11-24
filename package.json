@@ -27,6 +27,7 @@
     "playground:test:unauth": "tsx wp-playground/start-unauth-test.mts",
     "playground:screenshots": "tsx wp-playground/StartScreenshots.mts",
     "playground:production": "tsx wp-playground/StartProduction.mts",
+    "playground:agent": "tsx wp-playground/StartAgent.mts",
     "dev:sync": "tsx wp-playground/live-reload.mts",
     "dev": "concurrently --kill-others --names \"build,wp,sync\" -c \"blue,magenta,green\" \"pnpm:start\" \"pnpm:playground\" \"pnpm:dev:sync\"",
     "test:e2e": "playwright test --config playwright.config.mts",

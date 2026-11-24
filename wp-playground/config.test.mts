@@ -11,6 +11,8 @@
 
 import { describe, it, expect } from 'vitest';
 import {
+	AGENT_CREDENTIALS_DIR,
+	AGENT_CREDENTIALS_VFS_PATH,
 	playgroundTestUrl,
 	parsePlaygroundTestPortEnv,
 	parsePlaygroundUnauthTestPortEnv,
@@ -294,5 +296,17 @@ describe( 'PLAYGROUND_SCREENSHOTS_READY_PATTERN', () => {
 		expect( PLAYGROUND_SCREENSHOTS_PORT_ENV_VAR ).not.toBe(
 			PLAYGROUND_UNAUTH_TEST_PORT_ENV_VAR
 		);
+	} );
+} );
+
+describe( 'agent playground paths', () => {
+	it( 'keeps the credentials in a folder beside the playground scripts', () => {
+		expect(
+			AGENT_CREDENTIALS_DIR.endsWith( '/wp-playground/.agent' )
+		).toBe( true );
+	} );
+
+	it( 'mounts the credentials folder at /agent, where the seed writes them', () => {
+		expect( AGENT_CREDENTIALS_VFS_PATH ).toBe( '/agent' );
 	} );
 } );

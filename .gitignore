@@ -16,5 +16,8 @@ wp-playground/wordpress/
 # Resolved LiveReload port, published by start.mts for the watcher each run
 wp-playground/.livereload-port
 
+# Agent playground credentials, written by StartAgent.mts each run
+wp-playground/.agent/
+
 zip/
 dist/

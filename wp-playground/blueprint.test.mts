@@ -36,9 +36,13 @@ import {
 	e2eUnauthenticatedBlueprint,
 	screenshotsBlueprint,
 	productionBlueprint,
+	agentBlueprint,
+	agentAccessMuPlugin,
+	mcpAdapterStep,
 	autoLoginMuPlugin,
 	youtubeOembedStubMuPlugin,
 } from './blueprint.mts';
+import { agentSeedPhp } from './AgentSeed.mts';
 
 /**
  * All blueprints this module builds are Blueprint v1 declarations (the v2
@@ -57,6 +61,8 @@ const AUTO_LOGIN_PATH =
 const LIVE_RELOAD_PATH = '/wordpress/wp-content/mu-plugins/bsb-live-reload.php';
 const YOUTUBE_OEMBED_STUB_PATH =
 	'/wordpress/wp-content/mu-plugins/bsb-youtube-oembed-stub.php';
+const AGENT_ACCESS_PATH =
+	'/wordpress/wp-content/mu-plugins/bsb-agent-access.php';
 
 /**
  * Find a `writeFile` step by its target path within a blueprint's steps.
@@ -255,6 +261,12 @@ describe( 'e2eBlueprint', () => {
 			)
 		).toBeUndefined();
 	} );
+
+	it( 'installs the MCP Adapter, which AgentAbilities.spec.mts drives', () => {
+		expect( blueprint.steps ).toEqual(
+			expect.arrayContaining( mcpAdapterStep )
+		);
+	} );
 } );
 
 describe( 'e2eUnauthenticatedBlueprint', () => {
@@ -293,6 +305,14 @@ describe( 'e2eUnauthenticatedBlueprint', () => {
 		);
 
 		expect( step ).toBeUndefined();
+	} );
+
+	it( 'does not install the MCP Adapter -- no unauthenticated spec drives MCP', () => {
+		expect(
+			( blueprint.steps as { step: string }[] ).some(
+				( step ) => step.step === 'installPlugin'
+			)
+		).toBe( false );
 	} );
 
 	it( 'does not install the YouTube oEmbed stub mu-plugin -- no unauthenticated spec touches video content', () => {
@@ -466,5 +486,91 @@ describe( 'youtubeOembedStubMuPlugin', () => {
 	it( 'never makes a network request of its own', () => {
 		expect( youtubeOembedStubMuPlugin ).not.toContain( 'wp_remote_get' );
 		expect( youtubeOembedStubMuPlugin ).not.toContain( 'curl' );
+	} );
+} );
+
+describe( 'mcpAdapterStep', () => {
+	const [ step ] = mcpAdapterStep as Record< string, unknown >[];
+
+	it( 'installs the official MCP Adapter from WordPress.org, pinned to one version', () => {
+		expect( step.step ).toBe( 'installPlugin' );
+		expect( step.pluginData ).toEqual( {
+			resource: 'url',
+			url: 'https://downloads.wordpress.org/plugin/mcp-adapter.0.7.2.zip',
+		} );
+	} );
+
+	it( 'activates the adapter', () => {
+		expect( step.options ).toEqual( { activate: true } );
+	} );
+} );
+
+describe( 'agentBlueprint', () => {
+	const blueprint = asV1( agentBlueprint );
+	const steps = blueprint.steps as Record< string, unknown >[];
+
+	it( 'enables the debug wp-config consts and the development environment', () => {
+		const debug = steps.find(
+			( step ) => step.step === 'defineWpConfigConsts'
+		);
+
+		expect( debug?.consts ).toMatchObject( {
+			WP_DEBUG: true,
+			WP_ENVIRONMENT_TYPE: 'development',
+		} );
+	} );
+
+	it( 'names the site and sets its timezone to Berlin', () => {
+		expect( findSiteOption( steps, 'timezone_string' ) ).toBe(
+			'Europe/Berlin'
+		);
+		expect( findSiteOption( steps, 'blogname' ) ).toBe( 'Battery Lab' );
+	} );
+
+	it( 'resets the site language to English', () => {
+		expect( findSiteOption( steps, 'WPLANG' ) ).toBe( '' );
+	} );
+
+	it( 'activates the plugin, then installs the MCP Adapter', () => {
+		const names = steps.map( ( step ) => step.step );
+
+		expect( names.indexOf( 'activatePlugin' ) ).toBeGreaterThan( -1 );
+		expect( names.indexOf( 'installPlugin' ) ).toBeGreaterThan(
+			names.indexOf( 'activatePlugin' )
+		);
+		expect( steps ).toEqual( expect.arrayContaining( mcpAdapterStep ) );
+	} );
+
+	it( 'signs the browser in with the dev auto-login mu-plugin, not the login step', () => {
+		expect( findWriteFileStep( steps, AUTO_LOGIN_PATH ) ).toBeDefined();
+		expect( steps.some( ( step ) => step.step === 'login' ) ).toBe( false );
+	} );
+
+	it( 'installs the YouTube oEmbed stub and the agent access mu-plugins', () => {
+		expect(
+			findWriteFileStep( steps, YOUTUBE_OEMBED_STUB_PATH )
+		).toBeDefined();
+		expect( findWriteFileStep( steps, AGENT_ACCESS_PATH )?.data ).toBe(
+			agentAccessMuPlugin
+		);
+	} );
+
+	it( 'runs the seed last, once everything it needs is in place', () => {
+		expect( steps[ steps.length - 1 ] ).toEqual( {
+			step: 'runPHP',
+			code: agentSeedPhp,
+		} );
+	} );
+
+	it( 'does not install the LiveReload mu-plugin -- the site is fresh and never reloads', () => {
+		expect( findWriteFileStep( steps, LIVE_RELOAD_PATH ) ).toBeUndefined();
+	} );
+} );
+
+describe( 'agentAccessMuPlugin', () => {
+	it( 'turns application passwords on, which WordPress offers only over HTTPS or in the local environment', () => {
+		expect( agentAccessMuPlugin ).toContain(
+			"add_filter( 'wp_is_application_passwords_available', '__return_true' );"
+		);
 	} );
 } );
