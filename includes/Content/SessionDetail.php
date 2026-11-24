@@ -302,25 +302,10 @@ class SessionDetail implements Manager {
 	 * @return string The run-end reason key.
 	 */
 	private function end_reason( int $session_id ): string {
-		$status = (string) $this->meta( $session_id, 'status' );
-
-		if ( 'stopped' === $status ) {
-			return 'stopped';
-		}
-
-		if ( 'aborted' === $status ) {
-			return 'plugged';
-		}
-
-		if ( 'failed' === $status ) {
-			return 'loadError';
-		}
-
-		// A finished run completed its mode: a target-drop run hit its mark, a
-		// duration run ran its length.
-		return 'targetDrop' === $this->meta( $session_id, 'config_mode' )
-			? 'targetDrop'
-			: 'duration';
+		return RunOutcome::reason(
+			(string) $this->meta( $session_id, 'status' ),
+			(string) $this->meta( $session_id, 'config_mode' )
+		);
 	}
 
 	/**

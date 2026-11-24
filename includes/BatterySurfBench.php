@@ -7,6 +7,7 @@
 
 namespace ErdemBircan\BatterySurfBench;
 
+use ErdemBircan\BatterySurfBench\Abilities\AbilityRegistry;
 use ErdemBircan\BatterySurfBench\Admin\SessionsScreen;
 use ErdemBircan\BatterySurfBench\Admin\SettingsScreen;
 use ErdemBircan\BatterySurfBench\Admin\StartBenchmark;
@@ -50,6 +51,7 @@ class BatterySurfBench {
 		CourseRouter::class,
 		Cockpit::class,
 		SessionDetail::class,
+		AbilityRegistry::class,
 	);
 
 	/**

@@ -16,6 +16,27 @@
 
 namespace ErdemBircan\BatterySurfBench;
 
+// The guard sits above the imports: WordPress Plugin Check looks for it near
+// the top of the file, and the import list has outgrown that window.
+defined( 'ABSPATH' ) || exit;
+
+use ErdemBircan\BatterySurfBench\Abilities\AbilityRegistry;
+use ErdemBircan\BatterySurfBench\Abilities\AddCoursePage;
+use ErdemBircan\BatterySurfBench\Abilities\CompareRuns;
+use ErdemBircan\BatterySurfBench\Abilities\CourseEditor;
+use ErdemBircan\BatterySurfBench\Abilities\FindPages;
+use ErdemBircan\BatterySurfBench\Abilities\GetCockpitLink;
+use ErdemBircan\BatterySurfBench\Abilities\GetCourse;
+use ErdemBircan\BatterySurfBench\Abilities\GetDrainStats;
+use ErdemBircan\BatterySurfBench\Abilities\GetRun;
+use ErdemBircan\BatterySurfBench\Abilities\GetRunReadings;
+use ErdemBircan\BatterySurfBench\Abilities\ListRuns;
+use ErdemBircan\BatterySurfBench\Abilities\MoveCoursePage;
+use ErdemBircan\BatterySurfBench\Abilities\RemoveCoursePage;
+use ErdemBircan\BatterySurfBench\Abilities\RestoreRuns;
+use ErdemBircan\BatterySurfBench\Abilities\ResetCourse;
+use ErdemBircan\BatterySurfBench\Abilities\SessionReader;
+use ErdemBircan\BatterySurfBench\Abilities\TrashRuns;
 use ErdemBircan\BatterySurfBench\Admin\SessionsScreen;
 use ErdemBircan\BatterySurfBench\Admin\SettingsScreen;
 use ErdemBircan\BatterySurfBench\Admin\StartBenchmark;
@@ -34,8 +55,6 @@ use ErdemBircan\BatterySurfBench\DevTools\DevTools;
 use ErdemBircan\BatterySurfBench\Settings\OptionRegistry;
 use ErdemBircan\BatterySurfBench\Support\Capability;
 use ErdemBircan\BatterySurfBench\Support\StandaloneChrome;
-
-defined( 'ABSPATH' ) || exit;
 
 return array(
 
@@ -57,6 +76,28 @@ return array(
 	),
 	CourseOrderOption::class    => array( 'args' => array( 'option_name' => '%settings.option%' ) ),
 	StandaloneChrome::class     => array( 'args' => array( 'style' => '%cockpit.style%' ) ),
+	SessionReader::class        => array(
+		'args' => array(
+			'post_type'    => '%session.post_type%',
+			'meta_prefix'  => '%session.meta_prefix%',
+			'detail_slug'  => '%session.detail_slug%',
+			'detail_param' => '%session.detail_param%',
+		),
+	),
+	CourseEditor::class         => array(
+		'args' => array(
+			'option_name'           => '%settings.option%',
+			'selectable_post_types' => '%settings.post_types%',
+		),
+	),
+	GetCockpitLink::class       => array(
+		'args' => array(
+			'cockpit_param' => '%cockpit.param%',
+			'cockpit_value' => '%cockpit.value%',
+			'screen_slug'   => '%session.screen_slug%',
+		),
+	),
+	FindPages::class            => array( 'args' => array( 'post_types' => '%settings.post_types%' ) ),
 
 	// Managers (the boot loop calls ->register() on each).
 	OptionRegistry::class       => array(
@@ -138,6 +179,30 @@ return array(
 			'screen_slug' => '%session.screen_slug%',
 			'param'       => '%session.detail_param%',
 			'style'       => '%cockpit.style%',
+		),
+	),
+	AbilityRegistry::class      => array(
+		'args' => array(
+			'category'   => '%abilities.category%',
+			'capability' => Capability::class,
+			'abilities'  => array(
+				'services' => array(
+					ListRuns::class,
+					GetRun::class,
+					GetRunReadings::class,
+					CompareRuns::class,
+					GetDrainStats::class,
+					TrashRuns::class,
+					RestoreRuns::class,
+					GetCockpitLink::class,
+					GetCourse::class,
+					FindPages::class,
+					AddCoursePage::class,
+					MoveCoursePage::class,
+					RemoveCoursePage::class,
+					ResetCourse::class,
+				),
+			),
 		),
 	),
 	DevTools::class             => array(

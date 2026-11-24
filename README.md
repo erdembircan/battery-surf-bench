@@ -85,7 +85,7 @@ Every run happens in the Cockpit, a purpose-built dashboard that stays out of th
 - **Live readouts:** battery level, a responsive 10-minute drain rate, a stable whole-session rate, and projected time-to-empty, all updating as the samples come in.
 - **A watchable run:** the surfer browses inside a live viewport, with playful caption "barks" narrating what it's up to ("Deep in the good words…", "Ooh, moving pictures!").
 - **Run protection built in:** a screen wake-lock keeps the display from sleeping mid-run, a leave-confirmation guard saves you from an accidental tab close, and a finish chime announces a run that completes on its own (mutable, and it remembers your choice).
-- **Charger-aware:** a benchmark won't start while you're plugged in. If the charger connects mid-run, the run pauses automatically and resumes when you unplug, with the plugged-in time excluded from the math.
+- **Charger-aware:** a benchmark won't start while you're plugged in, and plugging the charger in mid-run ends the run. It's saved as interrupted, so charging time never counts toward the drain.
 
 ## Numbers you can trust
 
@@ -102,6 +102,19 @@ Every run, whether it finished, was stopped early, or got interrupted, is stored
 - **Session detail:** reopen any session to its full postcard summary, rebuilt from the stored samples.
 - **Portable data:** each session keeps the browser and OS it ran on, the exact run configuration, and the complete sample log, all available over the site's own REST API for your own analysis.
 - **One-click start:** launch a fresh benchmark straight from the admin bar, anywhere in wp-admin.
+
+## Ask your AI assistant
+
+Battery Surf Bench works with AI agents through the WordPress Abilities API. Connect an assistant such as Claude to your site with the [MCP Adapter](https://wordpress.org/plugins/mcp-adapter/) plugin, and ask it in your own words: "How did my last battery benchmark go?", "Which run drained the battery fastest?", "Compare my Chrome run with my Edge run", or "Add my About page to the course".
+
+- **Your runs, on request.** List and filter runs, find out how one ended, average drain rates, compare runs side by side, and chart a run's battery readings.
+- **The course, in plain words.** Add, move or remove the pages the surfer visits, or reset the course to the bundled pages.
+- **Tidying up.** Clear out failed runs: the assistant shows you which runs before moving them to the trash.
+- **The same gate as the screens.** Every ability needs the `manage_options` capability, so an assistant can do only what its signed-in account can.
+
+The benchmark itself still runs in your browser: the assistant hands you the cockpit link, because only a Chromium browser on the device being tested can read its battery.
+
+To try it locally, `composer serve:agent` starts a fresh Playground site with seeded runs and the MCP Adapter, and prints the command that connects Claude Code to it.
 
 ## Private by design
 

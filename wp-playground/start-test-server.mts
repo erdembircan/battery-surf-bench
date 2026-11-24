@@ -19,6 +19,8 @@ interface StartTestServerOptions {
 	/** Ready marker to emit on stdout; defaults to {@link PLAYGROUND_READY_MARKER}. */
 	readyMarker?: string;
 	pluginDir?: string;
+	/** Further host folders to mount into the virtual filesystem beside the plugin. */
+	extraMounts?: { hostPath: string; vfsPath: string }[];
 }
 
 /**
@@ -74,6 +76,7 @@ async function waitForReady(
  * @param options.blueprint   - Blueprint declaration to apply.
  * @param options.readyMarker - Ready marker to emit on stdout; defaults to {@link PLAYGROUND_READY_MARKER}.
  * @param options.pluginDir   - Plugin folder to mount; defaults to the repository root.
+ * @param options.extraMounts - Further host folders to mount beside the plugin; defaults to none.
  */
 export async function startTestServer( {
 	port,
@@ -81,6 +84,7 @@ export async function startTestServer( {
 	blueprint,
 	readyMarker = PLAYGROUND_READY_MARKER,
 	pluginDir = repositoryDir,
+	extraMounts = [],
 }: StartTestServerOptions ): Promise< void > {
 	const server = await runCLI( {
 		command: 'server',
@@ -91,7 +95,10 @@ export async function startTestServer( {
 		// runner and hangs boot. An explicit count bypasses that CPU cap.
 		workers: 6,
 		blueprint,
-		mount: [ { hostPath: pluginDir, vfsPath: PLUGIN_VFS_PATH } ],
+		mount: [
+			{ hostPath: pluginDir, vfsPath: PLUGIN_VFS_PATH },
+			...extraMounts,
+		],
 	} );
 
 	await waitForReady( `${ url }/wp-login.php` );

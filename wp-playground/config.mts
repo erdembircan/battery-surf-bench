@@ -332,3 +332,24 @@ export const SCREENSHOTS_STORAGE_STATE =
  * them. `StartProduction.mts` binds the first free port from here up.
  */
 export const PLAYGROUND_PRODUCTION_PORT = 9800;
+
+/**
+ * Preferred port for the agent playground (`composer serve:agent`), clear of
+ * the dev, e2e, screenshot and production servers' ports so it can run beside
+ * them. `StartAgent.mts` binds the first free port from here up.
+ */
+export const PLAYGROUND_AGENT_PORT = 9900;
+
+/**
+ * Folder on the host where the agent playground leaves the connection details
+ * of its run: the seed writes `credentials.json` into it from inside the site,
+ * and `StartAgent.mts` adds the `mcp.json` that points an MCP client at the
+ * site. Regenerated every run and gitignored.
+ */
+export const AGENT_CREDENTIALS_DIR = resolve(
+	dirname( fileURLToPath( import.meta.url ) ),
+	'.agent'
+);
+
+/** Virtual filesystem path {@link AGENT_CREDENTIALS_DIR} is mounted to inside the agent playground. */
+export const AGENT_CREDENTIALS_VFS_PATH = '/agent';
