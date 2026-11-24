@@ -16,6 +16,10 @@
 
 namespace ErdemBircan\BatterySurfBench;
 
+// The guard sits above the imports: WordPress Plugin Check looks for it near
+// the top of the file, and the import list has outgrown that window.
+defined( 'ABSPATH' ) || exit;
+
 use ErdemBircan\BatterySurfBench\Abilities\AbilityRegistry;
 use ErdemBircan\BatterySurfBench\Abilities\AddCoursePage;
 use ErdemBircan\BatterySurfBench\Abilities\CompareRuns;
@@ -50,8 +54,6 @@ use ErdemBircan\BatterySurfBench\DevTools\DevTools;
 use ErdemBircan\BatterySurfBench\Settings\OptionRegistry;
 use ErdemBircan\BatterySurfBench\Support\Capability;
 use ErdemBircan\BatterySurfBench\Support\StandaloneChrome;
-
-defined( 'ABSPATH' ) || exit;
 
 return array(
 
