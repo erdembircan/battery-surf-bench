@@ -311,12 +311,14 @@ final class CourseAbilitiesTest extends CourseTestCase {
 		$this->assertSame( array( 'page', 'post' ), $query['post_type'] );
 		$this->assertSame( array( 'publish', 'draft', 'pending', 'private', 'future' ), $query['post_status'] );
 		$this->assertSame( 'about', $query['s'] );
+		$this->assertSame( array( 'post_title' ), $query['search_columns'] );
 		$this->assertSame( 'relevance', $query['orderby'] );
 		$this->assertSame( 20, $query['posts_per_page'] );
 
 		$find->execute( array( 'limit' => 5 ) );
 
 		$this->assertArrayNotHasKey( 's', $query );
+		$this->assertArrayNotHasKey( 'search_columns', $query );
 		$this->assertSame(
 			array(
 				'date' => 'DESC',

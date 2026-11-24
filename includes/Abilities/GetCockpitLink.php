@@ -65,7 +65,6 @@ class GetCockpitLink implements Ability {
 				'type'                 => 'object',
 				'default'              => array(),
 				'additionalProperties' => false,
-				'properties'           => array(),
 			),
 			'output_schema' => array(
 				'type'       => 'object',

@@ -118,7 +118,8 @@ class FindPages extends CourseAbility {
 		);
 
 		if ( '' !== $search ) {
-			$query['s'] = $search;
+			$query['s']              = $search;
+			$query['search_columns'] = array( 'post_title' );
 		}
 
 		$entries = $this->editor->entries();

@@ -145,7 +145,9 @@ class RunFilter {
 			if ( false !== $day && $day->format( 'Y-m-d' ) === $value ) {
 				return $day->getTimestamp();
 			}
-		} else {
+		} elseif ( 1 === preg_match( '/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})$/', $value ) ) {
+			// Core would also read a date and time with no offset, as UTC; the
+			// documented forms always carry one, so anything else is refused.
 			$timestamp = rest_parse_date( $value );
 
 			if ( false !== $timestamp ) {

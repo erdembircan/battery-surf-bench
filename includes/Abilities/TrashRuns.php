@@ -12,6 +12,7 @@ use WP_Error;
 use function __;
 use function array_map;
 use function count;
+use function defined;
 use function implode;
 use function sprintf;
 use function wp_trash_post;
@@ -55,7 +56,7 @@ class TrashRuns implements Ability {
 	public function definition(): array {
 		return array(
 			'label'         => __( 'Move benchmark runs to the trash', 'battery-surf-bench' ),
-			'description'   => __( "Moves the benchmark runs with the given ids to the trash, which removes them from the Sessions screen and from every other ability until they're restored with battery-surf-bench/restore-runs. Find the runs with battery-surf-bench/list-runs, show them to the user and get their confirmation before calling this. If any id isn't a recorded run, nothing is moved.", 'battery-surf-bench' ),
+			'description'   => __( "Moves the benchmark runs with the given ids to the trash, which removes them from the Sessions screen and from every other ability until they're restored with battery-surf-bench/restore-runs. WordPress empties the trash after a while, 30 days by default, so restore them before then. Find the runs with battery-surf-bench/list-runs, show them to the user and get their confirmation before calling this. If any id isn't a recorded run, or the site keeps no trash, nothing is moved.", 'battery-surf-bench' ),
 			'input_schema'  => array(
 				'type'                 => 'object',
 				'default'              => array(),
@@ -96,6 +97,14 @@ class TrashRuns implements Ability {
 	 * @return array<string, mixed>|WP_Error The runs as they were before trashing, or an error that leaves them where they were when an id isn't recorded.
 	 */
 	public function execute( array $input ): array|WP_Error {
+		if ( ! $this->keeps_trash() ) {
+			return new WP_Error(
+				'bsbench_trash_disabled',
+				__( 'This site keeps no trash, so moving these runs to the trash would delete them for good. Nothing was moved.', 'battery-surf-bench' ),
+				array( 'status' => 409 )
+			);
+		}
+
 		$runs    = array();
 		$missing = array();
 
@@ -140,5 +149,15 @@ class TrashRuns implements Ability {
 			'trashed_count' => count( $runs ),
 			'trashed'       => $runs,
 		);
+	}
+
+	/**
+	 * Whether this site keeps a trash. With `EMPTY_TRASH_DAYS` at zero,
+	 * `wp_trash_post()` deletes a post for good instead of trashing it.
+	 *
+	 * @return bool Whether trashing a run can be undone.
+	 */
+	protected function keeps_trash(): bool {
+		return ! defined( 'EMPTY_TRASH_DAYS' ) || (bool) EMPTY_TRASH_DAYS;
 	}
 }

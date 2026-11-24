@@ -45,8 +45,10 @@ abstract class AbilityTestCase extends TestCase {
 		Functions\when( 'wp_date' )->justReturn( '2026-11-24T12:00:00+01:00' );
 		Functions\when( 'wp_timezone_string' )->justReturn( 'Europe/Berlin' );
 		Functions\when( 'wp_timezone' )->justReturn( new DateTimeZone( 'Europe/Berlin' ) );
+		// Like core's: the offset is optional, a space may stand for the T, and
+		// the moment is read with strtotime().
 		Functions\when( 'rest_parse_date' )->alias(
-			static fn ( string $value ) => 1 === preg_match( '/T.*(Z|[+-]\d{2}:\d{2})$/', $value ) ? strtotime( $value ) : false
+			static fn ( string $value ) => 1 === preg_match( '/^\d{4}-\d{2}-\d{2}[Tt ]\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}(:\d{2})?)?$/', $value ) ? strtotime( $value ) : false
 		);
 	}
 }

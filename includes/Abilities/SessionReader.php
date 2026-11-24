@@ -20,6 +20,7 @@ use function is_array;
 use function is_string;
 use function round;
 use function strtotime;
+use function update_meta_cache;
 use function wp_date;
 
 defined( 'ABSPATH' ) || exit;
@@ -84,6 +85,9 @@ class SessionReader {
 					'no_found_rows'  => true,
 				)
 			);
+
+			// One query for the page's meta, instead of one per field read.
+			update_meta_cache( 'post', $ids );
 
 			foreach ( $ids as $id ) {
 				$runs[] = $this->normalize( (int) $id );

@@ -36,12 +36,26 @@ final class SessionReaderTest extends AbilityTestCase {
 	 */
 	private array $queries = array();
 
+	/**
+	 * The `update_meta_cache()` calls, in call order: type and ids.
+	 *
+	 * @var array<int, array{0: string, 1: array<int, int>}>
+	 */
+	private array $meta_cache = array();
+
 	/** Stubs the WordPress functions the reader calls, backed by `$posts`. */
 	protected function setUp(): void {
 		parent::setUp();
 
-		$this->posts   = array();
-		$this->queries = array();
+		$this->posts      = array();
+		$this->queries    = array();
+		$this->meta_cache = array();
+
+		Functions\when( 'update_meta_cache' )->alias(
+			function ( string $type, array $ids ): void {
+				$this->meta_cache[] = array( $type, $ids );
+			}
+		);
 
 		Functions\when( 'get_posts' )->alias(
 			function ( array $args ): array {
@@ -265,6 +279,14 @@ final class SessionReaderTest extends AbilityTestCase {
 		$this->assertSame( array( 1, 250 ), array( $runs[0]['id'], $runs[249]['id'] ) );
 		$this->assertSame( array( 1, 2, 3 ), array_column( $this->queries, 'paged' ) );
 		$this->assertSame( array( 100 ), array_unique( array_column( $this->queries, 'posts_per_page' ) ) );
+		$this->assertSame(
+			array(
+				array( 'post', range( 1, 100 ) ),
+				array( 'post', range( 101, 200 ) ),
+				array( 'post', range( 201, 250 ) ),
+			),
+			$this->meta_cache
+		);
 		$this->assertSame( array( 901 ), array_column( $this->reader()->all( 'trash' ), 'id' ) );
 		$this->assertSame( 'trash', end( $this->queries )['post_status'] );
 	}

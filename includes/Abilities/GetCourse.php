@@ -45,7 +45,6 @@ class GetCourse extends CourseAbility {
 				'type'                 => 'object',
 				'default'              => array(),
 				'additionalProperties' => false,
-				'properties'           => array(),
 			),
 			'output_schema' => array(
 				'type'       => 'object',

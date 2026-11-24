@@ -129,6 +129,19 @@ final class RunFilterTest extends AbilityTestCase {
 		$this->assertStringContainsString( 'last tuesday', $filter->filter( $this->runs(), array( 'started_after' => 'last tuesday' ) )->get_error_message() );
 	}
 
+	/** A date and time must carry an offset or Z, as the docs say: core would read the others as UTC, so they are refused, and the offset forms are accepted. */
+	public function test_a_date_time_needs_an_offset(): void {
+		$filter = new RunFilter();
+
+		foreach ( array( '2026-11-24T02:30:00', '2026-11-24 02:30:00', '2026-11-24T02:30', '2026-11-24T02:30:00.5' ) as $value ) {
+			$this->assertError( $filter->parse_date( $value ), 'bsbench_invalid_date', 400 );
+		}
+
+		foreach ( array( '2026-11-24T02:30:00Z', '2026-11-24T03:30:00+01:00', '2026-11-24T02:30:00.250Z' ) as $value ) {
+			$this->assertIsInt( $filter->parse_date( $value ), $value );
+		}
+	}
+
 	/** Sorting compares numbers as numbers, puts runs without a figure last in either direction, and breaks ties by id. */
 	public function test_sort_compares_numbers_puts_missing_values_last_and_breaks_ties_by_id(): void {
 		$filter = new RunFilter();

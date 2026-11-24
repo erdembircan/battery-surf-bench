@@ -268,6 +268,15 @@ test.describe( 'AI agent abilities', () => {
 			stop_at_battery_percent: null,
 		} );
 		expect( result.runs[ 0 ] ).not.toHaveProperty( 'reading_count' );
+
+		// A date and time without an offset is refused, as the docs say.
+		const offsetless = await read( 'list-runs', {
+			started_after: '2026-11-24T02:30:00',
+		} );
+		expect( offsetless.status() ).toBe( 400 );
+		expect( ( await offsetless.json() ).code ).toBe(
+			'bsbench_invalid_date'
+		);
 	} );
 
 	test( 'get-run reads a run back as percentages, nulls and a report link', async () => {

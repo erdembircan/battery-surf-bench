@@ -134,11 +134,12 @@ final class AbilityContractTest extends CourseTestCase {
 	}
 
 	/**
-	 * The abilities that take no input declare no properties.
+	 * The abilities that take no input declare no `properties` key at all, which
+	 * would serialise as `[]` where a client expects an object.
 	 */
-	public function test_the_abilities_without_input_declare_no_properties(): void {
+	public function test_the_abilities_without_input_omit_the_properties_key(): void {
 		foreach ( array( GetCockpitLink::class, GetCourse::class, ResetCourse::class ) as $ability_class ) {
-			$this->assertSame( array(), $this->build( $ability_class )->definition()['input_schema']['properties'], $ability_class );
+			$this->assertArrayNotHasKey( 'properties', $this->build( $ability_class )->definition()['input_schema'], $ability_class );
 		}
 	}
 }

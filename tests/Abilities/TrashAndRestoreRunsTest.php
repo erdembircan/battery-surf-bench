@@ -34,6 +34,25 @@ final class TrashAndRestoreRunsTest extends AbilityTestCase {
 		$this->assertSame( $runs, $result['trashed'] );
 	}
 
+	/** On a site with no trash, WordPress would delete the runs for good, so nothing is moved. */
+	public function test_trashes_nothing_on_a_site_that_keeps_no_trash(): void {
+		Functions\expect( 'wp_trash_post' )->never();
+
+		$trash = new class( new FakeSessionReader( array( RunFixture::run( id: 4 ) ) ) ) extends TrashRuns {
+
+			/**
+			 * Reports a site whose trash is switched off.
+			 *
+			 * @return bool Always false.
+			 */
+			protected function keeps_trash(): bool {
+				return false;
+			}
+		};
+
+		$this->assertError( $trash->execute( array( 'ids' => array( 4 ) ) ), 'bsbench_trash_disabled', 409, 'This site keeps no trash, so moving these runs to the trash would delete them for good. Nothing was moved.' );
+	}
+
 	/** When any id isn't a recorded run, nothing is trashed, and the error names them all. */
 	public function test_trashes_nothing_when_any_id_is_unknown(): void {
 		Functions\expect( 'wp_trash_post' )->never();

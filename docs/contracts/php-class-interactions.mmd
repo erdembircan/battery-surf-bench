@@ -728,6 +728,15 @@ classDiagram
     ListRuns ..> RunSchema : describes its schema via
     GetDrainStats ..> RunSchema : describes its schema via
     AddCoursePage ..> RunSchema : describes its schema via
+    ResetCourse ..> RunSchema : describes its schema via
+    RemoveCoursePage ..> RunSchema : describes its schema via
+    MoveCoursePage ..> RunSchema : describes its schema via
+    GetCourse ..> RunSchema : describes its schema via
+    RestoreRuns ..> RunSchema : describes its schema via
+    TrashRuns ..> RunSchema : describes its schema via
+    CompareRuns ..> RunSchema : describes its schema via
+    GetRunReadings ..> RunSchema : describes its schema via
+    GetRun ..> RunSchema : describes its schema via
     Registry ..|> ContainerInterface : implements
     Registry ..> NotFoundException : throws
     NotFoundException --|> InvalidArgumentException : extends
