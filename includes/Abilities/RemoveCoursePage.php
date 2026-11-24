@@ -19,7 +19,7 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Takes a page out of the course. The course always keeps at least one page.
  */
-class RemoveCoursePage implements Ability {
+class RemoveCoursePage extends CourseAbility {
 
 	/**
 	 * The ability's registered name.
@@ -27,14 +27,6 @@ class RemoveCoursePage implements Ability {
 	 * @var string
 	 */
 	private const NAME = 'battery-surf-bench/remove-course-page';
-
-	/**
-	 * Stores the collaborator that edits the course.
-	 *
-	 * @param CourseEditor $editor Reads and saves the course.
-	 */
-	public function __construct( private CourseEditor $editor ) {
-	}
 
 	/**
 	 * The ability's registered name.
@@ -58,7 +50,7 @@ class RemoveCoursePage implements Ability {
 				'type'                 => 'object',
 				'default'              => array(),
 				'additionalProperties' => false,
-				'properties'           => $this->editor->page_properties(),
+				'properties'           => $this->page_properties(),
 			),
 			'output_schema' => array(
 				'type'       => 'object',
@@ -78,17 +70,17 @@ class RemoveCoursePage implements Ability {
 	 * @return array<string, mixed>|WP_Error The course without the page, or an error saying why it can't be removed.
 	 */
 	public function execute( array $input ): array|WP_Error {
-		$entry = $this->editor->entry_from_input( $input );
+		$entry = $this->entry_from_input( $input );
 
 		if ( $entry instanceof WP_Error ) {
 			return $entry;
 		}
 
 		$entries  = $this->editor->entries();
-		$position = $this->editor->position_of_entry( $entries, $entry );
+		$position = $this->position_of_entry( $entries, $entry );
 
 		if ( null === $position ) {
-			return $this->editor->not_in_course( $entry );
+			return $this->not_in_course( $entry );
 		}
 
 		if ( 1 === count( $entries ) ) {
@@ -99,12 +91,12 @@ class RemoveCoursePage implements Ability {
 			);
 		}
 
-		$removed = $this->editor->describe_entry( $entry, $position );
+		$removed = $this->editor->describe( $entries )[ $position - 1 ];
 
 		array_splice( $entries, $position - 1, 1 );
 
 		return array_merge(
-			$this->editor->course( $this->editor->save( $entries ) ),
+			$this->course( $this->editor->save( $entries ) ),
 			array( 'removed' => $removed )
 		);
 	}

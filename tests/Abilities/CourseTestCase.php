@@ -13,7 +13,6 @@ use Brain\Monkey\Functions;
 use ErdemBircan\BatterySurfBench\Abilities\CourseEditor;
 use ErdemBircan\BatterySurfBench\Course\CourseCatalog;
 use ErdemBircan\BatterySurfBench\Course\CourseOrderSanitizer;
-use ErdemBircan\BatterySurfBench\Tests\TestCase;
 use WP_Post;
 
 /**
@@ -22,7 +21,7 @@ use WP_Post;
  * setting does, and a few posts. The editor under test is the real one, so the
  * abilities are tested through the behavior their consumer sees.
  */
-abstract class CourseTestCase extends TestCase {
+abstract class CourseTestCase extends AbilityTestCase {
 
 	/**
 	 * Stored options, by name.
@@ -145,17 +144,5 @@ abstract class CourseTestCase extends TestCase {
 	 */
 	protected function editor(): CourseEditor {
 		return new CourseEditor( 'bsbench_course_order', $this->sanitizer, $this->catalog, array( 'page', 'post' ) );
-	}
-
-	/**
-	 * Lists the course as short labels (`article-1`, `#42`), for readable assertions.
-	 *
-	 * @return array<int, string> The saved course.
-	 */
-	protected function saved_course(): array {
-		return array_map(
-			static fn ( array $entry ): string => 'bundled' === $entry['kind'] ? $entry['slug'] : '#' . $entry['id'],
-			$this->options['bsbench_course_order']
-		);
 	}
 }

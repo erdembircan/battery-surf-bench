@@ -19,7 +19,7 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Adds a page to the course: one of the site's posts or pages, or a bundled page.
  */
-class AddCoursePage implements Ability {
+class AddCoursePage extends CourseAbility {
 
 	/**
 	 * The ability's registered name.
@@ -27,14 +27,6 @@ class AddCoursePage implements Ability {
 	 * @var string
 	 */
 	private const NAME = 'battery-surf-bench/add-course-page';
-
-	/**
-	 * Stores the collaborator that edits the course.
-	 *
-	 * @param CourseEditor $editor Reads, checks and saves the course.
-	 */
-	public function __construct( private CourseEditor $editor ) {
-	}
 
 	/**
 	 * The ability's registered name.
@@ -59,7 +51,7 @@ class AddCoursePage implements Ability {
 				'default'              => array(),
 				'additionalProperties' => false,
 				'properties'           => array_merge(
-					$this->editor->page_properties(),
+					$this->page_properties(),
 					array(
 						'position' => array(
 							'type'        => 'integer',
@@ -87,7 +79,7 @@ class AddCoursePage implements Ability {
 	 * @return array<string, mixed>|WP_Error The course with the page added, or an error saying why the page can't be added.
 	 */
 	public function execute( array $input ): array|WP_Error {
-		$entry = $this->editor->entry_from_input( $input );
+		$entry = $this->entry_from_input( $input );
 
 		if ( $entry instanceof WP_Error ) {
 			return $entry;
@@ -102,24 +94,24 @@ class AddCoursePage implements Ability {
 		}
 
 		$entries  = $this->editor->entries();
-		$existing = $this->editor->position_of_entry( $entries, $entry );
+		$existing = $this->position_of_entry( $entries, $entry );
 
 		if ( null !== $existing ) {
-			return $this->editor->already_in_course( $entry, $existing );
+			return $this->already_in_course( $entry, $existing );
 		}
 
 		$highest  = count( $entries ) + 1;
 		$position = isset( $input['position'] ) ? (int) $input['position'] : $highest;
 
 		if ( $position > $highest ) {
-			return $this->editor->out_of_range( $position, $highest );
+			return $this->out_of_range( $position, $highest );
 		}
 
 		array_splice( $entries, $position - 1, 0, array( $entry ) );
 
 		$saved = $this->editor->save( $entries );
 
-		if ( $this->editor->position_of_entry( $saved, $entry ) !== $position ) {
+		if ( $this->position_of_entry( $saved, $entry ) !== $position ) {
 			return new WP_Error(
 				'bsbench_course_not_saved',
 				__( 'The course couldn\'t be saved.', 'battery-surf-bench' ),
@@ -128,8 +120,8 @@ class AddCoursePage implements Ability {
 		}
 
 		return array_merge(
-			$this->editor->course( $saved ),
-			array( 'added' => $this->editor->describe_entry( $entry, $position ) )
+			$this->course( $saved ),
+			array( 'added' => $this->editor->describe( $saved )[ $position - 1 ] )
 		);
 	}
 }

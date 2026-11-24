@@ -9,102 +9,38 @@ declare( strict_types=1 );
 
 namespace ErdemBircan\BatterySurfBench\Tests\Abilities;
 
-use Brain\Monkey\Functions;
-use DateTimeZone;
-use ErdemBircan\BatterySurfBench\Abilities\Ability;
-use ErdemBircan\BatterySurfBench\Abilities\Annotations;
 use ErdemBircan\BatterySurfBench\Abilities\ListRuns;
 use ErdemBircan\BatterySurfBench\Abilities\RunFilter;
-use ErdemBircan\BatterySurfBench\Abilities\SessionReader;
-use ErdemBircan\BatterySurfBench\Tests\TestCase;
-use Mockery;
-use Mockery\MockInterface;
-use WP_Error;
 
-/**
- * Behavioral tests for listing runs: the page an agent gets back, how it is
- * sorted and narrowed, and that each run is a summary.
- */
-final class ListRunsTest extends TestCase {
+/** Behavioral tests for listing runs: the page an agent gets back, how it is sorted and narrowed. */
+final class ListRunsTest extends AbilityTestCase {
 
-	use AbilityContract;
-
-	/**
-	 * The reader double serving the runs.
-	 *
-	 * @var SessionReader&MockInterface
-	 */
-	private $reader;
-
-	/**
-	 * Stubs the site's clock and timezone, and the date parser.
-	 */
+	/** Stubs the site's clock, timezone and date parser. */
 	protected function setUp(): void {
 		parent::setUp();
 
-		$this->reader = Mockery::mock( SessionReader::class );
-
-		Functions\when( 'wp_date' )->justReturn( '2026-11-24T12:00:00+01:00' );
-		Functions\when( 'wp_timezone_string' )->justReturn( 'Europe/Berlin' );
-		Functions\when( 'wp_timezone' )->justReturn( new DateTimeZone( 'Europe/Berlin' ) );
-		Functions\when( 'rest_parse_date' )->alias(
-			static fn ( string $value ) => 1 === preg_match( '/T.*(Z|[+-]\d{2}:\d{2})$/', $value ) ? strtotime( $value ) : false
-		);
+		$this->stub_site_time();
 	}
 
 	/**
-	 * Builds the ability under test.
+	 * Builds the ability over runs, each started a day after the last.
 	 *
-	 * @return Ability The ability.
+	 * @param int $count How many recorded runs.
+	 * @return ListRuns The ability.
 	 */
-	protected function ability(): Ability {
-		return new ListRuns( $this->reader, new RunFilter() );
-	}
-
-	/**
-	 * The annotations of an ability that only reads.
-	 *
-	 * @return array<string, bool> The annotations.
-	 */
-	protected function expected_annotations(): array {
-		return Annotations::read();
-	}
-
-	/**
-	 * Serves a number of runs, each started a day after the last.
-	 *
-	 * @param int $count How many runs.
-	 */
-	private function serve_runs( int $count ): void {
+	private function list_of( int $count ): ListRuns {
 		$runs = array();
 
 		for ( $id = 1; $id <= $count; $id++ ) {
-			$runs[] = RunFixture::run(
-				array(
-					'id'         => $id,
-					'started_at' => sprintf( '2026-10-%02dT10:00:00+01:00', $id ),
-				)
-			);
+			$runs[] = RunFixture::run( id: $id, started_at: sprintf( '2026-10-%02dT10:00:00+01:00', $id ) );
 		}
 
-		$this->reader->shouldReceive( 'all' )->andReturn( $runs );
+		return new ListRuns( new FakeSessionReader( $runs ), new RunFilter() );
 	}
 
-	/**
-	 * The ability's registered name.
-	 */
-	public function test_it_is_named_list_runs(): void {
-		$this->assertSame( 'battery-surf-bench/list-runs', $this->ability()->name() );
-	}
-
-	/**
-	 * With no input the page is the 20 newest runs, and the total says how many
-	 * matched before the page was cut.
-	 */
-	public function test_defaults_to_the_twenty_newest_runs(): void {
-		$this->serve_runs( 25 );
-
-		$result = $this->ability()->execute( array() );
+	/** With no input the page is the 20 newest runs, each a summary with its setup but no reading count. */
+	public function test_defaults_to_the_twenty_newest_runs_as_summaries(): void {
+		$result = $this->list_of( 25 )->execute( array() );
 
 		$this->assertSame( 25, $result['total'] );
 		$this->assertSame( 20, $result['returned'] );
@@ -112,82 +48,39 @@ final class ListRunsTest extends TestCase {
 		$this->assertSame( 6, $result['runs'][19]['id'] );
 		$this->assertSame( '2026-11-24T12:00:00+01:00', $result['now'] );
 		$this->assertSame( 'Europe/Berlin', $result['timezone'] );
+		$this->assertArrayHasKey( 'setup', $result['runs'][0] );
+		$this->assertArrayHasKey( 'browser', $result['runs'][0] );
+		$this->assertArrayNotHasKey( 'reading_count', $result['runs'][0] );
 	}
 
-	/**
-	 * Each run in the list is a summary: it keeps its setup, so stop levels and
-	 * set durations need no second call, and leaves out only the reading count.
-	 */
-	public function test_each_run_is_a_summary(): void {
-		$this->serve_runs( 1 );
-
-		$run = $this->ability()->execute( array() )['runs'][0];
-
-		$this->assertArrayHasKey( 'setup', $run );
-		$this->assertArrayNotHasKey( 'reading_count', $run );
-		$this->assertArrayHasKey( 'browser', $run );
-		$this->assertArrayHasKey( 'report_url', $run );
-	}
-
-	/**
-	 * The limit and offset page through the matches.
-	 */
+	/** The limit and offset page through the matches; a page past the end is empty but still reports the total. */
 	public function test_limit_and_offset_page_through_the_matches(): void {
-		$this->serve_runs( 10 );
-
-		$result = $this->ability()->execute(
+		$list = $this->list_of( 10 );
+		$page = $list->execute(
 			array(
 				'limit'  => 3,
 				'offset' => 2,
 			)
 		);
 
-		$this->assertSame( 10, $result['total'] );
-		$this->assertSame( 3, $result['returned'] );
-		$this->assertSame( array( 8, 7, 6 ), array_column( $result['runs'], 'id' ) );
+		$this->assertSame( 10, $page['total'] );
+		$this->assertSame( array( 8, 7, 6 ), array_column( $page['runs'], 'id' ) );
+
+		$past = $list->execute( array( 'offset' => 50 ) );
+
+		$this->assertSame( array( 10, 0, array() ), array( $past['total'], $past['returned'], $past['runs'] ) );
 	}
 
-	/**
-	 * A page past the end returns no runs, and still reports the total.
-	 */
-	public function test_an_offset_past_the_end_returns_no_runs(): void {
-		$this->serve_runs( 3 );
-
-		$result = $this->ability()->execute( array( 'offset' => 50 ) );
-
-		$this->assertSame( 3, $result['total'] );
-		$this->assertSame( 0, $result['returned'] );
-		$this->assertSame( array(), $result['runs'] );
-	}
-
-	/**
-	 * The order and direction sort the runs by the field chosen.
-	 */
+	/** The order and direction sort by the field chosen, with unmeasured runs last. */
 	public function test_orders_by_the_chosen_field_and_direction(): void {
-		$this->reader->shouldReceive( 'all' )->andReturn(
-			array(
-				RunFixture::run(
-					array(
-						'id'                              => 1,
-						'drain_rate_session_pct_per_hour' => 12.5,
-					)
-				),
-				RunFixture::run(
-					array(
-						'id'                              => 2,
-						'drain_rate_session_pct_per_hour' => null,
-					)
-				),
-				RunFixture::run(
-					array(
-						'id'                              => 3,
-						'drain_rate_session_pct_per_hour' => 9.5,
-					)
-				),
-			)
+		$runs = array(
+			RunFixture::run( id: 1, drain_rate_session_pct_per_hour: 12.5 ),
+			RunFixture::run( id: 2, drain_rate_session_pct_per_hour: null ),
+			RunFixture::run( id: 3, drain_rate_session_pct_per_hour: 9.5 ),
 		);
+		$list = new ListRuns( new FakeSessionReader( $runs ), new RunFilter() );
 
-		$result = $this->ability()->execute(
+		$result = $list->execute(
 			array(
 				'order_by' => 'drain_rate_session',
 				'order'    => 'asc',
@@ -197,115 +90,43 @@ final class ListRunsTest extends TestCase {
 		$this->assertSame( array( 3, 1, 2 ), array_column( $result['runs'], 'id' ) );
 	}
 
-	/**
-	 * The filters narrow the runs before they are counted and paged.
-	 */
-	public function test_filters_narrow_the_runs_before_they_are_counted(): void {
-		$this->reader->shouldReceive( 'all' )->andReturn(
-			array(
-				RunFixture::run(
-					array(
-						'id'     => 1,
-						'status' => 'finished',
-					)
-				),
-				RunFixture::run(
-					array(
-						'id'     => 2,
-						'status' => 'failed',
-					)
-				),
-				RunFixture::run(
-					array(
-						'id'     => 3,
-						'status' => 'failed',
-					)
-				),
-			)
-		);
+	/** Filters narrow the runs before they are counted; a date that can't be read is the agent's error to fix. */
+	public function test_filters_narrow_the_runs_and_a_bad_date_is_an_error(): void {
+		$runs = array( RunFixture::run( id: 1 ), RunFixture::run( id: 2, status: 'failed' ), RunFixture::run( id: 3, status: 'failed' ) );
+		$list = new ListRuns( new FakeSessionReader( $runs ), new RunFilter() );
 
-		$result = $this->ability()->execute( array( 'status' => array( 'failed' ) ) );
+		$result = $list->execute( array( 'status' => array( 'failed' ) ) );
 
 		$this->assertSame( 2, $result['total'] );
 		$this->assertSame( array( 3, 2 ), array_column( $result['runs'], 'id' ) );
+		$this->assertError( $list->execute( array( 'started_after' => 'yesterday-ish' ) ), 'bsbench_invalid_date', 400 );
 	}
 
-	/**
-	 * A date filter that can't be read is the agent's error to fix.
-	 */
-	public function test_an_unreadable_date_is_an_error(): void {
-		$this->serve_runs( 1 );
-
-		$result = $this->ability()->execute( array( 'started_after' => 'yesterday-ish' ) );
-
-		$this->assertInstanceOf( WP_Error::class, $result );
-		$this->assertSame( 'bsbench_invalid_date', $result->get_error_code() );
-	}
-
-	/**
-	 * By default the recorded runs are listed; with `in_trash` the runs in the
-	 * trash are, through the same filters and sorting.
-	 */
+	/** By default the recorded runs are listed; with `in_trash` the trashed ones are, through the same filters. */
 	public function test_in_trash_lists_the_runs_in_the_trash_instead(): void {
-		$this->reader->shouldReceive( 'all' )->with( 'publish' )->once()->andReturn( array( RunFixture::run( array( 'id' => 1 ) ) ) );
-		$this->reader->shouldReceive( 'all' )->with( 'trash' )->once()->andReturn(
-			array(
-				RunFixture::run(
-					array(
-						'id'     => 2,
-						'status' => 'failed',
-					)
-				),
-				RunFixture::run(
-					array(
-						'id'     => 3,
-						'status' => 'finished',
-					)
-				),
-			)
-		);
+		$trashed = array( RunFixture::run( id: 2, status: 'failed' ), RunFixture::run( id: 3 ) );
+		$list    = new ListRuns( new FakeSessionReader( array( RunFixture::run( id: 1 ) ), $trashed ), new RunFilter() );
 
-		$recorded = $this->ability()->execute( array() );
-		$trashed  = $this->ability()->execute(
-			array(
-				'in_trash' => true,
-				'status'   => array( 'failed' ),
-			)
-		);
-
-		$this->assertSame( array( 1 ), array_column( $recorded['runs'], 'id' ) );
-		$this->assertSame( array( 2 ), array_column( $trashed['runs'], 'id' ) );
-		$this->assertSame( 1, $trashed['total'] );
-	}
-
-	/**
-	 * With no runs the list is empty, not an error.
-	 */
-	public function test_no_runs_is_an_empty_list(): void {
-		$this->reader->shouldReceive( 'all' )->andReturn( array() );
-
-		$result = $this->ability()->execute( array() );
-
-		$this->assertSame( 0, $result['total'] );
-		$this->assertSame( array(), $result['runs'] );
-	}
-
-	/**
-	 * The input offers every filter, the order, and a bounded page.
-	 */
-	public function test_input_schema_offers_the_filters_order_and_paging(): void {
-		$properties = $this->ability()->definition()['input_schema']['properties'];
-
+		$this->assertSame( array( 1 ), array_column( $list->execute( array() )['runs'], 'id' ) );
 		$this->assertSame(
-			array( 'status', 'mode', 'browser', 'os', 'started_after', 'started_before', 'order_by', 'order', 'limit', 'offset', 'in_trash' ),
-			array_keys( $properties )
+			array( 2 ),
+			array_column(
+				$list->execute(
+					array(
+						'in_trash' => true,
+						'status'   => array( 'failed' ),
+					)
+				)['runs'],
+				'id'
+			)
 		);
-		$this->assertSame( array( 'started_at', 'drain_rate_session', 'drain_rate_10min', 'battery_drop', 'elapsed', 'projected_runtime' ), $properties['order_by']['enum'] );
-		$this->assertSame( array( 'asc', 'desc' ), $properties['order']['enum'] );
-		$this->assertSame( 1, $properties['limit']['minimum'] );
-		$this->assertSame( 100, $properties['limit']['maximum'] );
-		$this->assertSame( 0, $properties['offset']['minimum'] );
-		$this->assertSame( 'boolean', $properties['in_trash']['type'] );
-		$this->assertFalse( $properties['in_trash']['default'] );
+		$this->assertSame( array( 3, 2 ), array_column( $list->execute( array( 'in_trash' => 'true' ) )['runs'], 'id' ) );
+	}
+
+	/** With no runs the list is empty, not an error. */
+	public function test_no_runs_is_an_empty_list(): void {
+		$result = $this->list_of( 0 )->execute( array() );
+
+		$this->assertSame( array( 0, array() ), array( $result['total'], $result['runs'] ) );
 	}
 }

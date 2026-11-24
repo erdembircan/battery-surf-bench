@@ -19,7 +19,7 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Moves a page that is already in the course to a new position.
  */
-class MoveCoursePage implements Ability {
+class MoveCoursePage extends CourseAbility {
 
 	/**
 	 * The ability's registered name.
@@ -27,14 +27,6 @@ class MoveCoursePage implements Ability {
 	 * @var string
 	 */
 	private const NAME = 'battery-surf-bench/move-course-page';
-
-	/**
-	 * Stores the collaborator that edits the course.
-	 *
-	 * @param CourseEditor $editor Reads and saves the course.
-	 */
-	public function __construct( private CourseEditor $editor ) {
-	}
 
 	/**
 	 * The ability's registered name.
@@ -60,7 +52,7 @@ class MoveCoursePage implements Ability {
 				'additionalProperties' => false,
 				'required'             => array( 'position' ),
 				'properties'           => array_merge(
-					$this->editor->page_properties(),
+					$this->page_properties(),
 					array(
 						'position' => array(
 							'type'        => 'integer',
@@ -88,23 +80,23 @@ class MoveCoursePage implements Ability {
 	 * @return array<string, mixed>|WP_Error The course with the page moved, or an error saying why it can't be.
 	 */
 	public function execute( array $input ): array|WP_Error {
-		$entry = $this->editor->entry_from_input( $input );
+		$entry = $this->entry_from_input( $input );
 
 		if ( $entry instanceof WP_Error ) {
 			return $entry;
 		}
 
 		$entries = $this->editor->entries();
-		$current = $this->editor->position_of_entry( $entries, $entry );
+		$current = $this->position_of_entry( $entries, $entry );
 
 		if ( null === $current ) {
-			return $this->editor->not_in_course( $entry );
+			return $this->not_in_course( $entry );
 		}
 
 		$position = (int) ( $input['position'] ?? 0 );
 
 		if ( $position < 1 || $position > count( $entries ) ) {
-			return $this->editor->out_of_range( $position, count( $entries ) );
+			return $this->out_of_range( $position, count( $entries ) );
 		}
 
 		array_splice( $entries, $current - 1, 1 );
@@ -113,8 +105,8 @@ class MoveCoursePage implements Ability {
 		$saved = $this->editor->save( $entries );
 
 		return array_merge(
-			$this->editor->course( $saved ),
-			array( 'moved' => $this->editor->describe_entry( $entry, $position ) )
+			$this->course( $saved ),
+			array( 'moved' => $this->editor->describe( $saved )[ $position - 1 ] )
 		);
 	}
 }

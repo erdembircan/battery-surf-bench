@@ -44,446 +44,86 @@ export interface SeedRun {
 }
 
 /**
- * Builds a seed run.
- *
- * @param n           - The row number.
- * @param daysAgo     - How many days before the boot the run started.
- * @param status      - The stored lifecycle status.
- * @param configMode  - The stored run configuration mode.
- * @param amount      - The configured minutes, or the target percent.
- * @param elapsed     - The run length in seconds.
- * @param start       - The starting battery level, as a fraction.
- * @param end         - The ending battery level, as a fraction.
- * @param rateSession - The whole-run drain rate, or zero.
- * @param rate10      - The last-ten-minutes drain rate, or zero.
- * @param tte         - The projected runtime in seconds, or zero.
- * @param browser     - The browser name.
- * @param version     - The browser major version.
- * @param os          - The operating system.
- * @return The run.
+ * The 24 runs, one per line, inserted in this order. The last one started
+ * earlier than the one before it on purpose, so the order of insertion is not
+ * the order of start. Columns: row number, days ago, status, config mode,
+ * minutes (or target percent), elapsed seconds, start level, end level,
+ * session rate, ten-minute rate, projected seconds to empty, browser, version
+ * and operating system.
  */
-const run = (
-	n: number,
-	daysAgo: number,
-	status: SeedRun[ 'status' ],
-	configMode: SeedRun[ 'configMode' ],
-	amount: number,
-	elapsed: number,
-	start: number,
-	end: number,
-	rateSession: number,
-	rate10: number,
-	tte: number,
-	browser: string,
-	version: string,
-	os: string
-): SeedRun => ( {
-	n,
-	daysAgo,
-	status,
-	configMode,
-	amount,
-	elapsed,
-	start,
-	end,
-	rateSession,
-	rate10,
-	tte,
-	browser,
-	version,
-	os,
-} );
+const SEED_TABLE = `
+ 1 | 29.2 | finished | duration   |  60 | 3600 | 0.98 | 0.88 | 10.0 | 10.4 | 36000 | Chrome | 142 | macOS
+ 2 | 27.5 | finished | duration   |  30 | 1800 | 0.91 | 0.86 |  9.5 |  9.8 | 37895 | Edge   | 141 | Windows
+ 3 | 26.1 | stopped  | duration   | 120 | 2460 | 0.80 | 0.73 | 10.2 | 11.0 | 35294 | Chrome | 142 | macOS
+ 4 | 24.0 | finished | targetDrop |  70 | 4320 | 0.85 | 0.70 | 12.5 | 12.9 | 28800 | Opera  | 124 | Windows
+ 5 | 22.3 | failed   | duration   |  60 |   95 | 0.77 | 0.77 |  0   |  0   |     0 | Chrome | 142 | Linux
+ 6 | 20.9 | finished | duration   |  45 | 2700 | 0.99 | 0.91 | 10.7 | 10.1 | 33645 | Edge   | 142 | Windows
+ 7 | 19.4 | aborted  | targetDrop |  50 | 1500 | 0.66 | 0.62 |  9.6 |  9.9 | 37500 | Chrome | 143 | macOS
+ 8 | 17.8 | finished | duration   |  15 |  900 | 0.95 | 0.94 |  0   |  0   |     0 | Chrome | 143 | macOS
+ 9 | 16.2 | finished | duration   |  90 | 5400 | 0.97 | 0.79 | 12.0 | 12.3 | 30000 | Edge   | 142 | Windows
+10 | 14.6 | stopped  | targetDrop |  40 |  600 | 0.60 | 0.59 |  0   |  0   |     0 | Chrome | 143 | ChromeOS
+11 | 13.1 | finished | duration   |  60 | 3600 | 0.92 | 0.82 |  9.8 | 10.6 | 36735 | Chrome | 143 | macOS
+12 | 11.7 | failed   | targetDrop |  60 |   40 | 0.88 | 0.88 |  0   |  0   |     0 | Edge   | 142 | Windows
+13 | 10.3 | finished | targetDrop |  75 | 3240 | 0.95 | 0.75 | 22.2 | 23.5 | 16216 | Chrome | 143 | Windows
+14 |  9.0 | finished | duration   |  30 | 1800 | 0.70 | 0.65 | 10.0 | 10.0 | 36000 | Opera  | 125 | Windows
+15 |  8.2 | aborted  | duration   |  60 | 1320 | 0.58 | 0.55 |  8.2 |  8.5 | 43902 | Edge   | 143 | Windows
+16 |  7.4 | finished | duration   | 120 | 7200 | 0.99 | 0.77 | 11.0 | 11.4 | 32727 | Chrome | 143 | macOS
+17 |  6.6 | stopped  | duration   |  60 | 1980 | 0.90 | 0.84 | 10.9 | 12.1 | 33028 | Chrome | 144 | macOS
+18 |  5.3 | finished | targetDrop |  80 | 2880 | 0.96 | 0.80 | 20.0 | 19.4 | 18000 | Edge   | 143 | Windows
+19 |  4.1 | failed   | duration   |  30 |  210 | 0.71 | 0.70 |  0   |  0   |     0 | Chrome | 144 | Linux
+20 |  3.2 | finished | duration   |  60 | 3600 | 0.88 | 0.78 | 10.0 |  9.7 | 36000 | Chrome | 144 | macOS
+21 |  2.0 | finished | duration   |  45 | 2700 | 0.93 | 0.85 | 10.7 | 11.3 | 33645 | Edge   | 144 | Windows
+22 |  1.1 | aborted  | targetDrop |  60 |  900 | 0.74 | 0.72 |  8.0 |  8.0 | 45000 | Opera  | 125 | Windows
+23 |  0.4 | finished | duration   |  30 | 1800 | 0.97 | 0.92 | 10.0 | 10.3 | 36000 | Chrome | 144 | macOS
+24 | 12.4 | finished | duration   |  60 | 3600 | 0.89 | 0.79 | 10.0 | 10.2 | 36000 | Opera  | 124 | Windows
+`;
 
 /**
- * The 24 runs, inserted in this order. The last one started earlier than the
- * one before it on purpose, so the order of insertion is not the order of start.
+ * Parses {@link SEED_TABLE} into runs.
+ *
+ * @return The runs, in the table's order.
  */
-export const seedRuns: readonly SeedRun[] = [
-	run(
-		1,
-		29.2,
-		'finished',
-		'duration',
-		60,
-		3600,
-		0.98,
-		0.88,
-		10.0,
-		10.4,
-		36000,
-		'Chrome',
-		'142',
-		'macOS'
-	),
-	run(
-		2,
-		27.5,
-		'finished',
-		'duration',
-		30,
-		1800,
-		0.91,
-		0.86,
-		9.5,
-		9.8,
-		37895,
-		'Edge',
-		'141',
-		'Windows'
-	),
-	run(
-		3,
-		26.1,
-		'stopped',
-		'duration',
-		120,
-		2460,
-		0.8,
-		0.73,
-		10.2,
-		11.0,
-		35294,
-		'Chrome',
-		'142',
-		'macOS'
-	),
-	run(
-		4,
-		24.0,
-		'finished',
-		'targetDrop',
-		70,
-		4320,
-		0.85,
-		0.7,
-		12.5,
-		12.9,
-		28800,
-		'Opera',
-		'124',
-		'Windows'
-	),
-	run(
-		5,
-		22.3,
-		'failed',
-		'duration',
-		60,
-		95,
-		0.77,
-		0.77,
-		0,
-		0,
-		0,
-		'Chrome',
-		'142',
-		'Linux'
-	),
-	run(
-		6,
-		20.9,
-		'finished',
-		'duration',
-		45,
-		2700,
-		0.99,
-		0.91,
-		10.7,
-		10.1,
-		33645,
-		'Edge',
-		'142',
-		'Windows'
-	),
-	run(
-		7,
-		19.4,
-		'aborted',
-		'targetDrop',
-		50,
-		1500,
-		0.66,
-		0.62,
-		9.6,
-		9.9,
-		37500,
-		'Chrome',
-		'143',
-		'macOS'
-	),
-	run(
-		8,
-		17.8,
-		'finished',
-		'duration',
-		15,
-		900,
-		0.95,
-		0.94,
-		0,
-		0,
-		0,
-		'Chrome',
-		'143',
-		'macOS'
-	),
-	run(
-		9,
-		16.2,
-		'finished',
-		'duration',
-		90,
-		5400,
-		0.97,
-		0.79,
-		12.0,
-		12.3,
-		30000,
-		'Edge',
-		'142',
-		'Windows'
-	),
-	run(
-		10,
-		14.6,
-		'stopped',
-		'targetDrop',
-		40,
-		600,
-		0.6,
-		0.59,
-		0,
-		0,
-		0,
-		'Chrome',
-		'143',
-		'ChromeOS'
-	),
-	run(
-		11,
-		13.1,
-		'finished',
-		'duration',
-		60,
-		3600,
-		0.92,
-		0.82,
-		9.8,
-		10.6,
-		36735,
-		'Chrome',
-		'143',
-		'macOS'
-	),
-	run(
-		12,
-		11.7,
-		'failed',
-		'targetDrop',
-		60,
-		40,
-		0.88,
-		0.88,
-		0,
-		0,
-		0,
-		'Edge',
-		'142',
-		'Windows'
-	),
-	run(
-		13,
-		10.3,
-		'finished',
-		'targetDrop',
-		75,
-		3240,
-		0.95,
-		0.75,
-		22.2,
-		23.5,
-		16216,
-		'Chrome',
-		'143',
-		'Windows'
-	),
-	run(
-		14,
-		9.0,
-		'finished',
-		'duration',
-		30,
-		1800,
-		0.7,
-		0.65,
-		10.0,
-		10.0,
-		36000,
-		'Opera',
-		'125',
-		'Windows'
-	),
-	run(
-		15,
-		8.2,
-		'aborted',
-		'duration',
-		60,
-		1320,
-		0.58,
-		0.55,
-		8.2,
-		8.5,
-		43902,
-		'Edge',
-		'143',
-		'Windows'
-	),
-	run(
-		16,
-		7.4,
-		'finished',
-		'duration',
-		120,
-		7200,
-		0.99,
-		0.77,
-		11.0,
-		11.4,
-		32727,
-		'Chrome',
-		'143',
-		'macOS'
-	),
-	run(
-		17,
-		6.6,
-		'stopped',
-		'duration',
-		60,
-		1980,
-		0.9,
-		0.84,
-		10.9,
-		12.1,
-		33028,
-		'Chrome',
-		'144',
-		'macOS'
-	),
-	run(
-		18,
-		5.3,
-		'finished',
-		'targetDrop',
-		80,
-		2880,
-		0.96,
-		0.8,
-		20.0,
-		19.4,
-		18000,
-		'Edge',
-		'143',
-		'Windows'
-	),
-	run(
-		19,
-		4.1,
-		'failed',
-		'duration',
-		30,
-		210,
-		0.71,
-		0.7,
-		0,
-		0,
-		0,
-		'Chrome',
-		'144',
-		'Linux'
-	),
-	run(
-		20,
-		3.2,
-		'finished',
-		'duration',
-		60,
-		3600,
-		0.88,
-		0.78,
-		10.0,
-		9.7,
-		36000,
-		'Chrome',
-		'144',
-		'macOS'
-	),
-	run(
-		21,
-		2.0,
-		'finished',
-		'duration',
-		45,
-		2700,
-		0.93,
-		0.85,
-		10.7,
-		11.3,
-		33645,
-		'Edge',
-		'144',
-		'Windows'
-	),
-	run(
-		22,
-		1.1,
-		'aborted',
-		'targetDrop',
-		60,
-		900,
-		0.74,
-		0.72,
-		8.0,
-		8.0,
-		45000,
-		'Opera',
-		'125',
-		'Windows'
-	),
-	run(
-		23,
-		0.4,
-		'finished',
-		'duration',
-		30,
-		1800,
-		0.97,
-		0.92,
-		10.0,
-		10.3,
-		36000,
-		'Chrome',
-		'144',
-		'macOS'
-	),
-	run(
-		24,
-		12.4,
-		'finished',
-		'duration',
-		60,
-		3600,
-		0.89,
-		0.79,
-		10.0,
-		10.2,
-		36000,
-		'Opera',
-		'124',
-		'Windows'
-	),
-];
+const parseSeedTable = (): SeedRun[] =>
+	SEED_TABLE.trim()
+		.split( '\n' )
+		.map( ( row ) => {
+			const [
+				n,
+				daysAgo,
+				status,
+				configMode,
+				amount,
+				elapsed,
+				start,
+				end,
+				rateSession,
+				rate10,
+				tte,
+				browser,
+				version,
+				os,
+			] = row.split( '|' ).map( ( cell ) => cell.trim() );
+
+			return {
+				n: Number( n ),
+				daysAgo: Number( daysAgo ),
+				status: status as SeedRun[ 'status' ],
+				configMode: configMode as SeedRun[ 'configMode' ],
+				amount: Number( amount ),
+				elapsed: Number( elapsed ),
+				start: Number( start ),
+				end: Number( end ),
+				rateSession: Number( rateSession ),
+				rate10: Number( rate10 ),
+				tte: Number( tte ),
+				browser,
+				version,
+				os,
+			};
+		} );
+
+/** The 24 runs the seed creates, in insertion order. */
+export const seedRuns: readonly SeedRun[] = parseSeedTable();
 
 /**
  * The PHP the agent blueprint runs once the plugin and the MCP Adapter are

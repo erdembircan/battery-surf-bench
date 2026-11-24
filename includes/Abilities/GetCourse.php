@@ -14,7 +14,7 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Returns the surf course: the pages the simulated surfer visits, in order.
  */
-class GetCourse implements Ability {
+class GetCourse extends CourseAbility {
 
 	/**
 	 * The ability's registered name.
@@ -22,14 +22,6 @@ class GetCourse implements Ability {
 	 * @var string
 	 */
 	private const NAME = 'battery-surf-bench/get-course';
-
-	/**
-	 * Stores the collaborator that reads the course.
-	 *
-	 * @param CourseEditor $editor Reads and describes the course.
-	 */
-	public function __construct( private CourseEditor $editor ) {
-	}
 
 	/**
 	 * The ability's registered name.
@@ -70,6 +62,6 @@ class GetCourse implements Ability {
 	 * @return array<string, mixed> The course.
 	 */
 	public function execute( array $input ): array {
-		return $this->editor->course( $this->editor->entries() );
+		return $this->course( $this->editor->entries() );
 	}
 }

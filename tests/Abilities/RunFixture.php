@@ -10,18 +10,18 @@ declare( strict_types=1 );
 namespace ErdemBircan\BatterySurfBench\Tests\Abilities;
 
 /**
- * Builds a normalized run, the shape the session reader hands the abilities,
- * with any field overridden.
+ * Builds a normalized run, the shape the session reader hands the abilities.
  */
 final class RunFixture {
 
 	/**
-	 * Builds a finished, measured run.
+	 * Builds a finished, measured run; named arguments replace its fields, as in
+	 * `RunFixture::run( id: 3, status: 'failed' )`.
 	 *
-	 * @param array<string, mixed> $overrides Fields to replace.
+	 * @param mixed ...$overrides Fields to replace, by name.
 	 * @return array<string, mixed> The run.
 	 */
-	public static function run( array $overrides = array() ): array {
+	public static function run( mixed ...$overrides ): array {
 		$id = (int) ( $overrides['id'] ?? 1 );
 
 		return array_merge(

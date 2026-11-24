@@ -13,19 +13,17 @@ use Brain\Monkey\Functions;
 use DateTimeImmutable;
 use DateTimeZone;
 use ErdemBircan\BatterySurfBench\Abilities\SessionReader;
-use ErdemBircan\BatterySurfBench\Tests\TestCase;
 use WP_Post;
 
 /**
  * Behavioral tests for reading stored sessions as normalized runs: the figures
- * an agent sees (percentages, nulls for what a run couldn't measure, dates in
- * the site's timezone, a sentence for how it ended), the paging that reads
- * every published session, and the checks that keep other posts out.
+ * an agent sees, the paging that reads every session with a status, and the
+ * checks that keep other posts out.
  */
-final class SessionReaderTest extends TestCase {
+final class SessionReaderTest extends AbilityTestCase {
 
 	/**
-	 * Sessions the stubs serve: id => array( post_type, post_status, meta ).
+	 * Sessions the stubs serve: id => type, status and meta.
 	 *
 	 * @var array<int, array{type: string, status: string, meta: array<string, mixed>}>
 	 */
@@ -38,9 +36,7 @@ final class SessionReaderTest extends TestCase {
 	 */
 	private array $queries = array();
 
-	/**
-	 * Stubs the WordPress functions the reader calls, backed by `$posts`.
-	 */
+	/** Stubs the WordPress functions the reader calls, backed by `$posts`. */
 	protected function setUp(): void {
 		parent::setUp();
 
@@ -50,35 +46,28 @@ final class SessionReaderTest extends TestCase {
 		Functions\when( 'get_posts' )->alias(
 			function ( array $args ): array {
 				$this->queries[] = $args;
-				$ids             = array();
-
-				foreach ( $this->posts as $id => $post ) {
-					if ( $post['type'] === $args['post_type'] && $post['status'] === $args['post_status'] ) {
-						$ids[] = $id;
-					}
-				}
+				$ids             = array_keys(
+					array_filter(
+						$this->posts,
+						static fn ( array $post ): bool => $post['type'] === $args['post_type'] && $post['status'] === $args['post_status']
+					)
+				);
 
 				return array_slice( $ids, ( $args['paged'] - 1 ) * $args['posts_per_page'], $args['posts_per_page'] );
 			}
 		);
 		Functions\when( 'get_post' )->alias(
-			function ( int $id ) {
-				if ( ! isset( $this->posts[ $id ] ) ) {
-					return null;
-				}
-
-				return new WP_Post(
+			fn ( int $id ) => isset( $this->posts[ $id ] )
+				? new WP_Post(
 					(object) array(
 						'ID'          => $id,
 						'post_type'   => $this->posts[ $id ]['type'],
 						'post_status' => $this->posts[ $id ]['status'],
 					)
-				);
-			}
+				)
+				: null
 		);
-		Functions\when( 'get_post_meta' )->alias(
-			fn ( int $id, string $key ) => $this->posts[ $id ]['meta'][ $key ] ?? ''
-		);
+		Functions\when( 'get_post_meta' )->alias( fn ( int $id, string $key ) => $this->posts[ $id ]['meta'][ $key ] ?? '' );
 		Functions\when( 'admin_url' )->alias( static fn ( string $path ): string => 'https://example.test/wp-admin/' . $path );
 		Functions\when( 'wp_date' )->alias(
 			static fn ( string $format, int $timestamp ): string => ( new DateTimeImmutable( '@' . $timestamp ) )
@@ -97,51 +86,46 @@ final class SessionReaderTest extends TestCase {
 	}
 
 	/**
-	 * Stores a published session whose meta is the given values, under their bare names.
+	 * Stores a session; named arguments are its meta under their bare names.
 	 *
-	 * @param int                  $id     The session id.
-	 * @param array<string, mixed> $meta   Meta values keyed by bare field name.
-	 * @param string               $status The post status.
-	 * @param string               $type   The post type.
+	 * @param int    $id          The session id.
+	 * @param string $post_status The post status.
+	 * @param string $post_type   The post type.
+	 * @param mixed  ...$meta     Meta values, by bare field name.
 	 */
-	private function session( int $id, array $meta = array(), string $status = 'publish', string $type = 'bsbench_session' ): void {
-		$prefixed = array();
-
-		foreach ( $meta as $field => $value ) {
-			$prefixed[ 'bsbench_' . $field ] = $value;
-		}
-
+	private function session( int $id, string $post_status = 'publish', string $post_type = 'bsbench_session', mixed ...$meta ): void {
 		$this->posts[ $id ] = array(
-			'type'   => $type,
-			'status' => $status,
-			'meta'   => $prefixed,
+			'type'   => $post_type,
+			'status' => $post_status,
+			'meta'   => array_combine( array_map( static fn ( string $field ): string => 'bsbench_' . $field, array_keys( $meta ) ), $meta ),
 		);
 	}
 
 	/**
-	 * A finished duration run as the cockpit stores it.
+	 * Stores a finished duration run as the cockpit saves it.
 	 *
-	 * @return array<string, mixed> Meta keyed by bare field name.
+	 * @param int $id The session id.
 	 */
-	private function finished_duration_meta(): array {
-		return array(
-			'status'          => 'finished',
-			'mode'            => 'duration',
-			'config_mode'     => 'duration',
-			'config_duration' => 3600,
-			'started_at'      => '2026-11-24T09:30:00.000Z',
-			'ended_at'        => '2026-11-24T10:30:00.000Z',
-			'start_level'     => 0.98,
-			'end_level'       => 0.88,
-			'dropped_pct'     => 10.0,
-			'elapsed'         => 3600,
-			'rate_session'    => 10.0,
-			'rate_10'         => 10.4,
-			'time_to_empty'   => 36000,
-			'ua_browser'      => 'Chrome',
-			'ua_version'      => '142',
-			'ua_os'           => 'macOS',
-			'samples'         => array(
+	private function finished_run( int $id ): void {
+		$this->session(
+			$id,
+			status: 'finished',
+			mode: 'duration',
+			config_mode: 'duration',
+			config_duration: 3600,
+			started_at: '2026-11-24T09:30:00.000Z',
+			ended_at: '2026-11-24T10:30:00.000Z',
+			start_level: 0.98,
+			end_level: 0.88,
+			dropped_pct: 10.0,
+			elapsed: 3600,
+			rate_session: 10.0,
+			rate_10: 10.4,
+			time_to_empty: 36000,
+			ua_browser: 'Chrome',
+			ua_version: '142',
+			ua_os: 'macOS',
+			samples: array(
 				array(
 					't'        => 0,
 					'level'    => 0.98,
@@ -154,381 +138,164 @@ final class SessionReaderTest extends TestCase {
 					'charging' => false,
 					'count'    => 3,
 				),
-			),
+			)
 		);
 	}
 
-	/**
-	 * A stored run reads as the figures an agent can reason about, in a fixed key order.
-	 */
+	/** A stored run reads as the figures an agent can reason about, in a fixed key order, with dates in the site's timezone. */
 	public function test_find_normalizes_a_finished_duration_run(): void {
-		$this->session( 12, $this->finished_duration_meta() );
+		$this->finished_run( 12 );
 
 		$run = $this->reader()->find( 12 );
 
-		$this->assertSame(
-			array(
-				'id',
-				'status',
-				'end_reason',
-				'outcome',
-				'mode',
-				'started_at',
-				'ended_at',
-				'elapsed_seconds',
-				'battery_start_percent',
-				'battery_end_percent',
-				'battery_drop_points',
-				'drain_rate_session_pct_per_hour',
-				'drain_rate_10min_pct_per_hour',
-				'projected_full_runtime_seconds',
-				'setup',
-				'browser',
-				'reading_count',
-				'report_url',
-			),
-			array_keys( $run )
-		);
-		$this->assertSame( 12, $run['id'] );
-		$this->assertSame( 'finished', $run['status'] );
+		$this->assertSame( array_keys( RunFixture::run() ), array_keys( $run ) );
 		$this->assertSame( 'duration', $run['end_reason'] );
 		$this->assertSame( 'Finished: it ran for its full set duration.', $run['outcome'] );
-		$this->assertSame( 'duration', $run['mode'] );
-		$this->assertSame( 3600, $run['elapsed_seconds'] );
-		$this->assertSame( 98.0, $run['battery_start_percent'] );
-		$this->assertSame( 88.0, $run['battery_end_percent'] );
-		$this->assertSame( 10.0, $run['battery_drop_points'] );
-		$this->assertSame( 10.0, $run['drain_rate_session_pct_per_hour'] );
-		$this->assertSame( 10.4, $run['drain_rate_10min_pct_per_hour'] );
-		$this->assertSame( 36000, $run['projected_full_runtime_seconds'] );
-		$this->assertSame( 2, $run['reading_count'] );
-		$this->assertSame( 'https://example.test/wp-admin/admin.php?page=bsbench-session&bsbenchSessionId=12', $run['report_url'] );
-	}
-
-	/**
-	 * Stored UTC timestamps read as ISO 8601 in the site's timezone.
-	 */
-	public function test_dates_are_iso_8601_in_the_sites_timezone(): void {
-		$this->session( 12, $this->finished_duration_meta() );
-
-		$run = $this->reader()->find( 12 );
-
 		$this->assertSame( '2026-11-24T10:30:00+01:00', $run['started_at'] );
 		$this->assertSame( '2026-11-24T11:30:00+01:00', $run['ended_at'] );
-	}
-
-	/**
-	 * A date that is empty or unreadable reads as null rather than a wrong moment.
-	 */
-	public function test_an_empty_or_unreadable_date_reads_as_null(): void {
-		$this->session(
-			1,
-			array(
-				'started_at' => '',
-				'ended_at'   => 'not a date',
-			)
-		);
-
-		$run = $this->reader()->find( 1 );
-
-		$this->assertNull( $run['started_at'] );
-		$this->assertNull( $run['ended_at'] );
-	}
-
-	/**
-	 * A stored zero marks a figure the run couldn't measure; an agent sees null.
-	 */
-	public function test_a_stored_zero_reads_as_null(): void {
-		$meta                  = $this->finished_duration_meta();
-		$meta['rate_session']  = 0;
-		$meta['rate_10']       = 0.0;
-		$meta['time_to_empty'] = 0;
-		$this->session( 3, $meta );
-
-		$run = $this->reader()->find( 3 );
-
-		$this->assertNull( $run['drain_rate_session_pct_per_hour'] );
-		$this->assertNull( $run['drain_rate_10min_pct_per_hour'] );
-		$this->assertNull( $run['projected_full_runtime_seconds'] );
-	}
-
-	/**
-	 * A duration run's setup carries its length and no target.
-	 */
-	public function test_setup_of_a_duration_run_carries_its_length(): void {
-		$this->session( 4, $this->finished_duration_meta() );
-
-		$this->assertSame(
-			array(
-				'duration_seconds'        => 3600,
-				'stop_at_battery_percent' => null,
-			),
-			$this->reader()->find( 4 )['setup']
-		);
-	}
-
-	/**
-	 * A target-drop run's setup carries its target and no length, even when a
-	 * stray duration was stored.
-	 */
-	public function test_setup_of_a_target_drop_run_carries_its_target(): void {
-		$this->session(
-			5,
-			array(
-				'status'                => 'finished',
-				'mode'                  => 'target',
-				'config_mode'           => 'targetDrop',
-				'config_target_percent' => 70,
-				'config_duration'       => 0,
-			)
-		);
-
-		$run = $this->reader()->find( 5 );
-
-		$this->assertSame(
-			array(
-				'duration_seconds'        => null,
-				'stop_at_battery_percent' => 70,
-			),
-			$run['setup']
-		);
-		$this->assertSame( 'targetDrop', $run['end_reason'] );
-		$this->assertSame( 'Finished: the battery fell to the level the run was set to stop at.', $run['outcome'] );
-	}
-
-	/**
-	 * A setup figure the run never stored reads as null, not zero.
-	 */
-	public function test_a_setup_figure_that_was_never_stored_is_null(): void {
-		$this->session(
-			6,
-			array(
-				'status'      => 'finished',
-				'config_mode' => 'duration',
-			)
-		);
-
-		$this->assertNull( $this->reader()->find( 6 )['setup']['duration_seconds'] );
-	}
-
-	/**
-	 * An empty browser field reads as null.
-	 */
-	public function test_empty_browser_fields_read_as_null(): void {
-		$this->session(
-			7,
-			array(
-				'ua_browser' => 'Chrome',
-				'ua_version' => '',
-				'ua_os'      => '',
-			)
-		);
-
+		$this->assertSame( array( 98.0, 88.0, 10.0 ), array( $run['battery_start_percent'], $run['battery_end_percent'], $run['battery_drop_points'] ) );
+		$this->assertSame( array( 10.0, 10.4, 36000 ), array( $run['drain_rate_session_pct_per_hour'], $run['drain_rate_10min_pct_per_hour'], $run['projected_full_runtime_seconds'] ) );
+		$this->assertSame( array( 3600, 2 ), array( $run['elapsed_seconds'], $run['reading_count'] ) );
+		$this->assertSame( 'https://example.test/wp-admin/admin.php?page=bsbench-session&bsbenchSessionId=12', $run['report_url'] );
 		$this->assertSame(
 			array(
 				'name'    => 'Chrome',
-				'version' => null,
-				'os'      => null,
+				'version' => '142',
+				'os'      => 'macOS',
 			),
-			$this->reader()->find( 7 )['browser']
+			$run['browser']
 		);
 	}
 
-	/**
-	 * Each way a run can end has its own sentence.
-	 */
-	public function test_every_status_has_its_outcome_sentence(): void {
-		$this->session( 1, array( 'status' => 'stopped' ) );
-		$this->session( 2, array( 'status' => 'aborted' ) );
-		$this->session( 3, array( 'status' => 'failed' ) );
+	/** A stored zero marks a figure the run couldn't measure, an empty date or browser field is nothing: an agent sees null. */
+	public function test_zeros_and_empty_fields_read_as_null(): void {
+		$this->session( 3, rate_session: 0, rate_10: 0.0, time_to_empty: 0, started_at: '', ended_at: 'not a date', ua_browser: 'Chrome', ua_version: '', ua_os: '' );
+
+		$run = $this->reader()->find( 3 );
+
+		$this->assertSame( array( null, null, null ), array( $run['drain_rate_session_pct_per_hour'], $run['drain_rate_10min_pct_per_hour'], $run['projected_full_runtime_seconds'] ) );
+		$this->assertSame( array( null, null ), array( $run['started_at'], $run['ended_at'] ) );
+		$this->assertSame( 'Chrome', $run['browser']['name'] );
+		$this->assertNull( $run['browser']['version'] );
+		$this->assertNull( $run['browser']['os'] );
+	}
+
+	/** The setup carries only the goal the run was set with: its length, or its target; a figure never stored is null. */
+	public function test_setup_carries_only_the_goal_the_run_was_set_with(): void {
+		$this->finished_run( 4 );
+		$this->session( 5, status: 'finished', mode: 'target', config_mode: 'targetDrop', config_target_percent: 70, config_duration: 0 );
+		$this->session( 6, status: 'finished', config_mode: 'duration' );
 
 		$reader = $this->reader();
 
-		$this->assertSame( 'stopped', $reader->find( 1 )['end_reason'] );
-		$this->assertSame( 'Cut short: it was stopped by hand before it finished.', $reader->find( 1 )['outcome'] );
-		$this->assertSame( 'plugged', $reader->find( 2 )['end_reason'] );
-		$this->assertSame( 'Cut short: a charger was plugged in, which ended the run.', $reader->find( 2 )['outcome'] );
-		$this->assertSame( 'loadError', $reader->find( 3 )['end_reason'] );
-		$this->assertSame( "Failed: a course page didn't load, so the run stopped.", $reader->find( 3 )['outcome'] );
+		$this->assertSame( array( 'duration_seconds', 'stop_at_battery_percent' ), array_keys( $reader->find( 4 )['setup'] ) );
+		$this->assertSame( array( 3600, null ), array_values( $reader->find( 4 )['setup'] ) );
+		$this->assertSame( array( null, 70 ), array_values( $reader->find( 5 )['setup'] ) );
+		$this->assertSame( 'targetDrop', $reader->find( 5 )['end_reason'] );
+		$this->assertSame( 'Finished: the battery fell to the level the run was set to stop at.', $reader->find( 5 )['outcome'] );
+		$this->assertNull( $reader->find( 6 )['setup']['duration_seconds'] );
 	}
 
-	/**
-	 * A run that hasn't reported its end has no end reason, and says so.
-	 */
-	public function test_a_running_run_has_no_end_reason(): void {
-		$this->session( 8, array( 'status' => 'running' ) );
+	/** Each way a run can end has its own reason and sentence, and a run still going has no reason. */
+	public function test_every_status_has_its_reason_and_outcome_sentence(): void {
+		$this->session( 1, status: 'stopped' );
+		$this->session( 2, status: 'aborted' );
+		$this->session( 3, status: 'failed' );
+		$this->session( 4, status: 'running' );
 
-		$run = $this->reader()->find( 8 );
+		$reader = $this->reader();
+		$cases  = array(
+			array( 1, 'stopped', 'Cut short: it was stopped by hand before it finished.' ),
+			array( 2, 'plugged', 'Cut short: a charger was plugged in, which ended the run.' ),
+			array( 3, 'loadError', "Failed: a course page didn't load, so the run stopped." ),
+			array( 4, null, "Still in progress: the run hasn't reported its end yet." ),
+		);
 
-		$this->assertNull( $run['end_reason'] );
-		$this->assertSame( "Still in progress: the run hasn't reported its end yet.", $run['outcome'] );
+		foreach ( $cases as list( $id, $reason, $outcome ) ) {
+			$this->assertSame( array( $reason, $outcome ), array( $reader->find( $id )['end_reason'], $reader->find( $id )['outcome'] ) );
+		}
 	}
 
-	/**
-	 * Only a published session of the session type is a run.
-	 */
-	public function test_find_refuses_other_post_types_other_statuses_and_unknown_ids(): void {
-		$this->session( 1, array(), 'publish', 'page' );
-		$this->session( 2, array(), 'trash' );
-		$this->session( 3, array(), 'draft' );
+	/** Only a published session of the session type is a run; only a trashed one is a trashed run. */
+	public function test_find_and_find_trashed_keep_other_posts_out(): void {
+		$this->session( 1, post_type: 'page' );
+		$this->session( 2, 'trash' );
+		$this->session( 3, 'draft' );
+		$this->session( 4 );
+		$this->session( 5, 'trash', 'page' );
 
 		$reader = $this->reader();
 
-		$this->assertNull( $reader->find( 1 ) );
-		$this->assertNull( $reader->find( 2 ) );
-		$this->assertNull( $reader->find( 3 ) );
-		$this->assertNull( $reader->find( 404 ) );
+		foreach ( array( 1, 2, 3, 404 ) as $id ) {
+			$this->assertNull( $reader->find( $id ), (string) $id );
+		}
+
+		$this->assertSame( 4, $reader->find( 4 )['id'] );
+		$this->assertSame( 2, $reader->find_trashed( 2 )['id'] );
+
+		foreach ( array( 1, 3, 4, 5, 404 ) as $id ) {
+			$this->assertNull( $reader->find_trashed( $id ), (string) $id );
+		}
 	}
 
-	/**
-	 * A run in the trash is found only as a trashed run, and a recorded one
-	 * only as a recorded run.
-	 */
-	public function test_find_trashed_finds_only_runs_in_the_trash(): void {
-		$this->session( 1, array(), 'trash' );
-		$this->session( 2 );
-		$this->session( 3, array(), 'trash', 'page' );
-
-		$reader = $this->reader();
-
-		$this->assertSame( 1, $reader->find_trashed( 1 )['id'] );
-		$this->assertNull( $reader->find_trashed( 2 ) );
-		$this->assertNull( $reader->find_trashed( 3 ) );
-		$this->assertNull( $reader->find_trashed( 404 ) );
-		$this->assertNull( $reader->find( 1 ) );
-	}
-
-	/**
-	 * The trash can be read the same way as the recorded runs.
-	 */
-	public function test_all_can_read_the_trash_instead(): void {
-		$this->session( 1 );
-		$this->session( 2, array(), 'trash' );
-		$this->session( 3, array(), 'trash' );
-
-		$trashed = $this->reader()->all( 'trash' );
-
-		$this->assertSame( array( 2, 3 ), array_column( $trashed, 'id' ) );
-		$this->assertSame( 'trash', $this->queries[0]['post_status'] );
-		$this->assertSame( array( 1 ), array_column( $this->reader()->all(), 'id' ) );
-	}
-
-	/**
-	 * Readings come back in stored order, with seconds and percent.
-	 */
+	/** Readings come back in stored order, as seconds and percent; a run without samples has none. */
 	public function test_readings_convert_milliseconds_and_levels(): void {
-		$this->session( 12, $this->finished_duration_meta() );
+		$this->finished_run( 12 );
+		$this->session( 1, status: 'failed' );
 
-		$this->assertSame(
-			array(
-				array(
-					'elapsed_seconds' => 0.0,
-					'battery_percent' => 98.0,
-					'charging'        => false,
-					'repeat_count'    => 3,
-				),
-				array(
-					'elapsed_seconds' => 360.0,
-					'battery_percent' => 97.0,
-					'charging'        => false,
-					'repeat_count'    => 3,
-				),
-			),
-			$this->reader()->readings( 12 )
-		);
-	}
-
-	/**
-	 * A session with no stored readings has none to return.
-	 */
-	public function test_readings_of_a_run_without_samples_are_empty(): void {
-		$this->session( 1, array( 'status' => 'failed' ) );
-
+		$this->assertSame( array( 0.0, 360.0 ), array_column( $this->reader()->readings( 12 ), 'elapsed_seconds' ) );
+		$this->assertSame( array( 98.0, 97.0 ), array_column( $this->reader()->readings( 12 ), 'battery_percent' ) );
+		$this->assertSame( array( 3, 3 ), array_column( $this->reader()->readings( 12 ), 'repeat_count' ) );
+		$this->assertSame( array( false, false ), array_column( $this->reader()->readings( 12 ), 'charging' ) );
 		$this->assertSame( array(), $this->reader()->readings( 1 ) );
 	}
 
-	/**
-	 * Every published session is read, not just the first page: it pages through
-	 * `get_posts()` in pages of 100 until one comes back short.
-	 */
-	public function test_all_reads_every_published_session_page_by_page(): void {
+	/** Every session is read, not just the first page: `get_posts()` is paged in hundreds until one is short; the trash reads the same way. */
+	public function test_all_reads_every_session_with_the_status_page_by_page(): void {
 		for ( $id = 1; $id <= 250; $id++ ) {
 			$this->session( $id );
 		}
 
-		$this->session( 900, array(), 'publish', 'page' );
-		$this->session( 901, array(), 'trash' );
+		$this->session( 900, post_type: 'page' );
+		$this->session( 901, 'trash' );
 
 		$runs = $this->reader()->all();
 
 		$this->assertCount( 250, $runs );
-		$this->assertSame( 1, $runs[0]['id'] );
-		$this->assertSame( 250, $runs[249]['id'] );
-		$this->assertCount( 3, $this->queries );
+		$this->assertSame( array( 1, 250 ), array( $runs[0]['id'], $runs[249]['id'] ) );
 		$this->assertSame( array( 1, 2, 3 ), array_column( $this->queries, 'paged' ) );
-
-		foreach ( $this->queries as $query ) {
-			$this->assertSame( 100, $query['posts_per_page'] );
-			$this->assertSame( 'publish', $query['post_status'] );
-			$this->assertSame( 'bsbench_session', $query['post_type'] );
-		}
+		$this->assertSame( array( 100 ), array_unique( array_column( $this->queries, 'posts_per_page' ) ) );
+		$this->assertSame( array( 901 ), array_column( $this->reader()->all( 'trash' ), 'id' ) );
+		$this->assertSame( 'trash', end( $this->queries )['post_status'] );
 	}
 
-	/**
-	 * When the sessions fill whole pages exactly, the empty page that follows
-	 * ends the read.
-	 */
+	/** When the sessions fill whole pages exactly, the empty page that follows ends the read; with none there are no runs. */
 	public function test_all_stops_after_an_empty_page(): void {
+		$this->assertSame( array(), $this->reader()->all() );
+
 		for ( $id = 1; $id <= 100; $id++ ) {
 			$this->session( $id );
 		}
+
+		$this->queries = array();
 
 		$this->assertCount( 100, $this->reader()->all() );
 		$this->assertCount( 2, $this->queries );
 	}
 
-	/**
-	 * With no sessions there are no runs.
-	 */
-	public function test_all_is_empty_when_nothing_is_recorded(): void {
-		$this->assertSame( array(), $this->reader()->all() );
-	}
-
-	/**
-	 * The newest run is the one that started last.
-	 */
+	/** The newest run started last; a tie goes to the higher id, a run with no start loses, and none means null. */
 	public function test_newest_is_the_run_that_started_last(): void {
-		$this->session( 1, array( 'started_at' => '2026-11-20T09:00:00.000Z' ) );
-		$this->session( 2, array( 'started_at' => '2026-11-22T09:00:00.000Z' ) );
-		$this->session( 3, array( 'started_at' => '2026-11-21T09:00:00.000Z' ) );
-
-		$this->assertSame( 2, $this->reader()->newest()['id'] );
-	}
-
-	/**
-	 * Runs that started at the same moment tie to the higher id.
-	 */
-	public function test_newest_breaks_a_tie_by_the_higher_id(): void {
-		$this->session( 1, array( 'started_at' => '2026-11-20T09:00:00.000Z' ) );
-		$this->session( 2, array( 'started_at' => '2026-11-20T09:00:00.000Z' ) );
-
-		$this->assertSame( 2, $this->reader()->newest()['id'] );
-	}
-
-	/**
-	 * A run with no start loses to one that has it.
-	 */
-	public function test_newest_ignores_a_run_with_no_start_when_another_has_one(): void {
-		$this->session( 5, array( 'started_at' => '' ) );
-		$this->session( 2, array( 'started_at' => '2026-11-20T09:00:00.000Z' ) );
-
-		$this->assertSame( 2, $this->reader()->newest()['id'] );
-	}
-
-	/**
-	 * With no runs there is no newest one.
-	 */
-	public function test_newest_is_null_when_nothing_is_recorded(): void {
 		$this->assertNull( $this->reader()->newest() );
+
+		$this->session( 1, started_at: '2026-11-20T09:00:00.000Z' );
+		$this->session( 2, started_at: '2026-11-22T09:00:00.000Z' );
+		$this->session( 3, started_at: '2026-11-21T09:00:00.000Z' );
+		$this->session( 5, started_at: '' );
+
+		$this->assertSame( 2, $this->reader()->newest()['id'] );
+
+		$this->session( 6, started_at: '2026-11-22T09:00:00.000Z' );
+
+		$this->assertSame( 6, $this->reader()->newest()['id'] );
 	}
 }

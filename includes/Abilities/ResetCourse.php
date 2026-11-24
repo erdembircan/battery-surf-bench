@@ -7,6 +7,8 @@
 
 namespace ErdemBircan\BatterySurfBench\Abilities;
 
+use ErdemBircan\BatterySurfBench\Course\CourseOrderSanitizer;
+
 use function __;
 
 defined( 'ABSPATH' ) || exit;
@@ -14,7 +16,17 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Replaces the course with the default: the bundled pages in their original order.
  */
-class ResetCourse implements Ability {
+class ResetCourse extends CourseAbility {
+
+	/**
+	 * Stores the collaborators that save the course and know the default.
+	 *
+	 * @param CourseEditor         $editor    Saves the course.
+	 * @param CourseOrderSanitizer $sanitizer Source of the default course.
+	 */
+	public function __construct( CourseEditor $editor, private CourseOrderSanitizer $sanitizer ) {
+		parent::__construct( $editor );
+	}
 
 	/**
 	 * The ability's registered name.
@@ -22,14 +34,6 @@ class ResetCourse implements Ability {
 	 * @var string
 	 */
 	private const NAME = 'battery-surf-bench/reset-course';
-
-	/**
-	 * Stores the collaborator that saves the course.
-	 *
-	 * @param CourseEditor $editor Saves and describes the course.
-	 */
-	public function __construct( private CourseEditor $editor ) {
-	}
 
 	/**
 	 * The ability's registered name.
@@ -70,6 +74,6 @@ class ResetCourse implements Ability {
 	 * @return array<string, mixed> The course as saved.
 	 */
 	public function execute( array $input ): array {
-		return $this->editor->course( $this->editor->reset() );
+		return $this->course( $this->editor->save( $this->sanitizer->default_order() ) );
 	}
 }

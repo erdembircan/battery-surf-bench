@@ -18,7 +18,7 @@ defined( 'ABSPATH' ) || exit;
  * Searches the site's posts and pages for ones to add to the course, and says
  * for each whether it can be added.
  */
-class FindPages implements Ability {
+class FindPages extends CourseAbility {
 
 	/**
 	 * The ability's registered name.
@@ -33,10 +33,8 @@ class FindPages implements Ability {
 	 * @param CourseEditor       $editor     Reads the course and checks which posts can join it.
 	 * @param array<int, string> $post_types Post types the search covers.
 	 */
-	public function __construct(
-		private CourseEditor $editor,
-		private array $post_types
-	) {
+	public function __construct( CourseEditor $editor, private array $post_types ) {
+		parent::__construct( $editor );
 	}
 
 	/**
@@ -131,15 +129,15 @@ class FindPages implements Ability {
 				'kind' => 'user',
 				'id'   => $post->ID,
 			);
-			$described   = $this->editor->describe_entry( $entry, 0 );
-			$position    = $this->editor->position_of_entry( $entries, $entry );
+			$described   = $this->editor->describe( array( $entry ) )[0];
+			$position    = $this->position_of_entry( $entries, $entry );
 			$eligibility = $this->editor->eligibility( $post->ID );
 			$reason      = null;
 
 			if ( $eligibility instanceof WP_Error ) {
 				$reason = $eligibility->get_error_message();
 			} elseif ( null !== $position ) {
-				$reason = $this->editor->already_in_course( $entry, $position )->get_error_message();
+				$reason = $this->already_in_course( $entry, $position )->get_error_message();
 			}
 
 			$pages[] = array(

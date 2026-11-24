@@ -8,6 +8,25 @@ import { describe, it, expect } from 'vitest';
 import { agentSeedPhp, seedRuns } from './AgentSeed.mts';
 
 describe( 'seedRuns', () => {
+	it( 'parses a table row into a typed run', () => {
+		expect( seedRuns[ 3 ] ).toEqual( {
+			n: 4,
+			daysAgo: 24,
+			status: 'finished',
+			configMode: 'targetDrop',
+			amount: 70,
+			elapsed: 4320,
+			start: 0.85,
+			end: 0.7,
+			rateSession: 12.5,
+			rate10: 12.9,
+			tte: 28800,
+			browser: 'Opera',
+			version: '124',
+			os: 'Windows',
+		} );
+	} );
+
 	it( 'has 24 runs, numbered in insertion order', () => {
 		expect( seedRuns.map( ( run ) => run.n ) ).toEqual(
 			Array.from( { length: 24 }, ( _, index ) => index + 1 )

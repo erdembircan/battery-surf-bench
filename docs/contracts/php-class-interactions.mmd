@@ -417,22 +417,21 @@ classDiagram
         +__construct(string option_name, CourseOrderSanitizer sanitizer, CourseCatalog catalog, array selectable_post_types)
         +entries() array
         +save(array entries) array
-        +reset() array
         +describe(array entries) array
         +bundled(array entries) array
         +is_default(array entries) bool
         +position_of(array entries, int post_id, string slug) int
         +eligibility(int post_id) bool
-        +entry_from_input(array input) array
-        +page_properties() array
-        +position_of_entry(array entries, array entry) int
-        +course(array entries) array
-        +describe_entry(array entry, int position) array
-        +name_of(array entry) string
-        +already_in_course(array entry, int position) WP_Error
-        +not_in_course(array entry) WP_Error
-        +out_of_range(int given, int highest) WP_Error
     }
+
+    %% The six course abilities share this base: the course as they return it,
+    %% the input that names a page, and the wording of the errors they share.
+    %% Its helpers are protected, so the base adds nothing to the public API.
+    class CourseAbility {
+        <<abstract>>
+        +__construct(CourseEditor editor)
+    }
+
 
     class ListRuns {
         +__construct(SessionReader reader, RunFilter filter)
@@ -491,7 +490,6 @@ classDiagram
     }
 
     class GetCourse {
-        +__construct(CourseEditor editor)
         +name() string
         +definition() array
         +execute(array input) array
@@ -505,28 +503,25 @@ classDiagram
     }
 
     class AddCoursePage {
-        +__construct(CourseEditor editor)
         +name() string
         +definition() array
         +execute(array input) array
     }
 
     class MoveCoursePage {
-        +__construct(CourseEditor editor)
         +name() string
         +definition() array
         +execute(array input) array
     }
 
     class RemoveCoursePage {
-        +__construct(CourseEditor editor)
         +name() string
         +definition() array
         +execute(array input) array
     }
 
     class ResetCourse {
-        +__construct(CourseEditor editor)
+        +__construct(CourseEditor editor, CourseOrderSanitizer sanitizer)
         +name() string
         +definition() array
         +execute(array input) array
@@ -688,6 +683,9 @@ classDiagram
     AbilityRegistry o-- Ability : registers (aggregation)
     SessionReader ..> RunOutcome : maps the end reason via
     SessionDetail ..> RunOutcome : maps the end reason via
+    CourseAbility ..|> Ability : implements
+    CourseAbility --> CourseEditor : edits the course via
+    ResetCourse --> CourseOrderSanitizer : saves the default order from
     CourseEditor --> CourseOrderSanitizer : reads and saves through
     CourseEditor --> CourseCatalog : describes the bundled pages of
     ListRuns ..|> Ability : implements
@@ -707,17 +705,17 @@ classDiagram
     TrashRuns ..> Annotations : declares annotations via
     GetCockpitLink ..|> Ability : implements
     GetCockpitLink ..> Annotations : declares annotations via
-    GetCourse ..|> Ability : implements
+    GetCourse --|> CourseAbility : extends
     GetCourse ..> Annotations : declares annotations via
-    FindPages ..|> Ability : implements
+    FindPages --|> CourseAbility : extends
     FindPages ..> Annotations : declares annotations via
-    AddCoursePage ..|> Ability : implements
+    AddCoursePage --|> CourseAbility : extends
     AddCoursePage ..> Annotations : declares annotations via
-    MoveCoursePage ..|> Ability : implements
+    MoveCoursePage --|> CourseAbility : extends
     MoveCoursePage ..> Annotations : declares annotations via
-    RemoveCoursePage ..|> Ability : implements
+    RemoveCoursePage --|> CourseAbility : extends
     RemoveCoursePage ..> Annotations : declares annotations via
-    ResetCourse ..|> Ability : implements
+    ResetCourse --|> CourseAbility : extends
     ResetCourse ..> Annotations : declares annotations via
     ListRuns --> SessionReader : reads runs via
     GetRun --> SessionReader : reads runs via
@@ -727,12 +725,6 @@ classDiagram
     TrashRuns --> SessionReader : reads runs via
     ListRuns --> RunFilter : filters runs via
     GetDrainStats --> RunFilter : filters runs via
-    GetCourse --> CourseEditor : edits the course via
-    FindPages --> CourseEditor : edits the course via
-    AddCoursePage --> CourseEditor : edits the course via
-    MoveCoursePage --> CourseEditor : edits the course via
-    RemoveCoursePage --> CourseEditor : edits the course via
-    ResetCourse --> CourseEditor : edits the course via
     ListRuns ..> RunSchema : describes its schema via
     GetDrainStats ..> RunSchema : describes its schema via
     AddCoursePage ..> RunSchema : describes its schema via
