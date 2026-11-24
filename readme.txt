@@ -63,7 +63,7 @@ Every run happens in the cockpit, a purpose-built dashboard that stays out of th
 * **Live readouts:** battery level, a responsive 10-minute drain rate, a stable whole-session rate, and projected time-to-empty, all updating as the samples come in.
 * **A watchable run:** the surfer browses inside a live viewport, with playful captions narrating what it's up to.
 * **Run protection built in:** a screen wake-lock keeps the display from sleeping mid-run, a leave-confirmation guard saves you from an accidental tab close, and a finish chime announces a run that completes on its own (mutable, and it remembers your choice).
-* **Charger-aware:** a benchmark won't start while you're plugged in. If the charger connects mid-run, the run pauses automatically and resumes when you unplug, with the plugged-in time excluded from the math.
+* **Charger-aware:** a benchmark won't start while you're plugged in, and plugging the charger in mid-run ends the run. It's saved as interrupted, so charging time never counts toward the drain.
 
 = Numbers you can trust =
 
@@ -215,6 +215,7 @@ Yes. The plugin registers its abilities with the WordPress Abilities API, which 
 
 = Unreleased =
 * New: AI assistants can read your benchmark runs, compare and average them, and manage the surf course through the WordPress Abilities API and the MCP Adapter plugin.
+* Fix: the readme now says what plugging in mid-run does: it ends the run, which is saved as interrupted.
 
 = 1.1.0 =
 * New: the plugin page can start Battery Surf Bench in WordPress Playground, right in your browser.

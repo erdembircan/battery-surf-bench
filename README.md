@@ -85,7 +85,7 @@ Every run happens in the Cockpit, a purpose-built dashboard that stays out of th
 - **Live readouts:** battery level, a responsive 10-minute drain rate, a stable whole-session rate, and projected time-to-empty, all updating as the samples come in.
 - **A watchable run:** the surfer browses inside a live viewport, with playful caption "barks" narrating what it's up to ("Deep in the good words…", "Ooh, moving pictures!").
 - **Run protection built in:** a screen wake-lock keeps the display from sleeping mid-run, a leave-confirmation guard saves you from an accidental tab close, and a finish chime announces a run that completes on its own (mutable, and it remembers your choice).
-- **Charger-aware:** a benchmark won't start while you're plugged in. If the charger connects mid-run, the run pauses automatically and resumes when you unplug, with the plugged-in time excluded from the math.
+- **Charger-aware:** a benchmark won't start while you're plugged in, and plugging the charger in mid-run ends the run. It's saved as interrupted, so charging time never counts toward the drain.
 
 ## Numbers you can trust
 
