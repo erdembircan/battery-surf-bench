@@ -52,7 +52,7 @@ class GetRunReadings implements Ability {
 	public function definition(): array {
 		return array(
 			'label'         => __( "Get a run's battery readings", 'battery-surf-bench' ),
-			'description'   => __( 'Returns the battery readings a benchmark run recorded, in order, ready to chart. Each reading marks the moment the battery reached a new level: the seconds since the run started, the battery level in percent, and whether a charger was connected, and repeat_count, how many times the battery reported that same level before it changed.', 'battery-surf-bench' ),
+			'description'   => __( 'Returns the battery readings a benchmark run recorded, in order, ready to chart. Each reading marks the moment the battery reached a new level: the seconds since the run started, the battery level in percent, whether a charger was connected, and repeat_count, how many times the battery reported that same level before it changed.', 'battery-surf-bench' ),
 			'input_schema'  => array(
 				'type'                 => 'object',
 				'default'              => array(),
