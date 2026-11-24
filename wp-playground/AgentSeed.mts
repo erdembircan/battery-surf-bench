@@ -53,7 +53,7 @@ export interface SeedRun {
  */
 const SEED_TABLE = `
  1 | 29.2 | finished | duration   |  60 | 3600 | 0.98 | 0.88 | 10.0 | 10.4 | 36000 | Chrome | 142 | macOS
- 2 | 27.5 | finished | duration   |  30 | 1800 | 0.91 | 0.86 |  9.5 |  9.8 | 37895 | Edge   | 141 | Windows
+ 2 | 27.5 | finished | duration   | 120 | 7200 | 0.95 | 0.76 |  9.5 |  9.8 | 37895 | Edge   | 141 | Windows
  3 | 26.1 | stopped  | duration   | 120 | 2460 | 0.80 | 0.73 | 10.2 | 11.0 | 35294 | Chrome | 142 | macOS
  4 | 24.0 | finished | targetDrop |  70 | 4320 | 0.85 | 0.70 | 12.5 | 12.9 | 28800 | Opera  | 124 | Windows
  5 | 22.3 | failed   | duration   |  60 |   95 | 0.77 | 0.77 |  0   |  0   |     0 | Chrome | 142 | Linux
@@ -62,7 +62,7 @@ const SEED_TABLE = `
  8 | 17.8 | finished | duration   |  15 |  900 | 0.95 | 0.94 |  0   |  0   |     0 | Chrome | 143 | macOS
  9 | 16.2 | finished | duration   |  90 | 5400 | 0.97 | 0.79 | 12.0 | 12.3 | 30000 | Edge   | 142 | Windows
 10 | 14.6 | stopped  | targetDrop |  40 |  600 | 0.60 | 0.59 |  0   |  0   |     0 | Chrome | 143 | ChromeOS
-11 | 13.1 | finished | duration   |  60 | 3600 | 0.92 | 0.82 |  9.8 | 10.6 | 36735 | Chrome | 143 | macOS
+11 | 13.1 | finished | duration   |  60 | 3600 | 0.92 | 0.82 | 10.0 | 10.6 | 36000 | Chrome | 143 | macOS
 12 | 11.7 | failed   | targetDrop |  60 |   40 | 0.88 | 0.88 |  0   |  0   |     0 | Edge   | 142 | Windows
 13 | 10.3 | finished | targetDrop |  75 | 3240 | 0.95 | 0.75 | 22.2 | 23.5 | 16216 | Chrome | 143 | Windows
 14 |  9.0 | finished | duration   |  30 | 1800 | 0.70 | 0.65 | 10.0 | 10.0 | 36000 | Opera  | 125 | Windows

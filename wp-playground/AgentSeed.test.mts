@@ -8,6 +8,18 @@ import { describe, it, expect } from 'vitest';
 import { agentSeedPhp, seedRuns } from './AgentSeed.mts';
 
 describe( 'seedRuns', () => {
+	it( 'stores a session rate that agrees with the readings the run implies', () => {
+		for ( const run of seedRuns.filter( ( row ) => row.rateSession > 0 ) ) {
+			const implied =
+				( ( run.start - run.end ) * 100 ) / ( run.elapsed / 3600 );
+
+			expect(
+				Math.abs( implied - run.rateSession ),
+				`row ${ run.n }: readings imply ${ implied.toFixed( 2 ) } %/h`
+			).toBeLessThanOrEqual( 0.05 );
+		}
+	} );
+
 	it( 'parses a table row into a typed run', () => {
 		expect( seedRuns[ 3 ] ).toEqual( {
 			n: 4,

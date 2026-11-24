@@ -159,7 +159,7 @@ class RunFilter {
 			'bsbench_invalid_date',
 			sprintf(
 				/* translators: %s: The value that was given as a date. */
-				__( '“%s” isn\'t a date. Use a date such as 2026-11-24, or a date and time with an offset, such as 2026-11-24T09:30:00+01:00.', 'battery-surf-bench' ),
+				__( '“%s” isn\'t a date the site can read. Use a date such as 2026-11-24, or a date and time with an offset, such as 2026-11-24T09:30:00+01:00.', 'battery-surf-bench' ),
 				$value
 			),
 			array( 'status' => 400 )
