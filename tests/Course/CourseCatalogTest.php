@@ -104,6 +104,26 @@ final class CourseCatalogTest extends TestCase {
 	}
 
 	/**
+	 * The titles list every bundled page's title by slug, in the same order the
+	 * pages come in, and never read a content file to do it.
+	 */
+	public function test_titles_map_every_bundled_slug_to_its_title_in_course_order(): void {
+		$GLOBALS['wp_filesystem'] = $this->filesystem( false, false );
+
+		$catalog = new CourseCatalog( self::CONTENT_DIR );
+		$titles  = $catalog->titles();
+
+		$this->assertSame(
+			array_map( static fn ( $page ): string => $page->slug(), $catalog->pages() ),
+			array_keys( $titles )
+		);
+
+		foreach ( $catalog->pages() as $page ) {
+			$this->assertSame( $page->title(), $titles[ $page->slug() ] );
+		}
+	}
+
+	/**
 	 * A known slug resolves to its page, with the markup the filesystem reports.
 	 */
 	public function test_find_returns_a_known_page_with_loaded_markup(): void {

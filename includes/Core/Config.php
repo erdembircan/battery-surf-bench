@@ -110,6 +110,11 @@ return array(
 		// that survives. Built from `src/styles/cockpit/style.scss`.
 		'style'      => 'build/style-cockpit-dashboard.css',
 	),
+	'abilities'  => array(
+		// Ability category every Battery Surf Bench ability is filed under, and the
+		// namespace segment of every ability name (`battery-surf-bench/list-runs`).
+		'category' => 'battery-surf-bench',
+	),
 	'container'  => array(
 		// Environments in which the live Services.php is always used and any
 		// compiled artifact is ignored, so edits to the recipes take effect

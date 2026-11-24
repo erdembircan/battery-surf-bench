@@ -281,6 +281,7 @@ classDiagram
     class CourseCatalog {
         +__construct(string content_dir)
         +pages() array
+        +titles() array
         +find(string slug) CoursePage
     }
 
@@ -351,6 +352,176 @@ classDiagram
 
     class FlipPostcard {
         +render(array data) string
+    }
+
+    %% AI agent abilities. Each Ability registers with the WordPress core
+    %% Abilities API through AbilityRegistry (which files them under one category
+    %% and gates them by the plugin capability), and core serves them over its
+    %% REST routes. When the MCP Adapter plugin is also active, it exposes the
+    %% abilities that are public for MCP to AI agents. This plugin depends on
+    %% neither the adapter nor any AI service: it only registers abilities.
+    class Ability {
+        <<interface>>
+        +name() string
+        +definition() array
+        +execute(array input) array
+    }
+
+    class AbilityRegistry {
+        +__construct(string category, Capability capability, array abilities)
+        +register() void
+        +register_category() void
+        +register_abilities() void
+        +can_run() bool
+    }
+
+    class Annotations {
+        <<utility>>
+        +read()$ array
+        +write()$ array
+        +reset()$ array
+        +trash()$ array
+    }
+
+    class RunSchema {
+        <<utility>>
+        +summary()$ array
+        +detail()$ array
+        +reading()$ array
+        +course_page()$ array
+        +course()$ array
+        +filters(bool finished_by_default)$ array
+    }
+
+    class RunOutcome {
+        <<utility>>
+        +reason(string status, string config_mode)$ string
+    }
+
+    class SessionReader {
+        +__construct(string post_type, string meta_prefix, string detail_slug, string detail_param)
+        +all() array
+        +find(int id) array
+        +readings(int id) array
+        +newest() array
+    }
+
+    class RunFilter {
+        +filter(array runs, array input) array
+        +sort(array runs, string order_by, string order) array
+        +parse_date(string value) int
+    }
+
+    class CourseEditor {
+        +__construct(string option_name, CourseOrderSanitizer sanitizer, CourseCatalog catalog, array selectable_post_types)
+        +entries() array
+        +save(array entries) array
+        +reset() array
+        +describe(array entries) array
+        +bundled(array entries) array
+        +is_default(array entries) bool
+        +position_of(array entries, int post_id, string slug) int
+        +eligibility(int post_id) bool
+        +entry_from_input(array input) array
+        +page_properties() array
+        +position_of_entry(array entries, array entry) int
+        +course(array entries) array
+        +describe_entry(array entry, int position) array
+        +name_of(array entry) string
+        +already_in_course(array entry, int position) WP_Error
+        +not_in_course(array entry) WP_Error
+        +out_of_range(int given, int highest) WP_Error
+    }
+
+    class ListRuns {
+        +__construct(SessionReader reader, RunFilter filter)
+        +name() string
+        +definition() array
+        +execute(array input) array
+    }
+
+    class GetRun {
+        +__construct(SessionReader reader)
+        +name() string
+        +definition() array
+        +execute(array input) array
+    }
+
+    class GetRunReadings {
+        +__construct(SessionReader reader)
+        +name() string
+        +definition() array
+        +execute(array input) array
+    }
+
+    class CompareRuns {
+        +__construct(SessionReader reader)
+        +name() string
+        +definition() array
+        +execute(array input) array
+    }
+
+    class GetDrainStats {
+        +__construct(SessionReader reader, RunFilter filter)
+        +name() string
+        +definition() array
+        +execute(array input) array
+    }
+
+    class TrashRuns {
+        +__construct(SessionReader reader)
+        +name() string
+        +definition() array
+        +execute(array input) array
+    }
+
+    class GetCockpitLink {
+        +__construct(string cockpit_param, string cockpit_value, string screen_slug)
+        +name() string
+        +definition() array
+        +execute(array input) array
+    }
+
+    class GetCourse {
+        +__construct(CourseEditor editor)
+        +name() string
+        +definition() array
+        +execute(array input) array
+    }
+
+    class FindPages {
+        +__construct(CourseEditor editor, array post_types)
+        +name() string
+        +definition() array
+        +execute(array input) array
+    }
+
+    class AddCoursePage {
+        +__construct(CourseEditor editor)
+        +name() string
+        +definition() array
+        +execute(array input) array
+    }
+
+    class MoveCoursePage {
+        +__construct(CourseEditor editor)
+        +name() string
+        +definition() array
+        +execute(array input) array
+    }
+
+    class RemoveCoursePage {
+        +__construct(CourseEditor editor)
+        +name() string
+        +definition() array
+        +execute(array input) array
+    }
+
+    class ResetCourse {
+        +__construct(CourseEditor editor)
+        +name() string
+        +definition() array
+        +execute(array input) array
     }
 
     BatterySurfBench --> Registry : creates & owns (composition)
@@ -503,6 +674,57 @@ classDiagram
     SessionDetailView ..> PostcardPhoto : composes (front)
     SessionDetailView ..> FrankedStamp : composes (franked)
     SummaryCard ..> FlipPostcard : composes (summary)
+    Instantiator ..> AbilityRegistry : instantiates
+    AbilityRegistry ..|> Manager : implements
+    AbilityRegistry --> Capability : gates via
+    AbilityRegistry o-- Ability : registers (aggregation)
+    SessionReader ..> RunOutcome : maps the end reason via
+    SessionDetail ..> RunOutcome : maps the end reason via
+    CourseEditor --> CourseOrderSanitizer : reads and saves through
+    CourseEditor --> CourseCatalog : describes the bundled pages of
+    ListRuns ..|> Ability : implements
+    ListRuns ..> Annotations : declares annotations via
+    GetRun ..|> Ability : implements
+    GetRun ..> Annotations : declares annotations via
+    GetRunReadings ..|> Ability : implements
+    GetRunReadings ..> Annotations : declares annotations via
+    CompareRuns ..|> Ability : implements
+    CompareRuns ..> Annotations : declares annotations via
+    GetDrainStats ..|> Ability : implements
+    GetDrainStats ..> Annotations : declares annotations via
+    TrashRuns ..|> Ability : implements
+    TrashRuns ..> Annotations : declares annotations via
+    GetCockpitLink ..|> Ability : implements
+    GetCockpitLink ..> Annotations : declares annotations via
+    GetCourse ..|> Ability : implements
+    GetCourse ..> Annotations : declares annotations via
+    FindPages ..|> Ability : implements
+    FindPages ..> Annotations : declares annotations via
+    AddCoursePage ..|> Ability : implements
+    AddCoursePage ..> Annotations : declares annotations via
+    MoveCoursePage ..|> Ability : implements
+    MoveCoursePage ..> Annotations : declares annotations via
+    RemoveCoursePage ..|> Ability : implements
+    RemoveCoursePage ..> Annotations : declares annotations via
+    ResetCourse ..|> Ability : implements
+    ResetCourse ..> Annotations : declares annotations via
+    ListRuns --> SessionReader : reads runs via
+    GetRun --> SessionReader : reads runs via
+    GetRunReadings --> SessionReader : reads runs via
+    CompareRuns --> SessionReader : reads runs via
+    GetDrainStats --> SessionReader : reads runs via
+    TrashRuns --> SessionReader : reads runs via
+    ListRuns --> RunFilter : filters runs via
+    GetDrainStats --> RunFilter : filters runs via
+    GetCourse --> CourseEditor : edits the course via
+    FindPages --> CourseEditor : edits the course via
+    AddCoursePage --> CourseEditor : edits the course via
+    MoveCoursePage --> CourseEditor : edits the course via
+    RemoveCoursePage --> CourseEditor : edits the course via
+    ResetCourse --> CourseEditor : edits the course via
+    ListRuns ..> RunSchema : describes its schema via
+    GetDrainStats ..> RunSchema : describes its schema via
+    AddCoursePage ..> RunSchema : describes its schema via
     Registry ..|> ContainerInterface : implements
     Registry ..> NotFoundException : throws
     NotFoundException --|> InvalidArgumentException : extends

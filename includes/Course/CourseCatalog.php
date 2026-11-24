@@ -67,6 +67,16 @@ class CourseCatalog {
 	}
 
 	/**
+	 * Lists the bundled pages' titles, keyed by slug, in course order — without
+	 * loading any page's markup.
+	 *
+	 * @return array<string, string> The page titles, keyed by slug.
+	 */
+	public function titles(): array {
+		return self::PAGES;
+	}
+
+	/**
 	 * Finds a single course page by slug.
 	 *
 	 * @param string $slug Slug of the page to find.
