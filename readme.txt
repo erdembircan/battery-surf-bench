@@ -214,7 +214,7 @@ Yes. The plugin registers its abilities with the WordPress Abilities API, which 
 == Changelog ==
 
 = Unreleased =
-* New: AI assistants can read your benchmark runs, compare and average them, and manage the surf course through the WordPress Abilities API and the MCP Adapter plugin.
+* New: AI assistants can read your benchmark runs, compare and average them, move runs to the trash and back, and manage the surf course, through the WordPress Abilities API and the MCP Adapter plugin.
 * Fix: the readme now says what plugging in mid-run does: it ends the run, which is saved as interrupted.
 
 = 1.1.0 =
