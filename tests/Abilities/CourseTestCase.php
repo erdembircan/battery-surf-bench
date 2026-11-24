@@ -91,7 +91,14 @@ abstract class CourseTestCase extends TestCase {
 		);
 		Functions\when( 'get_post_status' )->alias( fn ( int $id ) => $this->posts[ $id ]['status'] ?? false );
 		Functions\when( 'get_post_type' )->alias( fn ( int $id ) => $this->posts[ $id ]['type'] ?? false );
-		Functions\when( 'get_the_title' )->alias( fn ( int $id ) => $this->posts[ $id ]['title'] ?? '' );
+		// WordPress prefixes a private post's displayed title with "Private: ";
+		// the stored title, which the plugin reads, has no prefix.
+		Functions\when( 'get_the_title' )->alias(
+			fn ( int $id ) => ( 'private' === ( $this->posts[ $id ]['status'] ?? '' ) ? 'Private: ' : '' ) . ( $this->posts[ $id ]['title'] ?? '' )
+		);
+		Functions\when( 'get_post_field' )->alias(
+			fn ( string $field, int $id ) => 'post_title' === $field ? ( $this->posts[ $id ]['title'] ?? '' ) : ''
+		);
 		Functions\when( 'get_permalink' )->alias(
 			fn ( int $id ) => isset( $this->posts[ $id ] ) ? 'https://example.test/?p=' . $id : false
 		);

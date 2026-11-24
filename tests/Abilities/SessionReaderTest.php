@@ -260,7 +260,6 @@ final class SessionReaderTest extends TestCase {
 
 		$this->assertSame(
 			array(
-				'mode'                    => 'duration',
 				'duration_seconds'        => 3600,
 				'stop_at_battery_percent' => null,
 			),
@@ -288,7 +287,6 @@ final class SessionReaderTest extends TestCase {
 
 		$this->assertSame(
 			array(
-				'mode'                    => 'targetDrop',
 				'duration_seconds'        => null,
 				'stop_at_battery_percent' => 70,
 			),
@@ -380,6 +378,39 @@ final class SessionReaderTest extends TestCase {
 		$this->assertNull( $reader->find( 2 ) );
 		$this->assertNull( $reader->find( 3 ) );
 		$this->assertNull( $reader->find( 404 ) );
+	}
+
+	/**
+	 * A run in the trash is found only as a trashed run, and a recorded one
+	 * only as a recorded run.
+	 */
+	public function test_find_trashed_finds_only_runs_in_the_trash(): void {
+		$this->session( 1, array(), 'trash' );
+		$this->session( 2 );
+		$this->session( 3, array(), 'trash', 'page' );
+
+		$reader = $this->reader();
+
+		$this->assertSame( 1, $reader->find_trashed( 1 )['id'] );
+		$this->assertNull( $reader->find_trashed( 2 ) );
+		$this->assertNull( $reader->find_trashed( 3 ) );
+		$this->assertNull( $reader->find_trashed( 404 ) );
+		$this->assertNull( $reader->find( 1 ) );
+	}
+
+	/**
+	 * The trash can be read the same way as the recorded runs.
+	 */
+	public function test_all_can_read_the_trash_instead(): void {
+		$this->session( 1 );
+		$this->session( 2, array(), 'trash' );
+		$this->session( 3, array(), 'trash' );
+
+		$trashed = $this->reader()->all( 'trash' );
+
+		$this->assertSame( array( 2, 3 ), array_column( $trashed, 'id' ) );
+		$this->assertSame( 'trash', $this->queries[0]['post_status'] );
+		$this->assertSame( array( 1 ), array_column( $this->reader()->all(), 'id' ) );
 	}
 
 	/**

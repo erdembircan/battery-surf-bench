@@ -14,6 +14,7 @@ use function array_map;
 use function array_merge;
 use function array_slice;
 use function count;
+use function filter_var;
 use function wp_date;
 use function wp_timezone_string;
 
@@ -93,6 +94,11 @@ class ListRuns implements Ability {
 							'default'     => 0,
 							'description' => __( 'How many matching runs to skip, for paging through long lists.', 'battery-surf-bench' ),
 						),
+						'in_trash' => array(
+							'type'        => 'boolean',
+							'default'     => false,
+							'description' => __( 'Set to true to list the runs in the trash instead of the recorded ones, for example to find a run to restore.', 'battery-surf-bench' ),
+						),
 					)
 				),
 			),
@@ -120,7 +126,8 @@ class ListRuns implements Ability {
 	 * @return array<string, mixed>|WP_Error The runs, or an error when a date filter can't be read.
 	 */
 	public function execute( array $input ): array|WP_Error {
-		$matching = $this->filter->filter( $this->reader->all(), $input );
+		$in_trash = filter_var( $input['in_trash'] ?? false, FILTER_VALIDATE_BOOLEAN );
+		$matching = $this->filter->filter( $this->reader->all( $in_trash ? 'trash' : 'publish' ), $input );
 
 		if ( $matching instanceof WP_Error ) {
 			return $matching;
@@ -143,13 +150,13 @@ class ListRuns implements Ability {
 	}
 
 	/**
-	 * Cuts a run down to its summary: the run without its setup and reading count.
+	 * Cuts a run down to its summary: the run without its reading count.
 	 *
 	 * @param array<string, mixed> $run The normalized run.
 	 * @return array<string, mixed> The run summary.
 	 */
 	private function summarize( array $run ): array {
-		unset( $run['setup'], $run['reading_count'] );
+		unset( $run['reading_count'] );
 
 		return $run;
 	}

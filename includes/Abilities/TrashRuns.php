@@ -55,7 +55,7 @@ class TrashRuns implements Ability {
 	public function definition(): array {
 		return array(
 			'label'         => __( 'Move benchmark runs to the trash', 'battery-surf-bench' ),
-			'description'   => __( "Moves the benchmark runs with the given ids to the trash, which removes them from the Sessions screen and from every other ability. Find the runs with battery-surf-bench/list-runs, show them to the user and get their confirmation before calling this. If any id isn't a recorded run, nothing is moved.", 'battery-surf-bench' ),
+			'description'   => __( "Moves the benchmark runs with the given ids to the trash, which removes them from the Sessions screen and from every other ability until they're restored with battery-surf-bench/restore-runs. Find the runs with battery-surf-bench/list-runs, show them to the user and get their confirmation before calling this. If any id isn't a recorded run, nothing is moved.", 'battery-surf-bench' ),
 			'input_schema'  => array(
 				'type'                 => 'object',
 				'default'              => array(),

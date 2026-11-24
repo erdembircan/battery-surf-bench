@@ -38,6 +38,7 @@ const ABILITY_NAMES = [
 	'move-course-page',
 	'remove-course-page',
 	'reset-course',
+	'restore-runs',
 	'trash-runs',
 ].map( ( name ) => `${ NAMESPACE }/${ name }` );
 
@@ -52,6 +53,7 @@ let fasterId: number; // finished, 12.5 %/h
 let failedId: number; // failed, unmeasured
 let pageId: number; // published page
 let draftId: number; // draft page
+let privateId: number; // private page
 
 /**
  * Builds the meta record of a seeded run, in the shape the cockpit uploads.
@@ -204,6 +206,10 @@ test.describe( 'AI agent abilities', () => {
 			title: 'E2E Agent Draft',
 			status: 'draft',
 		} );
+		privateId = await create( '/wp-json/wp/v2/pages', {
+			title: 'E2E Agent Private',
+			status: 'private',
+		} );
 	} );
 
 	test.afterAll( async () => {
@@ -215,7 +221,7 @@ test.describe( 'AI agent abilities', () => {
 			...[ measuredId, fasterId, failedId ].map(
 				( id ) => `/wp-json/wp/v2/bsbench_session/${ id }`
 			),
-			...[ pageId, draftId ].map(
+			...[ pageId, draftId, privateId ].map(
 				( id ) => `/wp-json/wp/v2/pages/${ id }`
 			),
 		] ) {
@@ -225,7 +231,7 @@ test.describe( 'AI agent abilities', () => {
 		await api.dispose();
 	} );
 
-	test( 'lists exactly the 13 abilities of the plugin', async () => {
+	test( 'lists exactly the 14 abilities of the plugin', async () => {
 		const response = await api.get(
 			`${ ABILITIES }?category=${ NAMESPACE }&per_page=100`
 		);
@@ -256,7 +262,12 @@ test.describe( 'AI agent abilities', () => {
 		expect( result.runs.map( ( run: { id: number } ) => run.id ) ).toEqual(
 			[ fasterId, measuredId, failedId ]
 		);
-		expect( result.runs[ 0 ] ).not.toHaveProperty( 'setup' );
+		// A listed run keeps its setup but not its reading count.
+		expect( result.runs[ 0 ].setup ).toEqual( {
+			duration_seconds: 1800,
+			stop_at_battery_percent: null,
+		} );
+		expect( result.runs[ 0 ] ).not.toHaveProperty( 'reading_count' );
 	} );
 
 	test( 'get-run reads a run back as percentages, nulls and a report link', async () => {
@@ -273,7 +284,6 @@ test.describe( 'AI agent abilities', () => {
 		expect( measured.drain_rate_session_pct_per_hour ).toBe( 9.5 );
 		expect( measured.projected_full_runtime_seconds ).toBe( 37895 );
 		expect( measured.setup ).toEqual( {
-			mode: 'duration',
 			duration_seconds: 1800,
 			stop_at_battery_percent: null,
 		} );
@@ -350,6 +360,10 @@ test.describe( 'AI agent abilities', () => {
 		expect( byId( pageId ).reason ).toBeNull();
 		expect( byId( draftId ).can_add ).toBe( false );
 		expect( byId( draftId ).reason ).toContain( 'its status is draft' );
+		// A private page is listed under its plain title and refused as private.
+		expect( byId( privateId ).title ).toBe( 'E2E Agent Private' );
+		expect( byId( privateId ).can_add ).toBe( false );
+		expect( byId( privateId ).reason ).toContain( "because it's private" );
 
 		const added = await write( 'add-course-page', {
 			post_id: pageId,
@@ -366,6 +380,14 @@ test.describe( 'AI agent abilities', () => {
 		expect( refused.status() ).toBe( 400 );
 		expect( ( await refused.json() ).code ).toBe(
 			'bsbench_page_not_published'
+		);
+
+		const refusedPrivate = await write( 'add-course-page', {
+			post_id: privateId,
+		} );
+		expect( refusedPrivate.status() ).toBe( 400 );
+		expect( ( await refusedPrivate.json() ).code ).toBe(
+			'bsbench_page_private'
 		);
 
 		const moved = await (
@@ -398,7 +420,7 @@ test.describe( 'AI agent abilities', () => {
 		expect( result.requirements ).toHaveLength( 4 );
 	} );
 
-	test( 'trash-runs moves a run to the trash, after which it is gone', async () => {
+	test( 'trash-runs moves a run to the trash, and restore-runs brings it back', async () => {
 		const trashed = await write( 'trash-runs', { ids: [ failedId ] } );
 		expect( trashed.status() ).toBe( 200 );
 		expect( ( await trashed.json() ).trashed_count ).toBe( 1 );
@@ -406,6 +428,31 @@ test.describe( 'AI agent abilities', () => {
 		const gone = await read( 'get-run', { id: failedId } );
 		expect( gone.status() ).toBe( 404 );
 		expect( ( await gone.json() ).code ).toBe( 'bsbench_run_not_found' );
+
+		// The trashed run is listed with in_trash, and only then.
+		const inTrash = await (
+			await read( 'list-runs', { in_trash: 'true', browser: BROWSER } )
+		).json();
+		expect( inTrash.runs.map( ( run: { id: number } ) => run.id ) ).toEqual(
+			[ failedId ]
+		);
+
+		const restored = await write( 'restore-runs', { ids: [ failedId ] } );
+		expect( restored.status() ).toBe( 200 );
+
+		const back = await ( await restored.json() ).restored;
+		expect( back[ 0 ].id ).toBe( failedId );
+
+		// Restored to published, not to a draft: it reads again as a recorded run.
+		const again = await read( 'get-run', { id: failedId } );
+		expect( again.status() ).toBe( 200 );
+		expect( ( await again.json() ).status ).toBe( 'failed' );
+
+		const refused = await write( 'restore-runs', { ids: [ failedId ] } );
+		expect( refused.status() ).toBe( 404 );
+		expect( ( await refused.json() ).code ).toBe(
+			'bsbench_restore_not_found'
+		);
 	} );
 
 	test( 'an MCP client can discover and run an ability through the MCP Adapter', async () => {

@@ -160,7 +160,7 @@ class GetDrainStats implements Ability {
 			'average_drain_rate_session_pct_per_hour' => $this->average( $matched, 'drain_rate_session_pct_per_hour', 1 ),
 			'average_drain_rate_10min_pct_per_hour'   => $this->average( $matched, 'drain_rate_10min_pct_per_hour', 1 ),
 			'average_projected_full_runtime_seconds'  => null === $average_runtime ? null : (int) $average_runtime,
-			'average_battery_drop_points'             => $this->average( $matched, 'battery_drop_points', 2 ),
+			'average_battery_drop_points'             => $this->average( $measured, 'battery_drop_points', 2 ),
 			'total_elapsed_seconds'                   => (int) array_sum( array_column( $matched, 'elapsed_seconds' ) ),
 			'fastest_drain'                           => $this->extreme( $measured, true ),
 			'slowest_drain'                           => $this->extreme( $measured, false ),

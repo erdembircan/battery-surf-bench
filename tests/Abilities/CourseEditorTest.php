@@ -291,6 +291,53 @@ final class CourseEditorTest extends CourseTestCase {
 	}
 
 	/**
+	 * A private post gets its own refusal, named by its plain title (without
+	 * the "Private: " WordPress puts in front of it when it displays it).
+	 */
+	public function test_a_private_post_is_refused_as_private(): void {
+		$this->add_post( 42, 'Team Notes', 'private', 'page', false );
+
+		$result = $this->editor()->eligibility( 42 );
+
+		$this->assertSame( 'bsbench_page_private', $result->get_error_code() );
+		$this->assertSame( array( 'status' => 400 ), $result->get_error_data() );
+		$this->assertSame(
+			'“Team Notes” can\'t be in the course because it\'s private. Only published, public posts and pages can be in the course.',
+			$result->get_error_message()
+		);
+	}
+
+	/**
+	 * A private post of the wrong type is reported as the wrong type, and a
+	 * private post is reported before it would be called unpublished.
+	 */
+	public function test_private_is_checked_after_the_type_and_before_the_status(): void {
+		$this->add_post( 41, 'A private product', 'private', 'product' );
+		$this->add_post( 42, 'Team Notes', 'private' );
+
+		$this->assertSame( 'bsbench_page_wrong_type', $this->editor()->eligibility( 41 )->get_error_code() );
+		$this->assertSame( 'bsbench_page_private', $this->editor()->eligibility( 42 )->get_error_code() );
+	}
+
+	/**
+	 * A private page already in the course is described by its plain title.
+	 */
+	public function test_describe_uses_the_stored_title_without_a_private_prefix(): void {
+		$this->add_post( 42, 'Team Notes', 'private' );
+
+		$pages = $this->editor()->describe(
+			array(
+				array(
+					'kind' => 'user',
+					'id'   => 42,
+				),
+			)
+		);
+
+		$this->assertSame( 'Team Notes', $pages[0]['title'] );
+	}
+
+	/**
 	 * Input that names a site page reads as a user entry.
 	 */
 	public function test_entry_from_input_reads_a_site_page(): void {

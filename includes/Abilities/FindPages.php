@@ -112,7 +112,10 @@ class FindPages implements Ability {
 			'post_type'      => $this->post_types,
 			'post_status'    => array( 'publish', 'draft', 'pending', 'private', 'future' ),
 			'posts_per_page' => (int) ( $input['limit'] ?? 20 ),
-			'orderby'        => '' === $search ? 'date' : 'relevance',
+			'orderby'        => '' === $search ? array(
+				'date' => 'DESC',
+				'ID'   => 'DESC',
+			) : 'relevance',
 			'order'          => 'DESC',
 		);
 

@@ -61,11 +61,12 @@ class SessionReader {
 	}
 
 	/**
-	 * Reads every published session as a normalized run, unsorted.
+	 * Reads every session with a post status as a normalized run, unsorted.
 	 *
+	 * @param string $status The post status to read: `publish` for the recorded runs, `trash` for the trashed ones.
 	 * @return array<int, array<string, mixed>> The runs.
 	 */
-	public function all(): array {
+	public function all( string $status = 'publish' ): array {
 		$runs    = array();
 		$page    = 1;
 		$fetched = 0;
@@ -74,7 +75,7 @@ class SessionReader {
 			$ids = get_posts(
 				array(
 					'post_type'      => $this->post_type,
-					'post_status'    => 'publish',
+					'post_status'    => $status,
 					'posts_per_page' => self::PAGE_SIZE,
 					'paged'          => $page,
 					'orderby'        => 'ID',
@@ -103,13 +104,17 @@ class SessionReader {
 	 * @return array<string, mixed>|null The run, or null when the id isn't a published session.
 	 */
 	public function find( int $id ): ?array {
-		$post = get_post( $id );
+		return $this->find_with_status( $id, 'publish' );
+	}
 
-		if ( ! $post instanceof WP_Post || $this->post_type !== $post->post_type || 'publish' !== $post->post_status ) {
-			return null;
-		}
-
-		return $this->normalize( $id );
+	/**
+	 * Finds one trashed session as a normalized run.
+	 *
+	 * @param int $id The session post id.
+	 * @return array<string, mixed>|null The run, or null when the id isn't a session in the trash.
+	 */
+	public function find_trashed( int $id ): ?array {
+		return $this->find_with_status( $id, 'trash' );
 	}
 
 	/**
@@ -165,6 +170,23 @@ class SessionReader {
 	}
 
 	/**
+	 * Finds a session with a given post status as a normalized run.
+	 *
+	 * @param int    $id     The session post id.
+	 * @param string $status The post status the session must have.
+	 * @return array<string, mixed>|null The run, or null when the id isn't a session with that status.
+	 */
+	private function find_with_status( int $id, string $status ): ?array {
+		$post = get_post( $id );
+
+		if ( ! $post instanceof WP_Post || $this->post_type !== $post->post_type || $status !== $post->post_status ) {
+			return null;
+		}
+
+		return $this->normalize( $id );
+	}
+
+	/**
 	 * Builds the normalized run for a session post.
 	 *
 	 * @param int $id The session post id.
@@ -192,7 +214,6 @@ class SessionReader {
 			'drain_rate_10min_pct_per_hour'   => $this->positive_float( $this->meta( $id, 'rate_10' ) ),
 			'projected_full_runtime_seconds'  => $this->positive_int( $this->meta( $id, 'time_to_empty' ) ),
 			'setup'                           => array(
-				'mode'                    => $config_mode,
 				'duration_seconds'        => 'duration' === $config_mode ? $this->stored_int( $this->meta( $id, 'config_duration' ) ) : null,
 				'stop_at_battery_percent' => 'targetDrop' === $config_mode ? $this->stored_int( $this->meta( $id, 'config_target_percent' ) ) : null,
 			),

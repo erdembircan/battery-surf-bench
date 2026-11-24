@@ -115,14 +115,15 @@ final class ListRunsTest extends TestCase {
 	}
 
 	/**
-	 * Each run in the list is a summary: no setup, no reading count.
+	 * Each run in the list is a summary: it keeps its setup, so stop levels and
+	 * set durations need no second call, and leaves out only the reading count.
 	 */
 	public function test_each_run_is_a_summary(): void {
 		$this->serve_runs( 1 );
 
 		$run = $this->ability()->execute( array() )['runs'][0];
 
-		$this->assertArrayNotHasKey( 'setup', $run );
+		$this->assertArrayHasKey( 'setup', $run );
 		$this->assertArrayNotHasKey( 'reading_count', $run );
 		$this->assertArrayHasKey( 'browser', $run );
 		$this->assertArrayHasKey( 'report_url', $run );
@@ -242,6 +243,42 @@ final class ListRunsTest extends TestCase {
 	}
 
 	/**
+	 * By default the recorded runs are listed; with `in_trash` the runs in the
+	 * trash are, through the same filters and sorting.
+	 */
+	public function test_in_trash_lists_the_runs_in_the_trash_instead(): void {
+		$this->reader->shouldReceive( 'all' )->with( 'publish' )->once()->andReturn( array( RunFixture::run( array( 'id' => 1 ) ) ) );
+		$this->reader->shouldReceive( 'all' )->with( 'trash' )->once()->andReturn(
+			array(
+				RunFixture::run(
+					array(
+						'id'     => 2,
+						'status' => 'failed',
+					)
+				),
+				RunFixture::run(
+					array(
+						'id'     => 3,
+						'status' => 'finished',
+					)
+				),
+			)
+		);
+
+		$recorded = $this->ability()->execute( array() );
+		$trashed  = $this->ability()->execute(
+			array(
+				'in_trash' => true,
+				'status'   => array( 'failed' ),
+			)
+		);
+
+		$this->assertSame( array( 1 ), array_column( $recorded['runs'], 'id' ) );
+		$this->assertSame( array( 2 ), array_column( $trashed['runs'], 'id' ) );
+		$this->assertSame( 1, $trashed['total'] );
+	}
+
+	/**
 	 * With no runs the list is empty, not an error.
 	 */
 	public function test_no_runs_is_an_empty_list(): void {
@@ -260,7 +297,7 @@ final class ListRunsTest extends TestCase {
 		$properties = $this->ability()->definition()['input_schema']['properties'];
 
 		$this->assertSame(
-			array( 'status', 'mode', 'browser', 'os', 'started_after', 'started_before', 'order_by', 'order', 'limit', 'offset' ),
+			array( 'status', 'mode', 'browser', 'os', 'started_after', 'started_before', 'order_by', 'order', 'limit', 'offset', 'in_trash' ),
 			array_keys( $properties )
 		);
 		$this->assertSame( array( 'started_at', 'drain_rate_session', 'drain_rate_10min', 'battery_drop', 'elapsed', 'projected_runtime' ), $properties['order_by']['enum'] );
@@ -268,5 +305,7 @@ final class ListRunsTest extends TestCase {
 		$this->assertSame( 1, $properties['limit']['minimum'] );
 		$this->assertSame( 100, $properties['limit']['maximum'] );
 		$this->assertSame( 0, $properties['offset']['minimum'] );
+		$this->assertSame( 'boolean', $properties['in_trash']['type'] );
+		$this->assertFalse( $properties['in_trash']['default'] );
 	}
 }

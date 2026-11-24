@@ -106,7 +106,13 @@ final class FindPagesTest extends CourseTestCase {
 		$this->ability()->execute( array( 'limit' => 5 ) );
 
 		$this->assertArrayNotHasKey( 's', $this->query );
-		$this->assertSame( 'date', $this->query['orderby'] );
+		$this->assertSame(
+			array(
+				'date' => 'DESC',
+				'ID'   => 'DESC',
+			),
+			$this->query['orderby']
+		);
 		$this->assertSame( 5, $this->query['posts_per_page'] );
 	}
 
@@ -131,6 +137,21 @@ final class FindPagesTest extends CourseTestCase {
 			),
 			$page
 		);
+	}
+
+	/**
+	 * A private page can't be added, says it is private, and is listed under
+	 * its plain title.
+	 */
+	public function test_a_private_page_cannot_be_added_and_keeps_its_plain_title(): void {
+		$this->add_post( 44, 'Team Notes', 'private', 'page', false );
+
+		$page = $this->ability()->execute( array() )['pages'][0];
+
+		$this->assertSame( 'Team Notes', $page['title'] );
+		$this->assertFalse( $page['can_add'] );
+		$this->assertNull( $page['url'] );
+		$this->assertStringContainsString( "because it's private", $page['reason'] );
 	}
 
 	/**

@@ -145,12 +145,18 @@ final class AddCoursePageTest extends CourseTestCase {
 	}
 
 	/**
-	 * A private page is refused for not being published.
+	 * A private page is refused for being private, under its plain title.
 	 */
 	public function test_refuses_a_private_page(): void {
 		$this->add_post( 44, 'Team Notes', 'private', 'page', false );
 
-		$this->assertError( $this->ability()->execute( array( 'post_id' => 44 ) ), 'bsbench_page_not_published', 400 );
+		$result = $this->ability()->execute( array( 'post_id' => 44 ) );
+
+		$this->assertError( $result, 'bsbench_page_private', 400 );
+		$this->assertSame(
+			'“Team Notes” can\'t be in the course because it\'s private. Only published, public posts and pages can be in the course.',
+			$result->get_error_message()
+		);
 	}
 
 	/**

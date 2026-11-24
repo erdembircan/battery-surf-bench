@@ -33,6 +33,7 @@ use ErdemBircan\BatterySurfBench\Abilities\GetRunReadings;
 use ErdemBircan\BatterySurfBench\Abilities\ListRuns;
 use ErdemBircan\BatterySurfBench\Abilities\MoveCoursePage;
 use ErdemBircan\BatterySurfBench\Abilities\RemoveCoursePage;
+use ErdemBircan\BatterySurfBench\Abilities\RestoreRuns;
 use ErdemBircan\BatterySurfBench\Abilities\ResetCourse;
 use ErdemBircan\BatterySurfBench\Abilities\SessionReader;
 use ErdemBircan\BatterySurfBench\Abilities\TrashRuns;
@@ -192,6 +193,7 @@ return array(
 					CompareRuns::class,
 					GetDrainStats::class,
 					TrashRuns::class,
+					RestoreRuns::class,
 					GetCockpitLink::class,
 					GetCourse::class,
 					FindPages::class,

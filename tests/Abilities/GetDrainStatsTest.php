@@ -144,7 +144,7 @@ final class GetDrainStatsTest extends TestCase {
 		$this->assertSame( 11.0, $result['average_drain_rate_session_pct_per_hour'] );
 		$this->assertSame( 11.4, $result['average_drain_rate_10min_pct_per_hour'] );
 		$this->assertSame( 33348, $result['average_projected_full_runtime_seconds'] );
-		$this->assertSame( 7.0, $result['average_battery_drop_points'] );
+		$this->assertSame( 10.0, $result['average_battery_drop_points'] );
 		$this->assertSame( 7020, $result['total_elapsed_seconds'] );
 		$this->assertSame( '2026-11-24T12:00:00+01:00', $result['now'] );
 		$this->assertSame( 'Europe/Berlin', $result['timezone'] );

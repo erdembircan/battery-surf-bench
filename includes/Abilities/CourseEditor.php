@@ -20,7 +20,7 @@ use function get_option;
 use function get_permalink;
 use function get_post;
 use function get_post_type;
-use function get_the_title;
+use function get_post_field;
 use function html_entity_decode;
 use function in_array;
 use function is_post_publicly_viewable;
@@ -162,7 +162,7 @@ class CourseEditor {
 
 	/**
 	 * Checks whether a post can join the course: it must exist, be a post or page,
-	 * be published, and be viewable by visitors.
+	 * not be private, be published, and be viewable by visitors.
 	 *
 	 * @param int $post_id The post id.
 	 * @return true|WP_Error True when the post is eligible, otherwise an error saying why not.
@@ -190,6 +190,18 @@ class CourseEditor {
 				sprintf(
 					/* translators: %s: A post title. */
 					__( '“%s” can\'t be in the course: only posts and pages can.', 'battery-surf-bench' ),
+					$title
+				),
+				array( 'status' => 400 )
+			);
+		}
+
+		if ( 'private' === $post->post_status ) {
+			return new WP_Error(
+				'bsbench_page_private',
+				sprintf(
+					/* translators: %s: A post title. */
+					__( '“%s” can\'t be in the course because it\'s private. Only published, public posts and pages can be in the course.', 'battery-surf-bench' ),
 					$title
 				),
 				array( 'status' => 400 )
@@ -417,12 +429,14 @@ class CourseEditor {
 	}
 
 	/**
-	 * Reads a post's title as plain text.
+	 * Reads a post's title as plain text: the stored title, without the
+	 * "Private: " or "Protected: " prefix WordPress adds when it displays one,
+	 * and with HTML entities decoded.
 	 *
 	 * @param int $post_id The post id.
-	 * @return string The title, with HTML entities decoded.
+	 * @return string The title.
 	 */
 	private function title_of( int $post_id ): string {
-		return html_entity_decode( get_the_title( $post_id ), ENT_QUOTES, 'UTF-8' );
+		return html_entity_decode( (string) get_post_field( 'post_title', $post_id ), ENT_QUOTES, 'UTF-8' );
 	}
 }

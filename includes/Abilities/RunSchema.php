@@ -21,15 +21,15 @@ defined( 'ABSPATH' ) || exit;
 final class RunSchema {
 
 	/**
-	 * The schema of a run as the list returns it: the run without its setup and
-	 * reading count.
+	 * The schema of a run as the list returns it: the run without its reading
+	 * count.
 	 *
 	 * @return array<string, mixed> The schema.
 	 */
 	public static function summary(): array {
 		$properties = self::run_properties();
 
-		unset( $properties['setup'], $properties['reading_count'] );
+		unset( $properties['reading_count'] );
 
 		return array(
 			'type'       => 'object',
@@ -192,7 +192,6 @@ final class RunSchema {
 			'setup'                           => array(
 				'type'       => 'object',
 				'properties' => array(
-					'mode'                    => array( 'type' => 'string' ),
 					'duration_seconds'        => array( 'type' => array( 'integer', 'null' ) ),
 					'stop_at_battery_percent' => array( 'type' => array( 'integer', 'null' ) ),
 				),

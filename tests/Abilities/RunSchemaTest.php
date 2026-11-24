@@ -26,10 +26,10 @@ final class RunSchemaTest extends TestCase {
 	}
 
 	/**
-	 * A run in the list is the full run without its setup and reading count.
+	 * A run in the list is the full run without its reading count.
 	 */
-	public function test_summary_is_the_run_without_setup_and_reading_count(): void {
-		$expected = array_diff( array_keys( RunFixture::run() ), array( 'setup', 'reading_count' ) );
+	public function test_summary_is_the_run_without_its_reading_count(): void {
+		$expected = array_diff( array_keys( RunFixture::run() ), array( 'reading_count' ) );
 
 		$this->assertSame( array_values( $expected ), array_keys( RunSchema::summary()['properties'] ) );
 	}

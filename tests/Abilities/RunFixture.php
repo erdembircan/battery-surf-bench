@@ -41,7 +41,6 @@ final class RunFixture {
 				'drain_rate_10min_pct_per_hour'   => 10.4,
 				'projected_full_runtime_seconds'  => 36000,
 				'setup'                           => array(
-					'mode'                    => 'duration',
 					'duration_seconds'        => 3600,
 					'stop_at_battery_percent' => null,
 				),
