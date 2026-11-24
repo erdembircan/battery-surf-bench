@@ -40,9 +40,9 @@ New domain folder `includes/Abilities/`, plus one helper in `includes/Content/` 
 ```
 AbilityRegistry (Manager)
   ├── registers category  battery-surf-bench
-  └── registers each Ability (13), adding category, permission (CapabilityInterface), meta
+  └── registers each Ability (14), adding category, permission (CapabilityInterface), meta
 
-Ability (interface)  ← 13 classes, one per ability
+Ability (interface)  ← 14 classes, one per ability
   name(): string                  'battery-surf-bench/list-runs'
   definition(): array             label, description, input_schema, output_schema, annotations
   execute( array $input ): array|WP_Error
@@ -96,7 +96,7 @@ AbilityRegistry::class => array(
 	'args' => array(
 		'category'   => '%abilities.category%',
 		'capability' => Capability::class,
-		'abilities'  => array( 'services' => array( ListRuns::class, GetRun::class, GetRunReadings::class, CompareRuns::class, GetDrainStats::class, TrashRuns::class, GetCockpitLink::class, GetCourse::class, FindPages::class, AddCoursePage::class, MoveCoursePage::class, RemoveCoursePage::class, ResetCourse::class ) ),
+		'abilities'  => array( 'services' => array( ListRuns::class, GetRun::class, GetRunReadings::class, CompareRuns::class, GetDrainStats::class, TrashRuns::class, RestoreRuns::class, GetCockpitLink::class, GetCourse::class, FindPages::class, AddCoursePage::class, MoveCoursePage::class, RemoveCoursePage::class, ResetCourse::class ) ),
 	),
 ),
 ```
@@ -119,8 +119,9 @@ Ability names use the literal prefix `battery-surf-bench/` (a class constant `NA
 Constructor: `string $post_type, string $meta_prefix, string $detail_slug, string $detail_param` (tokens `%session.post_type%`, `%session.meta_prefix%`, `%session.detail_slug%`, `%session.detail_param%`).
 
 Public methods:
-- `all(): array` — every **published** session as a normalized run (shape below), unsorted. Implementation: loop `get_posts( array( 'post_type' => $post_type, 'post_status' => 'publish', 'posts_per_page' => 100, 'paged' => $page, 'orderby' => 'ID', 'order' => 'ASC', 'fields' => 'ids', 'no_found_rows' => true ) )` from page 1 until a page returns fewer than 100 ids; normalize each id.
+- `all( string $status = 'publish' ): array` — every session with that post status (`'publish'` for the recorded runs, `'trash'` for the trashed ones) as a normalized run (shape below), unsorted. Implementation: loop `get_posts( array( 'post_type' => $post_type, 'post_status' => $status, 'posts_per_page' => 100, 'paged' => $page, 'orderby' => 'ID', 'order' => 'ASC', 'fields' => 'ids', 'no_found_rows' => true ) )` from page 1 until a page returns fewer than 100 ids; normalize each id.
 - `find( int $id ): ?array` — the normalized run, or null when the id is not a published post of the session type (`get_post()` + type + `publish` check).
+- `find_trashed( int $id ): ?array` — the same for a session post in `trash` status (revision 1: lets runs come back from the trash). Every other ability keeps reading published runs only.
 - `readings( int $id ): array` — the run's readings (shape below), in stored order.
 - `newest(): ?array` — the run with the latest `started_at` (ties → higher id); null when none.
 
@@ -140,7 +141,7 @@ battery_drop_points              float    round( (float) dropped_pct, 2 )
 drain_rate_session_pct_per_hour  float|null  rate_session, null when <= 0
 drain_rate_10min_pct_per_hour    float|null  rate_10, null when <= 0
 projected_full_runtime_seconds   int|null    time_to_empty, null when <= 0
-setup                            object  { mode: 'duration'|'targetDrop' (stored config_mode), duration_seconds: int|null (config_duration, null when meta empty or mode isn't duration), stop_at_battery_percent: int|null (config_target_percent, null when meta empty or mode isn't targetDrop) }
+setup                            object  { duration_seconds: int|null (config_duration, null when meta empty or mode isn't duration), stop_at_battery_percent: int|null (config_target_percent, null when meta empty or mode isn't targetDrop) } — chosen by the stored config mode, which is not repeated here (revision 1: it duplicated the top-level `mode` under another name)
 browser                          object  { name: string|null, version: string|null, os: string|null } — '' → null
 reading_count                    int     count of stored samples
 report_url                       string  admin_url( 'admin.php?page=' . $detail_slug . '&' . $detail_param . '=' . $id )
@@ -180,7 +181,7 @@ Constructor: `string $option_name, CourseOrderSanitizer $sanitizer, CourseCatalo
 
 - `entries(): array` — `$this->sanitizer->sanitize( get_option( $this->option_name, $this->sanitizer->default_order() ) )`.
 - `save( array $entries ): array` — `update_option( $this->option_name, $entries )` then return `entries()` (re-read; `register_setting`'s sanitize callback runs on update).
-- `describe( array $entries ): array` — the `pages` list for outputs: per entry, `{ position: int (1-based), kind: 'bundled'|'user', slug: string|null, post_id: int|null, title: string, post_type: string|null, url: string|null }`. Bundled: title from `CourseCatalog::titles()`, `post_type`/`url`/`post_id` null. User: `title` = `html_entity_decode( get_the_title( $id ), ENT_QUOTES, 'UTF-8' )`, `post_type` = `get_post_type( $id )`, `url` = `get_permalink( $id )`, `slug` null.
+- `describe( array $entries ): array` — the `pages` list for outputs: per entry, `{ position: int (1-based), kind: 'bundled'|'user', slug: string|null, post_id: int|null, title: string, post_type: string|null, url: string|null }`. Bundled: title from `CourseCatalog::titles()`, `post_type`/`url`/`post_id` null. User: `title` = `html_entity_decode( (string) get_post_field( 'post_title', $id ), ENT_QUOTES, 'UTF-8' )` (the stored title, without WordPress's "Private: " / "Protected: " display prefixes; the same title is used by find-pages and every error message), `post_type` = `get_post_type( $id )`, `url` = `get_permalink( $id )`, `slug` null.
 - `bundled(): array` — `{ slug, title, in_course: bool }` for every catalog page, given the current entries (signature `bundled( array $entries ): array`).
 - `is_default( array $entries ): bool` — entries equal `default_order()`.
 - `position_of( array $entries, ?int $post_id, ?string $slug ): ?int` — 1-based position or null.
@@ -195,7 +196,7 @@ Add to `CourseCatalog`: `public function titles(): array` — returns the `PAGES
 ```
 Writes additionally include their own top-level keys listed per ability.
 
-## The 13 abilities (classes in `includes/Abilities/`, one file each)
+## The 14 abilities (classes in `includes/Abilities/`, one file each)
 
 Common: every class implements `Ability`, constructor-injects only what it needs (`SessionReader`, `RunFilter`, `CourseEditor`, `CourseCatalog`, strings), and returns arrays matching its `output_schema`. Annotation sets:
 - READ: `array( 'readonly' => true, 'destructive' => false, 'idempotent' => true )`
@@ -203,7 +204,7 @@ Common: every class implements `Ability`, constructor-injects only what it needs
 - RESET: `array( 'readonly' => false, 'destructive' => true, 'idempotent' => true )`
 - TRASH: `array( 'readonly' => false, 'destructive' => true, 'idempotent' => false )`
 
-Run summary shape (used by list-runs): the normalized run **minus** `setup`, `reading_count` (i.e. id, status, end_reason, outcome, mode, started_at, ended_at, elapsed_seconds, battery_start_percent, battery_end_percent, battery_drop_points, the two rates, projected_full_runtime_seconds, browser, report_url).
+Run summary shape (used by list-runs): the normalized run **minus** `reading_count` (i.e. id, status, end_reason, outcome, mode, started_at, ended_at, elapsed_seconds, battery_start_percent, battery_end_percent, battery_drop_points, the two rates, projected_full_runtime_seconds, setup, browser, report_url). It keeps `setup` so stop levels and set durations need no second call (revision 1).
 Run detail shape (get-run, compare-runs, trash-runs' `trashed` items): the full normalized run.
 
 Define the output schemas in one place: a `RunSchema` class (`includes/Abilities/RunSchema.php`) with public static `summary(): array`, `detail(): array`, `reading(): array`, `course(): array`, `filters(): array` (the shared filter input properties). Property `description`s inside output schemas are not needed; input property descriptions are (verbatim below).
@@ -212,15 +213,16 @@ Define the output schemas in one place: a `RunSchema` class (`includes/Abilities
 
 | # | Class / name | Kind | Input (all optional unless marked) | Output |
 |---|---|---|---|---|
-| 1 | `ListRuns` `battery-surf-bench/list-runs` | READ | filters (`status` string[] enum finished/stopped/aborted/failed/running, `mode` string[] enum duration/target, `browser` string, `os` string, `started_after` string, `started_before` string) + `order_by` enum (default `started_at`) + `order` enum asc/desc (default `desc`) + `limit` int 1–100 (default 20) + `offset` int ≥ 0 (default 0) | `{ now, timezone, total: int (matches before limit), returned: int, runs: summary[] }` |
+| 1 | `ListRuns` `battery-surf-bench/list-runs` | READ | filters (`status` string[] enum finished/stopped/aborted/failed/running, `mode` string[] enum duration/target, `browser` string, `os` string, `started_after` string, `started_before` string) + `order_by` enum (default `started_at`) + `order` enum asc/desc (default `desc`) + `limit` int 1–100 (default 20) + `offset` int ≥ 0 (default 0) + `in_trash` boolean (default false; when true it lists the runs in the trash instead of the published ones, through the same filters, sort and output shape) | `{ now, timezone, total: int (matches before limit), returned: int, runs: summary[] }` |
 | 2 | `GetRun` `battery-surf-bench/get-run` | READ | `id` int ≥ 1; omitted → newest | detail. Errors: none recorded → `bsbench_no_runs` 404; unknown id → `bsbench_run_not_found` 404 |
 | 3 | `GetRunReadings` `battery-surf-bench/get-run-readings` | READ | `id` int ≥ 1 **required** | `{ id, reading_count, readings: reading[] }`; unknown id → `bsbench_run_not_found` 404 |
 | 4 | `CompareRuns` `battery-surf-bench/compare-runs` | READ | `ids` int[] **required**, minItems 2, maxItems 10, uniqueItems | `{ runs: detail[] }` in the given order; any unknown ids → `bsbench_compare_not_found` 404 naming all of them |
-| 5 | `GetDrainStats` `battery-surf-bench/get-drain-stats` | READ | filters (as #1; `status` default `['finished']` when omitted) | `{ now, timezone, filters_applied: object (the effective filters incl. default status), runs_matched: int, runs_measured: int, unmeasured_run_ids: int[], average_drain_rate_session_pct_per_hour: float\|null (mean over runs with a non-null session rate, round 1), average_drain_rate_10min_pct_per_hour: float\|null (mean over non-null, round 1), average_projected_full_runtime_seconds: int\|null (mean over non-null, round to int), average_battery_drop_points: float\|null (mean over all matched, round 2), total_elapsed_seconds: int, fastest_drain: {id, drain_rate_session_pct_per_hour}\|null, slowest_drain: same\|null }` — "measured" = non-null session rate; fastest/slowest by session rate among measured; ties → lower id |
+| 5 | `GetDrainStats` `battery-surf-bench/get-drain-stats` | READ | filters (as #1; `status` default `['finished']` when omitted) | `{ now, timezone, filters_applied: object (the effective filters incl. default status), runs_matched: int, runs_measured: int, unmeasured_run_ids: int[], average_drain_rate_session_pct_per_hour: float\|null (mean over runs with a non-null session rate, round 1), average_drain_rate_10min_pct_per_hour: float\|null (mean over non-null, round 1), average_projected_full_runtime_seconds: int\|null (mean over non-null, round to int), average_battery_drop_points: float\|null (mean over the measured runs, round 2), total_elapsed_seconds: int (sum over all matched runs), fastest_drain: {id, drain_rate_session_pct_per_hour}\|null, slowest_drain: same\|null }` — "measured" = non-null session rate; fastest/slowest by session rate among measured; ties → lower id |
 | 6 | `TrashRuns` `battery-surf-bench/trash-runs` | TRASH | `ids` int[] **required**, minItems 1, maxItems 100, uniqueItems | validate every id first with `SessionReader::find()`; any unknown → `bsbench_trash_not_found` 404 naming them, nothing trashed. Else `wp_trash_post()` each; a `false`/`null` result → `bsbench_trash_failed` 500. Output `{ trashed_count: int, trashed: detail[] (as they were before trashing) }` |
+| 6a | `RestoreRuns` `battery-surf-bench/restore-runs` | WRITE | `ids` int[] **required**, items ≥ 1, minItems 1, maxItems 100, uniqueItems | validate every id first with `SessionReader::find_trashed()`; any that isn't a trashed run → `bsbench_restore_not_found` 404 naming them, nothing restored. Else, with `wp_untrash_post_set_previous_status` added to the `wp_untrash_post_status` filter (priority 10, 3 args) for the duration of the call and removed after (so a run goes back to `publish`, not core's default `draft`), `wp_untrash_post()` each; a falsy result → `bsbench_restore_failed` 500. Output `{ restored_count: int, restored: detail[] (read after restoring) }` |
 | 7 | `GetCockpitLink` `battery-surf-bench/get-cockpit-link` | READ | none (empty object schema with default) | `{ cockpit_url: add_query_arg( %cockpit.param%, %cockpit.value%, home_url( '/' ) ), sessions_url: admin_url( 'admin.php?page=' . %session.screen_slug% ), requirements: string[] (verbatim) }` |
 | 8 | `GetCourse` `battery-surf-bench/get-course` | READ | none | course shape |
-| 9 | `FindPages` `battery-surf-bench/find-pages` | READ | `search` string, `limit` int 1–50 (default 20) | `{ pages: [ { post_id, title, post_type, status: string (post_status), url: string\|null (get_permalink, null if not publish), can_add: bool (eligibility() === true and not already in course), in_course: bool, reason: string\|null (eligibility error message, or the "already in course" message, or null) } ] }`. Query: `get_posts( array( 'post_type' => %settings.post_types%, 'post_status' => array( 'publish', 'draft', 'pending', 'private', 'future' ), 's' => $search (omit key when empty), 'posts_per_page' => $limit, 'orderby' => 'date', 'order' => 'DESC' ) )` (`'orderby' => 'relevance'` when searching) |
+| 9 | `FindPages` `battery-surf-bench/find-pages` | READ | `search` string, `limit` int 1–50 (default 20) | `{ pages: [ { post_id, title, post_type, status: string (post_status), url: string\|null (get_permalink, null if not publish), can_add: bool (eligibility() === true and not already in course), in_course: bool, reason: string\|null (eligibility error message, or the "already in course" message, or null) } ] }`. Query: `get_posts( array( 'post_type' => %settings.post_types%, 'post_status' => array( 'publish', 'draft', 'pending', 'private', 'future' ), 's' => $search (omit key when empty), 'posts_per_page' => $limit, 'orderby' => array( 'date' => 'DESC', 'ID' => 'DESC' ) )` (`'orderby' => 'relevance'` when searching; the ID tie-break keeps the list order stable) |
 | 10 | `AddCoursePage` `battery-surf-bench/add-course-page` | WRITE | `post_id` int ≥ 1 \| `bundled_slug` string enum (catalog slugs from `titles()`), exactly one; `position` int ≥ 1 (default: append) | errors: neither/both → `bsbench_page_choice` 400; user page ineligible → the `eligibility()` error (400; 404 for not found); already in course → `bsbench_page_in_course` 409; position > page_count + 1 → `bsbench_position_out_of_range` 400. Insert, `save()`, then confirm the entry is at the requested position in the saved result, else `bsbench_course_not_saved` 500. Output course shape + `added: describe() item` |
 | 11 | `MoveCoursePage` `battery-surf-bench/move-course-page` | WRITE | `post_id` \| `bundled_slug` (exactly one), `position` int ≥ 1 **required** | not in course → `bsbench_page_not_in_course` 404; position > page_count → `bsbench_position_out_of_range` 400. Output course shape + `moved: describe() item` |
 | 12 | `RemoveCoursePage` `battery-surf-bench/remove-course-page` | WRITE | `post_id` \| `bundled_slug` (exactly one) | not in course → 404 as above; it's the only page → `bsbench_last_page` 409. Output course shape + `removed: describe() item (as it was)` |
@@ -252,7 +254,7 @@ description: Returns one battery benchmark run in full: how it ended and why, it
 
 battery-surf-bench/get-run-readings
 label: Get a run's battery readings
-description: Returns the battery readings a benchmark run recorded, in order, ready to chart. Each reading marks the moment the battery reached a new level: the seconds since the run started, the battery level in percent, and whether a charger was connected.
+description: Returns the battery readings a benchmark run recorded, in order, ready to chart. Each reading marks the moment the battery reached a new level: the seconds since the run started, the battery level in percent, whether a charger was connected, and repeat_count, how many times the battery reported that same level before it changed.
 
 battery-surf-bench/compare-runs
 label: Compare benchmark runs
@@ -264,7 +266,11 @@ description: Averages the drain figures over a set of benchmark runs: finished r
 
 battery-surf-bench/trash-runs
 label: Move benchmark runs to the trash
-description: Moves the benchmark runs with the given ids to the trash, which removes them from the Sessions screen and from every other ability. Find the runs with battery-surf-bench/list-runs, show them to the user and get their confirmation before calling this. If any id isn't a recorded run, nothing is moved.
+description: Moves the benchmark runs with the given ids to the trash, which removes them from the Sessions screen and from every other ability until they're restored with battery-surf-bench/restore-runs. Find the runs with battery-surf-bench/list-runs, show them to the user and get their confirmation before calling this. If any id isn't a recorded run, nothing is moved.
+
+battery-surf-bench/restore-runs
+label: Restore benchmark runs from the trash
+description: Brings benchmark runs back from the trash, so they show again on the Sessions screen and in every other ability. Find the runs in the trash with battery-surf-bench/list-runs and in_trash set to true. If any id isn't a run in the trash, nothing is restored.
 
 battery-surf-bench/get-cockpit-link
 label: Get the benchmark cockpit link
@@ -313,6 +319,8 @@ id (get-run): The run's id. Leave it out to get the newest run.
 id (get-run-readings): The run's id.
 ids (compare-runs): The ids of the runs to compare, from 2 to 10.
 ids (trash-runs): The ids of the runs to move to the trash.
+ids (restore-runs): The ids of the trashed runs to restore.
+in_trash (list-runs): Set to true to list the runs in the trash instead of the recorded ones, for example to find a run to restore.
 search: Text to look for in post and page titles.
 limit (find-pages): How many results to return, from 1 to 50.
 post_id: The id of one of the site's posts or pages. Give this or bundled_slug, not both.
@@ -337,11 +345,14 @@ bsbench_no_runs: No benchmark runs have been recorded yet.
 bsbench_run_not_found: /* translators: %d: A benchmark run id. */ There's no benchmark run with the id %d.
 bsbench_compare_not_found: /* translators: %s: A comma-separated list of ids. */ These ids aren't recorded benchmark runs: %s.
 bsbench_trash_not_found: /* translators: %s: A comma-separated list of ids. */ These ids aren't recorded benchmark runs: %s. Nothing was moved to the trash.
+bsbench_restore_not_found: /* translators: %s: A comma-separated list of ids. */ These ids aren't runs in the trash: %s. Nothing was restored.
+bsbench_restore_failed: /* translators: %d: A benchmark run id. */ The run with the id %d couldn't be restored. The runs before it in the list were restored.
 bsbench_trash_failed: /* translators: %d: A benchmark run id. */ The run with the id %d couldn't be moved to the trash. The runs before it in the list were moved.
 bsbench_invalid_date: /* translators: %s: The value that was given as a date. */ “%s” isn't a date. Use a date such as 2026-11-24, or a date and time with an offset, such as 2026-11-24T09:30:00+01:00.
 bsbench_page_choice: Name exactly one page: a post_id or a bundled_slug.
 bsbench_page_not_found: /* translators: %d: A post id. */ There's no post or page with the id %d.
 bsbench_page_wrong_type: /* translators: %s: A post title. */ “%s” can't be in the course: only posts and pages can.
+bsbench_page_private: /* translators: %s: A post title. */ “%s” can't be in the course because it's private. Only published, public posts and pages can be in the course.
 bsbench_page_not_published: /* translators: 1: A post title. 2: The post's status, such as draft or private. */ “%1$s” can't be in the course because it isn't published (its status is %2$s). Only published, public posts and pages can be in the course.
 bsbench_page_not_public: /* translators: %s: A post title. */ “%s” can't be in the course because visitors can't view it. Only published, public posts and pages can be in the course.
 bsbench_page_in_course: /* translators: 1: A page title. 2: Its position in the course. */ “%1$s” is already in the course, at position %2$d.
@@ -350,7 +361,7 @@ bsbench_position_out_of_range: /* translators: 1: The position that was given. 2
 bsbench_last_page: The course needs at least one page, so its only page can't be removed.
 bsbench_course_not_saved: The course couldn't be saved.
 <<<END VERBATIM>>>
-Notes: `bsbench_page_not_in_course` with a `post_id` that doesn't exist at all uses the id as text (`(string) $id`). Ids lists are joined with `', '`. `bsbench_page_wrong_type` / `not_published` / `not_public` are returned by `CourseEditor::eligibility()` in that check order (not found → 404, the others → 400). The FindPages `reason` field is the message text of the eligibility error, or of `bsbench_page_in_course` when it's already in the course.
+Notes: `bsbench_page_not_in_course` with a `post_id` that doesn't exist at all uses the id as text (`(string) $id`). Ids lists are joined with `', '`. `bsbench_page_wrong_type` / `private` / `not_published` / `not_public` are returned by `CourseEditor::eligibility()` in that check order (not found → 404, the others → 400); a post whose status is `private` gets `bsbench_page_private`, other non-`publish` statuses `bsbench_page_not_published`. The FindPages `reason` field is the message text of the eligibility error, or of `bsbench_page_in_course` when it's already in the course.
 
 ## Dev-only agent playground
 
@@ -457,6 +468,7 @@ Yes. The plugin registers its abilities with the WordPress Abilities API, which 
 <<<VERBATIM file=readme.txt section="changelog: new '= Unreleased =' heading directly under '== Changelog ==', above '= 1.1.0 ='">>>
 = Unreleased =
 * New: AI assistants can read your benchmark runs, compare and average them, and manage the surf course through the WordPress Abilities API and the MCP Adapter plugin.
+* Fix: the readme now says what plugging in mid-run does: it ends the run, which is saved as interrupted.
 <<<END VERBATIM>>>
 
 <<<VERBATIM file=README.md section="new section, inserted directly before '## Private by design'">>>
@@ -478,9 +490,13 @@ To try it locally, `composer serve:agent` starts a fresh Playground site with se
 - **`composer serve:agent`** builds the development bundles and starts a fresh Playground site for AI agents: the MCP Adapter plugin, 24 seeded benchmark runs, a few pages for the course, and an application password. It prints the MCP endpoint and the `claude mcp add` command that connects to it, and writes the same connection to `wp-playground/.agent/mcp.json`. The seed lives in `wp-playground/AgentSeed.mts`.
 <<<END VERBATIM>>>
 
+## Charger-aware bullet (revision 1)
+
+Both readmes' "Charger-aware" bullet said a charger pauses and resumes the run; the cockpit ends it (`stopRun( …, 'plugged' )`). The bullet now reads: "a benchmark won't start while you're plugged in, and plugging the charger in mid-run ends the run. It's saved as interrupted, so charging time never counts toward the drain."
+
 ## Contract chart (`docs/contracts/php-class-interactions.mmd`)
 
-Add classes with their public methods: `Ability` (`<<interface>>`), `AbilityRegistry`, `SessionReader`, `RunFilter`, `RunSchema` (`<<utility>>`), `CourseEditor`, `RunOutcome` (`<<utility>>`), the 13 ability classes (each `+name() string`, `+definition() array`, `+execute(array input) array`), and `CourseCatalog +titles() array`. Relations: `AbilityRegistry ..|> Manager`, `AbilityRegistry --> Capability : gates via`, `AbilityRegistry o-- Ability : registers (aggregation)`, each ability `..|> Ability`, run abilities `--> SessionReader`, list/stats `--> RunFilter`, course abilities `--> CourseEditor`, `CourseEditor --> CourseOrderSanitizer`, `CourseEditor --> CourseCatalog`, `SessionReader ..> RunOutcome`, `SessionDetail ..> RunOutcome`, `Instantiator ..> AbilityRegistry : instantiates`, `BatterySurfBench ..> Manager` already covers registration. A `%%` comment explains that abilities register through the core Abilities API and the MCP Adapter, when installed, exposes them. Escape characters per CLAUDE.md; run `pnpm contracts:verify`.
+Add classes with their public methods: `Ability` (`<<interface>>`), `AbilityRegistry`, `SessionReader`, `RunFilter`, `RunSchema` (`<<utility>>`), `CourseEditor`, `RunOutcome` (`<<utility>>`), the 14 ability classes (each `+name() string`, `+definition() array`, `+execute(array input) array`), and `CourseCatalog +titles() array`. Relations: `AbilityRegistry ..|> Manager`, `AbilityRegistry --> Capability : gates via`, `AbilityRegistry o-- Ability : registers (aggregation)`, each ability `..|> Ability`, run abilities `--> SessionReader`, list/stats `--> RunFilter`, course abilities `--> CourseEditor`, `CourseEditor --> CourseOrderSanitizer`, `CourseEditor --> CourseCatalog`, `SessionReader ..> RunOutcome`, `SessionDetail ..> RunOutcome`, `Instantiator ..> AbilityRegistry : instantiates`, `BatterySurfBench ..> Manager` already covers registration. A `%%` comment explains that abilities register through the core Abilities API and the MCP Adapter, when installed, exposes them. Escape characters per CLAUDE.md; run `pnpm contracts:verify`.
 
 ## Tests
 
@@ -489,21 +505,21 @@ Add classes with their public methods: `Ability` (`<<interface>>`), `AbilityRegi
 - `AbilityRegistryTest`: registers the two actions; `register_category()` calls `wp_register_ability_category` with the slug and translated label/description; `register_abilities()` calls `wp_register_ability` once per ability with name, category, `execute_callback === [ $ability, 'execute' ]`, `permission_callback`, `meta.show_in_rest === true`, `meta.mcp.public === true`, `meta.annotations` from the definition; `can_run()` follows the capability (use `Tests\Support\FakeCapability`).
 - One test class per ability: names are valid (`^[a-z0-9-]+/[a-z0-9-]+$`, `battery-surf-bench/` prefix); input schema is an object with `default` `[]` and `additionalProperties` false; annotations match the kind; execute behaviour with a mocked `SessionReader` / `CourseEditor` (Mockery) covering every branch and error code listed above, including: list-runs default limit 20 and `total` vs `returned`; get-run newest when id omitted; drain stats exclude unmeasured runs and list their ids, default `status` finished; trash validates all ids before trashing any; add refuses draft/private/not-found/duplicate/out-of-range, accepts a bundled slug; remove refuses the last page; reset saves the default order.
 - `RunFilterTest`: each filter; date-only boundary in a non-UTC timezone (stub `wp_timezone()` to `new DateTimeZone( 'Europe/Berlin' )`); invalid date error; numeric (not lexical) sort — 9.5 < 12.5 < 22.2; nulls last both directions; tie-breaks.
-- `SessionReaderTest`: normalization (zero → null, levels × 100, '' browser fields → null, setup fields per mode, report URL, outcome sentence per status, `running` → null end_reason); paging calls `get_posts` until a short page; `find()` rejects other post types and non-published; `newest()`.
+- `SessionReaderTest`: normalization (zero → null, levels × 100, '' browser fields → null, setup fields per mode, report URL, outcome sentence per status, `running` → null end_reason); paging calls `get_posts` until a short page; `find()` rejects other post types and non-published; `find_trashed()` finds only trashed runs; `all( 'trash' )`; `newest()`.
 - `CourseEditorTest`: describe() for bundled and user entries; eligibility() reasons in order; position_of(); save() re-reads.
 - `RunOutcomeTest` and the existing `SessionDetailTest` still pass unchanged.
 
 ### e2e
 
 - `tests/e2e/AgentAbilities.spec.mts` (authenticated project; mint the nonce as `SessionPersistence.spec.mts` does). Seed its own data: 3 sessions via `POST /wp-json/wp/v2/bsbench_session` with a unique browser name `E2E-Agent` (one finished measured at rate 9.5, one finished at 12.5, one failed unmeasured with zeros), and two pages via `/wp/v2/pages` (one `publish` "E2E Agent Page", one `draft` "E2E Agent Draft"). Record the course option (`GET /wp/v2/settings` → `bsbench_course_order`) in `beforeAll` and restore it with `POST /wp/v2/settings` in `afterAll`. `test.describe.configure( { mode: 'serial' } )`. Cover:
-  1. `GET /wp-json/wp-abilities/v1/abilities?category=battery-surf-bench` lists exactly the 13 names.
+  1. `GET /wp-json/wp-abilities/v1/abilities?category=battery-surf-bench` lists exactly the 14 names.
   2. `list-runs` (GET `…/abilities/battery-surf-bench/list-runs/run?input[browser]=E2E-Agent&input[order_by]=drain_rate_session`): order 12.5, 9.5, then the unmeasured run with null rate; `total` 3.
   3. `get-run` by id: fields match the seed (percent conversion, null rate, `report_url` contains `page=bsbench-session`).
   4. `get-drain-stats` with `browser=E2E-Agent` and `status[]=finished&status[]=failed`: average 11.0, `runs_measured` 2, `unmeasured_run_ids` = [failed id].
   5. `get-run-readings` returns readings with seconds.
   6. `compare-runs` with two ids keeps the order.
   7. Course: `find-pages` with `search=E2E Agent` reports `can_add` true/false with the not-published reason; `add-course-page` (POST) the published page at position 1 succeeds; adding the draft returns 400 with the `bsbench_page_not_published` code; `move-course-page` to the end; `remove-course-page`; `reset-course` (DELETE) gives `is_default: true`.
-  8. `trash-runs` (POST) the failed run; afterwards `get-run` for it returns 404 `bsbench_run_not_found`.
+  8. `trash-runs` (POST) the failed run; afterwards `get-run` for it returns 404 `bsbench_run_not_found`, `list-runs` with `in_trash` lists it, `restore-runs` (POST) brings it back to `published` and `get-run` reads it again.
   9. MCP: `POST /wp-json/mcp/mcp-adapter-default-server` `initialize` (headers `X-WP-Nonce`, `Content-Type: application/json`, `Accept: application/json, text/event-stream`) → read `mcp-session-id`; `notifications/initialized`; `tools/call` `mcp-adapter-discover-abilities` lists `battery-surf-bench/get-run`; `tools/call` `mcp-adapter-execute-ability` with `{ ability_name: 'battery-surf-bench/get-run', parameters: { id } }` returns the seeded run's id inside the result (parse the text content JSON); `DELETE` the session.
 - `tests/e2e/GatedAccess.unauth.spec.mts`: add that an anonymous `GET /wp-json/wp-abilities/v1/abilities/battery-surf-bench/list-runs/run` is refused (status 401) and `GET /wp-json/wp-abilities/v1/abilities` lists none of ours (401 or no `battery-surf-bench/` names — assert whichever core returns: run it and assert the real status).
 

@@ -400,8 +400,9 @@ classDiagram
 
     class SessionReader {
         +__construct(string post_type, string meta_prefix, string detail_slug, string detail_param)
-        +all() array
+        +all(string status) array
         +find(int id) array
+        +find_trashed(int id) array
         +readings(int id) array
         +newest() array
     }
@@ -469,6 +470,13 @@ classDiagram
     }
 
     class TrashRuns {
+        +__construct(SessionReader reader)
+        +name() string
+        +definition() array
+        +execute(array input) array
+    }
+
+    class RestoreRuns {
         +__construct(SessionReader reader)
         +name() string
         +definition() array
@@ -693,6 +701,9 @@ classDiagram
     GetDrainStats ..|> Ability : implements
     GetDrainStats ..> Annotations : declares annotations via
     TrashRuns ..|> Ability : implements
+    RestoreRuns ..|> Ability : implements
+    RestoreRuns ..> Annotations : declares annotations via
+    RestoreRuns --> SessionReader : reads trashed runs via
     TrashRuns ..> Annotations : declares annotations via
     GetCockpitLink ..|> Ability : implements
     GetCockpitLink ..> Annotations : declares annotations via
