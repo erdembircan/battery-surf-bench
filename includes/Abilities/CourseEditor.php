@@ -167,7 +167,7 @@ class CourseEditor {
 	 * @param int $post_id The post id.
 	 * @return true|WP_Error True when the post is eligible, otherwise an error saying why not.
 	 */
-	public function eligibility( int $post_id ): true|WP_Error {
+	public function eligibility( int $post_id ): bool|WP_Error {
 		$post = get_post( $post_id );
 
 		if ( ! $post instanceof WP_Post ) {
