@@ -103,6 +103,19 @@ Every run, whether it finished, was stopped early, or got interrupted, is stored
 - **Portable data:** each session keeps the browser and OS it ran on, the exact run configuration, and the complete sample log, all available over the site's own REST API for your own analysis.
 - **One-click start:** launch a fresh benchmark straight from the admin bar, anywhere in wp-admin.
 
+## Ask your AI assistant
+
+Battery Surf Bench works with AI agents through the WordPress Abilities API. Connect an assistant such as Claude to your site with the [MCP Adapter](https://wordpress.org/plugins/mcp-adapter/) plugin, and ask it in your own words: "How did my last battery benchmark go?", "Which run drained the battery fastest?", "Compare my Chrome run with my Edge run", or "Add my About page to the course".
+
+- **Your runs, on request.** List and filter runs, find out how one ended, average drain rates, compare runs side by side, and chart a run's battery readings.
+- **The course, in plain words.** Add, move or remove the pages the surfer visits, or reset the course to the bundled pages.
+- **Tidying up.** Clear out failed runs: the assistant shows you which runs before moving them to the trash.
+- **The same gate as the screens.** Every ability needs the `manage_options` capability, so an assistant can do only what its signed-in account can.
+
+The benchmark itself still runs in your browser: the assistant hands you the cockpit link, because only a Chromium browser on the device being tested can read its battery.
+
+To try it locally, `composer serve:agent` starts a fresh Playground site with seeded runs and the MCP Adapter, and prints the command that connects Claude Code to it.
+
 ## Private by design
 
 - **Operator-only, everywhere.** The cockpit, the surf pages, the sessions, the settings: all require WordPress's `manage_options` capability, which administrators have. Public visitors can't reach any of it.

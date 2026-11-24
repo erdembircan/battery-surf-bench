@@ -217,4 +217,26 @@ test.describe( 'REST endpoints reject anonymous requests', () => {
 		} );
 		expect( response.status() ).toBe( 401 );
 	} );
+
+	// The AI agent abilities are served by core's Abilities API. A request for
+	// an ability that doesn't exist would answer 404, so a 401 here proves the
+	// ability is registered AND gated, not merely missing.
+	test( 'running an ability is refused', async ( { request } ) => {
+		const response = await request.get(
+			'/wp-json/wp-abilities/v1/abilities/battery-surf-bench/list-runs/run'
+		);
+		expect( response.status() ).toBe( 401 );
+	} );
+
+	test( 'listing abilities is refused, so none of ours is revealed', async ( {
+		request,
+	} ) => {
+		// Core gates the list on the `read` capability, which an anonymous
+		// visitor lacks.
+		const response = await request.get(
+			'/wp-json/wp-abilities/v1/abilities?category=battery-surf-bench'
+		);
+		expect( response.status() ).toBe( 401 );
+		expect( await response.text() ).not.toContain( 'battery-surf-bench/' );
+	} );
 } );

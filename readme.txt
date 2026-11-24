@@ -81,6 +81,17 @@ Every run, whether it finished, was stopped early, or got interrupted, is stored
 * **Portable data:** each session keeps the browser and OS it ran on, the exact run configuration, and the complete sample log, all available over the site's own REST API for your own analysis.
 * **One-click start:** launch a fresh benchmark straight from the admin bar, anywhere in wp-admin.
 
+= Ask your AI assistant =
+
+Battery Surf Bench works with AI agents through the WordPress Abilities API. Connect an assistant such as Claude to your site with the MCP Adapter plugin, and ask it in your own words: "How did my last battery benchmark go?", "Which run drained the battery fastest?", "Compare my Chrome run with my Edge run", or "Add my About page to the course".
+
+* **Your runs, on request.** The assistant can list and filter your runs, explain how one ended, average your drain rates, compare runs side by side, and chart a run's battery readings.
+* **The course, in plain words.** Add, move or remove the pages the surfer visits, or reset the course to the bundled pages.
+* **Tidying up.** Ask it to clear out your failed runs, and it shows you which runs before moving them to the trash.
+* **The same gate as the screens.** Every ability needs the `manage_options` capability, like the plugin's own screens, so an assistant can do only what its signed-in account can.
+
+The benchmark itself still runs in your browser. When you ask for one, the assistant gives you the cockpit link, because only a Chromium browser on the device being tested can read its battery.
+
 = Private by design =
 
 * **Operator-only, everywhere.** The cockpit, the surf pages, the sessions, the settings: all require WordPress's `manage_options` capability, which administrators have. Public visitors can't reach any of it.
@@ -188,6 +199,10 @@ The plugin itself sends no telemetry, analytics or phone-home requests. Its one 
 
 Because real-world browsing includes video, and video is one of the heaviest things a browser asks of a battery; leaving it out would understate the drain. The video plays in YouTube's privacy-enhanced embed: it never autoplays, it stays muted, and the surfer decides when to watch and when to move on. It is only ever shown to the operator running a benchmark, and a YouTube embed on your own selected surf pages behaves the same way during a run.
 
+= Can an AI assistant use Battery Surf Bench? =
+
+Yes. The plugin registers its abilities with the WordPress Abilities API, which is part of WordPress. Install the MCP Adapter plugin from WordPress.org, create an application password for an administrator, and connect your assistant to the site as the MCP Adapter's documentation describes. The assistant can then read your runs, change the course and tidy up old runs, under the same `manage_options` gate as the plugin's own screens. The plugin itself contacts no AI service: your data reaches only the assistant you connect.
+
 == Screenshots ==
 
 1. The cockpit mid-run: the surfer reads its way through a bundled article while the cockpit's header tracks the battery, both drain rates and the projected full-battery runtime.
@@ -197,6 +212,9 @@ Because real-world browsing includes video, and video is one of the heaviest thi
 5. The settings screen: choose the pages the surfer visits from the five bundled pages and your own posts and pages, and put them in order.
 
 == Changelog ==
+
+= Unreleased =
+* New: AI assistants can read your benchmark runs, compare and average them, and manage the surf course through the WordPress Abilities API and the MCP Adapter plugin.
 
 = 1.1.0 =
 * New: the plugin page can start Battery Surf Bench in WordPress Playground, right in your browser.
