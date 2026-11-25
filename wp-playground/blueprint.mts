@@ -19,8 +19,9 @@ import { agentSeedPhp } from './AgentSeed.mts';
  *
  * Set `BSB_PLAYGROUND_WP` to boot another WordPress version instead, such as
  * `beta` for the newest beta or release candidate, before a major release
- * lands: `BSB_PLAYGROUND_WP=beta pnpm test:e2e`. It only reaches sites that
- * download WordPress, so the persistent dev site keeps the version it has.
+ * lands: `BSB_PLAYGROUND_WP=beta pnpm test:e2e`. It reaches only the sites
+ * `start-test-server.mts` starts, which download WordPress on every boot, so
+ * the persistent dev site keeps the version it has.
  */
 const base = {
 	preferredVersions: {

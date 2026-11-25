@@ -86,7 +86,9 @@ function preferredWordPressVersion(
  * handle requests, a stdout marker carrying the bound port is emitted so
  * Playwright's `webServer.wait.stdout` can both detect readiness and capture
  * the port for its own config re-evaluation (see
- * `PLAYGROUND_TEST_PORT_ENV_VAR` in `config.mts`). The blueprint's WordPress version is passed on to the CLI as well, because the CLI picks the WordPress download from its own `wp` option and never from the blueprint.
+ * `PLAYGROUND_TEST_PORT_ENV_VAR` in `config.mts`). The blueprint's WordPress
+ * version is passed on to the CLI as well, because the CLI picks the WordPress
+ * download from its own `wp` option and never from the blueprint.
  *
  * @param options             - Server options.
  * @param options.port        - Port to listen on.
