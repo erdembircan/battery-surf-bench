@@ -60,6 +60,24 @@ async function waitForReady(
 }
 
 /**
+ * Read the WordPress version a blueprint prefers.
+ *
+ * @param blueprint - The blueprint declaration to read.
+ * @return The blueprint's preferred WordPress version, or undefined when it names none.
+ */
+function preferredWordPressVersion(
+	blueprint: BlueprintDeclaration
+): string | undefined {
+	if ( ! ( 'preferredVersions' in blueprint ) ) {
+		return undefined;
+	}
+
+	const version = blueprint.preferredVersions?.wp;
+
+	return typeof version === 'string' ? version : undefined;
+}
+
+/**
  * Start a non-persistent WordPress Playground server.
  *
  * Nothing is written to disk. The plugin folder (the repository by default, or
@@ -68,7 +86,7 @@ async function waitForReady(
  * handle requests, a stdout marker carrying the bound port is emitted so
  * Playwright's `webServer.wait.stdout` can both detect readiness and capture
  * the port for its own config re-evaluation (see
- * `PLAYGROUND_TEST_PORT_ENV_VAR` in `config.mts`).
+ * `PLAYGROUND_TEST_PORT_ENV_VAR` in `config.mts`). The blueprint's WordPress version is passed on to the CLI as well, because the CLI picks the WordPress download from its own `wp` option and never from the blueprint.
  *
  * @param options             - Server options.
  * @param options.port        - Port to listen on.
@@ -94,6 +112,7 @@ export async function startTestServer( {
 		// resolves to `min(6, cpus - 1)` -- which drops to 1 on a 2-CPU CI
 		// runner and hangs boot. An explicit count bypasses that CPU cap.
 		workers: 6,
+		wp: preferredWordPressVersion( blueprint ),
 		blueprint,
 		mount: [
 			{ hostPath: pluginDir, vfsPath: PLUGIN_VFS_PATH },
