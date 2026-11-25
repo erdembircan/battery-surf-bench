@@ -16,11 +16,16 @@ import { agentSeedPhp } from './AgentSeed.mts';
  * a release lands while the server is off, the site boots on the previous
  * version and updates itself once its twice-daily update check comes due. No
  * extra libraries are requested so boot never depends on fetching wp-cli.phar.
+ *
+ * Set `BSB_PLAYGROUND_WP` to boot another WordPress version instead, such as
+ * `beta` for the newest beta or release candidate, before a major release
+ * lands: `BSB_PLAYGROUND_WP=beta pnpm test:e2e`. It only reaches sites that
+ * download WordPress, so the persistent dev site keeps the version it has.
  */
 const base = {
 	preferredVersions: {
 		php: '8.3' as const,
-		wp: 'latest',
+		wp: process.env.BSB_PLAYGROUND_WP || 'latest',
 	},
 };
 

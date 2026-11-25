@@ -24,7 +24,7 @@
  * alone, since they start from a fresh English install on every run.
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import type {
 	BlueprintDeclaration,
 	BlueprintV1Declaration,
@@ -266,6 +266,44 @@ describe( 'e2eBlueprint', () => {
 		expect( blueprint.steps ).toEqual(
 			expect.arrayContaining( mcpAdapterStep )
 		);
+	} );
+} );
+
+describe( 'WordPress version of the e2e blueprint', () => {
+	afterEach( () => {
+		vi.unstubAllEnvs();
+		vi.resetModules();
+	} );
+
+	/**
+	 * Load a fresh copy of the blueprint module, so it reads the environment
+	 * as it stands now.
+	 *
+	 * @return The e2e blueprint's preferred WordPress version.
+	 */
+	async function loadWordPressVersion() {
+		vi.resetModules();
+		const module = await import( './blueprint.mts' );
+
+		return asV1( module.e2eBlueprint ).preferredVersions?.wp;
+	}
+
+	it( 'boots the latest WordPress when BSB_PLAYGROUND_WP is not set', async () => {
+		vi.stubEnv( 'BSB_PLAYGROUND_WP', undefined );
+
+		expect( await loadWordPressVersion() ).toBe( 'latest' );
+	} );
+
+	it( 'boots the WordPress version BSB_PLAYGROUND_WP names', async () => {
+		vi.stubEnv( 'BSB_PLAYGROUND_WP', 'beta' );
+
+		expect( await loadWordPressVersion() ).toBe( 'beta' );
+	} );
+
+	it( 'boots the latest WordPress when BSB_PLAYGROUND_WP is empty', async () => {
+		vi.stubEnv( 'BSB_PLAYGROUND_WP', '' );
+
+		expect( await loadWordPressVersion() ).toBe( 'latest' );
 	} );
 } );
 
