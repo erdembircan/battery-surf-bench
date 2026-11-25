@@ -341,7 +341,7 @@ export const batteryStore: StorePart = {
 		 * override changes, so flipping the toggle takes effect immediately —
 		 * including triggering the plugged auto-stop mid-run or unlocking an
 		 * unsupported browser — instead of waiting for the next real battery
-		 * event. Bound via `data-wp-watch--devtools-battery`; reading
+		 * event. Bound via `data-wp-watch---devtools-battery`; reading
 		 * `state.devtools?.battery` (through {@link currentOverride}) is what
 		 * makes this re-run reactively. In production, with no dev-tools module
 		 * loaded, `state.devtools` is undefined and this reads it once and never

@@ -214,7 +214,7 @@ export const devtoolsShellStore: StorePart = {
 	callbacks: {
 		/**
 		 * Persists the devtools slice's persisted subset on every change. Bound
-		 * via `data-wp-watch--devtools-persist` on the panel; reading the slice
+		 * via `data-wp-watch---devtools-persist` on the panel; reading the slice
 		 * here is what makes it re-run reactively whenever any field changes.
 		 * Only `open` and `battery` are written; the discharge sim and the
 		 * whole Surf tool (its armed `sterile` flag included) are

@@ -13,7 +13,7 @@
  * `devtoolsReset` does not touch `state.devtools.open` — the panel stays open
  * so the maintainer sees every field return to its default — and never calls
  * `callbacks.devtoolsPersist` itself: that callback is bound via
- * `data-wp-watch--devtools-persist` on the panel and already re-runs
+ * `data-wp-watch---devtools-persist` on the panel and already re-runs
  * reactively whenever the state it reads changes, so an explicit persistence
  * call here would be redundant.
  */
