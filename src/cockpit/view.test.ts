@@ -1657,7 +1657,7 @@ describe( 'battery-surf-bench/cockpit view store', () => {
 				expect( mocks.context.running ).toBe( true );
 
 				// Arming the override after the fact is what the
-				// `data-wp-watch--devtools-battery` directive re-runs on.
+				// `data-wp-watch---devtools-battery` directive re-runs on.
 				setOverride( { charging: true, level: null } );
 				mocks.config!.callbacks.syncBatteryOverride();
 

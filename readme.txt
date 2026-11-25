@@ -2,7 +2,7 @@
 Contributors: erdembircan
 Tags: battery, benchmark, performance, power, testing
 Requires at least: 7.0
-Tested up to: 7.1
+Tested up to: 7.2
 Requires PHP: 8.1
 Stable tag: 1.1.0
 License: GPLv2 or later
@@ -216,6 +216,7 @@ Yes. The plugin registers its abilities with the WordPress Abilities API, which 
 = Unreleased =
 * New: AI assistants can read your benchmark runs, compare and average them, move runs to the trash and back, and manage the surf course, through the WordPress Abilities API and the MCP Adapter plugin.
 * Fix: the readme now says what plugging in mid-run does: it ends the run, which is saved as interrupted.
+* Tested with WordPress 7.2.
 
 = 1.1.0 =
 * New: the plugin page can start Battery Surf Bench in WordPress Playground, right in your browser.
